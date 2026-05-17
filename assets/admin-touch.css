@@ -863,3 +863,11 @@ details.form-advanced[open] summary:before{transform:rotate(90deg)}
   font-weight:900;
   text-transform:uppercase;
 }
+
+
+/* v26 event access landing/admin link polish */
+.form-field input[readonly]{
+  color:#bfdbfe;
+  background:rgba(59,130,246,.10);
+  border-color:rgba(147,197,253,.35);
+}

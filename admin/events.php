@@ -112,6 +112,7 @@ admin_header('Events - DJ Portal');
           <div class="event-row-title">
             <strong><?= h($e['event_name']) ?></strong>
             <span><?= h($e['venue_name']) ?></span>
+            <?php if (!empty($e['event_code'])): ?><span>Code: <?= h($e['event_code']) ?></span><?php endif; ?>
           </div>
 
           <div class="event-row-close">
@@ -124,6 +125,12 @@ admin_header('Events - DJ Portal');
               <span class="big-icon">⚙</span>
               <span>Edit</span>
             </a>
+            <?php if (!empty($e['event_code'])): ?>
+              <a class="action-tile duplicate" href="/event.php?code=<?= h($e['event_code']) ?>" target="_blank">
+                <span class="big-icon">🔗</span>
+                <span>Guest</span>
+              </a>
+            <?php endif; ?>
 
             <?php if ($is_current): ?>
               <div class="current-label">Current</div>

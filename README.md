@@ -1,22 +1,23 @@
-# Dance Thru the Decades Portal v25 - Requests No Redirect Fix
+# Dance Thru the Decades Portal v26 - Event Access Landing
 
 ## Changes
 
-- Requests page no longer redirects back to Events when `active_event()` does not return an event.
-- Requests page now loads:
-  1. Event from `?event=ID`, if supplied
-  2. Active event from the database
-  3. Latest event as fallback
-- Added/kept dedicated Requests page:
-  - `/admin/requests.php`
-- `/admin/index.php` also contains the Requests dashboard as a fallback.
-- Event page Requests tile points to `/admin/requests.php`.
-- POST status updates return to `/admin/requests.php`.
+Stage 2A and 2B only.
+
+- Adds event access fields:
+  - event_code
+  - guest_token
+- Adds public event landing page:
+  - /event.php?code=ABC123
+- Add/Edit Event page shows the event code and guest link when available.
+- Events page shows event code and guest link where available.
+- Existing request flow is not gated yet.
+- No QR code generation yet.
 
 ## SQL
 
-No SQL to run.
+Run the SQL shown in the ChatGPT response.
 
 ## Suggested Git commit title
 
-v25 Requests No Redirect Fix
+v26 Event Access Landing
