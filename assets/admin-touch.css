@@ -63,13 +63,8 @@ a{color:inherit}
 .touch-top-actions{display:flex;justify-content:flex-end;gap:10px}
 .touch-icon-btn{min-width:48px;height:48px;display:grid;place-items:center;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.055);color:#fff;text-decoration:none;font-weight:800}
 
-.touch-wrap{
-  width:min(1500px,100%);
-  margin:0 auto;
-  padding:20px;
-}
+.touch-wrap{width:min(1500px,100%);margin:0 auto;padding:20px}
 
-/* fixed-width top touchscreen tiles instead of stretched full-width blocks */
 .touch-tile-nav{
   display:flex;
   flex-wrap:wrap;
@@ -198,10 +193,10 @@ a{color:inherit}
 
 .request-list{display:grid;gap:12px;padding:14px}
 
-/* action column widened so reject button is not clipped */
+/* v17 grouped queue card */
 .request-card{
   display:grid;
-  grid-template-columns:78px 120px minmax(210px,1.05fr) minmax(170px,.8fr) 96px minmax(390px,auto);
+  grid-template-columns:82px minmax(240px,1fr) minmax(260px,1.1fr) 100px 210px;
   gap:14px;
   align-items:center;
   padding:14px;
@@ -217,26 +212,83 @@ a{color:inherit}
 .request-card.status-played{border-left:4px solid var(--green)}
 .request-card.status-duplicate{border-left:4px solid var(--blue)}
 .request-card.status-rejected{border-left:4px solid var(--red)}
+
 .req-time{color:#f97316;font-size:18px;font-weight:900;line-height:1.05}
 .req-time small{display:block;color:#fb923c;font-size:12px;margin-top:3px}
-.req-guest{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700}
-.req-person{width:34px;height:34px;border-radius:999px;display:grid;place-items:center;color:#0f172a;background:#cbd5e1;font-weight:900}
+
 .req-track-title{font-size:20px;font-weight:900;letter-spacing:-.035em}
 .req-track-artist{color:#cbd5e1;margin-top:4px}
-.req-message{color:#e5e7eb}
 
-/* four buttons remain on one line where possible */
+.group-count{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  margin-top:8px;
+  padding:5px 9px;
+  border:1px solid rgba(59,130,246,.45);
+  border-radius:999px;
+  background:rgba(59,130,246,.14);
+  color:#93c5fd;
+  font-size:12px;
+  font-weight:900;
+  text-transform:uppercase;
+}
+
+.group-messages{
+  display:grid;
+  gap:8px;
+}
+
+.group-message{
+  display:grid;
+  grid-template-columns:32px 1fr;
+  gap:10px;
+  align-items:start;
+  padding:8px;
+  border:1px solid rgba(148,163,184,.12);
+  border-radius:12px;
+  background:rgba(255,255,255,.035);
+}
+
+.req-person{
+  width:32px;
+  height:32px;
+  border-radius:999px;
+  display:grid;
+  place-items:center;
+  color:#0f172a;
+  background:#cbd5e1;
+  font-weight:900;
+}
+
+.message-person{
+  font-weight:900;
+  color:#fff;
+  line-height:1.15;
+}
+
+.message-text{
+  color:#e5e7eb;
+  margin-top:3px;
+}
+
+.message-time{
+  color:#93c5fd;
+  font-size:11px;
+  margin-top:3px;
+}
+
 .req-actions{
   display:grid;
-  grid-template-columns:repeat(4,minmax(78px,1fr));
+  grid-template-columns:1fr 1fr;
   gap:8px;
-  min-width:360px;
+  min-width:0;
 }
 
 .req-action-form{display:block}
 
 .action-tile{
-  min-height:64px;
+  min-height:58px;
   width:100%;
   display:flex;
   flex-direction:column;
@@ -246,7 +298,7 @@ a{color:inherit}
   border-radius:12px;
   font-family:inherit;
   font-weight:900;
-  font-size:11px;
+  font-size:10px;
   line-height:1.05;
   text-transform:uppercase;
   cursor:pointer;
@@ -254,11 +306,11 @@ a{color:inherit}
   background:rgba(255,255,255,.055);
   text-decoration:none;
   text-align:center;
-  padding:8px 6px;
+  padding:7px 5px;
   white-space:nowrap;
 }
 
-.action-tile .big-icon{font-size:22px;line-height:1}
+.action-tile .big-icon{font-size:20px;line-height:1}
 .action-tile.played{border:1px solid rgba(34,197,94,.65);color:#4ade80}
 .action-tile.maybe{border:1px solid rgba(234,179,8,.7);color:#fde047}
 .action-tile.duplicate{border:1px solid rgba(59,130,246,.7);color:#60a5fa}
@@ -273,7 +325,7 @@ a{color:inherit}
 .empty-queue{padding:26px;text-align:center;color:var(--muted)}
 .last-updated{padding:12px 20px 18px;color:#93c5fd;text-align:center;font-size:13px}
 
-/* polished Add/Edit Event form retained */
+/* retained form support from v16 */
 .event-form-shell{display:grid;gap:18px}
 .form-section{border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.035));overflow:hidden}
 .form-section-header{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.035)}
@@ -290,10 +342,7 @@ a{color:inherit}
 .form-field.span-3{grid-column:span 3}
 .form-field label{color:#dbeafe;font-size:13px;font-weight:900;letter-spacing:.01em}
 .form-field small{color:var(--muted);font-size:12px}
-
-.form-field input,
-.form-field select,
-.form-field textarea{
+.form-field input,.form-field select,.form-field textarea{
   width:100%;
   min-height:56px;
   border:1px solid rgba(148,163,184,.28);
@@ -307,20 +356,15 @@ a{color:inherit}
   box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
   color-scheme:dark;
 }
-
 .form-field textarea{min-height:112px;padding:14px 15px;resize:vertical}
 .form-field select option{color:#111827;background:#fff}
 .form-field input:focus,.form-field select:focus,.form-field textarea:focus{border-color:rgba(59,130,246,.85);box-shadow:0 0 0 3px rgba(59,130,246,.18)}
-
-.form-field input[type="date"],
-.form-field input[type="time"],
-.form-field input[type="datetime-local"]{
+.form-field input[type="date"],.form-field input[type="time"],.form-field input[type="datetime-local"]{
   background:
     linear-gradient(90deg,rgba(255,255,255,.08) 0%,rgba(255,255,255,.08) calc(100% - 58px),rgba(59,130,246,.22) calc(100% - 58px),rgba(59,130,246,.22) 100%);
   border-color:rgba(147,197,253,.42);
   padding-right:58px;
 }
-
 .form-field input[type="date"]::-webkit-calendar-picker-indicator,
 .form-field input[type="time"]::-webkit-calendar-picker-indicator,
 .form-field input[type="datetime-local"]::-webkit-calendar-picker-indicator{
@@ -330,16 +374,13 @@ a{color:inherit}
   width:22px;
   height:22px;
 }
-
 .form-alert{border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.12);color:#fecaca;border-radius:15px;padding:14px 16px;font-weight:800}
 .form-check-card{display:flex;gap:12px;align-items:center;min-height:64px;padding:13px 15px;border:1px solid rgba(148,163,184,.25);border-radius:15px;background:rgba(255,255,255,.055)}
 .form-check-card input{width:22px;height:22px;accent-color:#3b82f6}
 .form-check-card strong{display:block;font-size:15px}
 .form-check-card span{display:block;color:var(--muted);font-size:12px}
-
 .form-actions{position:sticky;bottom:0;z-index:9;display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap;padding:16px 18px;border:1px solid var(--line);border-radius:18px;background:rgba(4,10,18,.9);backdrop-filter:blur(14px);box-shadow:0 -12px 32px rgba(0,0,0,.32)}
 .form-actions .touch-btn{min-width:150px}
-
 details.form-advanced{border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.035);overflow:hidden}
 details.form-advanced summary{cursor:pointer;padding:16px 18px;font-weight:900;color:#bfdbfe;list-style:none}
 details.form-advanced summary::-webkit-details-marker{display:none}
@@ -355,12 +396,11 @@ details.form-advanced[open] summary:before{transform:rotate(90deg)}
 
 @media(max-width:1380px){
   .request-card{
-    grid-template-columns:70px 110px 1fr 1fr;
+    grid-template-columns:82px minmax(210px,1fr) minmax(260px,1.1fr);
   }
   .req-status{grid-column:1/2}
   .req-actions{
     grid-column:2/-1;
-    min-width:0;
   }
 }
 

@@ -9,12 +9,18 @@ if (!$event) {
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_action'], $_POST['request_id'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_action'], $_POST['group_key'])) {
     $allowed = ['played','rejected','duplicate','maybe','pending'];
     $status = in_array($_POST['request_action'], $allowed, true) ? $_POST['request_action'] : 'pending';
+    $group_key = (string)$_POST['group_key'];
 
-    $stmt = db()->prepare("UPDATE song_requests SET status = ? WHERE id = ? AND event_id = ?");
-    $stmt->execute([$status, (int)$_POST['request_id'], (int)$event['id']]);
+    $stmt = db()->prepare("
+        UPDATE song_requests 
+        SET status = ? 
+        WHERE event_id = ?
+        AND CONCAT(LOWER(TRIM(song_title)), '|', LOWER(TRIM(artist))) = ?
+    ");
+    $stmt->execute([$status, (int)$event['id'], $group_key]);
 
     header('Location: /admin/?event=' . (int)$event['id']);
     exit;
@@ -46,6 +52,50 @@ $requests = $stmt->fetchAll();
 $counts = ['pending'=>0,'played'=>0,'maybe'=>0,'duplicate'=>0,'rejected'=>0];
 foreach ($requests as $r) {
     if (isset($counts[$r['status']])) $counts[$r['status']]++;
+}
+
+$groups = [];
+foreach ($requests as $r) {
+    $key = strtolower(trim($r['song_title'])) . '|' . strtolower(trim($r['artist']));
+
+    if (!isset($groups[$key])) {
+        $groups[$key] = [
+            'key' => $key,
+            'song_title' => $r['song_title'],
+            'artist' => $r['artist'],
+            'status' => $r['status'],
+            'created_at' => $r['created_at'],
+            'items' => [],
+        ];
+    }
+
+    $groups[$key]['items'][] = $r;
+
+    // Queue status for the group follows the highest priority status in the group.
+    $priority = ['pending' => 1, 'maybe' => 2, 'duplicate' => 3, 'played' => 4, 'rejected' => 5];
+    if (($priority[$r['status']] ?? 9) < ($priority[$groups[$key]['status']] ?? 9)) {
+        $groups[$key]['status'] = $r['status'];
+    }
+
+    if (strtotime($r['created_at']) < strtotime($groups[$key]['created_at'])) {
+        $groups[$key]['created_at'] = $r['created_at'];
+    }
+}
+
+$grouped_requests = array_values($groups);
+
+if ($sort === 'queue') {
+    usort($grouped_requests, function($a, $b) {
+        $priority = ['pending' => 1, 'maybe' => 2, 'duplicate' => 3, 'played' => 4, 'rejected' => 5];
+        $pa = $priority[$a['status']] ?? 9;
+        $pb = $priority[$b['status']] ?? 9;
+        if ($pa !== $pb) return $pa <=> $pb;
+        return strtotime($a['created_at']) <=> strtotime($b['created_at']);
+    });
+} elseif ($sort === 'newest') {
+    usort($grouped_requests, fn($a, $b) => strtotime($b['created_at']) <=> strtotime($a['created_at']));
+} else {
+    usort($grouped_requests, fn($a, $b) => strtotime($a['created_at']) <=> strtotime($b['created_at']));
 }
 
 $events = db()->query("SELECT id, event_name, venue_name, event_date, start_time, end_time, is_active FROM events ORDER BY event_date DESC, id DESC LIMIT 40")->fetchAll();
@@ -110,7 +160,7 @@ admin_header('DJ Portal');
       <div class="touch-panel-header">
         <div>
           <h2 class="touch-panel-title">Request Queue</h2>
-          <p class="touch-subtitle">Queue view shows actionable requests first. Played and rejected items move lower down.</p>
+          <p class="touch-subtitle">Matching song title and artist requests are grouped together.</p>
         </div>
       </div>
 
@@ -137,27 +187,37 @@ admin_header('DJ Portal');
       </form>
 
       <div class="request-list">
-        <?php foreach ($requests as $r): ?>
-          <article class="request-card status-<?= h($r['status']) ?>">
+        <?php foreach ($grouped_requests as $group): ?>
+          <?php $first = $group['items'][0]; ?>
+          <article class="request-card status-<?= h($group['status']) ?>">
             <div class="req-time">
-              <?= h(date('H:i', strtotime($r['created_at']))) ?>
-              <small><?= h(date('d M', strtotime($r['created_at']))) ?></small>
-            </div>
-
-            <div class="req-guest">
-              <span class="req-person"><?= h(strtoupper(substr($r['guest_name'], 0, 1))) ?></span>
-              <span><?= h($r['guest_name']) ?></span>
+              <?= h(date('H:i', strtotime($group['created_at']))) ?>
+              <small><?= h(date('d M', strtotime($group['created_at']))) ?></small>
             </div>
 
             <div>
-              <div class="req-track-title"><?= h($r['song_title']) ?></div>
-              <div class="req-track-artist"><?= h($r['artist']) ?></div>
+              <div class="req-track-title"><?= h($group['song_title']) ?></div>
+              <div class="req-track-artist"><?= h($group['artist']) ?></div>
+              <div class="group-count">
+                <?= count($group['items']) ?> request<?= count($group['items']) === 1 ? '' : 's' ?>
+              </div>
             </div>
 
-            <div class="req-message"><?= nl2br(h($r['dedication'] ?: '—')) ?></div>
+            <div class="group-messages">
+              <?php foreach ($group['items'] as $item): ?>
+                <div class="group-message">
+                  <span class="req-person"><?= h(strtoupper(substr($item['guest_name'], 0, 1))) ?></span>
+                  <div>
+                    <div class="message-person"><?= h($item['guest_name']) ?></div>
+                    <div class="message-text"><?= nl2br(h($item['dedication'] ?: '—')) ?></div>
+                    <div class="message-time"><?= h(date('H:i', strtotime($item['created_at']))) ?></div>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+            </div>
 
             <div class="req-status">
-              <span class="status-badge <?= h(status_label($r['status'])) ?>"><?= h($r['status']) ?></span>
+              <span class="status-badge <?= h(status_label($group['status'])) ?>"><?= h($group['status']) ?></span>
             </div>
 
             <div class="req-actions">
@@ -171,7 +231,7 @@ admin_header('DJ Portal');
               ?>
               <?php foreach ($actions as $action => $meta): ?>
                 <form method="post" class="req-action-form">
-                  <input type="hidden" name="request_id" value="<?= (int)$r['id'] ?>">
+                  <input type="hidden" name="group_key" value="<?= h($group['key']) ?>">
                   <button class="action-tile <?= h($action) ?>" name="request_action" value="<?= h($action) ?>">
                     <span class="big-icon"><?= h($meta['icon']) ?></span>
                     <span><?= h($meta['label']) ?></span>
@@ -182,7 +242,7 @@ admin_header('DJ Portal');
           </article>
         <?php endforeach; ?>
 
-        <?php if (!$requests): ?>
+        <?php if (!$grouped_requests): ?>
           <div class="empty-queue">No requests yet.</div>
         <?php endif; ?>
       </div>
