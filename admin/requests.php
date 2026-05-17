@@ -557,8 +557,10 @@ admin_header('DJ Portal');
             <div>
               <div class="req-track-title"><?= h($group['song_title']) ?></div>
               <div class="req-track-artist"><?= h($group['artist']) ?></div>
-              <div class="group-count">
-                <?= count($group['items']) ?> request<?= count($group['items']) === 1 ? '' : 's' ?>
+              <div class="group-count-pill-row">
+                <span class="group-count">
+                  <?= count($group['items']) ?> request<?= count($group['items']) === 1 ? '' : 's' ?>
+                </span>
                 <span class="status-badge inline-status <?= h(status_label($group['status'])) ?>"><?= h($group['status']) ?></span>
               </div>
             </div>

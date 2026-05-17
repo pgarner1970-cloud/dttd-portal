@@ -3431,3 +3431,33 @@ body.modal-open{ overflow:hidden; }
 .req-status:empty{
   display:none !important;
 }
+
+
+/* v83 separate request count and status pills */
+.group-count-pill-row{
+  display:flex !important;
+  align-items:center !important;
+  gap:8px !important;
+  flex-wrap:wrap !important;
+  margin-top:8px !important;
+}
+
+.group-count-pill-row .group-count{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:auto !important;
+}
+
+.group-count-pill-row .inline-status{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  margin-left:0 !important;
+  vertical-align:middle !important;
+  font-size:11px !important;
+  line-height:1 !important;
+  padding:4px 9px !important;
+  min-height:22px !important;
+  white-space:nowrap !important;
+}
