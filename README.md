@@ -1,16 +1,15 @@
-# Dance Thru the Decades Portal v17 - Request Queue Grouping
+# Dance Thru the Decades Portal v18 - Event Edit Cleanup
 
 ## Changes
 
-- Groups matching song requests by exact normalised song title + artist.
-- Example grouping:
-  - `Take on me` + `Ahha`
-  - `take on me` + `ahha`
-- Shows one card per song/artist group.
-- Lists each individual guest/dedication inside the grouped card.
-- Shows request count per grouped song.
-- Action buttons update the whole grouped song request.
-- Request buttons now use a safer 2x2 layout so Reject is not clipped.
+- Fixed date/time picker icon alignment inside the lighter right-hand input area.
+- Improved date/time picker icon visibility in the dark theme.
+- Removed unnecessary footer buttons from Add/Edit Event:
+  - View Requests
+  - Guest Link
+- Event edit footer now only shows:
+  - Cancel
+  - Save Event
 
 ## SQL
 
@@ -18,4 +17,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v17 Request Queue Grouping
+v18 Event Edit Cleanup

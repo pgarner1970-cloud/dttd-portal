@@ -430,3 +430,42 @@ details.form-advanced[open] summary:before{transform:rotate(90deg)}
   .form-actions{position:relative;justify-content:stretch}
   .form-actions .touch-btn{width:100%;min-width:0}
 }
+
+
+/* v18 picker icon alignment/visibility cleanup */
+.form-field input[type="date"],
+.form-field input[type="time"],
+.form-field input[type="datetime-local"]{
+  position:relative;
+  background:
+    linear-gradient(90deg,
+      rgba(255,255,255,.08) 0%,
+      rgba(255,255,255,.08) calc(100% - 58px),
+      rgba(59,130,246,.30) calc(100% - 58px),
+      rgba(59,130,246,.30) 100%) !important;
+  border-color:rgba(147,197,253,.52) !important;
+  padding-right:58px !important;
+}
+
+.form-field input[type="date"]::-webkit-calendar-picker-indicator,
+.form-field input[type="time"]::-webkit-calendar-picker-indicator,
+.form-field input[type="datetime-local"]::-webkit-calendar-picker-indicator{
+  position:absolute;
+  right:17px;
+  top:50%;
+  transform:translateY(-50%);
+  margin:0;
+  padding:0;
+  width:24px;
+  height:24px;
+  opacity:1;
+  cursor:pointer;
+  filter:invert(1) brightness(3.2) contrast(1.4) drop-shadow(0 0 5px rgba(147,197,253,.95)) !important;
+}
+
+.form-field input[type="date"]:hover,
+.form-field input[type="time"]:hover,
+.form-field input[type="datetime-local"]:hover{
+  border-color:rgba(147,197,253,.78) !important;
+  box-shadow:0 0 0 2px rgba(59,130,246,.12);
+}

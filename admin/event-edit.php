@@ -262,10 +262,6 @@ admin_header($edit ? 'Edit Event - DJ Portal' : 'Add Event - DJ Portal');
 
         <div class="form-actions">
           <a class="touch-btn" href="/admin/events.php">Cancel</a>
-          <?php if ($edit): ?>
-            <a class="touch-btn green" href="/admin/?event=<?= (int)$edit['id'] ?>">View Requests</a>
-            <a class="touch-btn purple" href="/request.php?event=<?= (int)$edit['id'] ?>" target="_blank">Guest Link</a>
-          <?php endif; ?>
           <button class="touch-btn blue" type="submit"><?= $edit ? 'Save Event' : 'Create Event' ?></button>
         </div>
       </form>
