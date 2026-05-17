@@ -4117,3 +4117,53 @@ body.modal-open{ overflow:hidden; }
   padding-top:8px !important;
   padding-bottom:8px !important;
 }
+
+
+/* v92 event image upload */
+.event-image-field input[type="file"]{
+  width:100%;
+  padding:12px;
+  border:1px solid rgba(148,163,184,.24);
+  border-radius:14px;
+  background:rgba(255,255,255,.055);
+  color:#e5e7eb;
+}
+
+.event-image-field small{
+  display:block;
+  margin-top:6px;
+  color:#94a3b8;
+}
+
+.event-image-preview{
+  margin:8px 0 10px;
+  width:160px;
+  max-width:100%;
+  border:1px solid rgba(148,163,184,.22);
+  border-radius:14px;
+  overflow:hidden;
+  background:rgba(15,23,42,.7);
+}
+
+.event-image-preview img{
+  display:block;
+  width:100%;
+  height:auto;
+}
+
+.event-card-flyer{
+  width:92px;
+  height:92px;
+  border-radius:14px;
+  overflow:hidden;
+  border:1px solid rgba(148,163,184,.22);
+  background:rgba(15,23,42,.7);
+  margin-bottom:10px;
+}
+
+.event-card-flyer img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
