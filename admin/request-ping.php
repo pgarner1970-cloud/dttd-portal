@@ -5,11 +5,6 @@ header('Content-Type: application/json; charset=utf-8');
 
 $event_id = !empty($_GET['event']) ? (int)$_GET['event'] : 0;
 
-if (!$event_id && function_exists('dttd_get_calculated_current_event')) {
-    $current_event = dttd_get_calculated_current_event();
-    $event_id = $current_event ? (int)$current_event['id'] : 0;
-}
-
 if (!$event_id) {
     echo json_encode([
         'ok' => false,
@@ -19,9 +14,9 @@ if (!$event_id) {
 }
 
 try {
-    $stmt = db()->prepare("SELECT * FROM song_requests WHERE event_id = ? ORDER BY id ASC");
-    $stmt->execute([$event_id]);
-    $rows = $stmt->fetchAll();
+    $total_stmt = db()->prepare("SELECT COUNT(*) FROM song_requests WHERE event_id = ?");
+    $total_stmt->execute([$event_id]);
+    $total = (int)$total_stmt->fetchColumn();
 
     $status_counts = [
         'pending' => 0,
@@ -31,33 +26,24 @@ try {
         'rejected' => 0,
     ];
 
-    $parts = [];
+    $status_stmt = db()->prepare("
+        SELECT LOWER(COALESCE(status, 'pending')) AS status, COUNT(*) AS total
+        FROM song_requests
+        WHERE event_id = ?
+        GROUP BY LOWER(COALESCE(status, 'pending'))
+    ");
+    $status_stmt->execute([$event_id]);
 
-    foreach ($rows as $row) {
-        $status = strtolower((string)($row['status'] ?? 'pending'));
-
-        if (!array_key_exists($status, $status_counts)) {
-            $status_counts[$status] = 0;
-        }
-
-        $status_counts[$status]++;
-
-        $parts[] = implode('|', [
-            (int)($row['id'] ?? 0),
-            $status,
-            (string)($row['guest_name'] ?? $row['guest'] ?? ''),
-            (string)($row['song_title'] ?? $row['song'] ?? $row['track'] ?? ''),
-            (string)($row['artist'] ?? ''),
-            (string)($row['message'] ?? ''),
-        ]);
+    foreach ($status_stmt->fetchAll() as $row) {
+        $status = (string)$row['status'];
+        $status_counts[$status] = (int)$row['total'];
     }
 
     echo json_encode([
         'ok' => true,
         'event_id' => $event_id,
-        'total_requests' => count($rows),
+        'total_requests' => $total,
         'status_counts' => $status_counts,
-        'fingerprint' => sha1($event_id . '|' . count($rows) . '|' . json_encode($status_counts) . '|' . implode('~', $parts)),
         'checked_at' => date('H:i:s')
     ]);
 } catch (Throwable $e) {

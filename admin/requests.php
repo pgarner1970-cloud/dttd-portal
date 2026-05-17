@@ -71,6 +71,7 @@ if (!$event) {
     <div>
       <strong>Queue updates available</strong>
       <span id="requestUpdateText">New or changed requests have arrived.</span>
+      <small id="requestUpdateDebug">Waiting for queue check…</small>
     </div>
     <button type="button" id="requestUpdateRefresh">Refresh queue</button>
   </div>
@@ -622,6 +623,7 @@ admin_header('DJ Portal');
   const banner = document.getElementById('requestUpdateBanner');
   const refreshButton = document.getElementById('requestUpdateRefresh');
   const text = document.getElementById('requestUpdateText');
+  const debug = document.getElementById('requestUpdateDebug');
 
   if (!wrap || !banner || !refreshButton) return;
 
@@ -636,21 +638,26 @@ admin_header('DJ Portal');
   const loadedTotal = Number(wrap.dataset.currentTotal || 0);
 
   let hasUpdate = false;
-  let isBusy = false;
 
-  function markBusy(){
-    isBusy = true;
-    window.clearTimeout(window.__dttdBusyTimer);
-    window.__dttdBusyTimer = window.setTimeout(function(){
-      isBusy = false;
-    }, 5000);
+  function summaryFromCounts(prefix, total, counts){
+    counts = counts || {};
+    return prefix + ' total ' + Number(total || 0) +
+      ' | pending ' + Number(counts.pending || 0) +
+      ', maybe ' + Number(counts.maybe || 0) +
+      ', played ' + Number(counts.played || 0) +
+      ', duplicate ' + Number(counts.duplicate || 0) +
+      ', rejected ' + Number(counts.rejected || 0);
   }
 
-  function countsChanged(serverCounts, serverTotal){
-    if (Number(serverTotal || 0) !== loadedTotal) return true;
+  function countsChanged(data){
+    const counts = data.status_counts || {};
+
+    if (Number(data.total_requests || 0) !== loadedTotal) {
+      return true;
+    }
 
     for (const key of Object.keys(loadedCounts)) {
-      if (Number((serverCounts && serverCounts[key]) || 0) !== loadedCounts[key]) {
+      if (Number(counts[key] || 0) !== loadedCounts[key]) {
         return true;
       }
     }
@@ -660,32 +667,18 @@ admin_header('DJ Portal');
 
   function showUpdate(data){
     hasUpdate = true;
-
-    const parts = [];
-    if (data.status_counts) {
-      if (Number(data.status_counts.pending || 0) !== loadedCounts.pending) {
-        parts.push(String(data.status_counts.pending || 0) + ' pending');
-      }
-      if (Number(data.status_counts.played || 0) !== loadedCounts.played) {
-        parts.push(String(data.status_counts.played || 0) + ' played');
-      }
+    text.textContent = 'The request queue changed at ' + (data.checked_at || 'now') + '.';
+    if (debug) {
+      debug.textContent =
+        summaryFromCounts('Loaded', loadedTotal, loadedCounts) +
+        ' → ' +
+        summaryFromCounts('Server', data.total_requests, data.status_counts || {});
     }
-
-    const summary = parts.length ? ' — now ' + parts.join(', ') : '';
-    text.textContent = 'The request queue changed at ' + (data.checked_at || 'now') + summary + '.';
     banner.hidden = false;
   }
 
-  document.addEventListener('pointerdown', function(event){
-    if (event.target.closest('button, a, select, input, textarea')) {
-      markBusy();
-    }
-  }, {passive:true});
-
-  document.addEventListener('change', markBusy, {passive:true});
-
   async function checkForUpdates(){
-    if (document.hidden || isBusy || hasUpdate) return;
+    if (document.hidden || hasUpdate) return;
 
     try {
       const response = await fetch('/admin/request-ping.php?event=' + encodeURIComponent(eventId) + '&_=' + Date.now(), {
@@ -693,17 +686,28 @@ admin_header('DJ Portal');
         credentials: 'same-origin'
       });
 
-      if (!response.ok) return;
+      if (!response.ok) {
+        if (debug) debug.textContent = 'Queue check failed: HTTP ' + response.status;
+        return;
+      }
 
       const data = await response.json();
 
-      if (!data.ok) return;
+      if (!data.ok) {
+        if (debug) debug.textContent = 'Queue check failed: ' + (data.error || 'unknown error');
+        return;
+      }
 
-      if (countsChanged(data.status_counts || {}, data.total_requests || 0)) {
+      if (countsChanged(data)) {
         showUpdate(data);
+      } else if (debug) {
+        debug.textContent =
+          'Last checked ' + (data.checked_at || 'now') + ': no change. ' +
+          summaryFromCounts('Server', data.total_requests, data.status_counts || {});
       }
     } catch (error) {
-      // Keep the DJ screen quiet if a check fails.
+      if (debug) debug.textContent = 'Queue check error. See browser console.';
+      console.error('Queue update check failed', error);
     }
   }
 
@@ -711,9 +715,8 @@ admin_header('DJ Portal');
     window.location.reload();
   });
 
-  // Check soon after load, then every 10 seconds.
   window.setTimeout(checkForUpdates, 1500);
-  window.setInterval(checkForUpdates, 10000);
+  window.setInterval(checkForUpdates, 5000);
 })();
 </script>
 

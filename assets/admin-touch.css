@@ -2330,3 +2330,14 @@ body:has(.header-event-summary) .touch-clock{
     grid-template-columns:1fr !important;
   }
 }
+
+
+/* v59 queue update diagnostic line */
+.request-update-banner small{
+  display:block;
+  margin-top:4px;
+  color:#93c5fd;
+  font-size:11px;
+  line-height:1.25;
+  font-weight:700;
+}
