@@ -1,22 +1,17 @@
-# Dance Thru the Decades Portal v24 - Requests Recovery
+# Dance Thru the Decades Portal v25 - Requests No Redirect Fix
 
 ## Changes
 
-- Restored the working grouped Request Queue dashboard.
-- `/admin/requests.php` is now the dedicated Requests page.
-- `/admin/index.php` also contains the same Requests dashboard as a fallback.
-- Events page Requests tile now points to `/admin/requests.php`.
-- Keeps existing Events page current/future/past state work.
-
-## File note
-
-Requests dashboard is available at both:
-
-`/admin/requests.php`
-
-and:
-
-`/admin/index.php`
+- Requests page no longer redirects back to Events when `active_event()` does not return an event.
+- Requests page now loads:
+  1. Event from `?event=ID`, if supplied
+  2. Active event from the database
+  3. Latest event as fallback
+- Added/kept dedicated Requests page:
+  - `/admin/requests.php`
+- `/admin/index.php` also contains the Requests dashboard as a fallback.
+- Event page Requests tile points to `/admin/requests.php`.
+- POST status updates return to `/admin/requests.php`.
 
 ## SQL
 
@@ -24,4 +19,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v24 Requests Recovery
+v25 Requests No Redirect Fix

@@ -2,10 +2,51 @@
 require_once __DIR__ . '/_auth.php';
 
 $event_id = !empty($_GET['event']) ? (int)$_GET['event'] : 0;
-$event = $event_id ? get_event($event_id) : active_event();
+
+if ($event_id) {
+    $event = get_event($event_id);
+} else {
+    // Do not rely on active_event() here because that may apply timing/window rules
+    // and redirect back to Events. The DJ dashboard should still be viewable.
+    $event = db()->query("
+        SELECT *
+        FROM events
+        WHERE is_active = 1
+        ORDER BY event_date DESC, id DESC
+        LIMIT 1
+    ")->fetch();
+
+    if (!$event) {
+        $event = db()->query("
+            SELECT *
+            FROM events
+            ORDER BY event_date DESC, id DESC
+            LIMIT 1
+        ")->fetch();
+    }
+}
 
 if (!$event) {
-    header('Location: /admin/events.php');
+    admin_header('Requests - DJ Portal');
+    ?>
+    <main class="touch-wrap">
+      <nav class="touch-tile-nav">
+        <a class="touch-tile active" href="/admin/requests.php"><span class="tile-icon">♫</span><span>Requests</span></a>
+        <a class="touch-tile" href="/admin/events.php"><span class="tile-icon">▦</span><span>Events</span></a>
+      </nav>
+
+      <section class="touch-panel">
+        <div class="touch-panel-header">
+          <div>
+            <h1 class="touch-panel-title">Request Queue</h1>
+            <p class="touch-subtitle">No events exist yet.</p>
+          </div>
+          <a class="touch-btn blue" href="/admin/event-edit.php">＋ Add Event</a>
+        </div>
+      </section>
+    </main>
+    <?php
+    admin_footer();
     exit;
 }
 
@@ -22,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_action'], $_P
     ");
     $stmt->execute([$status, (int)$event['id'], $group_key]);
 
-    header('Location: /admin/?event=' . (int)$event['id']);
+    header('Location: /admin/requests.php?event=' . (int)$event['id']);
     exit;
 }
 
