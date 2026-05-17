@@ -1,13 +1,18 @@
-# Dance Thru the Decades Portal v73 - Stable Grouping Modal Fix
+# Dance Thru the Decades Portal v74 - Merge Modal
 
 ## Changes
 
-- Fixes played/rejected groups splitting back into individual records.
-- If request_group_id exists, grouping always uses request_group_id regardless of status.
-- Played groups remain grouped.
-- Rejected groups remain grouped.
-- Reject button now opens the reject reason modal from the actual action loop.
-- Reject modal submits status=rejected and reject_reason.
+- Changes the Duplicate action label to Merge.
+- Merge now opens a touch-friendly modal rather than setting status to duplicate.
+- Modal shows open queue groups only:
+  - pending
+  - maybe
+  - duplicate
+- The current group is excluded from the target list.
+- Likely matches are sorted higher in the modal.
+- Submitting a merge updates the source group's request_group_id to the selected target group.
+- Requester names, messages, timestamps and records are preserved.
+- Played and rejected groups are not valid merge targets.
 - No SQL changes.
 
 ## SQL
@@ -16,4 +21,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v73 Stable Grouping Modal Fix
+v74 Merge Modal

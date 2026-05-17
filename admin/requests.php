@@ -190,6 +190,46 @@ function dttd_open_group_id_for_request($event_id, $song_title, $artist) {
     return $existing ?: dttd_new_request_group_id();
 }
 
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['merge_source_group'], $_POST['merge_target_group'])) {
+    $source_group = (string)$_POST['merge_source_group'];
+    $target_group = (string)$_POST['merge_target_group'];
+
+    if (
+        dttd_group_id_column_exists()
+        && str_starts_with($source_group, 'gid:')
+        && str_starts_with($target_group, 'gid:')
+        && $source_group !== $target_group
+    ) {
+        $source_id = substr($source_group, 4);
+        $target_id = substr($target_group, 4);
+
+        // Only allow merging into open queue groups.
+        $check = db()->prepare("
+            SELECT COUNT(*)
+            FROM song_requests
+            WHERE event_id = ?
+            AND request_group_id = ?
+            AND status IN ('pending','maybe','duplicate')
+        ");
+        $check->execute([(int)$event['id'], $target_id]);
+        $target_is_open = (int)$check->fetchColumn() > 0;
+
+        if ($target_is_open) {
+            $stmt = db()->prepare("
+                UPDATE song_requests
+                SET request_group_id = ?
+                WHERE event_id = ?
+                AND request_group_id = ?
+            ");
+            $stmt->execute([$target_id, (int)$event['id'], $source_id]);
+        }
+    }
+
+    header('Location: /admin/requests.php');
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_action'], $_POST['group_key'])) {
     $allowed = ['played','rejected','duplicate','maybe','pending'];
     $status = in_array($_POST['request_action'], $allowed, true) ? $_POST['request_action'] : 'pending';
@@ -334,6 +374,27 @@ if (!in_array($requests_layout, $allowed_request_layouts, true)) {
 }
 $initial_fingerprint = '';
 /* v60 grouping rule note: grouping should keep played/rejected requests separate from open pending/maybe/duplicate groups. */
+
+$merge_candidates = [];
+foreach ($grouped_requests as $candidate_group) {
+    if (!str_starts_with((string)$candidate_group['key'], 'gid:')) {
+        continue;
+    }
+
+    if (!in_array((string)$candidate_group['status'], ['pending', 'maybe', 'duplicate'], true)) {
+        continue;
+    }
+
+    $merge_candidates[] = [
+        'key' => (string)$candidate_group['key'],
+        'song_title' => (string)$candidate_group['song_title'],
+        'artist' => (string)$candidate_group['artist'],
+        'status' => (string)$candidate_group['status'],
+        'request_count' => count($candidate_group['items']),
+        'created_at' => (string)$candidate_group['created_at'],
+    ];
+}
+
 admin_header('DJ Portal');
 ?>
 <main class="touch-wrap">
@@ -450,13 +511,21 @@ admin_header('DJ Portal');
                 $actions = [
                   'played' => ['icon' => '▶', 'label' => 'Played'],
                   'maybe' => ['icon' => '?', 'label' => 'Maybe'],
-                  'duplicate' => ['icon' => '⧉', 'label' => 'Duplicate'],
+                  'duplicate' => ['icon' => '⧉', 'label' => 'Merge'],
                   'rejected' => ['icon' => '✕', 'label' => 'Reject'],
                 ];
               ?>
               <?php foreach ($actions as $action => $meta): ?>
                 <?php if ($action === 'rejected'): ?>
                   <button type="button" class="action-tile <?= h($action) ?> reject-modal-trigger" data-group-key="<?= h($group['key']) ?>">
+                    <span class="big-icon"><?= h($meta['icon']) ?></span>
+                    <span><?= h($meta['label']) ?></span>
+                  </button>
+                <?php elseif ($action === 'duplicate'): ?>
+                  <button type="button" class="action-tile <?= h($action) ?> merge-modal-trigger"
+                    data-group-key="<?= h($group['key']) ?>"
+                    data-song-title="<?= h($group['song_title']) ?>"
+                    data-artist="<?= h($group['artist']) ?>">
                     <span class="big-icon"><?= h($meta['icon']) ?></span>
                     <span><?= h($meta['label']) ?></span>
                   </button>
@@ -957,6 +1026,162 @@ admin_header('DJ Portal');
   }, true);
 
   ['rejectReasonCancelTop','rejectReasonCancelBottom'].forEach(function(id){
+    const button = document.getElementById(id);
+    if (button) button.addEventListener('click', closeModal);
+  });
+
+  document.addEventListener('keydown', function(event){
+    if (event.key === 'Escape' && !modal.hidden) {
+      closeModal();
+    }
+  });
+})();
+</script>
+
+
+<!-- Merge Request Modal -->
+<div class="dj-modal-backdrop" id="mergeRequestModal" hidden>
+  <div class="dj-modal-card merge-modal-card" role="dialog" aria-modal="true" aria-labelledby="mergeRequestTitle">
+    <div class="dj-modal-header">
+      <div>
+        <h2 id="mergeRequestTitle">Merge request</h2>
+        <p id="mergeRequestSubtitle">Choose an open queue item to merge into.</p>
+      </div>
+      <button type="button" class="dj-modal-close" id="mergeRequestCancelTop">×</button>
+    </div>
+
+    <form method="post" class="merge-request-form">
+      <input type="hidden" name="merge_source_group" id="mergeSourceGroup" value="">
+
+      <div class="merge-target-list" id="mergeTargetList">
+        <?php foreach ($merge_candidates as $candidate): ?>
+          <label class="merge-target-card"
+            data-group-key="<?= h($candidate['key']) ?>"
+            data-song-title="<?= h(strtolower($candidate['song_title'])) ?>"
+            data-artist="<?= h(strtolower($candidate['artist'])) ?>">
+            <input type="radio" name="merge_target_group" value="<?= h($candidate['key']) ?>">
+            <span>
+              <strong><?= h($candidate['song_title']) ?></strong>
+              <small><?= h($candidate['artist']) ?> · <?= h(ucfirst($candidate['status'])) ?> · <?= (int)$candidate['request_count'] ?> request<?= (int)$candidate['request_count'] === 1 ? '' : 's' ?></small>
+            </span>
+          </label>
+        <?php endforeach; ?>
+      </div>
+
+      <div class="merge-empty" id="mergeEmptyMessage" hidden>
+        No open groups are available to merge into.
+      </div>
+
+      <div class="dj-modal-actions">
+        <button type="button" class="touch-btn muted" id="mergeRequestCancelBottom">Cancel</button>
+        <button type="submit" class="touch-btn blue" id="mergeRequestSubmit">Merge Selected</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<!-- Merge Request Modal JS -->
+<script>
+(function(){
+  const modal = document.getElementById('mergeRequestModal');
+  const sourceInput = document.getElementById('mergeSourceGroup');
+  const subtitle = document.getElementById('mergeRequestSubtitle');
+  const targetList = document.getElementById('mergeTargetList');
+  const emptyMessage = document.getElementById('mergeEmptyMessage');
+  const submitButton = document.getElementById('mergeRequestSubmit');
+
+  if (!modal || !sourceInput || !targetList || !submitButton) return;
+
+  function normalise(value){
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function scoreCandidate(card, sourceTitle, sourceArtist){
+    const title = normalise(card.dataset.songTitle);
+    const artist = normalise(card.dataset.artist);
+    let score = 0;
+
+    if (title === sourceTitle) score += 100;
+    if (artist === sourceArtist) score += 80;
+    if (title.includes(sourceTitle) || sourceTitle.includes(title)) score += 30;
+    if (artist.includes(sourceArtist) || sourceArtist.includes(artist)) score += 20;
+
+    return score;
+  }
+
+  function openModal(trigger){
+    const sourceKey = trigger.dataset.groupKey || '';
+    const sourceTitle = normalise(trigger.dataset.songTitle);
+    const sourceArtist = normalise(trigger.dataset.artist);
+
+    sourceInput.value = sourceKey;
+    if (subtitle) {
+      subtitle.textContent = 'Merge "' + (trigger.dataset.songTitle || 'this request') + '" into another open queue item.';
+    }
+
+    const cards = Array.from(targetList.querySelectorAll('.merge-target-card'));
+    let visibleCount = 0;
+
+    cards.forEach(function(card){
+      const isSelf = card.dataset.groupKey === sourceKey;
+      if (isSelf) {
+        card.hidden = true;
+        const input = card.querySelector('input');
+        if (input) input.checked = false;
+        return;
+      }
+
+      card.hidden = false;
+      card.dataset.score = String(scoreCandidate(card, sourceTitle, sourceArtist));
+      visibleCount++;
+    });
+
+    cards
+      .filter(card => !card.hidden)
+      .sort(function(a, b){
+        return Number(b.dataset.score || 0) - Number(a.dataset.score || 0);
+      })
+      .forEach(function(card){
+        targetList.appendChild(card);
+      });
+
+    const firstVisible = cards.find(card => !card.hidden);
+    if (firstVisible) {
+      const input = firstVisible.querySelector('input');
+      if (input) input.checked = true;
+    }
+
+    if (emptyMessage) emptyMessage.hidden = visibleCount !== 0;
+    submitButton.disabled = visibleCount === 0;
+
+    modal.hidden = false;
+    document.body.classList.add('modal-open');
+
+    if (firstVisible) firstVisible.focus();
+  }
+
+  function closeModal(){
+    modal.hidden = true;
+    document.body.classList.remove('modal-open');
+    sourceInput.value = '';
+  }
+
+  document.addEventListener('click', function(event){
+    const trigger = event.target.closest('.merge-modal-trigger');
+    if (trigger) {
+      event.preventDefault();
+      event.stopPropagation();
+      openModal(trigger);
+      return false;
+    }
+
+    if (event.target === modal) {
+      closeModal();
+    }
+  }, true);
+
+  ['mergeRequestCancelTop','mergeRequestCancelBottom'].forEach(function(id){
     const button = document.getElementById(id);
     if (button) button.addEventListener('click', closeModal);
   });
