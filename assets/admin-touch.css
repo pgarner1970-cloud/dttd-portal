@@ -2501,3 +2501,65 @@ body:has(.header-event-summary) .touch-clock{
     grid-template-columns:1fr;
   }
 }
+
+
+/* v62 live queue update banner */
+.request-update-banner{
+  position:sticky;
+  top:76px;
+  z-index:50;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  margin:0 0 14px;
+  padding:12px 14px;
+  border:1px solid rgba(96,165,250,.55);
+  border-radius:16px;
+  background:
+    radial-gradient(circle at 10% 0%,rgba(59,130,246,.34),transparent 34%),
+    linear-gradient(180deg,rgba(15,23,42,.96),rgba(15,23,42,.88));
+  color:#fff;
+  box-shadow:0 16px 38px rgba(0,0,0,.34),0 0 24px rgba(59,130,246,.20);
+}
+
+.request-update-banner[hidden]{
+  display:none !important;
+}
+
+.request-update-banner strong{
+  display:block;
+  font-size:14px;
+  font-weight:950;
+}
+
+.request-update-banner span{
+  display:block;
+  color:#bfdbfe;
+  font-size:13px;
+  margin-top:2px;
+}
+
+.request-update-banner button{
+  min-height:44px;
+  padding:0 14px;
+  border:1px solid rgba(96,165,250,.75);
+  border-radius:13px;
+  background:rgba(37,99,235,.26);
+  color:#fff;
+  font-family:inherit;
+  font-weight:900;
+  text-transform:uppercase;
+  cursor:pointer;
+}
+
+@media(max-width:720px){
+  .request-update-banner{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .request-update-banner button{
+    width:100%;
+  }
+}

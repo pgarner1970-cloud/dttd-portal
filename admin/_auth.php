@@ -226,6 +226,11 @@ function admin_footer() {
 })();
 </script>
 
+
+<?php if (basename($_SERVER['SCRIPT_NAME']) === 'requests.php'): ?>
+<script src="/assets/request-update-check.js?v=62"></script>
+<?php endif; ?>
+
 </body>
 </html>
 <?php

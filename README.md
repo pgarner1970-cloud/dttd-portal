@@ -1,21 +1,18 @@
-# Dance Thru the Decades Portal v61 - Queue Update Debug Page
+# Dance Thru the Decades Portal v62 - Requests Queue Update Integration
 
 ## Changes
 
-- Adds a separate debug page:
-  - /admin/request-debug.php
-- Leaves /admin/requests.php untouched to avoid breaking the working queue page.
-- Adds robust ping endpoint:
-  - /admin/request-ping.php
-- Debug page shows:
-  - selected event
-  - loaded counts
-  - server counts
-  - status
-  - endpoint
-  - check now button
-- Polls every 5 seconds.
-- Adds Queue Debug link on /admin/index.php.
+- Integrates the proven queue update detection into the live Requests page.
+- Does not edit requests.php directly, avoiding the fragile PHP/HTML structure.
+- Adds external JavaScript:
+  - /assets/request-update-check.js
+- Shared admin footer loads this script only on requests.php.
+- Script reads the currently visible stats from the page.
+- Script calls /admin/request-ping.php every 5 seconds.
+- If server counts differ from visible counts, a banner appears:
+  - Queue updates available
+  - Refresh queue
+- No auto-refresh; DJ chooses when to reload.
 - No database changes.
 
 ## SQL
@@ -24,4 +21,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v61 Queue Update Debug Page
+v62 Requests Queue Update Integration
