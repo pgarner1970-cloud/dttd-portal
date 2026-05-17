@@ -4355,3 +4355,36 @@ body.modal-open{ overflow:hidden; }
     font-size:20px !important;
   }
 }
+
+
+/* v98 event image upload visible */
+.event-image-preview{
+  width:240px;
+  max-width:100%;
+  border-radius:16px;
+  overflow:hidden;
+  border:1px solid rgba(148,163,184,.22);
+  margin-bottom:16px;
+}
+
+.event-image-preview img{
+  display:block;
+  width:100%;
+  height:auto;
+}
+
+.event-image-upload-input{
+  width:100%;
+  padding:14px;
+  border-radius:14px;
+  border:1px solid rgba(148,163,184,.24);
+  background:rgba(255,255,255,.05);
+  color:#fff;
+  box-sizing:border-box;
+}
+
+.settings-help-text{
+  margin-top:10px;
+  color:#94a3b8;
+  font-size:13px;
+}
