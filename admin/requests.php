@@ -186,6 +186,12 @@ function status_label($status) {
     return strtolower((string)$status);
 }
 
+$requests_layout = app_setting('requests_layout', 'event_left');
+$allowed_request_layouts = ['event_left', 'event_right', 'queue_only'];
+if (!in_array($requests_layout, $allowed_request_layouts, true)) {
+    $requests_layout = 'event_left';
+}
+
 admin_header('DJ Portal');
 ?>
 <main class="touch-wrap">

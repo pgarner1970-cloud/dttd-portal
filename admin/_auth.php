@@ -124,6 +124,37 @@ function dttd_get_calculated_current_event() {
 }
 
 
+
+function app_setting($key, $default = null) {
+    try {
+        $stmt = db()->prepare("SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1");
+        $stmt->execute([$key]);
+        $row = $stmt->fetch();
+
+        if ($row && array_key_exists('setting_value', $row)) {
+            return $row['setting_value'];
+        }
+    } catch (Throwable $e) {
+        return $default;
+    }
+
+    return $default;
+}
+
+function save_app_setting($key, $value) {
+    try {
+        $stmt = db()->prepare("
+            INSERT INTO app_settings (setting_key, setting_value)
+            VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
+        ");
+        return $stmt->execute([$key, $value]);
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
+
 function admin_header($title = 'DJ Portal') {
     $time = date('H:i');
     $date = date('D, j M');
