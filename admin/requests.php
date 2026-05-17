@@ -35,8 +35,14 @@ if (!$event) {
   </div>
 </div>
 
-    <main class="touch-wrap" data-event-id="<?= (int)$event['id'] ?
+    <main class="touch-wrap"
+  data-event-id="<?= (int)$event['id'] ?>"
+  data-request-fingerprint="<?= h($initial_fingerprint ?? '') ?>"
   data-event-date="<?= h($event['event_date'] ?? '') ?>"
+  data-start-time="<?= h(input_time($event['start_time'] ?? '')) ?>"
+  data-end-time="<?= h(input_time($event['end_time'] ?? '')) ?>"
+  data-requests-close="<?= h($event['requests_close_at'] ?? '') ?>"
+>"
   data-start-time="<?= h(input_time($event['start_time'] ?? '')) ?>"
   data-end-time="<?= h(input_time($event['end_time'] ?? '')) ?>"
   data-requests-close="<?= h($event['requests_close_at'] ?? '') ?>"
@@ -186,7 +192,7 @@ admin_header('DJ Portal');
           <div class="event-info-row">
             <div class="event-info-icon">◷</div>
             <div>
-              <div class="event-info-title">Event time</div>
+              <div class="event-info-title">Event Time</div>
               <div class="event-info-value">
                 <?= h(input_time($event['start_time'])) ?><?= !empty($event['end_time']) ? ' - ' . h(input_time($event['end_time'])) : '' ?>
                 <span class="mini-countdown" id="eventEndCountdown">--</span>
@@ -490,7 +496,6 @@ admin_header('DJ Portal');
   window.setInterval(update, 1000);
 })();
 </script>
-
 
 <!-- Active Event Countdown JS -->
 <script>

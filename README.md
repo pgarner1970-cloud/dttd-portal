@@ -1,13 +1,13 @@
-# Dance Thru the Decades Portal v41 - Active Event Countdowns
+# Dance Thru the Decades Portal v42 - 500 Fix Active Countdowns
 
 ## Changes
 
-- Header clock now shows seconds and updates live.
-- Requests page Active Event card now shows a live countdown beside:
-  - Event time / event end
-  - Requests close
-- Countdown updates every second in the browser.
-- No server requests are made for the countdowns.
+- Fixes the Requests page 500 error caused by the previous countdown patch.
+- Keeps header clock with seconds.
+- Keeps active event card countdowns:
+  - request close countdown
+  - event end countdown
+- Rebuilds the Requests page `<main>` data attributes safely.
 - No database changes.
 
 ## SQL
@@ -16,4 +16,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v41 Active Event Countdowns
+v42 500 Fix Active Countdowns
