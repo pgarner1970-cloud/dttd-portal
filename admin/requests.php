@@ -912,7 +912,6 @@ admin_header('DJ Portal');
   </div>
 </div>
 
-
 <!-- Reject Reason Modal JS -->
 <script>
 (function(){
@@ -940,14 +939,15 @@ admin_header('DJ Portal');
     const trigger = event.target.closest('.reject-modal-trigger');
     if (trigger) {
       event.preventDefault();
+      event.stopPropagation();
       openModal(trigger.dataset.groupKey || '');
-      return;
+      return false;
     }
 
     if (event.target === modal) {
       closeModal();
     }
-  });
+  }, true);
 
   ['rejectReasonCancelTop','rejectReasonCancelBottom'].forEach(function(id){
     const button = document.getElementById(id);

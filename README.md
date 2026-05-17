@@ -1,19 +1,13 @@
-# Dance Thru the Decades Portal v71 - Reject Reason Modal
+# Dance Thru the Decades Portal v72 - Reject Modal Markup Fix
 
 ## Changes
 
-- Replaces immediate Reject action with a touch-friendly modal.
-- Reject reasons:
-  - Not suitable
-  - Explicit / inappropriate
-  - Already played
-  - Time constraints
-  - Not available
-- Submitting a reason sets:
+- Fixes the issue where Reject still submitted immediately.
+- The visible Reject button now opens the rejection reason modal.
+- Selecting a modal reason updates:
   - status = rejected
   - reject_reason = selected reason
-- Other queue actions remain unchanged.
-- No SQL included because reject_reason has already been added.
+- No SQL required because reject_reason already exists.
 
 ## SQL
 
@@ -21,4 +15,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v71 Reject Reason Modal
+v72 Reject Modal Markup Fix
