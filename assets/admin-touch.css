@@ -2563,3 +2563,150 @@ body:has(.header-event-summary) .touch-clock{
     width:100%;
   }
 }
+
+
+/* v65 request queue compact tidy */
+
+/* Hide the SORT label above the dropdown to lift the request queue header */
+.sort-selector > label,
+.sort-selector label,
+.request-queue-compact-header .sort-selector > span,
+.request-queue-compact-header .sort-selector > strong,
+.request-queue-compact-header .sort-selector .form-label{
+  display:none !important;
+}
+
+/* Keep the sort dropdown aligned neatly without its label */
+.request-queue-compact-header .sort-selector{
+  align-self:end !important;
+}
+
+/* Standardise left card heading size against Request Queue */
+.event-name,
+.active-event-panel .event-name,
+.touch-grid .active-event-panel h1.event-name{
+  font-size:24px !important;
+  line-height:1.05 !important;
+  letter-spacing:-.045em !important;
+  margin-bottom:12px !important;
+}
+
+/* Keep Request Queue title consistent too */
+.request-queue-panel .touch-panel-title,
+.request-queue-compact-header .touch-panel-title{
+  font-size:24px !important;
+  line-height:1.05 !important;
+  letter-spacing:-.045em !important;
+}
+
+/* Reduce vertical space around request queue header */
+.request-queue-compact-header{
+  padding-top:14px !important;
+  padding-bottom:14px !important;
+  gap:12px !important;
+}
+
+.request-queue-panel .touch-subtitle{
+  margin-top:5px !important;
+}
+
+/* Reduce group/card vertical spacing */
+.request-list,
+.queue-list,
+.grouped-request-list{
+  gap:8px !important;
+}
+
+.request-group,
+.request-row,
+.request-card,
+.request-item,
+.queue-request-card{
+  margin-bottom:8px !important;
+}
+
+/* Main grouped request card compaction */
+.request-group-card,
+.grouped-request-card,
+.queue-group-card{
+  padding-top:12px !important;
+  padding-bottom:12px !important;
+  min-height:0 !important;
+}
+
+/* Common current markup has large group cards with request detail stack */
+.request-card-row,
+.request-group-row,
+.request-song-card{
+  padding-top:12px !important;
+  padding-bottom:12px !important;
+}
+
+/* Reduce inner request/person cards */
+.request-detail,
+.request-dedication,
+.request-person-card,
+.request-message-card,
+.dedication-card{
+  padding-top:8px !important;
+  padding-bottom:8px !important;
+  min-height:0 !important;
+}
+
+/* Reduce per-person entries inside grouped songs */
+.request-person-entry,
+.group-request-person,
+.request-message{
+  padding-top:7px !important;
+  padding-bottom:7px !important;
+}
+
+/* Reduce spacing between person/dedication cards in a group */
+.request-people,
+.group-requests,
+.request-messages,
+.dedication-list{
+  gap:7px !important;
+}
+
+/* Reduce large action buttons slightly but keep touch friendly */
+.request-actions .action-tile,
+.queue-actions .action-tile,
+.request-group-actions .action-tile{
+  min-height:50px !important;
+  padding-top:8px !important;
+  padding-bottom:8px !important;
+}
+
+/* The request queue card itself should not waste top/bottom space */
+.request-queue-panel .touch-panel-body,
+.request-queue-panel .request-list-wrap,
+.request-queue-panel .queue-body{
+  padding-top:12px !important;
+  padding-bottom:12px !important;
+}
+
+/* More specific fallbacks for the current generated queue markup */
+.request-queue-panel article{
+  margin-bottom:8px !important;
+}
+
+.request-queue-panel article > div{
+  min-height:0 !important;
+}
+
+.request-queue-panel article .request-title,
+.request-queue-panel article .song-title{
+  margin-bottom:4px !important;
+}
+
+.request-queue-panel article small{
+  line-height:1.15 !important;
+}
+
+/* Slightly reduce bottom footer timestamp space */
+.request-queue-panel .last-updated,
+.last-updated{
+  margin-top:10px !important;
+  padding-top:6px !important;
+}
