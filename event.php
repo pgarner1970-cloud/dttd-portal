@@ -133,7 +133,13 @@ $status = public_event_status($event);
       </div>
 
       <div class="event-actions">
+        <?php if (!empty($event['event_code'])): ?>
+        <a class="btn btn-primary" href="/request.php?code=<?= h($event['event_code']) ?>">Request a Song</a>
+        <?php elseif (!empty($event['guest_token'])): ?>
+        <a class="btn btn-primary" href="/request.php?token=<?= h($event['guest_token']) ?>">Request a Song</a>
+        <?php else: ?>
         <a class="btn btn-primary" href="/request.php?event=<?= (int)$event['id'] ?>">Request a Song</a>
+        <?php endif; ?>
         <a class="btn btn-secondary" href="<?= h(FACEBOOK_URL) ?>" target="_blank">Follow on Facebook</a>
         <a class="btn btn-green" href="<?= h(FACEBOOK_URL) ?>" target="_blank">Check In / Tag Us</a>
         <a class="btn btn-gold" href="<?= h(FACEBOOK_URL) ?>" target="_blank">Share Photos</a>

@@ -1,23 +1,21 @@
-# Dance Thru the Decades Portal v26 - Event Access Landing
+# Dance Thru the Decades Portal v27 - Gate Song Requests
 
 ## Changes
 
-Stage 2A and 2B only.
-
-- Adds event access fields:
-  - event_code
-  - guest_token
-- Adds public event landing page:
-  - /event.php?code=ABC123
-- Add/Edit Event page shows the event code and guest link when available.
-- Events page shows event code and guest link where available.
-- Existing request flow is not gated yet.
-- No QR code generation yet.
+- Song requests now require a valid event access code or token.
+- `/request.php` no longer accepts public/random direct access for guest submissions.
+- Valid guest flow:
+  - `/event.php?code=ABC123`
+  - then Request a Song from that event page
+- Event landing page now links to:
+  - `/request.php?code=ABC123`
+- Public homepage routes guests to the event portal instead of directly to request form.
+- Existing admin dashboard is not changed.
 
 ## SQL
 
-Run the SQL shown in the ChatGPT response.
+No SQL to run.
 
 ## Suggested Git commit title
 
-v26 Event Access Landing
+v27 Gate Song Requests
