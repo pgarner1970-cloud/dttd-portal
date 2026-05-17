@@ -400,7 +400,11 @@ foreach ($grouped_requests as $candidate_group) {
 
 function dttd_merge_candidates_for_group($source_group, $all_groups) {
     $source_key = (string)($source_group['key'] ?? '');
-    $source_group_id = (string)($source_group['group_id'] ?? str_replace('gid:', '', $source_key));
+    $source_group_id = (string)($source_group['group_id'] ?? '');
+
+    if ($source_group_id === '') {
+        $source_group_id = str_replace('gid:', '', $source_key);
+    }
 
     $source_title = strtolower(trim((string)($source_group['song_title'] ?? '')));
     $source_norm = trim(preg_replace('/\s+/', ' ', preg_replace('/[^a-z0-9]+/', ' ', $source_title)));
@@ -409,9 +413,20 @@ function dttd_merge_candidates_for_group($source_group, $all_groups) {
 
     foreach ($all_groups as $candidate) {
         $candidate_key = (string)($candidate['key'] ?? '');
-        $candidate_group_id = (string)($candidate['group_id'] ?? str_replace('gid:', '', $candidate_key));
+        $candidate_group_id = (string)($candidate['group_id'] ?? '');
 
-        if ($candidate_key === $source_key || $candidate_group_id === $source_group_id) {
+        if ($candidate_group_id === '') {
+            $candidate_group_id = str_replace('gid:', '', $candidate_key);
+        }
+
+        // Hard self-exclusion: compare full keys and gid-stripped values.
+        if (
+            $candidate_key === $source_key ||
+            $candidate_group_id === $source_group_id ||
+            str_replace('gid:', '', $candidate_key) === str_replace('gid:', '', $source_key) ||
+            str_replace('gid:', '', $candidate_key) === $source_group_id ||
+            $candidate_group_id === str_replace('gid:', '', $source_key)
+        ) {
             continue;
         }
 
@@ -1099,7 +1114,7 @@ admin_header('DJ Portal');
 <div id="mergeCandidateTemplates" hidden>
   <?php foreach ($grouped_requests as $source_for_merge): ?>
     <?php $source_candidates = dttd_merge_candidates_for_group($source_for_merge, $grouped_requests); ?>
-    <div class="merge-candidate-template" data-source-group="<?= h($source_for_merge['key']) ?>">
+    <div class="merge-candidate-template" data-source-group="<?= h($source_for_merge['key']) ?>" data-source-group-id="<?= h($source_for_merge['group_id'] ?? str_replace('gid:', '', (string)$source_for_merge['key'])) ?>">
       <?php foreach ($source_candidates as $candidate): ?>
         <label class="merge-target-card"
           data-group-key="<?= h($candidate['key']) ?>"
@@ -1156,13 +1171,35 @@ admin_header('DJ Portal');
 
   if (!modal || !sourceInput || !targetList || !submitButton || !templates) return;
 
+  function cleanGroup(value){
+    return String(value || '').trim().replace(/^gid:/, '');
+  }
+
   function attrEscape(value){
     if (window.CSS && CSS.escape) return CSS.escape(value);
     return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   }
 
+  function isSelf(sourceKey, sourceId, card){
+    const targetKey = card.dataset.groupKey || '';
+    const targetId = card.dataset.groupId || '';
+    const sKey = cleanGroup(sourceKey);
+    const sId = cleanGroup(sourceId);
+    const tKey = cleanGroup(targetKey);
+    const tId = cleanGroup(targetId);
+
+    return (
+      (sourceKey && targetKey && sourceKey === targetKey) ||
+      (sKey && tKey && sKey === tKey) ||
+      (sId && tId && sId === tId) ||
+      (sKey && tId && sKey === tId) ||
+      (sId && tKey && sId === tKey)
+    );
+  }
+
   function openModal(trigger){
     const sourceKey = trigger.dataset.groupKey || '';
+    const sourceId = trigger.dataset.groupId || cleanGroup(sourceKey);
     const sourceTitle = trigger.dataset.songTitle || 'this request';
 
     sourceInput.value = sourceKey;
@@ -1175,7 +1212,11 @@ admin_header('DJ Portal');
 
     const selector = '.merge-candidate-template[data-source-group="' + attrEscape(sourceKey) + '"]';
     const template = templates.querySelector(selector);
-    const cards = template ? Array.from(template.querySelectorAll('.merge-target-card')) : [];
+    const templateCards = template ? Array.from(template.querySelectorAll('.merge-target-card')) : [];
+
+    const cards = templateCards.filter(function(card){
+      return !isSelf(sourceKey, sourceId, card);
+    });
 
     cards.forEach(function(card, index){
       const clone = card.cloneNode(true);
