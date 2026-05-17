@@ -1,16 +1,16 @@
-# Dance Thru the Decades Portal v27 - Gate Song Requests
+# Dance Thru the Decades Portal v28 - Compact Navigation Narrow Active Panel
 
 ## Changes
 
-- Song requests now require a valid event access code or token.
-- `/request.php` no longer accepts public/random direct access for guest submissions.
-- Valid guest flow:
-  - `/event.php?code=ABC123`
-  - then Request a Song from that event page
-- Event landing page now links to:
-  - `/request.php?code=ABC123`
-- Public homepage routes guests to the event portal instead of directly to request form.
-- Existing admin dashboard is not changed.
+- Removed the large Requests / Events / Settings tiles from admin pages.
+- Added compact touchscreen navigation buttons into the admin header:
+  - Requests
+  - Events
+  - Settings
+- Reduced the active event panel width.
+- Tightened active event panel padding and typography.
+- Gives the request queue more horizontal and vertical space on tablets.
+- Keeps the current grouped request queue and event gating work.
 
 ## SQL
 
@@ -18,4 +18,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v27 Gate Song Requests
+v28 Compact Navigation Narrow Active Panel

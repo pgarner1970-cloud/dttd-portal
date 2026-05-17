@@ -871,3 +871,159 @@ details.form-advanced[open] summary:before{transform:rotate(90deg)}
   background:rgba(59,130,246,.10);
   border-color:rgba(147,197,253,.35);
 }
+
+
+/* v28 compact header navigation and narrower active panel */
+.compact-header-nav{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  margin-right:8px;
+}
+
+.compact-nav-btn{
+  min-width:92px;
+  height:46px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0 14px;
+  border:1px solid rgba(148,163,184,.20);
+  border-radius:14px;
+  background:rgba(255,255,255,.055);
+  color:#e5e7eb;
+  text-decoration:none;
+  font-weight:900;
+  font-size:13px;
+  text-transform:uppercase;
+  letter-spacing:-.015em;
+  box-shadow:0 8px 18px rgba(0,0,0,.22);
+}
+
+.compact-nav-btn.active{
+  color:#fff;
+  border-color:rgba(59,130,246,.85);
+  background:
+    radial-gradient(circle at 50% 12%,rgba(59,130,246,.38),transparent 48%),
+    linear-gradient(180deg,rgba(29,78,216,.62),rgba(15,23,42,.84));
+  box-shadow:0 0 0 1px rgba(59,130,246,.30),0 0 24px rgba(59,130,246,.32);
+}
+
+/* old tile nav should not show in v28 even if an older page still outputs it */
+.touch-tile-nav{
+  display:none !important;
+}
+
+/* rebalance dashboard space: narrower status panel, larger queue */
+.touch-grid{
+  grid-template-columns:280px minmax(0,1fr) !important;
+  gap:14px !important;
+}
+
+.touch-panel-pad{
+  padding:16px !important;
+}
+
+.event-name{
+  font-size:24px !important;
+}
+
+.event-meta{
+  font-size:14px !important;
+  margin-bottom:12px !important;
+}
+
+.event-info{
+  gap:9px !important;
+  padding:12px 0 !important;
+}
+
+.event-info-row{
+  grid-template-columns:30px 1fr !important;
+  gap:8px !important;
+}
+
+.event-info-icon{
+  width:28px !important;
+  height:28px !important;
+}
+
+.event-info-title{
+  font-size:11px !important;
+}
+
+.event-info-value{
+  font-size:13px !important;
+}
+
+.countdown{
+  font-size:20px !important;
+}
+
+.stats-list{
+  gap:7px !important;
+  margin-top:14px !important;
+}
+
+.stat-line{
+  font-size:13px !important;
+  gap:8px !important;
+}
+
+.request-queue-compact-header{
+  padding:13px 16px !important;
+  grid-template-columns:auto minmax(260px,1fr) 220px !important;
+  gap:12px !important;
+}
+
+.request-list{
+  padding:12px !important;
+}
+
+@media(max-width:1100px){
+  .touch-grid{
+    grid-template-columns:1fr !important;
+  }
+
+  .touch-panel-pad{
+    padding:16px !important;
+  }
+}
+
+@media(max-width:900px){
+  .touch-topbar{
+    grid-template-columns:1fr !important;
+  }
+
+  .touch-clock{
+    display:none !important;
+  }
+
+  .touch-top-actions{
+    justify-content:stretch !important;
+    flex-wrap:wrap;
+  }
+
+  .compact-header-nav{
+    width:100%;
+    margin-right:0;
+  }
+
+  .compact-nav-btn{
+    flex:1;
+    min-width:0;
+  }
+}
+
+@media(max-width:520px){
+  .compact-header-nav{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+  }
+
+  .compact-nav-btn{
+    height:44px;
+    font-size:11px;
+    padding:0 8px;
+  }
+}

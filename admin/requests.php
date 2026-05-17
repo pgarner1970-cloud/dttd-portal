@@ -30,12 +30,7 @@ if (!$event) {
     admin_header('Requests - DJ Portal');
     ?>
     <main class="touch-wrap">
-      <nav class="touch-tile-nav">
-        <a class="touch-tile active" href="/admin/requests.php"><span class="tile-icon">♫</span><span>Requests</span></a>
-        <a class="touch-tile" href="/admin/events.php"><span class="tile-icon">▦</span><span>Events</span></a>
-      </nav>
-
-      <section class="touch-panel">
+<section class="touch-panel">
         <div class="touch-panel-header">
           <div>
             <h1 class="touch-panel-title">Request Queue</h1>
@@ -148,13 +143,7 @@ function status_label($status) {
 admin_header('DJ Portal');
 ?>
 <main class="touch-wrap">
-  <nav class="touch-tile-nav">
-    <a class="touch-tile active" href="/admin/requests.php"><span class="tile-icon">♫</span><span>Requests</span></a>
-    <a class="touch-tile" href="/admin/events.php"><span class="tile-icon">▦</span><span>Events</span></a>
-    <a class="touch-tile" href="/admin/event-edit.php?id=<?= (int)$event['id'] ?>"><span class="tile-icon">⚙</span><span>Settings</span></a>
-  </nav>
-
-  <section class="touch-grid">
+<section class="touch-grid">
     <aside class="touch-panel">
       <div class="touch-panel-pad">
         <p class="event-label">Active Event</p>
