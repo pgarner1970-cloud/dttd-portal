@@ -29,14 +29,13 @@ if ($event_id) {
 if (!$event) {
     admin_header('Requests - DJ Portal');
     ?>
+    <main class="touch-wrap">
 
-<div class="admin-floating-nav">
-  <a class="admin-floating-nav-btn active" href="/admin/requests.php">Requests</a>
-  <a class="admin-floating-nav-btn" href="/admin/events.php">Events</a>
-  <a class="admin-floating-nav-btn" href="/admin/events.php">Settings</a>
-</div>
+<nav class="admin-page-nav">
+  <a class="admin-page-nav-btn active" href="/admin/requests.php">Requests</a>
+  <a class="admin-page-nav-btn" href="/admin/events.php">Events</a>
+</nav>
 
-<main class="touch-wrap">
 <section class="touch-panel">
         <div class="touch-panel-header">
           <div>

@@ -1,18 +1,15 @@
-# Dance Thru the Decades Portal v32 - Requests Header Nav Fix
+# Dance Thru the Decades Portal v33 - Admin Navigation Separation
 
 ## Changes
 
-- Forces the compact navigation buttons into:
-  - /admin/requests.php
-  - /admin/index.php
-  - /admin/events.php
-  - /admin/event-edit.php
-- Requests page now definitely has:
-  - Requests
-  - Events
-  - Settings
-- Keeps buttons in the top-right header area as a fixed overlay.
-- No database changes.
+- Fixes missing Requests/Events navigation on the Requests page.
+- Stops `/admin/index.php` duplicating the request queue.
+- `/admin/index.php` is now a simple admin menu.
+- `/admin/requests.php` is the request queue.
+- `/admin/events.php` is the events page.
+- Adds reliable in-page Requests / Events buttons at the top of admin pages.
+- Removes failed fixed-overlay navigation approach.
+- Keeps buttons large enough for tablet touch use.
 
 ## SQL
 
@@ -20,4 +17,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v32 Requests Header Nav Fix
+v33 Admin Navigation Separation
