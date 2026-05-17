@@ -192,8 +192,7 @@ admin_header('DJ Portal');
 <section class="touch-grid">
     <aside class="touch-panel">
       <div class="touch-panel-pad">
-        <p class="event-label">Active Event</p>
-        <h1 class="event-name"><?= h($event['event_name']) ?></h1>
+<h1 class="event-name"><?= h($event['event_name']) ?></h1>
         <p class="event-meta"><?= h($event['venue_name']) ?><br><?= h(event_type_label($event['event_type'] ?? 'public')) ?></p>
 
         <div class="event-info">

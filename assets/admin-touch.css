@@ -2014,3 +2014,22 @@ body:has(.header-event-summary) .touch-clock{
   font-weight:900 !important;
   color:#fff !important;
 }
+
+
+/* v52 final removal of Active Event label */
+.touch-panel .touch-eyebrow,
+.touch-panel .panel-eyebrow,
+.touch-panel .eyebrow,
+.active-event-label,
+.active-label{
+  display:none !important;
+}
+
+/* If the label is still present as a small heading in the first card, hide the first small uppercase line */
+.touch-grid > .touch-panel:first-child > .touch-panel-pad > :first-child:not(.event-name){
+  display:none !important;
+}
+
+.touch-grid > .touch-panel:first-child .event-name{
+  margin-top:0 !important;
+}
