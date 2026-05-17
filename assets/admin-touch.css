@@ -1959,3 +1959,58 @@ body:has(.header-event-summary) .touch-clock{
     width:100%;
   }
 }
+
+
+/* v51 compact active event card */
+.touch-eyebrow,
+.panel-eyebrow{
+  display:none !important;
+}
+
+.event-name{
+  margin-top:0 !important;
+}
+
+/* Put countdown beside the time, not underneath */
+.event-info-value,
+.event-info-value.countdown{
+  display:flex !important;
+  align-items:baseline !important;
+  gap:8px !important;
+  flex-wrap:wrap !important;
+}
+
+.event-info-value .mini-countdown,
+.event-info-value.countdown .mini-countdown,
+.request-close-mini-countdown,
+#requestCloseCountdown,
+#eventEndCountdown{
+  display:inline-flex !important;
+  margin-top:0 !important;
+  font-size:11px !important;
+  line-height:1 !important;
+  font-weight:900 !important;
+  color:#4ade80 !important;
+  text-transform:uppercase !important;
+  letter-spacing:.02em !important;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+
+#requestCloseCountdown.mini-warning,
+#eventEndCountdown.mini-warning{
+  color:#fbbf24 !important;
+}
+
+#requestCloseCountdown.mini-ended,
+#eventEndCountdown.mini-ended{
+  color:#f87171 !important;
+}
+
+/* Requests close value should match event time value */
+.event-info-value.countdown{
+  font-size:14px !important;
+  line-height:1.2 !important;
+  font-weight:900 !important;
+  color:#fff !important;
+}

@@ -1,17 +1,14 @@
-# Dance Thru the Decades Portal v50 - Request Close Font Update Prompt
+# Dance Thru the Decades Portal v51 - Active Event Card Compact
 
 ## Changes
 
-- Requests Close time now matches the Event Time font size.
-- Keeps the green countdown underneath.
-- Ensures the request queue update prompt is present.
-- Requests page checks for queue changes every 10 seconds.
-- It does not auto-refresh.
-- If requests are added/changed, a banner appears:
-  - Queue updates available
-  - Refresh queue
-- Adds/keeps:
-  - /admin/request-ping.php
+- Removes the blue “Active Event” heading from the left card.
+- Keeps “Tonight’s Event” as the main card heading.
+- Moves the Event Time countdown onto the same line as the event time.
+- Moves the Requests Close countdown onto the same line as the close time.
+- Keeps both countdowns live and updating every second.
+- Keeps the Requests Close time the same size as Event Time.
+- No database changes.
 
 ## SQL
 
@@ -19,4 +16,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v50 Request Close Font Update Prompt
+v51 Active Event Card Compact
