@@ -1,6 +1,71 @@
 <?php
 require_once __DIR__ . '/_auth.php';
 
+function dttd_event_image_column_exists() {
+    static $exists = null;
+
+    if ($exists !== null) {
+        return $exists;
+    }
+
+    try {
+        $stmt = db()->query("SHOW COLUMNS FROM events LIKE 'event_image'");
+        $exists = (bool)$stmt->fetch();
+    } catch (Throwable $e) {
+        $exists = false;
+    }
+
+    return $exists;
+}
+
+function dttd_handle_event_image_upload($field_name = 'event_image_upload') {
+    if (!isset($_FILES[$field_name]) || !is_array($_FILES[$field_name])) {
+        return null;
+    }
+
+    $file = $_FILES[$field_name];
+
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+
+    if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+        return null;
+    }
+
+    $tmp = $file['tmp_name'] ?? '';
+    if (!$tmp || !is_uploaded_file($tmp)) {
+        return null;
+    }
+
+    $allowed = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+        'image/gif' => 'gif',
+    ];
+
+    $mime = mime_content_type($tmp);
+    if (!isset($allowed[$mime])) {
+        return null;
+    }
+
+    $upload_dir = dirname(__DIR__) . '/uploads/events';
+    if (!is_dir($upload_dir)) {
+        mkdir($upload_dir, 0775, true);
+    }
+
+    $filename = 'event-' . date('Ymd-His') . '-' . bin2hex(random_bytes(4)) . '.' . $allowed[$mime];
+    $target = $upload_dir . '/' . $filename;
+
+    if (!move_uploaded_file($tmp, $target)) {
+        return null;
+    }
+
+    return '/uploads/events/' . $filename;
+}
+
+
 
 function dttd_index_group_id_column_exists() {
     static $exists = null;
@@ -201,7 +266,7 @@ admin_header('DJ Portal');
       <?php if (!$event): ?>
         <p class="muted-text">No event exists yet. Create an event before adding test requests.</p>
       <?php else: ?>
-        <form method="post" class="test-request-form">
+        <form method="post" class="test-request-form" enctype="multipart/form-data">
           <input type="hidden" name="action" value="add_test_request">
 
           <div class="test-request-grid">
