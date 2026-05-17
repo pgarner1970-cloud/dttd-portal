@@ -1,30 +1,39 @@
-# Dance Thru the Decades Portal v99 - Event Image Upload Corrected
+# Dance Thru the Decades Portal v100 - Event Image On Edit Page
 
-## What was wrong
+## Fix
 
-The upload section was being hidden behind the database-column check and/or inserted in the wrong place. This build inspects and patches the actual rendered `admin/events.php` edit form.
+The image upload belongs on the add/edit event page, not `events.php`.
+
+This build adds complete add/edit pages:
+
+```text
+admin/event-edit.php
+admin/events-edit.php
+```
+
+Both files contain the Event Image / Flyer upload section.
 
 ## Changes
 
-- Adds a visible Event Image / Flyer card directly between:
-  - Event Details
-  - Timing
-- The field is visible even if the database column has not been added yet.
-- If the column is missing, the page shows the SQL warning instead of hiding the field.
-- Adds file upload support to the form.
-- Saves uploads into:
+- Removes the misplaced upload section from `events.php`.
+- Adds image upload to the event add/edit form.
+- Supports both URL conventions:
+  - `/admin/event-edit.php`
+  - `/admin/events-edit.php`
+- Saves uploaded images to:
 
 ```text
 uploads/events/
 ```
 
-- Saves uploaded image path into:
+- Saves image path to:
 
 ```text
 events.event_image
 ```
 
-- No request queue/header layout changes.
+- Keeps Events list clean.
+- Keeps request queue/header changes untouched.
 
 ## SQL
 
@@ -35,12 +44,8 @@ ALTER TABLE events
 ADD COLUMN event_image VARCHAR(255) NULL;
 ```
 
-A copy is included at:
-
-```text
-sql/v92_event_image.sql
-```
+If already run, no SQL is needed.
 
 ## Suggested Git commit title
 
-v99 Event Image Upload Corrected
+v100 Event Image On Edit Page

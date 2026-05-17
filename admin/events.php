@@ -121,46 +121,6 @@ function event_row_state_class($event) {
 admin_header('Events - DJ Portal');
 ?>
 <main class="touch-wrap">
-  
-      <section class="settings-card event-image-upload-card">
-        <div class="settings-card-header">
-          <div class="settings-card-icon">🖼️</div>
-          <div>
-            <h3>Event Image / Flyer</h3>
-            <p>Upload a flyer or promotional image for this event.</p>
-          </div>
-        </div>
-
-        <div class="settings-card-body event-image-upload-body">
-          <?php if (!dttd_event_image_column_exists()): ?>
-            <div class="settings-alert warning">
-              The upload field is ready, but the database column is missing. Run:
-              <code>ALTER TABLE events ADD COLUMN event_image VARCHAR(255) NULL;</code>
-            </div>
-          <?php endif; ?>
-
-          <?php if (dttd_event_image_column_exists() && !empty($event['event_image'])): ?>
-            <div class="event-image-preview">
-              <img src="<?= h($event['event_image']) ?>" alt="Current event image">
-            </div>
-          <?php endif; ?>
-
-          <label class="event-image-upload-label" for="event_image_upload">
-            <span>Choose image</span>
-            <input
-              type="file"
-              name="event_image_upload"
-              id="event_image_upload"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-            >
-          </label>
-
-          <p class="settings-help-text">
-            Supported formats: JPG, PNG, WebP and GIF. The image will be stored for later display/use.
-          </p>
-        </div>
-      </section>
-
 <section class="touch-panel">
     <div class="touch-panel-header">
       <div>
