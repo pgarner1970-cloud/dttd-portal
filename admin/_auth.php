@@ -1,4 +1,5 @@
 <?php
+ob_start();
 session_start();
 require_once __DIR__ . '/../includes/db.php';
 
@@ -49,9 +50,8 @@ if (empty($_SESSION['admin'])):
 </main>
 </body>
 </html>
-<?php exit; endif; ?>
+<?php exit; endif;
 
-<?php
 function admin_header($title = 'Admin') {
 ?>
 <!DOCTYPE html>
@@ -84,4 +84,3 @@ function admin_footer() {
 </html>
 <?php
 }
-?>

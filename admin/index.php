@@ -9,16 +9,26 @@ if (!$event) {
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['request_id'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_action'], $_POST['request_id'])) {
     $allowed = ['played','rejected','duplicate','maybe','pending'];
-    $status = in_array($_POST['action'], $allowed, true) ? $_POST['action'] : 'pending';
-    $stmt = db()->prepare("UPDATE song_requests SET status = ? WHERE id = ?");
-    $stmt->execute([$status, (int)$_POST['request_id']]);
+    $status = in_array($_POST['request_action'], $allowed, true) ? $_POST['request_action'] : 'pending';
+
+    $stmt = db()->prepare("UPDATE song_requests SET status = ? WHERE id = ? AND event_id = ?");
+    $stmt->execute([$status, (int)$_POST['request_id'], (int)$event['id']]);
+
     header('Location: /admin/?event=' . (int)$event['id']);
     exit;
 }
 
-$stmt = db()->prepare("SELECT * FROM song_requests WHERE event_id = ? ORDER BY FIELD(status,'pending','maybe','duplicate','played','rejected'), created_at DESC");
+$stmt = db()->prepare("
+    SELECT *
+    FROM song_requests
+    WHERE event_id = ?
+    ORDER BY
+      FIELD(status,'pending','maybe','duplicate','played','rejected'),
+      created_at ASC,
+      id ASC
+");
 $stmt->execute([$event['id']]);
 $requests = $stmt->fetchAll();
 
@@ -108,7 +118,7 @@ admin_header('DJ Admin Dashboard');
                 <?php foreach (['played','maybe','duplicate','rejected','pending'] as $s): ?>
                   <form method="post" class="admin-action-form">
                     <input type="hidden" name="request_id" value="<?= (int)$r['id'] ?>">
-                    <button class="admin-btn <?= $s==='rejected' ? 'red' : ($s==='played' ? 'green' : 'amber') ?>" name="action" value="<?= h($s) ?>"><?= h($s) ?></button>
+                    <button class="admin-btn <?= $s==='rejected' ? 'red' : ($s==='played' ? 'green' : 'amber') ?>" name="request_action" value="<?= h($s) ?>"><?= h($s) ?></button>
                   </form>
                 <?php endforeach; ?>
                 </div>

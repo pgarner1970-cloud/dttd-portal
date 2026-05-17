@@ -1,16 +1,25 @@
-# Dance Thru the Decades Portal v6 - Compact Admin
+# Dance Thru the Decades Portal v7 - Admin Action Fix
 
-## New in v6
+## Fixes
 
-- Public portal styling remains disco/party themed.
-- Admin section now uses `/assets/admin.css`.
-- Compact corporate dashboard layout.
-- Smaller headings, tighter rows, less wasted space.
-- Better request table for DJ laptop/tablet use.
-- Cleaner events admin page.
+- Fixed admin request action buttons returning a blank page.
+- Changed POST field from `action` to `request_action`.
+- Added output buffering in admin auth.
+- Improved request ordering.
 
-## Database
+## Sort order
 
-No SQL changes from v5.
+Requests are sorted as:
 
-If you already ran the v5 SQL, there is no new SQL to run for v6.
+1. pending
+2. maybe
+3. duplicate
+4. played
+5. rejected
+
+Within each status, oldest requests are shown first.
+This keeps pending requests as a proper DJ queue.
+
+## SQL
+
+No SQL changes.
