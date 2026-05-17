@@ -29,7 +29,16 @@ if ($event_id) {
 if (!$event) {
     admin_header('Requests - DJ Portal');
     ?>
-    <main class="touch-wrap">
+    <main class="touch-wrap" data-event-id="<?= (int)$event['id'] ?>" data-request-fingerprint="<?= h($initial_fingerprint) ?>">
+
+  <div id="requestUpdateBanner" class="request-update-banner" hidden>
+    <div>
+      <strong>Queue updates available</strong>
+      <span id="requestUpdateText">New or changed requests have arrived.</span>
+    </div>
+    <button type="button" id="requestUpdateRefresh">Refresh queue</button>
+  </div>
+
 <section class="touch-panel">
         <div class="touch-panel-header">
           <div>
@@ -135,6 +144,18 @@ if ($sort === 'queue') {
 }
 
 $events = db()->query("SELECT id, event_name, venue_name, event_date, start_time, end_time, is_active FROM events ORDER BY event_date DESC, id DESC LIMIT 40")->fetchAll();
+
+$ping_stmt = db()->prepare("
+    SELECT 
+        COUNT(*) AS total_requests,
+        COALESCE(MAX(UNIX_TIMESTAMP(updated_at)), 0) AS latest_updated,
+        COALESCE(MAX(UNIX_TIMESTAMP(created_at)), 0) AS latest_created
+    FROM song_requests
+    WHERE event_id = ?
+");
+$ping_stmt->execute([(int)$event['id']]);
+$ping_row = $ping_stmt->fetch();
+$initial_fingerprint = sha1((int)$event['id'] . '|' . (int)($ping_row['total_requests'] ?? 0) . '|' . (int)($ping_row['latest_updated'] ?? 0) . '|' . (int)($ping_row['latest_created'] ?? 0));
 
 function status_label($status) {
     return strtolower((string)$status);
@@ -278,4 +299,70 @@ admin_header('DJ Portal');
     </section>
   </section>
 </main>
+
+<script>
+(function(){
+  const wrap = document.querySelector('main.touch-wrap[data-event-id]');
+  const banner = document.getElementById('requestUpdateBanner');
+  const refreshButton = document.getElementById('requestUpdateRefresh');
+  const text = document.getElementById('requestUpdateText');
+
+  if (!wrap || !banner || !refreshButton) return;
+
+  const eventId = wrap.dataset.eventId;
+  let lastFingerprint = wrap.dataset.requestFingerprint || '';
+  let hasUpdate = false;
+  let isBusy = false;
+
+  function markBusy(){
+    isBusy = true;
+    window.clearTimeout(window.__dttdBusyTimer);
+    window.__dttdBusyTimer = window.setTimeout(function(){
+      isBusy = false;
+    }, 8000);
+  }
+
+  document.addEventListener('pointerdown', function(event){
+    if (event.target.closest('button, a, select, input, textarea')) {
+      markBusy();
+    }
+  }, {passive:true});
+
+  document.addEventListener('change', markBusy, {passive:true});
+
+  async function checkForUpdates(){
+    if (document.hidden || isBusy || hasUpdate) return;
+
+    try {
+      const response = await fetch('/admin/request-ping.php?event=' + encodeURIComponent(eventId) + '&_=' + Date.now(), {
+        cache: 'no-store',
+        credentials: 'same-origin'
+      });
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+
+      if (!data.ok || !data.fingerprint) return;
+
+      if (lastFingerprint && data.fingerprint !== lastFingerprint) {
+        hasUpdate = true;
+        text.textContent = 'The request queue changed at ' + (data.checked_at || 'now') + '.';
+        banner.hidden = false;
+      } else {
+        lastFingerprint = data.fingerprint;
+      }
+    } catch (error) {
+      // Silent by design. DJ screen should not show technical errors.
+    }
+  }
+
+  refreshButton.addEventListener('click', function(){
+    window.location.reload();
+  });
+
+  window.setInterval(checkForUpdates, 10000);
+})();
+</script>
+
 <?php admin_footer(); ?>

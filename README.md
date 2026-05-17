@@ -1,18 +1,16 @@
-# Dance Thru the Decades Portal v34 - Shared Header Navigation
+# Dance Thru the Decades Portal v35 - Request Queue Update Indicator
 
 ## Changes
 
-- Adds the Requests / Events / Settings navigation inside the shared admin header.
-- Navigation now appears in the header top-right beside Home and Logout.
-- Removes all second-row/page-level navigation buttons from:
-  - /admin/index.php
-  - /admin/requests.php
-  - /admin/events.php
-  - /admin/event-edit.php
-- Keeps the admin index as a simple landing page.
-- Requests and Events are separate detail pages.
-- Includes the shared admin header file in the ZIP:
-  - /admin/_auth.php
+- Adds a lightweight request queue update checker.
+- Requests page now polls every 10 seconds in the background.
+- It does not auto-refresh the page.
+- If the queue changes, it shows a banner:
+  - Queue updates available
+  - Refresh queue
+- Polling pauses while the DJ is interacting with buttons/forms.
+- Adds endpoint:
+  - /admin/request-ping.php
 - No database changes.
 
 ## SQL
@@ -21,4 +19,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v34 Shared Header Navigation
+v35 Request Queue Update Indicator
