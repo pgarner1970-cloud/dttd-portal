@@ -1,11 +1,11 @@
-# Dance Thru the Decades Portal v46 - Request Close Countdown Format
+# Dance Thru the Decades Portal v47 - Request Close Countdown Forced
 
 ## Changes
 
-- Requests Close now matches the Event Time display style.
-- Shows the request close time first.
-- Shows the live countdown underneath in green.
-- Countdown still updates every second.
+- Forces the Requests Close countdown into the Active Event card.
+- Countdown appears directly under the request close time.
+- Countdown uses the same green style as the event end countdown.
+- Countdown updates every second.
 - No database changes.
 
 ## SQL
@@ -14,4 +14,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v46 Request Close Countdown Format
+v47 Request Close Countdown Forced

@@ -224,7 +224,13 @@ admin_header('DJ Portal');
             <div class="event-info-icon">⏱</div>
             <div>
               <div class="event-info-title">Requests close</div>
-              <div class="event-info-value countdown"><?= h($event['requests_close_at'] ? date('H:i', strtotime($event['requests_close_at'])) : 'Not set') ?></div>
+              <div class="event-info-value countdown"><?= h($event['requests_close_at'] ? date('H:i', strtotime($event['requests_close_at'])) : 'Not set') ?>
+                <?php if (!empty($event['requests_close_at'])): ?>
+                  <span class="mini-countdown request-close-mini-countdown" id="requestCloseCountdown"
+                    data-target="<?= h(date('Y-m-d H:i:s', strtotime($event['requests_close_at']))) ?>"
+                  >-- left</span>
+                <?php endif; ?>
+              </div>
             </div>
           </div>
         </div>
@@ -521,37 +527,27 @@ admin_header('DJ Portal');
 
   function parseDateTime(dateValue, timeValue){
     if (!dateValue || !timeValue) return null;
-
-    const dateParts = String(dateValue).split('-').map(Number);
-    const timeParts = String(timeValue).split(':').map(Number);
-
-    if (dateParts.length < 3 || timeParts.length < 2) return null;
-
-    return new Date(dateParts[0], dateParts[1] - 1, dateParts[2], timeParts[0], timeParts[1], 0);
+    const d = String(dateValue).split('-').map(Number);
+    const t = String(timeValue).split(':').map(Number);
+    if (d.length < 3 || t.length < 2) return null;
+    return new Date(d[0], d[1] - 1, d[2], t[0], t[1], 0);
   }
 
   function parseTarget(value){
     if (!value) return null;
-
     const parts = String(value).trim().split(/[ T]/);
     if (parts.length < 2) return null;
-
     return parseDateTime(parts[0], parts[1]);
   }
 
   function formatRemaining(ms){
     if (ms <= 0) return '0h 00m 00s';
-
     const totalSeconds = Math.floor(ms / 1000);
     const days = Math.floor(totalSeconds / 86400);
     const hours = Math.floor((totalSeconds % 86400) / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-
-    if (days > 0) {
-      return days + 'd ' + hours + 'h ' + pad(minutes) + 'm';
-    }
-
+    if (days > 0) return days + 'd ' + hours + 'h ' + pad(minutes) + 'm';
     return hours + 'h ' + pad(minutes) + 'm ' + pad(seconds) + 's';
   }
 
@@ -563,20 +559,13 @@ admin_header('DJ Portal');
 
   function getEventEndTarget(){
     if (!eventEndEl) return null;
-
     const eventDate = eventEndEl.dataset.eventDate || '';
     const startTime = eventEndEl.dataset.startTime || '';
     const endTime = eventEndEl.dataset.endTime || '';
-
     const startDate = parseDateTime(eventDate, startTime);
     const endDate = parseDateTime(eventDate, endTime);
-
     if (!startDate || !endDate) return null;
-
-    if (endDate <= startDate) {
-      endDate.setDate(endDate.getDate() + 1);
-    }
-
+    if (endDate <= startDate) endDate.setDate(endDate.getDate() + 1);
     return endDate;
   }
 
@@ -585,21 +574,17 @@ admin_header('DJ Portal');
 
   function updateCountdown(el, target, warningMs, endedText){
     if (!el) return;
-
     if (!target) {
       el.textContent = 'time not set';
       setState(el, 'mini-warning');
       return;
     }
-
     const now = new Date();
-
     if (now >= target) {
       el.textContent = endedText;
       setState(el, 'mini-ended');
       return;
     }
-
     const remaining = target - now;
     el.textContent = formatRemaining(remaining) + ' left';
     setState(el, remaining <= warningMs ? 'mini-warning' : 'mini-live');
@@ -607,7 +592,7 @@ admin_header('DJ Portal');
 
   function update(){
     updateCountdown(requestCloseEl, requestCloseTarget, 15 * 60 * 1000, 'closed');
-    updateCountdown(eventEndEl, eventEndTarget, 30 * 60 * 1000, 'ends soon');
+    updateCountdown(eventEndEl, eventEndTarget, 30 * 60 * 1000, 'ended');
   }
 
   update();

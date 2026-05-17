@@ -1827,3 +1827,25 @@ body:has(.header-event-summary) .touch-clock{
 .event-info-value .mini-countdown.mini-ended{
   color:#f87171;
 }
+
+
+/* v47 forced request close countdown display */
+.request-close-mini-countdown,
+#requestCloseCountdown{
+  display:block !important;
+  margin-top:4px !important;
+  font-size:11px !important;
+  line-height:1.15 !important;
+  font-weight:900 !important;
+  color:#4ade80 !important;
+  text-transform:uppercase !important;
+  letter-spacing:.02em !important;
+}
+
+#requestCloseCountdown.mini-warning{
+  color:#fbbf24 !important;
+}
+
+#requestCloseCountdown.mini-ended{
+  color:#f87171 !important;
+}
