@@ -1,18 +1,29 @@
-# Dance Thru the Decades Portal v93 - Header Right Nav Lock
+# Dance Thru the Decades Portal v94 - Header Nav Position Fix
 
 ## Changes
 
-- Fixes header buttons moving into the centre when event/request timers are disabled.
-- Keeps DJ Portal logo on the left.
-- Keeps live clock/date centred.
-- Keeps Requests, Events, Settings, Home and Logout buttons on the right.
-- Timers can be toggled on/off without changing the nav position.
-- No SQL changes.
+- Rebuilds from the safer v92 base rather than v93.
+- Fixes header navigation moving toward the centre when timers are disabled.
+- Keeps:
+  - DJ Portal logo pinned left
+  - live clock/timers centred
+  - nav/buttons pinned right
+- Keeps navigation links clickable.
+- Hides timers on narrower screens before layout becomes crowded.
+- Keeps event image upload changes from v92.
+- No SQL changes beyond v92 event image column.
 
 ## SQL
 
-No SQL to run.
+If you have not already run the v92 SQL, run:
+
+```sql
+ALTER TABLE events
+ADD COLUMN event_image VARCHAR(255) NULL;
+```
+
+If already run, no SQL is needed.
 
 ## Suggested Git commit title
 
-v93 Header Right Nav Lock
+v94 Header Nav Position Fix
