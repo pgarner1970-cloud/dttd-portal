@@ -1,16 +1,13 @@
-# Dance Thru the Decades Portal v28 - Compact Navigation Narrow Active Panel
+# Dance Thru the Decades Portal v29 - Public Landing Page
 
 ## Changes
 
-- Removed the large Requests / Events / Settings tiles from admin pages.
-- Added compact touchscreen navigation buttons into the admin header:
-  - Requests
-  - Events
-  - Settings
-- Reduced the active event panel width.
-- Tightened active event panel padding and typography.
-- Gives the request queue more horizontal and vertical space on tablets.
-- Keeps the current grouped request queue and event gating work.
+- Adds a new jazzy public-facing homepage.
+- Strong Facebook follow/check-in/photo prompts.
+- Adds event QR/event portal explanation section.
+- Adds guest Wi-Fi explanation section.
+- Keeps admin/event/request work separate.
+- No database changes.
 
 ## SQL
 
@@ -18,4 +15,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v28 Compact Navigation Narrow Active Panel
+v29 Public Landing Page
