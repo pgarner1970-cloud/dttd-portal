@@ -1,14 +1,12 @@
-# Dance Thru the Decades Portal v87 - Compact Right Action Grid
+# Dance Thru the Decades Portal v88 - Square Actions No Overlap
 
 ## Changes
 
-- Keeps the four queue action buttons on the right-hand side.
-- Changes the action buttons into a compact 2x2 grid:
-  - Played / Maybe
-  - Merge / Reject
-- Keeps request cards in the middle/right area.
-- Reduces vertical height of each queue row.
-- Keeps merge/reject/header timer logic unchanged.
+- Keeps queue actions on the right-hand side.
+- Makes the four action buttons compact and near-square.
+- Prevents dedication/request cards overlapping the action button grid.
+- Tightens the action column width.
+- Keeps merge, reject and header timer logic unchanged.
 - No SQL changes.
 
 ## SQL
@@ -17,4 +15,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v87 Compact Right Action Grid
+v88 Square Actions No Overlap
