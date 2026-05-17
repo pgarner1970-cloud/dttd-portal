@@ -1,19 +1,13 @@
-# Dance Thru the Decades Portal v56 - Queue Update Detection Fix
+# Dance Thru the Decades Portal v57 - 500 Fix Queue Detection
 
 ## Changes
 
-- Fixes request queue update detection.
-- Ping endpoint now creates a robust fingerprint from:
-  - request IDs
-  - statuses
-  - guest names
-  - song titles
-  - artists
-  - messages
-  - status counts
-- Detection no longer relies only on created_at/updated_at fields.
-- Requests page initial fingerprint now uses the same logic as the ping endpoint.
-- If another request is added in the database, the DJ should see the update banner.
+- Fixes the 500 error caused by the previous queue detection update.
+- Removes risky fingerprint generation from requests.php page render.
+- Keeps robust queue change detection in /admin/request-ping.php.
+- First ping sets the baseline fingerprint.
+- Later pings show the update banner when the queue changes.
+- request-ping.php now reads all request columns safely and tolerates column-name differences.
 - No database changes.
 
 ## SQL
@@ -22,4 +16,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v56 Queue Update Detection Fix
+v57 500 Fix Queue Detection

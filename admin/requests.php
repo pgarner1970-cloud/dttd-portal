@@ -37,6 +37,8 @@ if (!$event) {
 
     <main class="touch-wrap"
   data-event-id="<?= (int)$event['id'] ?>"
+  data-request-fingerprint="<?= h($initial_fingerprint ?? '') ?>"
+>"
   data-request-fingerprint="<?= h($initial_fingerprint) ?>"
 >"
   data-request-fingerprint="<?= h($initial_fingerprint ?? '') ?>"
@@ -181,58 +183,7 @@ $allowed_request_layouts = ['event_left', 'event_right', 'queue_only'];
 if (!in_array($requests_layout, $allowed_request_layouts, true)) {
     $requests_layout = 'event_left';
 }
-
-
-function request_queue_fingerprint($event_id) {
-    $stmt = db()->prepare("
-        SELECT 
-            id,
-            status,
-            guest_name,
-            song_title,
-            artist,
-            message
-        FROM song_requests
-        WHERE event_id = ?
-        ORDER BY id ASC
-    ");
-    $stmt->execute([(int)$event_id]);
-    $rows = $stmt->fetchAll();
-
-    $status_counts = [
-        'pending' => 0,
-        'maybe' => 0,
-        'played' => 0,
-        'duplicate' => 0,
-        'rejected' => 0,
-    ];
-
-    $parts = [];
-
-    foreach ($rows as $row) {
-        $status = strtolower((string)($row['status'] ?? 'pending'));
-
-        if (!array_key_exists($status, $status_counts)) {
-            $status_counts[$status] = 0;
-        }
-
-        $status_counts[$status]++;
-
-        $parts[] = implode('|', [
-            (int)$row['id'],
-            $status,
-            (string)($row['guest_name'] ?? ''),
-            (string)($row['song_title'] ?? ''),
-            (string)($row['artist'] ?? ''),
-            (string)($row['message'] ?? ''),
-        ]);
-    }
-
-    return sha1((int)$event_id . '|' . count($rows) . '|' . json_encode($status_counts) . '|' . implode('~', $parts));
-}
-
-$initial_fingerprint = request_queue_fingerprint((int)$event['id']);
-
+$initial_fingerprint = '';
 admin_header('DJ Portal');
 ?>
 <main class="touch-wrap">
@@ -421,7 +372,12 @@ admin_header('DJ Portal');
 
       if (!data.ok || !data.fingerprint) return;
 
-      if (lastFingerprint && data.fingerprint !== lastFingerprint) {
+      if (!lastFingerprint) {
+        lastFingerprint = data.fingerprint;
+        return;
+      }
+
+      if (data.fingerprint !== lastFingerprint) {
         hasUpdate = true;
         const total = typeof data.total_requests !== 'undefined' ? ' (' + data.total_requests + ' total)' : ''; text.textContent = 'The request queue changed at ' + (data.checked_at || 'now') + total + '.';
         banner.hidden = false;
@@ -699,7 +655,12 @@ admin_header('DJ Portal');
 
       if (!data.ok || !data.fingerprint) return;
 
-      if (lastFingerprint && data.fingerprint !== lastFingerprint) {
+      if (!lastFingerprint) {
+        lastFingerprint = data.fingerprint;
+        return;
+      }
+
+      if (data.fingerprint !== lastFingerprint) {
         hasUpdate = true;
         const total = typeof data.total_requests !== 'undefined' ? ' (' + data.total_requests + ' total)' : ''; text.textContent = 'The request queue changed at ' + (data.checked_at || 'now') + total + '.';
         banner.hidden = false;
