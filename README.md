@@ -1,23 +1,19 @@
-# Dance Thru the Decades Portal v22 - Event Current State Fix
+# Dance Thru the Decades Portal v23 - Requests Page Fix
 
 ## Changes
 
-- Only one event is shown visually as Current.
-- Green row border is only used for the current event.
-- Future/non-current events use amber row border.
-- Past events use red row border.
-- “Make Current” only appears on non-current events dated today or in the future.
-- Past events cannot be made current from the Events page.
-- Fixed Requests tile link so it explicitly opens `/admin/index.php`.
-- Included `/admin/index.php` in the ZIP so the Requests page is present.
+- Added a dedicated Requests page:
+  - `/admin/requests.php`
+- Updated Requests navigation tiles to point directly to:
+  - `/admin/requests.php`
+- Kept `/admin/index.php` in place.
+- This avoids any issue with `/admin/` or `index.php` routing on 20i.
 
 ## File note
 
-The Requests page is:
+Requests dashboard is now available at:
 
-`/admin/index.php`
-
-There is no `/admin/requests.php` in this build.
+`/admin/requests.php`
 
 ## SQL
 
@@ -25,4 +21,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v22 Event Current State Fix
+v23 Requests Page Fix
