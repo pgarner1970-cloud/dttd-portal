@@ -37,6 +37,13 @@ if (!$event) {
 
     <main class="touch-wrap"
   data-event-id="<?= (int)$event['id'] ?>"
+  data-current-pending="<?= (int)$counts['pending'] ?>"
+  data-current-maybe="<?= (int)$counts['maybe'] ?>"
+  data-current-played="<?= (int)$counts['played'] ?>"
+  data-current-duplicate="<?= (int)$counts['duplicate'] ?>"
+  data-current-rejected="<?= (int)$counts['rejected'] ?>"
+  data-current-total="<?= (int)array_sum($counts) ?>"
+>"
   data-request-fingerprint="<?= h($initial_fingerprint ?? '') ?>"
 >"
   data-request-fingerprint="<?= h($initial_fingerprint) ?>"
@@ -608,7 +615,6 @@ admin_header('DJ Portal');
 })();
 </script>
 
-
 <!-- Request Queue Update Indicator JS -->
 <script>
 (function(){
@@ -620,7 +626,15 @@ admin_header('DJ Portal');
   if (!wrap || !banner || !refreshButton) return;
 
   const eventId = wrap.dataset.eventId;
-  let lastFingerprint = wrap.dataset.requestFingerprint || '';
+  const loadedCounts = {
+    pending: Number(wrap.dataset.currentPending || 0),
+    maybe: Number(wrap.dataset.currentMaybe || 0),
+    played: Number(wrap.dataset.currentPlayed || 0),
+    duplicate: Number(wrap.dataset.currentDuplicate || 0),
+    rejected: Number(wrap.dataset.currentRejected || 0)
+  };
+  const loadedTotal = Number(wrap.dataset.currentTotal || 0);
+
   let hasUpdate = false;
   let isBusy = false;
 
@@ -629,7 +643,37 @@ admin_header('DJ Portal');
     window.clearTimeout(window.__dttdBusyTimer);
     window.__dttdBusyTimer = window.setTimeout(function(){
       isBusy = false;
-    }, 8000);
+    }, 5000);
+  }
+
+  function countsChanged(serverCounts, serverTotal){
+    if (Number(serverTotal || 0) !== loadedTotal) return true;
+
+    for (const key of Object.keys(loadedCounts)) {
+      if (Number((serverCounts && serverCounts[key]) || 0) !== loadedCounts[key]) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function showUpdate(data){
+    hasUpdate = true;
+
+    const parts = [];
+    if (data.status_counts) {
+      if (Number(data.status_counts.pending || 0) !== loadedCounts.pending) {
+        parts.push(String(data.status_counts.pending || 0) + ' pending');
+      }
+      if (Number(data.status_counts.played || 0) !== loadedCounts.played) {
+        parts.push(String(data.status_counts.played || 0) + ' played');
+      }
+    }
+
+    const summary = parts.length ? ' — now ' + parts.join(', ') : '';
+    text.textContent = 'The request queue changed at ' + (data.checked_at || 'now') + summary + '.';
+    banner.hidden = false;
   }
 
   document.addEventListener('pointerdown', function(event){
@@ -653,22 +697,13 @@ admin_header('DJ Portal');
 
       const data = await response.json();
 
-      if (!data.ok || !data.fingerprint) return;
+      if (!data.ok) return;
 
-      if (!lastFingerprint) {
-        lastFingerprint = data.fingerprint;
-        return;
-      }
-
-      if (data.fingerprint !== lastFingerprint) {
-        hasUpdate = true;
-        const total = typeof data.total_requests !== 'undefined' ? ' (' + data.total_requests + ' total)' : ''; text.textContent = 'The request queue changed at ' + (data.checked_at || 'now') + total + '.';
-        banner.hidden = false;
-      } else {
-        lastFingerprint = data.fingerprint;
+      if (countsChanged(data.status_counts || {}, data.total_requests || 0)) {
+        showUpdate(data);
       }
     } catch (error) {
-      // Silent by design.
+      // Keep the DJ screen quiet if a check fails.
     }
   }
 
@@ -676,6 +711,8 @@ admin_header('DJ Portal');
     window.location.reload();
   });
 
+  // Check soon after load, then every 10 seconds.
+  window.setTimeout(checkForUpdates, 1500);
   window.setInterval(checkForUpdates, 10000);
 })();
 </script>

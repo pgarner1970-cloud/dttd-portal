@@ -19,16 +19,9 @@ if (!$event_id) {
 }
 
 try {
-    $stmt = db()->prepare("
-        SELECT *
-        FROM song_requests
-        WHERE event_id = ?
-        ORDER BY id ASC
-    ");
+    $stmt = db()->prepare("SELECT * FROM song_requests WHERE event_id = ? ORDER BY id ASC");
     $stmt->execute([$event_id]);
     $rows = $stmt->fetchAll();
-
-    $total = count($rows);
 
     $status_counts = [
         'pending' => 0,
@@ -38,7 +31,7 @@ try {
         'rejected' => 0,
     ];
 
-    $fingerprint_parts = [];
+    $parts = [];
 
     foreach ($rows as $row) {
         $status = strtolower((string)($row['status'] ?? 'pending'));
@@ -49,7 +42,7 @@ try {
 
         $status_counts[$status]++;
 
-        $fingerprint_parts[] = implode('|', [
+        $parts[] = implode('|', [
             (int)($row['id'] ?? 0),
             $status,
             (string)($row['guest_name'] ?? $row['guest'] ?? ''),
@@ -59,14 +52,12 @@ try {
         ]);
     }
 
-    $fingerprint = sha1($event_id . '|' . $total . '|' . json_encode($status_counts) . '|' . implode('~', $fingerprint_parts));
-
     echo json_encode([
         'ok' => true,
         'event_id' => $event_id,
-        'total_requests' => $total,
+        'total_requests' => count($rows),
         'status_counts' => $status_counts,
-        'fingerprint' => $fingerprint,
+        'fingerprint' => sha1($event_id . '|' . count($rows) . '|' . json_encode($status_counts) . '|' . implode('~', $parts)),
         'checked_at' => date('H:i:s')
     ]);
 } catch (Throwable $e) {
