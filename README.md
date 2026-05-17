@@ -1,22 +1,12 @@
-# Dance Thru the Decades Portal v9 - Touchscreen DJ UI
+# Dance Thru the Decades Portal v10 - Touchscreen Events Page
 
-## What changed
+## Changes
 
-- Admin requests page redesigned as a touchscreen dashboard.
-- Dark low-light interface inspired by car infotainment / DJ software.
-- Large tile navigation.
-- Request cards instead of compact table rows.
-- Large touch-friendly action buttons.
-- Event summary sidebar.
-- Public portal unchanged.
-
-## Files included
-
-- /assets/admin-touch.css
-- /admin/_auth.php
-- /admin/index.php
-- README.md
+- Updated `/admin/events.php` to match the v9 touchscreen DJ Portal UI.
+- Events now display as touch-friendly cards.
+- Event create/edit form uses the dark dashboard styling.
+- No SQL changes.
 
 ## SQL
 
-No SQL changes.
+No SQL to run.
