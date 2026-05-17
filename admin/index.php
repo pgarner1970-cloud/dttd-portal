@@ -89,6 +89,11 @@ admin_header('DJ Portal');
         <strong>Events</strong>
         <span>Create, edit and review events</span>
       </a>
+      <a class="admin-home-card" href="/admin/request-debug.php">
+        <span class="admin-home-icon">◎</span>
+        <strong>Queue Debug</strong>
+        <span>Diagnose request update polling</span>
+      </a>
     </div>
   </section>
 

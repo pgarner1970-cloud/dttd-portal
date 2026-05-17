@@ -5,10 +5,16 @@ header('Content-Type: application/json; charset=utf-8');
 
 $event_id = !empty($_GET['event']) ? (int)$_GET['event'] : 0;
 
+if (!$event_id && function_exists('dttd_get_calculated_current_event')) {
+    $event = dttd_get_calculated_current_event();
+    $event_id = $event ? (int)$event['id'] : 0;
+}
+
 if (!$event_id) {
     echo json_encode([
         'ok' => false,
-        'error' => 'Missing event id'
+        'error' => 'Missing event id',
+        'checked_at' => date('H:i:s')
     ]);
     exit;
 }
@@ -27,7 +33,7 @@ try {
     ];
 
     $status_stmt = db()->prepare("
-        SELECT LOWER(COALESCE(status, 'pending')) AS status, COUNT(*) AS total
+        SELECT LOWER(COALESCE(status, 'pending')) AS request_status, COUNT(*) AS request_total
         FROM song_requests
         WHERE event_id = ?
         GROUP BY LOWER(COALESCE(status, 'pending'))
@@ -35,8 +41,8 @@ try {
     $status_stmt->execute([$event_id]);
 
     foreach ($status_stmt->fetchAll() as $row) {
-        $status = (string)$row['status'];
-        $status_counts[$status] = (int)$row['total'];
+        $status = (string)($row['request_status'] ?? 'pending');
+        $status_counts[$status] = (int)($row['request_total'] ?? 0);
     }
 
     echo json_encode([
@@ -49,6 +55,8 @@ try {
 } catch (Throwable $e) {
     echo json_encode([
         'ok' => false,
-        'error' => 'Ping failed'
+        'error' => 'Ping failed: ' . $e->getMessage(),
+        'event_id' => $event_id,
+        'checked_at' => date('H:i:s')
     ]);
 }
