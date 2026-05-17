@@ -654,3 +654,39 @@ details.form-advanced[open] summary:before{transform:rotate(90deg)}
     width:100% !important;
   }
 }
+
+
+/* v20 compact request queue header */
+.request-queue-compact-header{
+  display:grid;
+  grid-template-columns:auto minmax(320px,1fr) 230px;
+  gap:16px;
+  align-items:end;
+  padding:16px 20px;
+  border-bottom:1px solid var(--line);
+}
+
+.request-queue-compact-header .touch-panel-title{
+  margin-bottom:8px;
+  white-space:nowrap;
+}
+
+.request-queue-compact-header .queue-selector,
+.request-queue-compact-header .sort-selector{
+  min-width:0;
+}
+
+.request-queue-compact-header .queue-selector select,
+.request-queue-compact-header .sort-selector select{
+  min-height:50px;
+}
+
+@media(max-width:980px){
+  .request-queue-compact-header{
+    grid-template-columns:1fr;
+  }
+
+  .request-queue-compact-header .touch-panel-title{
+    margin-bottom:0;
+  }
+}

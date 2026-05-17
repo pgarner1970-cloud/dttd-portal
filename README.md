@@ -1,11 +1,11 @@
-# Dance Thru the Decades Portal v19 - Queue/Event Row Compacting
+# Dance Thru the Decades Portal v20 - Request Queue Header Compacting
 
 ## Changes
 
-- Request queue action buttons are now a compact single row on desktop.
-- Request cards are slightly tighter to reduce scrolling.
-- Events page rows use a dedicated compact layout.
-- Event row action buttons are fixed-size and aligned to the right on wider screens.
+- Removed the explanatory line under “Request Queue”.
+- Merged Selected Event and Sort controls into the Request Queue header area.
+- Saves vertical space on the DJ dashboard.
+- Keeps existing request grouping and compact button layout.
 - No database changes.
 
 ## SQL
@@ -14,4 +14,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v19 Queue Event Row Compacting
+v20 Request Queue Header Compacting

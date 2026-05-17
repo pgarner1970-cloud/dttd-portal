@@ -157,14 +157,11 @@ admin_header('DJ Portal');
     </aside>
 
     <section class="touch-panel">
-      <div class="touch-panel-header">
+      <form class="request-queue-compact-header" method="get">
         <div>
           <h2 class="touch-panel-title">Request Queue</h2>
-          <p class="touch-subtitle">Matching song title and artist requests are grouped together.</p>
         </div>
-      </div>
 
-      <form class="queue-toolbar" method="get">
         <div class="queue-selector">
           <label>Selected event</label>
           <select name="event" onchange="this.form.submit()">
