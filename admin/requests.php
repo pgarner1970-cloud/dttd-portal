@@ -193,6 +193,13 @@ function dttd_open_group_id_for_request($event_id, $song_title, $artist) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_action'], $_POST['group_key'])) {
     $allowed = ['played','rejected','duplicate','maybe','pending'];
     $status = in_array($_POST['request_action'], $allowed, true) ? $_POST['request_action'] : 'pending';
+    $reject_reason = null;
+
+    if ($status === 'rejected') {
+        $allowed_reasons = ['not_suitable','explicit','already_played','time_constraints','not_available'];
+        $reason = (string)($_POST['reject_reason'] ?? 'not_suitable');
+        $reject_reason = in_array($reason, $allowed_reasons, true) ? $reason : 'not_suitable';
+    }
     $group_key = (string)$_POST['group_key'];
 
     if (dttd_group_id_column_exists() && str_starts_with($group_key, 'gid:')) {
@@ -200,11 +207,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_action'], $_P
 
         $stmt = db()->prepare("
             UPDATE song_requests
-            SET status = ?
+            SET status = ?, reject_reason = ?
             WHERE event_id = ?
             AND request_group_id = ?
         ");
-        $stmt->execute([$status, (int)$event['id'], $group_id]);
+        $stmt->execute([$status, $reject_reason, (int)$event['id'], $group_id]);
     } else {
         // Legacy fallback for sites where the SQL migration has not been applied yet.
         $parts = explode('|', $group_key);
@@ -214,20 +221,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_action'], $_P
         if (str_starts_with($bucket, 'final-') && preg_match('/-(\\d+)$/', $bucket, $matches)) {
             $stmt = db()->prepare("
                 UPDATE song_requests
-                SET status = ?
+                SET status = ?, reject_reason = ?
                 WHERE event_id = ?
                 AND id = ?
             ");
-            $stmt->execute([$status, (int)$event['id'], (int)$matches[1]]);
+            $stmt->execute([$status, $reject_reason, (int)$event['id'], (int)$matches[1]]);
         } else {
             $stmt = db()->prepare("
                 UPDATE song_requests
-                SET status = ?
+                SET status = ?, reject_reason = ?
                 WHERE event_id = ?
                 AND status IN ('pending','maybe','duplicate')
                 AND CONCAT(LOWER(TRIM(song_title)), '|', LOWER(TRIM(artist))) = ?
             ");
-            $stmt->execute([$status, (int)$event['id'], $song_artist_key]);
+            $stmt->execute([$status, $reject_reason, (int)$event['id'], $song_artist_key]);
         }
     }
 
@@ -852,6 +859,106 @@ admin_header('DJ Portal');
 
   window.setTimeout(checkForUpdates, 1500);
   window.setInterval(checkForUpdates, 5000);
+})();
+</script>
+
+
+<!-- Reject Reason Modal -->
+<div class="dj-modal-backdrop" id="rejectReasonModal" hidden>
+  <div class="dj-modal-card" role="dialog" aria-modal="true" aria-labelledby="rejectReasonTitle">
+    <div class="dj-modal-header">
+      <div>
+        <h2 id="rejectReasonTitle">Reject request</h2>
+        <p>Choose the reason for rejecting this request.</p>
+      </div>
+      <button type="button" class="dj-modal-close" id="rejectReasonCancelTop">×</button>
+    </div>
+
+    <form method="post" class="reject-reason-form">
+      <input type="hidden" name="request_action" value="rejected">
+      <input type="hidden" name="group_key" id="rejectReasonGroupKey" value="">
+
+      <div class="reject-reason-grid">
+        <button type="submit" name="reject_reason" value="not_suitable">
+          <strong>Not suitable</strong>
+          <span>Not right for this event, venue or crowd.</span>
+        </button>
+
+        <button type="submit" name="reject_reason" value="explicit">
+          <strong>Explicit / inappropriate</strong>
+          <span>Lyrics or content are not suitable.</span>
+        </button>
+
+        <button type="submit" name="reject_reason" value="already_played">
+          <strong>Already played</strong>
+          <span>The track has already been played tonight.</span>
+        </button>
+
+        <button type="submit" name="reject_reason" value="time_constraints">
+          <strong>Time constraints</strong>
+          <span>There is unlikely to be enough time.</span>
+        </button>
+
+        <button type="submit" name="reject_reason" value="not_available">
+          <strong>Not available</strong>
+          <span>The track is not available to play.</span>
+        </button>
+      </div>
+
+      <div class="dj-modal-actions">
+        <button type="button" class="touch-btn muted" id="rejectReasonCancelBottom">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<!-- Reject Reason Modal JS -->
+<script>
+(function(){
+  const modal = document.getElementById('rejectReasonModal');
+  const keyInput = document.getElementById('rejectReasonGroupKey');
+
+  if (!modal || !keyInput) return;
+
+  function openModal(groupKey){
+    keyInput.value = groupKey || '';
+    modal.hidden = false;
+    document.body.classList.add('modal-open');
+
+    const firstButton = modal.querySelector('.reject-reason-grid button');
+    if (firstButton) firstButton.focus();
+  }
+
+  function closeModal(){
+    modal.hidden = true;
+    document.body.classList.remove('modal-open');
+    keyInput.value = '';
+  }
+
+  document.addEventListener('click', function(event){
+    const trigger = event.target.closest('.reject-modal-trigger');
+    if (trigger) {
+      event.preventDefault();
+      openModal(trigger.dataset.groupKey || '');
+      return;
+    }
+
+    if (event.target === modal) {
+      closeModal();
+    }
+  });
+
+  ['rejectReasonCancelTop','rejectReasonCancelBottom'].forEach(function(id){
+    const button = document.getElementById(id);
+    if (button) button.addEventListener('click', closeModal);
+  });
+
+  document.addEventListener('keydown', function(event){
+    if (event.key === 'Escape' && !modal.hidden) {
+      closeModal();
+    }
+  });
 })();
 </script>
 

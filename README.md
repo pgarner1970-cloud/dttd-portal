@@ -1,20 +1,19 @@
-# Dance Thru the Decades Portal v70 - Header Timers Visible Fix
+# Dance Thru the Decades Portal v71 - Reject Reason Modal
 
 ## Changes
 
-- Fixes header timers not appearing.
-- Adds a dedicated header timer cluster beside the live clock/date.
-- Timers render as visible placeholders first, then JavaScript fills them from:
-  - /admin/header-timers.php
-- Keeps event/timing lookup out of shared header rendering to avoid 500 errors.
-- Timer colours:
-  - Green normally
-  - Amber under 30 minutes
-  - Red under 15 minutes
-- Timers respect Settings toggles:
-  - header_show_event_timer
-  - header_show_request_timer
-- No database changes.
+- Replaces immediate Reject action with a touch-friendly modal.
+- Reject reasons:
+  - Not suitable
+  - Explicit / inappropriate
+  - Already played
+  - Time constraints
+  - Not available
+- Submitting a reason sets:
+  - status = rejected
+  - reject_reason = selected reason
+- Other queue actions remain unchanged.
+- No SQL included because reject_reason has already been added.
 
 ## SQL
 
@@ -22,4 +21,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v70 Header Timers Visible Fix
+v71 Reject Reason Modal
