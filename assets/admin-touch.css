@@ -1656,3 +1656,35 @@ body:has(.header-event-summary) .touch-clock{
     grid-template-columns:1fr !important;
   }
 }
+
+
+/* v40 header brand + live clock cleanup */
+.touch-brand,
+.touch-brand:link,
+.touch-brand:visited,
+.touch-brand:hover,
+.touch-brand:active{
+  text-decoration:none !important;
+  border-bottom:none !important;
+}
+
+.touch-brand span,
+.touch-brand span:hover{
+  text-decoration:none !important;
+}
+
+.touch-brand{
+  user-select:none;
+}
+
+.touch-brand-mark{
+  text-decoration:none !important;
+}
+
+.touch-clock strong{
+  font-variant-numeric:tabular-nums;
+}
+
+.touch-clock{
+  min-width:120px;
+}

@@ -1,20 +1,11 @@
-# Dance Thru the Decades Portal v39 - Automatic Current Event
+# Dance Thru the Decades Portal v40 - Header Brand Clock Fix
 
 ## Changes
 
-- Requests page now automatically chooses the current event using event date/start/end time.
-- Current event rule:
-  - current from 1 hour before start time
-  - current until end time
-  - if end time is missing, current until start + 6 hours
-- If no event is currently live, Requests page shows the next upcoming event.
-- Removed the Selected Event dropdown from the Requests page.
-- Events page now uses the same calculated state:
-  - Green = current
-  - Amber = upcoming
-  - Red = past
-- Removed manual Make Current action from Events page.
-- Events page now shows Current / Upcoming / Past as labels.
+- Removes the underline from the DJ Portal brand link in the admin header.
+- Keeps the brand clickable to `/admin/index.php`.
+- Makes the centre header time/date update dynamically in the browser.
+- Time updates every second without refreshing the page.
 - No database changes.
 
 ## SQL
@@ -23,4 +14,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v39 Automatic Current Event
+v40 Header Brand Clock Fix
