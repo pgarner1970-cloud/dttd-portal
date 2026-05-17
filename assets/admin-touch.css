@@ -3408,3 +3408,40 @@ body.modal-open{ overflow:hidden; }
   padding:4px 9px !important;
   white-space:nowrap;
 }
+
+
+/* v81 status pill beside request count */
+.inline-status{
+  display:inline-flex !important;
+  align-items:center;
+  justify-content:center;
+  margin-left:8px !important;
+  vertical-align:middle;
+  font-size:11px !important;
+  line-height:1 !important;
+  padding:4px 9px !important;
+  min-height:22px !important;
+  white-space:nowrap;
+}
+
+.request-count + .inline-status,
+.count-pill + .inline-status,
+.request-pill + .inline-status,
+.request-badge + .inline-status,
+.badge + .inline-status{
+  margin-left:8px !important;
+}
+
+/* Let the song meta area wrap cleanly when the request-count and status pills sit together */
+.req-song,
+.song-info,
+.request-song,
+.request-title,
+.req-title{
+  min-width:0;
+}
+
+/* If the old status column still exists on any older markup, keep it out of the action area */
+.req-status:empty{
+  display:none !important;
+}
