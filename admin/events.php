@@ -78,131 +78,150 @@ $events = db()->query("SELECT e.*, (SELECT COUNT(*) FROM song_requests sr WHERE 
 $event_type = $edit['event_type'] ?? 'public';
 $close_mins = $edit['requests_close_minutes'] ?? 30;
 $qv = $edit['queue_visibility'] ?? 'venue';
+
+admin_header('Events Admin');
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Events Admin</title>
-<link rel="stylesheet" href="/assets/style.css">
-</head>
-<body>
-<nav class="topnav"><a href="/">Portal</a><a href="/admin/">Requests</a><a href="/admin/events.php">Events</a><a href="/admin/?logout=1">Logout</a></nav>
-<main class="container">
-  <div class="card">
-    <h1><?= $edit ? 'Edit Event' : 'Create Event' ?></h1>
-    <form method="post">
-      <?php if ($edit): ?><input type="hidden" name="id" value="<?= (int)$edit['id'] ?>"><?php endif; ?>
-
-      <div class="grid-tight">
+<main class="admin-wrap">
+  <section class="admin-grid">
+    <div class="admin-card">
+      <div class="admin-card-header">
         <div>
-          <label>Event name *</label>
-          <input name="event_name" required value="<?= h($edit['event_name'] ?? '') ?>" placeholder="Example: 80s & 90s Party Night">
-        </div>
-        <div>
-          <label>Venue name *</label>
-          <input name="venue_name" required value="<?= h($edit['venue_name'] ?? '') ?>" placeholder="Example: The Crown Inn">
-        </div>
-        <div>
-          <label>Event type</label>
-          <select name="event_type">
-            <option value="public" <?= $event_type==='public'?'selected':'' ?>>Public Night</option>
-            <option value="private_party" <?= $event_type==='private_party'?'selected':'' ?>>Private Party</option>
-            <option value="wedding" <?= $event_type==='wedding'?'selected':'' ?>>Wedding</option>
-            <option value="corporate" <?= $event_type==='corporate'?'selected':'' ?>>Corporate Event</option>
-          </select>
+          <h1 class="admin-title"><?= $edit ? 'Edit Event' : 'Create Event' ?></h1>
+          <p class="admin-subtitle">Event timing, type and request behaviour</p>
         </div>
       </div>
+      <div class="admin-card-body">
+        <form method="post">
+          <?php if ($edit): ?><input type="hidden" name="id" value="<?= (int)$edit['id'] ?>"><?php endif; ?>
 
-      <div class="grid-tight">
+          <div class="field">
+            <label>Event name *</label>
+            <input name="event_name" required value="<?= h($edit['event_name'] ?? '') ?>" placeholder="80s & 90s Party Night">
+          </div>
+
+          <div class="field">
+            <label>Venue name *</label>
+            <input name="venue_name" required value="<?= h($edit['venue_name'] ?? '') ?>" placeholder="The Crown Inn">
+          </div>
+
+          <div class="admin-form-grid">
+            <div class="field">
+              <label>Event type</label>
+              <select name="event_type">
+                <option value="public" <?= $event_type==='public'?'selected':'' ?>>Public Night</option>
+                <option value="private_party" <?= $event_type==='private_party'?'selected':'' ?>>Private Party</option>
+                <option value="wedding" <?= $event_type==='wedding'?'selected':'' ?>>Wedding</option>
+                <option value="corporate" <?= $event_type==='corporate'?'selected':'' ?>>Corporate Event</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Event date</label>
+              <input type="date" name="event_date" value="<?= h($edit['event_date'] ?? '') ?>">
+            </div>
+
+            <div class="field">
+              <label>Start time</label>
+              <input type="time" name="start_time" value="<?= h(input_time($edit['start_time'] ?? '19:30')) ?>">
+            </div>
+
+            <div class="field">
+              <label>End time</label>
+              <input type="time" name="end_time" value="<?= h(input_time($edit['end_time'] ?? '01:30')) ?>">
+            </div>
+
+            <div class="field">
+              <label>Close requests before end</label>
+              <select name="requests_close_minutes">
+                <?php foreach ([15,30,45,60] as $m): ?>
+                  <option value="<?= $m ?>" <?= (int)$close_mins===$m?'selected':'' ?>><?= $m ?> minutes</option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Queue visibility</label>
+              <select name="queue_visibility">
+                <option value="venue" <?= $qv==='venue'?'selected':'' ?>>Defined by venue</option>
+                <option value="public" <?= $qv==='public'?'selected':'' ?>>Public</option>
+                <option value="private" <?= $qv==='private'?'selected':'' ?>>Private / admin only</option>
+              </select>
+            </div>
+          </div>
+
+          <details>
+            <summary>Advanced / manual timing override</summary>
+            <div class="details-body">
+              <label><input type="checkbox" name="manual_override" value="1"> Use manual override values below</label>
+              <div class="admin-form-grid">
+                <div class="field">
+                  <label>Portal available from</label>
+                  <input type="datetime-local" name="manual_portal_available_from" value="<?= h(html_dt($edit['portal_available_from'] ?? null)) ?>">
+                </div>
+                <div class="field">
+                  <label>Portal available until</label>
+                  <input type="datetime-local" name="manual_portal_available_until" value="<?= h(html_dt($edit['portal_available_until'] ?? null)) ?>">
+                </div>
+                <div class="field">
+                  <label>Requests close at</label>
+                  <input type="datetime-local" name="manual_requests_close_at" value="<?= h(html_dt($edit['requests_close_at'] ?? null)) ?>">
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <div class="field">
+            <label>Notes</label>
+            <textarea name="notes" placeholder="Internal event notes"><?= h($edit['notes'] ?? '') ?></textarea>
+          </div>
+
+          <div class="field">
+            <label><input type="checkbox" name="is_active" value="1" <?= !empty($edit['is_active']) ? 'checked' : '' ?>> Active / available for portal selection</label>
+          </div>
+
+          <div class="admin-btn-row">
+            <button class="admin-btn" type="submit"><?= $edit ? 'Save Event' : 'Create Event' ?></button>
+            <?php if ($edit): ?><a class="admin-btn secondary" href="/admin/events.php">Cancel</a><?php endif; ?>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="admin-card">
+      <div class="admin-card-header">
         <div>
-          <label>Event date</label>
-          <input type="date" name="event_date" value="<?= h($edit['event_date'] ?? '') ?>">
+          <h2 class="admin-title">Events</h2>
+          <p class="admin-subtitle">Manage guest links and request queues</p>
         </div>
-        <div>
-          <label>Start time</label>
-          <input type="time" name="start_time" value="<?= h(input_time($edit['start_time'] ?? '19:30')) ?>">
-        </div>
-        <div>
-          <label>End time</label>
-          <input type="time" name="end_time" value="<?= h(input_time($edit['end_time'] ?? '01:30')) ?>">
-          <p class="small">If end time is earlier than start time, the event is treated as finishing after midnight.</p>
-        </div>
-        <div>
-          <label>Close requests before end</label>
-          <select name="requests_close_minutes">
-            <?php foreach ([15,30,45,60] as $m): ?>
-              <option value="<?= $m ?>" <?= (int)$close_mins===$m?'selected':'' ?>><?= $m ?> minutes</option>
+      </div>
+      <div class="admin-card-body">
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead><tr><th>Event</th><th>Type</th><th>Date/Time</th><th>Requests Close</th><th>Status</th><th>Requests</th><th>Actions</th></tr></thead>
+            <tbody>
+            <?php foreach ($events as $e): ?>
+              <tr>
+                <td><strong><?= h($e['event_name']) ?></strong><br><span class="admin-note"><?= h($e['venue_name']) ?></span></td>
+                <td><?= h(event_type_label($e['event_type'] ?? 'public')) ?></td>
+                <td><?= h($e['event_date']) ?><br><span class="admin-note"><?= h(input_time($e['start_time'])) ?> - <?= h(input_time($e['end_time'])) ?></span></td>
+                <td><?= h($e['requests_close_at'] ? date('d/m/Y H:i', strtotime($e['requests_close_at'])) : '') ?></td>
+                <td><?= $e['is_active'] ? '<span class="status-chip status-played">Active</span>' : '<span class="status-chip status-rejected">Inactive</span>' ?></td>
+                <td><?= (int)$e['request_count'] ?></td>
+                <td>
+                  <div class="admin-btn-row">
+                    <a class="admin-btn amber" href="/admin/events.php?edit=<?= (int)$e['id'] ?>">Edit</a>
+                    <a class="admin-btn secondary" href="/admin/?event=<?= (int)$e['id'] ?>">Requests</a>
+                    <a class="admin-btn green" href="/request.php?event=<?= (int)$e['id'] ?>" target="_blank">Guest</a>
+                  </div>
+                </td>
+              </tr>
             <?php endforeach; ?>
-          </select>
+            <?php if (!$events): ?><tr><td colspan="7"><span class="admin-note">No events yet.</span></td></tr><?php endif; ?>
+            </tbody>
+          </table>
         </div>
       </div>
-
-      <details>
-        <summary>Advanced options</summary>
-        <div class="grid-tight" style="margin-top:12px">
-          <div>
-            <label>Request queue visibility</label>
-            <select name="queue_visibility">
-              <option value="venue" <?= $qv==='venue'?'selected':'' ?>>Defined by venue</option>
-              <option value="public" <?= $qv==='public'?'selected':'' ?>>Public</option>
-              <option value="private" <?= $qv==='private'?'selected':'' ?>>Private / admin only</option>
-            </select>
-          </div>
-          <div>
-            <label><input type="checkbox" name="manual_override" value="1"> Manually override calculated times</label>
-            <p class="small">Only use this for unusual events.</p>
-          </div>
-          <div>
-            <label>Portal available from</label>
-            <input type="datetime-local" name="manual_portal_available_from" value="<?= h(html_dt($edit['portal_available_from'] ?? null)) ?>">
-          </div>
-          <div>
-            <label>Portal available until</label>
-            <input type="datetime-local" name="manual_portal_available_until" value="<?= h(html_dt($edit['portal_available_until'] ?? null)) ?>">
-          </div>
-          <div>
-            <label>Requests close at</label>
-            <input type="datetime-local" name="manual_requests_close_at" value="<?= h(html_dt($edit['requests_close_at'] ?? null)) ?>">
-          </div>
-        </div>
-
-        <label>Notes</label>
-        <textarea name="notes" placeholder="Internal event notes"><?= h($edit['notes'] ?? '') ?></textarea>
-      </details>
-
-      <label><input type="checkbox" name="is_active" value="1" <?= !empty($edit['is_active']) ? 'checked' : '' ?>> Active / available for portal selection</label>
-
-      <button class="btn btn-primary" type="submit"><?= $edit ? 'Save Event' : 'Create Event' ?></button>
-      <?php if ($edit): ?><a class="btn btn-secondary" href="/admin/events.php">Cancel Edit</a><?php endif; ?>
-    </form>
-  </div>
-
-  <div class="card" style="margin-top:16px">
-    <h2>Events</h2>
-    <table class="table">
-      <thead><tr><th>Event</th><th>Type</th><th>Date/Time</th><th>Requests Close</th><th>Status</th><th>Requests</th><th>Actions</th></tr></thead>
-      <tbody>
-      <?php foreach ($events as $e): ?>
-        <tr>
-          <td><strong><?= h($e['event_name']) ?></strong><br><?= h($e['venue_name']) ?></td>
-          <td><?= h(event_type_label($e['event_type'] ?? 'public')) ?></td>
-          <td><?= h($e['event_date']) ?><br><?= h(input_time($e['start_time'])) ?> - <?= h(input_time($e['end_time'])) ?></td>
-          <td><?= h($e['requests_close_at'] ? date('d/m/Y H:i', strtotime($e['requests_close_at'])) : '') ?></td>
-          <td><?= $e['is_active'] ? '<span class="status-played">Active</span>' : '<span class="status-rejected">Inactive</span>' ?></td>
-          <td><?= (int)$e['request_count'] ?></td>
-          <td>
-            <a class="btn btn-gold" href="/admin/events.php?edit=<?= (int)$e['id'] ?>">Edit</a>
-            <a class="btn btn-secondary" href="/admin/?event=<?= (int)$e['id'] ?>">Requests</a>
-            <a class="btn btn-green" href="/request.php?event=<?= (int)$e['id'] ?>" target="_blank">Guest Link</a>
-          </td>
-        </tr>
-      <?php endforeach; ?>
-      <?php if (!$events): ?><tr><td colspan="7">No events yet.</td></tr><?php endif; ?>
-      </tbody>
-    </table>
-  </div>
+    </div>
+  </section>
 </main>
-</body>
-</html>
+<?php admin_footer(); ?>

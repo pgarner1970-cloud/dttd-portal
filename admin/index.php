@@ -22,72 +22,106 @@ $stmt = db()->prepare("SELECT * FROM song_requests WHERE event_id = ? ORDER BY F
 $stmt->execute([$event['id']]);
 $requests = $stmt->fetchAll();
 
-$events = db()->query("SELECT id, event_name, venue_name, event_date, start_time, end_time, is_active FROM events ORDER BY event_date DESC, id DESC LIMIT 30")->fetchAll();
+$counts = ['pending'=>0,'played'=>0,'maybe'=>0,'duplicate'=>0,'rejected'=>0];
+foreach ($requests as $r) {
+    if (isset($counts[$r['status']])) $counts[$r['status']]++;
+}
+
+$events = db()->query("SELECT id, event_name, venue_name, event_date, start_time, end_time, is_active FROM events ORDER BY event_date DESC, id DESC LIMIT 40")->fetchAll();
+
+admin_header('DJ Admin Dashboard');
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DJ Admin Dashboard</title>
-<link rel="stylesheet" href="/assets/style.css">
-</head>
-<body>
-<nav class="topnav"><a href="/">Portal</a><a href="/admin/">Requests</a><a href="/admin/events.php">Events</a><a href="/admin/?logout=1">Logout</a></nav>
-<main class="container">
-  <div class="admin-layout">
-    <div class="card">
-      <h1>DJ Dashboard</h1>
-      <p><span class="pill"><?= h($event['event_name']) ?></span></p>
-      <p class="small"><?= h($event['venue_name']) ?> · <?= h(event_type_label($event['event_type'] ?? 'public')) ?></p>
-      <div class="summary-box">
-        <p><strong>Date:</strong> <?= h($event['event_date']) ?></p>
-        <p><strong>Time:</strong> <?= h(input_time($event['start_time'])) ?> - <?= h(input_time($event['end_time'])) ?></p>
-        <p><strong>Requests close:</strong> <?= h($event['requests_close_at'] ? date('H:i', strtotime($event['requests_close_at'])) : 'Not set') ?></p>
+<main class="admin-wrap">
+  <section class="admin-card">
+    <div class="admin-card-header">
+      <div>
+        <h1 class="admin-title">Song Requests</h1>
+        <p class="admin-subtitle">
+          <?= h($event['event_name']) ?> · <?= h($event['venue_name']) ?> · <?= h(event_type_label($event['event_type'] ?? 'public')) ?>
+        </p>
       </div>
-      <form method="get">
-        <label>View another event</label>
-        <select name="event" onchange="this.form.submit()">
-          <?php foreach ($events as $e): ?>
-            <option value="<?= (int)$e['id'] ?>" <?= $event['id']===$e['id']?'selected':'' ?>>
-              <?= h($e['event_name']) ?> - <?= h($e['venue_name']) ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
-      </form>
-      <a class="btn btn-secondary" href="/admin/events.php?edit=<?= (int)$event['id'] ?>">Edit Event</a>
-      <a class="btn btn-green" href="/request.php?event=<?= (int)$event['id'] ?>" target="_blank">Guest Request Link</a>
+      <div class="admin-btn-row">
+        <a class="admin-btn light" href="/request.php?event=<?= (int)$event['id'] ?>" target="_blank">Guest Link</a>
+        <a class="admin-btn secondary" href="/admin/events.php?edit=<?= (int)$event['id'] ?>">Edit Event</a>
+      </div>
     </div>
 
-    <div class="card">
-      <h2>Song Requests</h2>
-      <table class="table">
-        <thead><tr><th>Time</th><th>Guest</th><th>Song</th><th>Message</th><th>Status</th><th>Actions</th></tr></thead>
-        <tbody>
-        <?php foreach ($requests as $r): ?>
-          <tr>
-            <td><?= h(date('H:i', strtotime($r['created_at']))) ?></td>
-            <td><?= h($r['guest_name']) ?></td>
-            <td><strong><?= h($r['song_title']) ?></strong><br><?= h($r['artist']) ?></td>
-            <td><?= nl2br(h($r['dedication'])) ?></td>
-            <td class="status-<?= h($r['status']) ?>"><?= h($r['status']) ?></td>
-            <td>
-              <div class="row-actions">
-              <?php foreach (['played','maybe','duplicate','rejected','pending'] as $s): ?>
-                <form method="post">
-                  <input type="hidden" name="request_id" value="<?= (int)$r['id'] ?>">
-                  <button class="btn btn-gold" name="action" value="<?= h($s) ?>"><?= h($s) ?></button>
-                </form>
-              <?php endforeach; ?>
-              </div>
-            </td>
-          </tr>
-        <?php endforeach; ?>
-        <?php if (!$requests): ?><tr><td colspan="6">No requests yet.</td></tr><?php endif; ?>
-        </tbody>
-      </table>
+    <div class="admin-card-body">
+      <form class="admin-toolbar" method="get">
+        <div class="field">
+          <label>Selected event</label>
+          <select name="event" onchange="this.form.submit()">
+            <?php foreach ($events as $e): ?>
+              <option value="<?= (int)$e['id'] ?>" <?= (int)$event['id']===(int)$e['id']?'selected':'' ?>>
+                <?= h($e['event_name']) ?> - <?= h($e['venue_name']) ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="admin-stat">
+          <span>Date / time</span>
+          <strong><?= h($event['event_date']) ?> · <?= h(input_time($event['start_time'])) ?>-<?= h(input_time($event['end_time'])) ?></strong>
+        </div>
+        <div class="admin-stat">
+          <span>Requests close</span>
+          <strong><?= h($event['requests_close_at'] ? date('H:i', strtotime($event['requests_close_at'])) : 'Not set') ?></strong>
+        </div>
+        <div class="admin-stat">
+          <span>Total requests</span>
+          <strong><?= count($requests) ?></strong>
+        </div>
+      </form>
+
+      <div class="admin-summary">
+        <div class="admin-stat"><span>Pending</span><strong><?= (int)$counts['pending'] ?></strong></div>
+        <div class="admin-stat"><span>Maybe</span><strong><?= (int)$counts['maybe'] ?></strong></div>
+        <div class="admin-stat"><span>Played</span><strong><?= (int)$counts['played'] ?></strong></div>
+        <div class="admin-stat"><span>Duplicate</span><strong><?= (int)$counts['duplicate'] ?></strong></div>
+        <div class="admin-stat"><span>Rejected</span><strong><?= (int)$counts['rejected'] ?></strong></div>
+      </div>
+
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th style="width:64px">Time</th>
+              <th style="width:150px">Guest</th>
+              <th>Track</th>
+              <th>Message</th>
+              <th style="width:90px">Status</th>
+              <th style="width:300px">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+          <?php foreach ($requests as $r): ?>
+            <tr>
+              <td><?= h(date('H:i', strtotime($r['created_at']))) ?></td>
+              <td><?= h($r['guest_name']) ?></td>
+              <td>
+                <div class="track-title"><?= h($r['song_title']) ?></div>
+                <div class="track-artist"><?= h($r['artist']) ?></div>
+              </td>
+              <td><?= nl2br(h($r['dedication'])) ?></td>
+              <td><span class="status-chip status-<?= h($r['status']) ?>"><?= h($r['status']) ?></span></td>
+              <td>
+                <div class="admin-btn-row">
+                <?php foreach (['played','maybe','duplicate','rejected','pending'] as $s): ?>
+                  <form method="post" class="admin-action-form">
+                    <input type="hidden" name="request_id" value="<?= (int)$r['id'] ?>">
+                    <button class="admin-btn <?= $s==='rejected' ? 'red' : ($s==='played' ? 'green' : 'amber') ?>" name="action" value="<?= h($s) ?>"><?= h($s) ?></button>
+                  </form>
+                <?php endforeach; ?>
+                </div>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+          <?php if (!$requests): ?>
+            <tr><td colspan="6"><span class="admin-note">No requests yet.</span></td></tr>
+          <?php endif; ?>
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
+  </section>
 </main>
-</body>
-</html>
+<?php admin_footer(); ?>

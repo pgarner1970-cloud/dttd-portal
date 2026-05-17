@@ -19,18 +19,69 @@ if (isset($_GET['logout'])) {
 if (empty($_SESSION['admin'])):
 ?>
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Admin Login</title><link rel="stylesheet" href="/assets/style.css"></head>
-<body>
-<main class="container">
-  <div class="card" style="margin-top:50px">
-    <h1>Admin Login</h1>
-    <?php if (!empty($login_error)): ?><div class="notice"><?= h($login_error) ?></div><?php endif; ?>
-    <form method="post">
-      <label>Password</label>
-      <input type="password" name="password" required>
-      <button class="btn btn-primary" type="submit">Login</button>
-    </form>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login</title>
+<link rel="stylesheet" href="/assets/admin.css">
+</head>
+<body class="admin-body">
+<main class="admin-login">
+  <div class="admin-card">
+    <div class="admin-card-header">
+      <div>
+        <h1 class="admin-title">Admin Login</h1>
+        <p class="admin-subtitle">Dance Thru the Decades Events</p>
+      </div>
+    </div>
+    <div class="admin-card-body">
+      <?php if (!empty($login_error)): ?><p class="status-chip status-rejected"><?= h($login_error) ?></p><?php endif; ?>
+      <form method="post">
+        <div class="field">
+          <label>Password</label>
+          <input type="password" name="password" required>
+        </div>
+        <button class="admin-btn" type="submit">Login</button>
+      </form>
+    </div>
   </div>
 </main>
-</body></html>
+</body>
+</html>
 <?php exit; endif; ?>
+
+<?php
+function admin_header($title = 'Admin') {
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><?= h($title) ?></title>
+<link rel="stylesheet" href="/assets/admin.css">
+</head>
+<body class="admin-body">
+<header class="admin-topbar">
+  <div class="admin-brand">
+    <span>Dance Thru the Decades</span>
+    <small>Admin</small>
+  </div>
+  <nav class="admin-nav">
+    <a href="/">Portal</a>
+    <a href="/admin/">Requests</a>
+    <a href="/admin/events.php">Events</a>
+    <a href="/admin/?logout=1">Logout</a>
+  </nav>
+</header>
+<?php
+}
+
+function admin_footer() {
+?>
+</body>
+</html>
+<?php
+}
+?>
