@@ -27,36 +27,36 @@ admin_header('Events - DJ Portal');
       </div>
     </div>
 
-    <div class="request-list">
+    <div class="event-list">
       <?php foreach ($events as $e): ?>
-        <article class="request-card status-<?= $e['is_active'] ? 'played' : 'rejected' ?>">
-          <div class="req-time">
+        <article class="event-row-card <?= $e['is_active'] ? '' : 'inactive' ?>">
+          <div class="event-row-date">
             <?= h($e['event_date'] ? date('d M', strtotime($e['event_date'])) : 'No date') ?>
             <small><?= h(input_time($e['start_time'])) ?> - <?= h(input_time($e['end_time'])) ?></small>
           </div>
 
-          <div class="req-guest">
+          <div class="event-row-type">
             <span class="req-person"><?= h(strtoupper(substr($e['event_name'], 0, 1))) ?></span>
             <span><?= h(event_type_label($e['event_type'] ?? 'public')) ?></span>
           </div>
 
-          <div>
-            <div class="req-track-title"><?= h($e['event_name']) ?></div>
-            <div class="req-track-artist"><?= h($e['venue_name']) ?></div>
+          <div class="event-row-title">
+            <strong><?= h($e['event_name']) ?></strong>
+            <span><?= h($e['venue_name']) ?></span>
           </div>
 
-          <div class="req-message">
-            Requests close:<br>
-            <?= h($e['requests_close_at'] ? date('d/m/Y H:i', strtotime($e['requests_close_at'])) : 'Not set') ?>
+          <div class="event-row-close">
+            <strong>Requests close:</strong>
+            <span><?= h($e['requests_close_at'] ? date('d/m/Y H:i', strtotime($e['requests_close_at'])) : 'Not set') ?></span>
           </div>
 
-          <div class="req-status">
+          <div class="event-row-status">
             <?= $e['is_active'] ? '<span class="status-badge played">Active</span>' : '<span class="status-badge rejected">Inactive</span>' ?>
             <br><br>
             <span class="status-badge duplicate"><?= (int)$e['request_count'] ?> requests</span>
           </div>
 
-          <div class="req-actions">
+          <div class="event-row-actions">
             <a class="action-tile maybe" href="/admin/event-edit.php?id=<?= (int)$e['id'] ?>">
               <span class="big-icon">⚙</span>
               <span>Edit</span>

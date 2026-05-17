@@ -1,15 +1,12 @@
-# Dance Thru the Decades Portal v18 - Event Edit Cleanup
+# Dance Thru the Decades Portal v19 - Queue/Event Row Compacting
 
 ## Changes
 
-- Fixed date/time picker icon alignment inside the lighter right-hand input area.
-- Improved date/time picker icon visibility in the dark theme.
-- Removed unnecessary footer buttons from Add/Edit Event:
-  - View Requests
-  - Guest Link
-- Event edit footer now only shows:
-  - Cancel
-  - Save Event
+- Request queue action buttons are now a compact single row on desktop.
+- Request cards are slightly tighter to reduce scrolling.
+- Events page rows use a dedicated compact layout.
+- Event row action buttons are fixed-size and aligned to the right on wider screens.
+- No database changes.
 
 ## SQL
 
@@ -17,4 +14,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v18 Event Edit Cleanup
+v19 Queue Event Row Compacting
