@@ -35,7 +35,12 @@ if (!$event) {
   </div>
 </div>
 
-    <main class="touch-wrap" data-event-id="<?= (int)$event['id'] ?>" data-request-fingerprint="<?= h($initial_fingerprint) ?>">
+    <main class="touch-wrap" data-event-id="<?= (int)$event['id'] ?
+  data-event-date="<?= h($event['event_date'] ?? '') ?>"
+  data-start-time="<?= h(input_time($event['start_time'] ?? '')) ?>"
+  data-end-time="<?= h(input_time($event['end_time'] ?? '')) ?>"
+  data-requests-close="<?= h($event['requests_close_at'] ?? '') ?>"
+>" data-request-fingerprint="<?= h($initial_fingerprint) ?>">
 
   <div id="requestUpdateBanner" class="request-update-banner" hidden>
     <div>
@@ -182,7 +187,10 @@ admin_header('DJ Portal');
             <div class="event-info-icon">◷</div>
             <div>
               <div class="event-info-title">Event time</div>
-              <div class="event-info-value"><?= h(input_time($event['start_time'])) ?> - <?= h(input_time($event['end_time'])) ?></div>
+              <div class="event-info-value">
+                <?= h(input_time($event['start_time'])) ?><?= !empty($event['end_time']) ? ' - ' . h(input_time($event['end_time'])) : '' ?>
+                <span class="mini-countdown" id="eventEndCountdown">--</span>
+              </div>
             </div>
           </div>
 
@@ -480,6 +488,103 @@ admin_header('DJ Portal');
 
   update();
   window.setInterval(update, 1000);
+})();
+</script>
+
+
+<!-- Active Event Countdown JS -->
+<script>
+(function(){
+  const wrap = document.querySelector('main.touch-wrap');
+  if (!wrap) return;
+
+  const requestCloseEl = document.getElementById('requestCloseCountdown');
+  const eventEndEl = document.getElementById('eventEndCountdown');
+
+  function pad(value){ return String(value).padStart(2, '0'); }
+
+  function parseLocalDateTime(dateValue, timeValue){
+    if (!dateValue || !timeValue) return null;
+    const d = dateValue.split('-').map(Number);
+    const t = timeValue.split(':').map(Number);
+    if (d.length < 3 || t.length < 2) return null;
+    return new Date(d[0], d[1] - 1, d[2], t[0], t[1], 0);
+  }
+
+  function parseSqlDateTime(value){
+    if (!value) return null;
+    const parsed = new Date(value.replace(' ', 'T'));
+    return isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  function formatRemaining(ms){
+    if (ms <= 0) return '0s';
+
+    const totalSeconds = Math.floor(ms / 1000);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (days > 0) return days + 'd ' + hours + 'h ' + minutes + 'm';
+    if (hours > 0) return hours + 'h ' + minutes + 'm ' + pad(seconds) + 's';
+    if (minutes > 0) return minutes + 'm ' + pad(seconds) + 's';
+    return seconds + 's';
+  }
+
+  function setState(el, state){
+    if (!el) return;
+    el.classList.remove('mini-warning','mini-ended','mini-live');
+    if (state) el.classList.add(state);
+  }
+
+  const eventDate = wrap.dataset.eventDate || '';
+  const startTime = wrap.dataset.startTime || '';
+  const endTime = wrap.dataset.endTime || '';
+  const requestsClose = wrap.dataset.requestsClose || '';
+
+  const startDate = parseLocalDateTime(eventDate, startTime);
+  let endDate = parseLocalDateTime(eventDate, endTime);
+  const closeDate = parseSqlDateTime(requestsClose);
+
+  if (startDate && endDate && endDate <= startDate) {
+    endDate.setDate(endDate.getDate() + 1);
+  }
+
+  function updateCountdowns(){
+    const now = new Date();
+
+    if (requestCloseEl) {
+      if (!closeDate) {
+        requestCloseEl.textContent = 'not set';
+        setState(requestCloseEl, 'mini-warning');
+      } else if (now >= closeDate) {
+        requestCloseEl.textContent = 'closed';
+        setState(requestCloseEl, 'mini-ended');
+      } else {
+        const remaining = closeDate - now;
+        requestCloseEl.textContent = formatRemaining(remaining) + ' left';
+        setState(requestCloseEl, remaining <= 15 * 60 * 1000 ? 'mini-warning' : 'mini-live');
+      }
+    }
+
+    if (eventEndEl) {
+      if (!endDate) {
+        eventEndEl.textContent = 'end not set';
+        setState(eventEndEl, 'mini-warning');
+      } else if (now >= endDate) {
+        eventEndEl.textContent = 'ended';
+        setState(eventEndEl, 'mini-ended');
+      } else {
+        const remaining = endDate - now;
+        eventEndEl.textContent = formatRemaining(remaining) + ' left';
+        setState(eventEndEl, remaining <= 30 * 60 * 1000 ? 'mini-warning' : 'mini-live');
+      }
+    }
+  }
+
+  updateCountdowns();
+  window.setInterval(updateCountdowns, 1000);
 })();
 </script>
 

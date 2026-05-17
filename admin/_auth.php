@@ -179,7 +179,7 @@ function admin_footer() {
 
   function updateClock(){
     const now = new Date();
-    clock.textContent = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    clock.textContent = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
 
     if (dateEl) {
       dateEl.textContent = now.toLocaleDateString('en-GB', {
