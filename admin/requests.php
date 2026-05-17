@@ -29,6 +29,31 @@ if ($event_id) {
 if (!$event) {
     admin_header('Requests - DJ Portal');
     ?>
+
+<div class="header-event-summary"
+  data-event-date="<?= h($event['event_date'] ?? '') ?>"
+  data-start-time="<?= h(input_time($event['start_time'] ?? '')) ?>"
+  data-end-time="<?= h(input_time($event['end_time'] ?? '')) ?>"
+  data-requests-close="<?= h($event['requests_close_at'] ?? '') ?>"
+>
+  <div class="header-summary-item">
+    <span>Now</span>
+    <strong id="headerLiveClock">--:--</strong>
+  </div>
+  <div class="header-summary-item">
+    <span>Status</span>
+    <strong id="headerEventStatus">--</strong>
+  </div>
+  <div class="header-summary-item">
+    <span>Requests</span>
+    <strong id="headerRequestsCountdown">--</strong>
+  </div>
+  <div class="header-summary-item">
+    <span>Ends</span>
+    <strong id="headerEventCountdown">--</strong>
+  </div>
+</div>
+
     <main class="touch-wrap" data-event-id="<?= (int)$event['id'] ?>" data-request-fingerprint="<?= h($initial_fingerprint) ?>">
 
   <div id="requestUpdateBanner" class="request-update-banner" hidden>
@@ -38,6 +63,7 @@ if (!$event) {
     </div>
     <button type="button" id="requestUpdateRefresh">Refresh queue</button>
   </div>
+
 <section class="touch-panel">
         <div class="touch-panel-header">
           <div>
@@ -206,34 +232,6 @@ admin_header('DJ Portal');
       </div>
     </aside>
 
-      <section class="live-event-timer"
-        data-event-date="<?= h($event['event_date'] ?? '') ?>"
-        data-start-time="<?= h(input_time($event['start_time'] ?? '')) ?>"
-        data-end-time="<?= h(input_time($event['end_time'] ?? '')) ?>"
-        data-requests-close="<?= h($event['requests_close_at'] ?? '') ?>"
-      >
-        <div class="timer-cell">
-          <span>Live time</span>
-          <strong id="liveClock">--:--:--</strong>
-        </div>
-
-        <div class="timer-cell">
-          <span>Event status</span>
-          <strong id="eventStatus">Checking...</strong>
-        </div>
-
-        <div class="timer-cell">
-          <span>Requests close</span>
-          <strong id="requestsCountdown">--</strong>
-        </div>
-
-        <div class="timer-cell">
-          <span>Event ends</span>
-          <strong id="eventCountdown">--</strong>
-        </div>
-      </section>
-
-
     <section class="touch-panel">
       <form class="request-queue-compact-header" method="get">
         <div>
@@ -392,13 +390,14 @@ admin_header('DJ Portal');
 })();
 </script>
 
-<!-- Live Event Timer Panel JS -->
+
+<!-- Header Event Summary JS -->
 <script>
 (function(){
   function pad(num){ return String(num).padStart(2, '0'); }
 
   function formatClock(date){
-    return pad(date.getHours()) + ':' + pad(date.getMinutes()) + ':' + pad(date.getSeconds());
+    return pad(date.getHours()) + ':' + pad(date.getMinutes());
   }
 
   function formatCountdown(ms){
@@ -427,23 +426,22 @@ admin_header('DJ Portal');
 
   function parseSqlDateTime(value){
     if (!value) return null;
-    const normalised = value.replace(' ', 'T');
-    const parsed = new Date(normalised);
+    const parsed = new Date(value.replace(' ', 'T'));
     return isNaN(parsed.getTime()) ? null : parsed;
   }
 
-  const panel = document.querySelector('.live-event-timer');
-  if (!panel) return;
+  const summary = document.querySelector('.header-event-summary');
+  if (!summary) return;
 
-  const liveClock = document.getElementById('liveClock');
-  const eventStatus = document.getElementById('eventStatus');
-  const requestsCountdown = document.getElementById('requestsCountdown');
-  const eventCountdown = document.getElementById('eventCountdown');
+  const liveClock = document.getElementById('headerLiveClock');
+  const status = document.getElementById('headerEventStatus');
+  const requests = document.getElementById('headerRequestsCountdown');
+  const ends = document.getElementById('headerEventCountdown');
 
-  const eventDate = panel.dataset.eventDate || '';
-  const startTime = panel.dataset.startTime || '';
-  const endTime = panel.dataset.endTime || '';
-  const closeRaw = panel.dataset.requestsClose || '';
+  const eventDate = summary.dataset.eventDate || '';
+  const startTime = summary.dataset.startTime || '';
+  const endTime = summary.dataset.endTime || '';
+  const closeRaw = summary.dataset.requestsClose || '';
 
   const startDate = parseLocalDateTime(eventDate, startTime);
   let endDate = parseLocalDateTime(eventDate, endTime);
@@ -453,60 +451,64 @@ admin_header('DJ Portal');
     endDate.setDate(endDate.getDate() + 1);
   }
 
-  function updateTimers(){
+  function setState(element, className){
+    if (!element) return;
+    element.classList.remove('timer-warning','timer-ended','timer-live');
+    if (className) element.classList.add(className);
+  }
+
+  function update(){
     const now = new Date();
 
-    if (liveClock) {
-      liveClock.textContent = formatClock(now);
-    }
+    if (liveClock) liveClock.textContent = formatClock(now);
 
-    if (eventStatus) {
+    if (status) {
       if (!startDate) {
-        eventStatus.textContent = 'No start time';
+        status.textContent = 'No start';
+        setState(status, 'timer-warning');
       } else if (now < startDate) {
-        eventStatus.textContent = 'Starts in ' + formatCountdown(startDate - now);
+        status.textContent = 'Starts ' + formatCountdown(startDate - now);
+        setState(status, '');
       } else if (endDate && now > endDate) {
-        eventStatus.textContent = 'Event ended';
+        status.textContent = 'Ended';
+        setState(status, 'timer-ended');
       } else {
-        eventStatus.textContent = 'Live now';
+        status.textContent = 'Live';
+        setState(status, 'timer-live');
       }
     }
 
-    if (requestsCountdown) {
+    if (requests) {
       if (!closeDate) {
-        requestsCountdown.textContent = 'Not set';
-        requestsCountdown.classList.remove('timer-warning', 'timer-ended');
+        requests.textContent = 'Not set';
+        setState(requests, 'timer-warning');
       } else if (now >= closeDate) {
-        requestsCountdown.textContent = 'Closed';
-        requestsCountdown.classList.add('timer-ended');
-        requestsCountdown.classList.remove('timer-warning');
+        requests.textContent = 'Closed';
+        setState(requests, 'timer-ended');
       } else {
         const remaining = closeDate - now;
-        requestsCountdown.textContent = formatCountdown(remaining);
-        requestsCountdown.classList.toggle('timer-warning', remaining <= 15 * 60 * 1000);
-        requestsCountdown.classList.remove('timer-ended');
+        requests.textContent = formatCountdown(remaining);
+        setState(requests, remaining <= 15 * 60 * 1000 ? 'timer-warning' : '');
       }
     }
 
-    if (eventCountdown) {
+    if (ends) {
       if (!endDate) {
-        eventCountdown.textContent = 'Not set';
-        eventCountdown.classList.remove('timer-warning', 'timer-ended');
+        ends.textContent = 'Not set';
+        setState(ends, 'timer-warning');
       } else if (now >= endDate) {
-        eventCountdown.textContent = 'Ended';
-        eventCountdown.classList.add('timer-ended');
-        eventCountdown.classList.remove('timer-warning');
+        ends.textContent = 'Ended';
+        setState(ends, 'timer-ended');
       } else {
         const remaining = endDate - now;
-        eventCountdown.textContent = formatCountdown(remaining);
-        eventCountdown.classList.toggle('timer-warning', remaining <= 30 * 60 * 1000);
-        eventCountdown.classList.remove('timer-ended');
+        ends.textContent = formatCountdown(remaining);
+        setState(ends, remaining <= 30 * 60 * 1000 ? 'timer-warning' : '');
       }
     }
   }
 
-  updateTimers();
-  window.setInterval(updateTimers, 1000);
+  update();
+  window.setInterval(update, 1000);
 })();
 </script>
 
