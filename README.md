@@ -1,12 +1,21 @@
-# Dance Thru the Decades Portal v8 - Admin Header and Font Update
+# Dance Thru the Decades Portal v9 - Touchscreen DJ UI
 
-## Changes
+## What changed
 
-- Admin header now says only: DJ Portal
-- Improved admin font stack using modern system fonts.
-- Added font smoothing and more consistent line-height.
-- Kept admin mobile-friendly.
-- Public portal styling is unchanged.
+- Admin requests page redesigned as a touchscreen dashboard.
+- Dark low-light interface inspired by car infotainment / DJ software.
+- Large tile navigation.
+- Request cards instead of compact table rows.
+- Large touch-friendly action buttons.
+- Event summary sidebar.
+- Public portal unchanged.
+
+## Files included
+
+- /assets/admin-touch.css
+- /admin/_auth.php
+- /admin/index.php
+- README.md
 
 ## SQL
 

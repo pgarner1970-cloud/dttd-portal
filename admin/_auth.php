@@ -25,25 +25,18 @@ if (empty($_SESSION['admin'])):
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DJ Portal Login</title>
-<link rel="stylesheet" href="/assets/admin.css">
+<link rel="stylesheet" href="/assets/admin-touch.css">
 </head>
 <body class="admin-body">
-<main class="admin-login">
-  <div class="admin-card">
-    <div class="admin-card-header">
-      <div>
-        <h1 class="admin-title">DJ Portal Login</h1>
-        <p class="admin-subtitle">Dance Thru the Decades Events</p>
-      </div>
-    </div>
-    <div class="admin-card-body">
-      <?php if (!empty($login_error)): ?><p class="status-chip status-rejected"><?= h($login_error) ?></p><?php endif; ?>
+<main class="touch-login">
+  <div class="touch-panel">
+    <div class="touch-panel-pad">
+      <h1 class="login-title">DJ Portal Login</h1>
+      <p class="login-subtitle">Dance Thru the Decades Events</p>
+      <?php if (!empty($login_error)): ?><p class="status-badge rejected"><?= h($login_error) ?></p><?php endif; ?>
       <form method="post">
-        <div class="field">
-          <label>Password</label>
-          <input type="password" name="password" required>
-        </div>
-        <button class="admin-btn" type="submit">Login</button>
+        <input class="login-input" type="password" name="password" placeholder="Password" required>
+        <button class="touch-btn blue full" type="submit" style="margin-top:14px">Login</button>
       </form>
     </div>
   </div>
@@ -60,19 +53,22 @@ function admin_header($title = 'DJ Portal') {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= h($title) ?></title>
-<link rel="stylesheet" href="/assets/admin.css">
+<link rel="stylesheet" href="/assets/admin-touch.css">
 </head>
 <body class="admin-body">
-<header class="admin-topbar">
-  <div class="admin-brand">
+<header class="touch-topbar">
+  <div class="touch-brand">
+    <span class="touch-brand-mark">♪</span>
     <span>DJ Portal</span>
   </div>
-  <nav class="admin-nav">
-    <a href="/">Portal</a>
-    <a href="/admin/">Requests</a>
-    <a href="/admin/events.php">Events</a>
-    <a href="/admin/?logout=1">Logout</a>
-  </nav>
+  <div class="touch-clock">
+    <strong><?= date('H:i') ?></strong>
+    <span><?= date('D, j M') ?></span>
+  </div>
+  <div class="touch-top-actions">
+    <a class="touch-icon-btn" href="/">⌂</a>
+    <a class="touch-icon-btn" href="/admin/?logout=1">⏻</a>
+  </div>
 </header>
 <?php
 }
