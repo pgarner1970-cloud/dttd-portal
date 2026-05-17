@@ -1,12 +1,17 @@
-# Dance Thru the Decades Portal v31 - Header Navigation Fixed Overlay
+# Dance Thru the Decades Portal v32 - Requests Header Nav Fix
 
 ## Changes
 
-- Restores Requests / Events / Settings navigation.
-- Places compact tablet-friendly navigation buttons in the top-right header area.
-- Does not rely on the shared header file being included in the ZIP.
-- Active page keeps the blue glow/highlight.
-- Old large second-row tiles remain hidden.
+- Forces the compact navigation buttons into:
+  - /admin/requests.php
+  - /admin/index.php
+  - /admin/events.php
+  - /admin/event-edit.php
+- Requests page now definitely has:
+  - Requests
+  - Events
+  - Settings
+- Keeps buttons in the top-right header area as a fixed overlay.
 - No database changes.
 
 ## SQL
@@ -15,4 +20,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v31 Header Navigation Fixed Overlay
+v32 Requests Header Nav Fix

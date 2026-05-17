@@ -77,9 +77,9 @@ admin_header('Events - DJ Portal');
 ?>
 
 <div class="admin-floating-nav">
-  <a class="admin-floating-nav-btn <?= in_array(basename($_SERVER['SCRIPT_NAME']), ['requests.php','index.php'], true) ? 'active' : '' ?>" href="/admin/requests.php">Requests</a>
-  <a class="admin-floating-nav-btn <?= basename($_SERVER['SCRIPT_NAME']) === 'events.php' ? 'active' : '' ?>" href="/admin/events.php">Events</a>
-  <a class="admin-floating-nav-btn <?= basename($_SERVER['SCRIPT_NAME']) === 'event-edit.php' ? 'active' : '' ?>" href="/admin/events.php">Settings</a>
+  <a class="admin-floating-nav-btn" href="/admin/requests.php">Requests</a>
+  <a class="admin-floating-nav-btn active" href="/admin/events.php">Events</a>
+  <a class="admin-floating-nav-btn" href="/admin/events.php">Settings</a>
 </div>
 
 <main class="touch-wrap">
