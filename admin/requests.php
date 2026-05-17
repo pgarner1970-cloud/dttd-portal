@@ -43,6 +43,12 @@ if (!$event) {
   data-end-time="<?= h(input_time($event['end_time'] ?? '')) ?>"
   data-requests-close="<?= h($event['requests_close_at'] ?? '') ?>"
 >"
+  data-request-fingerprint="<?= h($initial_fingerprint ?? '') ?>"
+  data-event-date="<?= h($event['event_date'] ?? '') ?>"
+  data-start-time="<?= h(input_time($event['start_time'] ?? '')) ?>"
+  data-end-time="<?= h(input_time($event['end_time'] ?? '')) ?>"
+  data-requests-close="<?= h($event['requests_close_at'] ?? '') ?>"
+>"
   data-start-time="<?= h(input_time($event['start_time'] ?? '')) ?>"
   data-end-time="<?= h(input_time($event['end_time'] ?? '')) ?>"
   data-requests-close="<?= h($event['requests_close_at'] ?? '') ?>"
@@ -195,7 +201,9 @@ admin_header('DJ Portal');
               <div class="event-info-title">Event Time</div>
               <div class="event-info-value">
                 <?= h(input_time($event['start_time'])) ?><?= !empty($event['end_time']) ? ' - ' . h(input_time($event['end_time'])) : '' ?>
-                <span class="mini-countdown" id="eventEndCountdown">--</span>
+                <?php if (!empty($event['end_time'])): ?>
+                  <span class="mini-countdown" id="eventEndCountdown">calculating…</span>
+                <?php endif; ?>
               </div>
             </div>
           </div>
@@ -506,24 +514,32 @@ admin_header('DJ Portal');
   const requestCloseEl = document.getElementById('requestCloseCountdown');
   const eventEndEl = document.getElementById('eventEndCountdown');
 
-  function pad(value){ return String(value).padStart(2, '0'); }
+  function pad(value){
+    return String(value).padStart(2, '0');
+  }
 
   function parseLocalDateTime(dateValue, timeValue){
     if (!dateValue || !timeValue) return null;
-    const d = dateValue.split('-').map(Number);
-    const t = timeValue.split(':').map(Number);
-    if (d.length < 3 || t.length < 2) return null;
-    return new Date(d[0], d[1] - 1, d[2], t[0], t[1], 0);
+
+    const dateParts = dateValue.split('-').map(Number);
+    const timeParts = timeValue.split(':').map(Number);
+
+    if (dateParts.length < 3 || timeParts.length < 2) return null;
+
+    return new Date(dateParts[0], dateParts[1] - 1, dateParts[2], timeParts[0], timeParts[1], 0);
   }
 
   function parseSqlDateTime(value){
     if (!value) return null;
-    const parsed = new Date(value.replace(' ', 'T'));
+
+    const normalised = value.replace(' ', 'T');
+    const parsed = new Date(normalised);
+
     return isNaN(parsed.getTime()) ? null : parsed;
   }
 
   function formatRemaining(ms){
-    if (ms <= 0) return '0s';
+    if (ms <= 0) return '0h 00m 00s';
 
     const totalSeconds = Math.floor(ms / 1000);
     const days = Math.floor(totalSeconds / 86400);
@@ -531,15 +547,16 @@ admin_header('DJ Portal');
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
 
-    if (days > 0) return days + 'd ' + hours + 'h ' + minutes + 'm';
-    if (hours > 0) return hours + 'h ' + minutes + 'm ' + pad(seconds) + 's';
-    if (minutes > 0) return minutes + 'm ' + pad(seconds) + 's';
-    return seconds + 's';
+    if (days > 0) {
+      return days + 'd ' + hours + 'h ' + pad(minutes) + 'm';
+    }
+
+    return hours + 'h ' + pad(minutes) + 'm ' + pad(seconds) + 's';
   }
 
   function setState(el, state){
     if (!el) return;
-    el.classList.remove('mini-warning','mini-ended','mini-live');
+    el.classList.remove('mini-warning', 'mini-ended', 'mini-live');
     if (state) el.classList.add(state);
   }
 
@@ -552,6 +569,7 @@ admin_header('DJ Portal');
   let endDate = parseLocalDateTime(eventDate, endTime);
   const closeDate = parseSqlDateTime(requestsClose);
 
+  // Handles events crossing midnight, e.g. 19:30 - 01:30.
   if (startDate && endDate && endDate <= startDate) {
     endDate.setDate(endDate.getDate() + 1);
   }
@@ -559,11 +577,8 @@ admin_header('DJ Portal');
   function updateCountdowns(){
     const now = new Date();
 
-    if (requestCloseEl) {
-      if (!closeDate) {
-        requestCloseEl.textContent = 'not set';
-        setState(requestCloseEl, 'mini-warning');
-      } else if (now >= closeDate) {
+    if (requestCloseEl && closeDate) {
+      if (now >= closeDate) {
         requestCloseEl.textContent = 'closed';
         setState(requestCloseEl, 'mini-ended');
       } else {
@@ -573,11 +588,8 @@ admin_header('DJ Portal');
       }
     }
 
-    if (eventEndEl) {
-      if (!endDate) {
-        eventEndEl.textContent = 'end not set';
-        setState(eventEndEl, 'mini-warning');
-      } else if (now >= endDate) {
+    if (eventEndEl && endDate) {
+      if (now >= endDate) {
         eventEndEl.textContent = 'ended';
         setState(eventEndEl, 'mini-ended');
       } else {

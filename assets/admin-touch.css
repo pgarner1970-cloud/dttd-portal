@@ -1776,3 +1776,33 @@ body:has(.header-event-summary) .touch-clock{
     grid-template-columns:1fr !important;
   }
 }
+
+
+/* v44 active event countdown display fix */
+.mini-countdown{
+  display:block;
+  margin-top:4px;
+  font-size:11px;
+  line-height:1.15;
+  font-weight:900;
+  color:#93c5fd;
+  text-transform:uppercase;
+  letter-spacing:.02em;
+}
+
+.mini-countdown.mini-live{
+  color:#4ade80;
+}
+
+.mini-countdown.mini-warning{
+  color:#fbbf24;
+}
+
+.mini-countdown.mini-ended{
+  color:#f87171;
+}
+
+.event-info-value .mini-countdown,
+.countdown .mini-countdown{
+  font-size:11px;
+}

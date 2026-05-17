@@ -1,18 +1,15 @@
-# Dance Thru the Decades Portal v43 - Header Clock Events List Fix
+# Dance Thru the Decades Portal v44 - Active Card Countdown Fix
 
 ## Changes
 
-- Shared admin header clock now updates with seconds across all admin pages.
-- Events page now lists all events from the database.
-- Events page no longer depends on any current-event filtering.
-- Event row colour remains automatic:
-  - Green = current
-  - Amber = upcoming
-  - Red = past
-- Event rows show status label:
-  - Current
-  - Upcoming
-  - Past
+- Fixes false “end not set” display on the Requests page active event card.
+- Event Time now shows:
+  - start time only if no end time exists
+  - start time - end time if an end time exists
+- If an end time exists, it shows a live countdown beside the event time.
+- Requests Close shows a live countdown beside the close time.
+- Countdown format includes hours, minutes and seconds.
+- Handles events crossing midnight, such as 19:30 - 01:30.
 - No database changes.
 
 ## SQL
@@ -21,4 +18,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v43 Header Clock Events List Fix
+v44 Active Card Countdown Fix
