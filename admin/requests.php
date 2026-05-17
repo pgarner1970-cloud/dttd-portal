@@ -96,13 +96,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_action'], $_P
     $status = in_array($_POST['request_action'], $allowed, true) ? $_POST['request_action'] : 'pending';
     $group_key = (string)$_POST['group_key'];
 
-    $stmt = db()->prepare("
-        UPDATE song_requests 
-        SET status = ? 
-        WHERE event_id = ?
-        AND CONCAT(LOWER(TRIM(song_title)), '|', LOWER(TRIM(artist))) = ?
-    ");
-    $stmt->execute([$status, (int)$event['id'], $group_key]);
+    $parts = explode('|', $group_key);
+    $bucket = array_shift($parts);
+    $song_artist_key = implode('|', $parts);
+
+    if (str_starts_with($bucket, 'final-') && preg_match('/-(\\d+)$/', $bucket, $matches)) {
+        // Final/closed groups are unique by request id.
+        $stmt = db()->prepare("
+            UPDATE song_requests
+            SET status = ?
+            WHERE event_id = ?
+            AND id = ?
+        ");
+        $stmt->execute([$status, (int)$event['id'], (int)$matches[1]]);
+    } else {
+        // Open grouped requests: only update requests that are still open.
+        // This prevents a later re-request from changing old played/rejected records.
+        $stmt = db()->prepare("
+            UPDATE song_requests
+            SET status = ?
+            WHERE event_id = ?
+            AND status IN ('pending','maybe','duplicate')
+            AND CONCAT(LOWER(TRIM(song_title)), '|', LOWER(TRIM(artist))) = ?
+        ");
+        $stmt->execute([$status, (int)$event['id'], $song_artist_key]);
+    }
 
     header('Location: /admin/requests.php');
     exit;

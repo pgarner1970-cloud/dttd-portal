@@ -1,21 +1,19 @@
-# Dance Thru the Decades Portal v63 - Open Grouping Fix
+# Dance Thru the Decades Portal v64 - Group Action Fix
 
 ## Changes
 
-- Fixes request grouping for songs requested again later in the evening.
-- Open requests still group together when song title and artist match.
-- Final requests no longer absorb new requests.
-- Final statuses are:
-  - played
-  - rejected
-- Open statuses are:
+- Fixes action buttons on grouped requests after the open/final grouping change.
+- Open groups can now be marked:
+  - Played
+  - Maybe
+  - Duplicate
+  - Reject
+- Open group actions only update open requests:
   - pending
   - maybe
   - duplicate
-- Example:
-  - September / Earth Wind and Fire is marked Played
-  - someone requests September again later
-  - the new request now appears as a separate Pending queue item
+- Old played/rejected requests are not changed when a new request for the same song comes in later.
+- Final groups are handled by request ID when needed.
 - No database changes.
 
 ## SQL
@@ -24,4 +22,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v63 Open Grouping Fix
+v64 Group Action Fix
