@@ -376,27 +376,6 @@ if (!in_array($requests_layout, $allowed_request_layouts, true)) {
 $initial_fingerprint = '';
 /* v60 grouping rule note: grouping should keep played/rejected requests separate from open pending/maybe/duplicate groups. */
 
-$merge_candidates = [];
-foreach ($grouped_requests as $candidate_group) {
-    if (!str_starts_with((string)$candidate_group['key'], 'gid:')) {
-        continue;
-    }
-
-    if (!in_array((string)$candidate_group['status'], ['pending', 'maybe', 'duplicate'], true)) {
-        continue;
-    }
-
-    $merge_candidates[] = [
-        'key' => (string)$candidate_group['key'],
-        'group_id' => (string)($candidate_group['group_id'] ?? str_replace('gid:', '', (string)$candidate_group['key'])),
-        'song_title' => (string)$candidate_group['song_title'],
-        'artist' => (string)$candidate_group['artist'],
-        'status' => (string)$candidate_group['status'],
-        'request_count' => count($candidate_group['items']),
-        'created_at' => (string)$candidate_group['created_at'],
-    ];
-}
-
 admin_header('DJ Portal');
 ?>
 <main class="touch-wrap">
@@ -524,7 +503,8 @@ admin_header('DJ Portal');
                     data-group-key="<?= h($group['key']) ?>"
                     data-group-id="<?= h($group['group_id'] ?? str_replace('gid:', '', (string)$group['key'])) ?>"
                     data-song-title="<?= h($group['song_title']) ?>"
-                    data-artist="<?= h($group['artist']) ?>">
+                    data-artist="<?= h($group['artist']) ?>"
+                    data-candidates="<?= merge_candidate_json_for_group($group, $grouped_requests) ?>">
                     <span class="big-icon"><?= h($meta['icon']) ?></span>
                     <span><?= h($meta['label']) ?></span>
                   </button>
@@ -1052,21 +1032,7 @@ admin_header('DJ Portal');
     <form method="post" class="merge-request-form">
       <input type="hidden" name="merge_source_group" id="mergeSourceGroup" value="">
 
-      <div class="merge-target-list" id="mergeTargetList">
-        <?php foreach ($merge_candidates as $candidate): ?>
-          <label class="merge-target-card"
-            data-group-key="<?= h($candidate['key']) ?>"
-            data-group-id="<?= h($candidate['group_id'] ?? str_replace('gid:', '', (string)$candidate['key'])) ?>"
-            data-song-title="<?= h(strtolower($candidate['song_title'])) ?>"
-            data-artist="<?= h(strtolower($candidate['artist'])) ?>">
-            <input type="radio" name="merge_target_group" value="<?= h($candidate['key']) ?>">
-            <span>
-              <strong><?= h($candidate['song_title']) ?></strong>
-              <small><?= h($candidate['artist']) ?> · <?= h(ucfirst($candidate['status'])) ?> · <?= (int)$candidate['request_count'] ?> request<?= (int)$candidate['request_count'] === 1 ? '' : 's' ?></small>
-            </span>
-          </label>
-        <?php endforeach; ?>
-      </div>
+      <div class="merge-target-list" id="mergeTargetList"></div>
 
       <div class="merge-empty" id="mergeEmptyMessage" hidden>
         No open groups are available to merge into.
@@ -1092,134 +1058,56 @@ admin_header('DJ Portal');
 
   if (!modal || !sourceInput || !targetList || !submitButton) return;
 
-  function cleanGroup(value){
-    return String(value || '').trim().replace(/^gid:/, '');
-  }
-
-  function normalise(value){
+  function escapeHtml(value){
     return String(value || '')
-      .toLowerCase()
-      .replace(/&/g, ' and ')
-      .replace(/[^a-z0-9]+/g, ' ')
-      .replace(/\b(the|feat|featuring|ft|radio|edit|remix|version)\b/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
-  function tokens(value){
-    const n = normalise(value);
-    return n ? n.split(' ').filter(function(token){ return token.length > 1; }) : [];
-  }
-
-  function tokenOverlap(a, b){
-    const aa = new Set(tokens(a));
-    const bb = new Set(tokens(b));
-    if (!aa.size || !bb.size) return 0;
-    let shared = 0;
-    aa.forEach(function(token){ if (bb.has(token)) shared++; });
-    return shared / Math.max(aa.size, bb.size);
-  }
-
-  function titleLooksClose(sourceTitle, candidateTitle){
-    const source = normalise(sourceTitle);
-    const candidate = normalise(candidateTitle);
-    if (!source || !candidate) return false;
-    if (source === candidate) return true;
-    if (source.length >= 5 && candidate.includes(source)) return true;
-    if (candidate.length >= 5 && source.includes(candidate)) return true;
-    return tokenOverlap(source, candidate) >= 0.80;
-  }
-
-  function artistLooksClose(sourceArtist, candidateArtist){
-    const source = normalise(sourceArtist);
-    const candidate = normalise(candidateArtist);
-    if (!source || !candidate) return false;
-    if (source === candidate) return true;
-    if (source.length >= 5 && candidate.includes(source)) return true;
-    if (candidate.length >= 5 && source.includes(candidate)) return true;
-    return tokenOverlap(source, candidate) >= 0.80;
-  }
-
-  function sameGroup(sourceKey, sourceId, card){
-    const targetKey = card.dataset.groupKey || '';
-    const targetId = card.dataset.groupId || '';
-
-    const sKey = cleanGroup(sourceKey);
-    const tKey = cleanGroup(targetKey);
-    const sId = cleanGroup(sourceId);
-    const tId = cleanGroup(targetId);
-
-    return (
-      (sourceKey && targetKey && sourceKey === targetKey) ||
-      (sKey && tKey && sKey === tKey) ||
-      (sId && tId && sId === tId) ||
-      (sKey && tId && sKey === tId) ||
-      (sId && tKey && sId === tKey)
-    );
-  }
-
-  function isLikelyMerge(sourceTitle, sourceArtist, card){
-    return titleLooksClose(sourceTitle, card.dataset.songTitle || '');
-  }
-
-  function scoreCandidate(card, sourceTitle, sourceArtist){
-    let score = 0;
-    if (normalise(sourceTitle) === normalise(card.dataset.songTitle)) score += 150;
-    else if (titleLooksClose(sourceTitle, card.dataset.songTitle)) score += 100;
-    if (artistLooksClose(sourceArtist, card.dataset.artist)) score += 60;
-    score += Math.round(tokenOverlap(sourceTitle, card.dataset.songTitle) * 30);
-    score += Math.round(tokenOverlap(sourceArtist, card.dataset.artist) * 15);
-    return score;
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
   function openModal(trigger){
     const sourceKey = trigger.dataset.groupKey || '';
-    const sourceId = trigger.dataset.groupId || cleanGroup(sourceKey);
-    const sourceTitle = trigger.dataset.songTitle || '';
-    const sourceArtist = trigger.dataset.artist || '';
+    const sourceTitle = trigger.dataset.songTitle || 'this request';
+    let candidates = [];
+
+    try {
+      candidates = JSON.parse(trigger.dataset.candidates || '[]');
+    } catch (error) {
+      candidates = [];
+      console.error('Could not parse merge candidates', error);
+    }
 
     sourceInput.value = sourceKey;
 
     if (subtitle) {
-      subtitle.textContent = 'Merge "' + (sourceTitle || 'this request') + '" into a matching open queue item.';
+      subtitle.textContent = 'Merge "' + sourceTitle + '" into a matching open queue item.';
     }
 
-    const cards = Array.from(targetList.querySelectorAll('.merge-target-card'));
-    let visibleCount = 0;
+    targetList.innerHTML = '';
 
-    cards.forEach(function(card){
-      const isSelf = sameGroup(sourceKey, sourceId, card);
-      const likely = isLikelyMerge(sourceTitle, sourceArtist, card);
-
-      if (isSelf || !likely) {
-        card.hidden = true;
-        const input = card.querySelector('input');
-        if (input) input.checked = false;
-        return;
-      }
-
-      card.hidden = false;
-      card.dataset.score = String(scoreCandidate(card, sourceTitle, sourceArtist));
-      visibleCount++;
+    candidates.forEach(function(candidate, index){
+      const count = Number(candidate.request_count || 0);
+      const label = document.createElement('label');
+      label.className = 'merge-target-card';
+      label.innerHTML =
+        '<input type="radio" name="merge_target_group" value="' + escapeHtml(candidate.key) + '"' + (index === 0 ? ' checked' : '') + '>' +
+        '<span>' +
+          '<strong>' + escapeHtml(candidate.song_title) + '</strong>' +
+          '<small>' + escapeHtml(candidate.artist) + ' · ' + escapeHtml(candidate.status.charAt(0).toUpperCase() + candidate.status.slice(1)) + ' · ' + count + ' request' + (count === 1 ? '' : 's') + '</small>' +
+        '</span>';
+      targetList.appendChild(label);
     });
 
-    cards
-      .filter(function(card){ return !card.hidden; })
-      .sort(function(a, b){ return Number(b.dataset.score || 0) - Number(a.dataset.score || 0); })
-      .forEach(function(card){ targetList.appendChild(card); });
-
-    const firstVisible = cards.find(function(card){ return !card.hidden; });
-    if (firstVisible) {
-      const input = firstVisible.querySelector('input');
-      if (input) input.checked = true;
-    }
+    const hasCandidates = candidates.length > 0;
 
     if (emptyMessage) {
       emptyMessage.textContent = 'No matching open groups are available to merge into.';
-      emptyMessage.hidden = visibleCount !== 0;
+      emptyMessage.hidden = hasCandidates;
     }
 
-    submitButton.disabled = visibleCount === 0;
+    submitButton.disabled = !hasCandidates;
 
     modal.hidden = false;
     document.body.classList.add('modal-open');
@@ -1229,6 +1117,7 @@ admin_header('DJ Portal');
     modal.hidden = true;
     document.body.classList.remove('modal-open');
     sourceInput.value = '';
+    targetList.innerHTML = '';
   }
 
   document.addEventListener('click', function(event){
@@ -1240,7 +1129,9 @@ admin_header('DJ Portal');
       return false;
     }
 
-    if (event.target === modal) closeModal();
+    if (event.target === modal) {
+      closeModal();
+    }
   }, true);
 
   ['mergeRequestCancelTop','mergeRequestCancelBottom'].forEach(function(id){
@@ -1249,7 +1140,9 @@ admin_header('DJ Portal');
   });
 
   document.addEventListener('keydown', function(event){
-    if (event.key === 'Escape' && !modal.hidden) closeModal();
+    if (event.key === 'Escape' && !modal.hidden) {
+      closeModal();
+    }
   });
 })();
 </script>
