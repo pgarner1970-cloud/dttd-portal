@@ -1,19 +1,22 @@
-# Dance Thru the Decades Portal v23 - Requests Page Fix
+# Dance Thru the Decades Portal v24 - Requests Recovery
 
 ## Changes
 
-- Added a dedicated Requests page:
-  - `/admin/requests.php`
-- Updated Requests navigation tiles to point directly to:
-  - `/admin/requests.php`
-- Kept `/admin/index.php` in place.
-- This avoids any issue with `/admin/` or `index.php` routing on 20i.
+- Restored the working grouped Request Queue dashboard.
+- `/admin/requests.php` is now the dedicated Requests page.
+- `/admin/index.php` also contains the same Requests dashboard as a fallback.
+- Events page Requests tile now points to `/admin/requests.php`.
+- Keeps existing Events page current/future/past state work.
 
 ## File note
 
-Requests dashboard is now available at:
+Requests dashboard is available at both:
 
 `/admin/requests.php`
+
+and:
+
+`/admin/index.php`
 
 ## SQL
 
@@ -21,4 +24,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v23 Requests Page Fix
+v24 Requests Recovery
