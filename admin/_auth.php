@@ -172,46 +172,49 @@ function admin_header($title = 'DJ Portal') {
 </head>
 <body class="admin-body">
 <header class="touch-topbar">
-  <a class="touch-brand" href="/admin/index.php">
-    <span class="touch-brand-mark">♫</span>
-    <span>DJ Portal</span>
-  </a>
-
-  
-  <div class="touch-header-centre">
-<div class="touch-clock">
-    <strong id="adminHeaderClock"><?= h($time) ?></strong>
-    <span id="adminHeaderDate"><?= h($date) ?></span>
-  </div>
-      <?php if ($header_show_event_timer || $header_show_request_timer): ?>
-        <div class="header-timer-cluster" id="headerTimerCluster">
-          <?php if ($header_show_event_timer): ?>
-            <div class="touch-clock touch-header-timer timer-loading" id="headerEventTimer">
-              <strong id="headerEventTimerValue">--:--:--</strong>
-              <span>Event timer</span>
-            </div>
-          <?php endif; ?>
+  <div class="topbar-left">
+    <a class="touch-brand" href="/admin/index.php">
+      <span class="touch-brand-mark">♫</span>
+      <span>DJ Portal</span>
+    </a>
   </div>
 
-          <?php if ($header_show_request_timer): ?>
-            <div class="touch-clock touch-header-timer timer-loading" id="headerRequestTimer">
-              <strong id="headerRequestTimerValue">--:--:--</strong>
-              <span>Requests close</span>
-            </div>
-          <?php endif; ?>
-        </div>
-      <?php endif; ?>
+  <div class="topbar-centre">
+    <div class="touch-clock">
+      <strong id="adminHeaderClock"><?= h($time) ?></strong>
+      <span id="adminHeaderDate"><?= h($date) ?></span>
+    </div>
 
-</div>
-<div class="touch-top-actions">
-    <nav class="header-admin-nav" aria-label="Admin navigation">
-      <a class="header-admin-nav-btn <?= admin_nav_active('requests') ?>" href="/admin/requests.php">Requests</a>
-      <a class="header-admin-nav-btn <?= admin_nav_active('events') ?>" href="/admin/events.php">Events</a>
-      <a class="header-admin-nav-btn <?= admin_nav_active('settings') ?>" href="/admin/settings.php">Settings</a>
-    </nav>
+    <?php if ($header_show_event_timer || $header_show_request_timer): ?>
+      <div class="header-timer-cluster" id="headerTimerCluster">
+        <?php if ($header_show_event_timer): ?>
+          <div class="touch-clock touch-header-timer timer-loading" id="headerEventTimer">
+            <strong id="headerEventTimerValue">--:--:--</strong>
+            <span>Event timer</span>
+          </div>
+        <?php endif; ?>
 
-    <a class="touch-icon-btn" href="/" title="Public site">⌂</a>
-    <a class="touch-icon-btn" href="/admin/logout.php" title="Logout">⏻</a>
+        <?php if ($header_show_request_timer): ?>
+          <div class="touch-clock touch-header-timer timer-loading" id="headerRequestTimer">
+            <strong id="headerRequestTimerValue">--:--:--</strong>
+            <span>Requests close</span>
+          </div>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
+  </div>
+
+  <div class="topbar-right">
+    <div class="touch-top-actions">
+      <nav class="header-admin-nav" aria-label="Admin navigation">
+        <a class="header-admin-nav-btn <?= admin_nav_active('requests') ?>" href="/admin/requests.php">Requests</a>
+        <a class="header-admin-nav-btn <?= admin_nav_active('events') ?>" href="/admin/events.php">Events</a>
+        <a class="header-admin-nav-btn <?= admin_nav_active('settings') ?>" href="/admin/settings.php">Settings</a>
+      </nav>
+
+      <a class="touch-icon-btn" href="/" title="Public site">⌂</a>
+      <a class="touch-icon-btn" href="/admin/logout.php" title="Logout">⏻</a>
+    </div>
   </div>
 </header>
 <?php
@@ -254,7 +257,7 @@ function admin_footer() {
 <?php if (basename($_SERVER['SCRIPT_NAME']) === 'requests.php'): ?>
 <script src="/assets/request-update-check.js?v=62"></script>
 <?php endif; ?>
-<script src="/assets/header-timers.js?v=95"></script>
+<script src="/assets/header-timers.js?v=97"></script>
 </body>
 </html>
 <?php

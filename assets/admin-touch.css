@@ -4169,149 +4169,6 @@ body.modal-open{ overflow:hidden; }
 }
 
 
-/* v95 header wrapper fix */
-.touch-topbar{
-  position:relative !important;
-  display:flex !important;
-  align-items:center !important;
-  justify-content:space-between !important;
-  min-height:72px !important;
-  padding:8px 24px !important;
-  box-sizing:border-box !important;
-}
-
-.touch-brand{
-  flex:0 0 auto !important;
-  position:relative !important;
-  left:auto !important;
-  top:auto !important;
-  transform:none !important;
-  z-index:3 !important;
-  margin:0 !important;
-}
-
-/* Centre wrapper contains only clock and optional timers */
-.touch-header-centre{
-  position:absolute !important;
-  left:50% !important;
-  top:50% !important;
-  transform:translate(-50%, -50%) !important;
-  display:flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-  gap:14px !important;
-  white-space:nowrap !important;
-  z-index:1 !important;
-  pointer-events:none !important;
-}
-
-.touch-header-centre .touch-clock,
-.touch-header-centre .header-timer-cluster,
-.touch-header-centre .touch-header-timer{
-  pointer-events:auto !important;
-}
-
-/* Right-side nav must stay independent from the centre wrapper */
-.touch-top-actions{
-  flex:0 0 auto !important;
-  position:relative !important;
-  right:auto !important;
-  top:auto !important;
-  transform:none !important;
-  z-index:5 !important;
-  margin-left:auto !important;
-  display:flex !important;
-  align-items:center !important;
-  justify-content:flex-end !important;
-  gap:10px !important;
-  pointer-events:auto !important;
-}
-
-.header-admin-nav{
-  display:flex !important;
-  align-items:center !important;
-  justify-content:flex-end !important;
-  gap:8px !important;
-}
-
-.header-admin-nav a,
-.touch-icon-btn{
-  pointer-events:auto !important;
-}
-
-/* Timers stay tight next to the clock */
-.header-timer-cluster{
-  display:flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-  gap:8px !important;
-  margin:0 !important;
-}
-
-.touch-header-timer{
-  min-width:88px !important;
-  text-align:center !important;
-}
-
-.touch-header-timer strong{
-  font-variant-numeric:tabular-nums !important;
-}
-
-/* When timers are disabled, the centre wrapper still centres the clock only */
-.touch-header-centre > .touch-clock{
-  min-width:104px !important;
-}
-
-/* Stop old grid rules affecting layout */
-.touch-brand,
-.touch-header-centre,
-.touch-top-actions,
-.header-admin-nav{
-  grid-column:auto !important;
-  justify-self:auto !important;
-}
-
-/* Keep header compact */
-.header-admin-nav-btn{
-  min-height:48px !important;
-  padding:0 20px !important;
-  display:inline-flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-}
-
-.touch-icon-btn{
-  width:48px !important;
-  height:48px !important;
-  min-width:48px !important;
-}
-
-@media(max-width:1180px){
-  .touch-topbar{
-    padding-left:16px !important;
-    padding-right:16px !important;
-  }
-
-  .touch-header-centre{
-    gap:8px !important;
-  }
-
-  .header-admin-nav-btn{
-    padding:0 14px !important;
-  }
-
-  .touch-top-actions{
-    gap:8px !important;
-  }
-}
-
-@media(max-width:1020px){
-  .header-timer-cluster{
-    display:none !important;
-  }
-}
-
-
 /* v96 event image upload form fix */
 .event-image-field input[type="file"]{
   width:100%;
@@ -4359,4 +4216,142 @@ body.modal-open{ overflow:hidden; }
   height:100%;
   object-fit:cover;
   display:block;
+}
+
+
+/* v97 explicit header columns */
+.touch-topbar{
+  display:grid !important;
+  grid-template-columns:minmax(220px, 1fr) auto minmax(520px, 1fr) !important;
+  align-items:center !important;
+  gap:16px !important;
+  min-height:72px !important;
+  padding:8px 24px !important;
+  box-sizing:border-box !important;
+  width:100% !important;
+  position:relative !important;
+}
+
+.topbar-left{
+  grid-column:1 !important;
+  justify-self:start !important;
+  min-width:0 !important;
+}
+
+.topbar-centre{
+  grid-column:2 !important;
+  justify-self:center !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:12px !important;
+  white-space:nowrap !important;
+  min-width:0 !important;
+}
+
+.topbar-right{
+  grid-column:3 !important;
+  justify-self:end !important;
+  min-width:0 !important;
+}
+
+.touch-brand{
+  position:static !important;
+  transform:none !important;
+  margin:0 !important;
+  display:flex !important;
+  align-items:center !important;
+}
+
+.touch-top-actions{
+  position:static !important;
+  transform:none !important;
+  margin:0 !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  gap:10px !important;
+}
+
+.header-admin-nav{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  gap:8px !important;
+}
+
+.header-admin-nav-btn{
+  min-height:48px !important;
+  padding:0 20px !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+
+.touch-icon-btn{
+  width:48px !important;
+  height:48px !important;
+  min-width:48px !important;
+}
+
+.header-timer-cluster{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:8px !important;
+  margin:0 !important;
+}
+
+.touch-header-timer{
+  min-width:88px !important;
+  text-align:center !important;
+}
+
+.touch-header-timer strong{
+  font-variant-numeric:tabular-nums !important;
+}
+
+@media(max-width:1240px){
+  .touch-topbar{
+    grid-template-columns:minmax(180px, .8fr) auto minmax(430px, 1fr) !important;
+    gap:10px !important;
+    padding-left:16px !important;
+    padding-right:16px !important;
+  }
+
+  .header-admin-nav-btn{
+    padding:0 14px !important;
+  }
+
+  .touch-top-actions{
+    gap:8px !important;
+  }
+}
+
+@media(max-width:1080px){
+  .header-timer-cluster{
+    display:none !important;
+  }
+
+  .touch-topbar{
+    grid-template-columns:minmax(160px, 1fr) auto minmax(390px, 1fr) !important;
+  }
+}
+
+@media(max-width:900px){
+  .header-admin-nav-btn{
+    min-height:42px !important;
+    padding:0 10px !important;
+    font-size:11px !important;
+  }
+
+  .touch-icon-btn{
+    width:42px !important;
+    height:42px !important;
+    min-width:42px !important;
+  }
+
+  .touch-brand span:last-child{
+    font-size:20px !important;
+  }
 }
