@@ -195,8 +195,8 @@ if (!in_array($requests_layout, $allowed_request_layouts, true)) {
 admin_header('DJ Portal');
 ?>
 <main class="touch-wrap">
-<section class="touch-grid">
-    <aside class="touch-panel">
+<section class="touch-grid requests-layout-<?= h($requests_layout) ?>">
+    <aside class="touch-panel active-event-panel">
       <div class="touch-panel-pad">
 <h1 class="event-name"><?= h($event['event_name']) ?></h1>
         <p class="event-meta"><?= h($event['venue_name']) ?><br><?= h(event_type_label($event['event_type'] ?? 'public')) ?></p>
@@ -252,7 +252,7 @@ admin_header('DJ Portal');
       </div>
     </aside>
 
-    <section class="touch-panel">
+    <section class="touch-panel request-queue-panel">
       <form class="request-queue-compact-header no-event-selector" method="get">
         <div>
           <h2 class="touch-panel-title">Request Queue</h2>

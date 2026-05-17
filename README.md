@@ -1,16 +1,18 @@
-# Dance Thru the Decades Portal v53 - Requests Layout Settings
+# Dance Thru the Decades Portal v54 - Apply Requests Layout
 
 ## Changes
 
-- Adds Requests Page Layout setting to Settings page.
-- Layout options:
-  - Event left, queue right
-  - Queue left, event right
+- Requests page now applies the layout selected in Settings.
+- Supported layouts:
+  - Event card left, queue right
+  - Queue left, event card right
   - Queue only
-- Each option has a simple visual layout icon.
-- Requests page reads app_settings.requests_layout and adjusts layout automatically.
-- Settings button remains linked to /admin/settings.php.
-- No SQL included because app_settings table has already been created.
+- Correctly patches the real Requests page markup:
+  - section.touch-grid
+  - aside.active-event-panel
+  - section.request-queue-panel
+- CSS moves/hides the cards based on app_settings.requests_layout.
+- No database changes.
 
 ## SQL
 
@@ -18,4 +20,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v53 Requests Layout Settings
+v54 Apply Requests Layout
