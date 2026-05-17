@@ -1,13 +1,16 @@
-# Dance Thru the Decades Portal v59 - Queue Update Debug Fix
+# Dance Thru the Decades Portal v60 - Index Test Request Open Grouping
 
 ## Changes
 
-- Queue update checker now polls every 5 seconds.
-- Uses the existing page count data from v58.
-- Ping endpoint uses simple COUNT/GROUP BY logic.
-- Adds a small diagnostic line inside the update banner area.
-- If server counts differ from the loaded page counts, the Refresh queue banner appears.
-- No auto-refresh.
+- Adds an Add Test Request tool to /admin/index.php.
+- Test tool adds a pending request to the calculated current/next event.
+- Fields:
+  - Guest name
+  - Song title
+  - Artist
+  - Message/dedication
+- Includes a View Requests button after adding.
+- Updates grouping rule where possible so played/rejected requests are not grouped with new open requests.
 - No database changes.
 
 ## SQL
@@ -16,4 +19,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v59 Queue Update Debug Fix
+v60 Index Test Request Open Grouping

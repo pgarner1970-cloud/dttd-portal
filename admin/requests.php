@@ -192,6 +192,7 @@ if (!in_array($requests_layout, $allowed_request_layouts, true)) {
     $requests_layout = 'event_left';
 }
 $initial_fingerprint = '';
+/* v60 grouping rule note: grouping should keep played/rejected requests separate from open pending/maybe/duplicate groups. */
 admin_header('DJ Portal');
 ?>
 <main class="touch-wrap">
