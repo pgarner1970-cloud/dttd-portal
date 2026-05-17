@@ -2289,3 +2289,44 @@ body:has(.header-event-summary) .touch-clock{
     display:none !important;
   }
 }
+
+
+/* v55 events sorting and clean row actions */
+.event-row-card{
+  grid-template-columns:118px 155px minmax(260px,1fr) 190px 70px !important;
+}
+
+.event-row-state,
+.current-label,
+.past-label,
+.upcoming-label{
+  display:none !important;
+}
+
+.event-row-actions-only{
+  display:flex !important;
+  justify-content:flex-end !important;
+}
+
+.event-row-actions-only .action-tile{
+  width:70px !important;
+  min-width:70px !important;
+}
+
+@media(max-width:1180px){
+  .event-row-card{
+    grid-template-columns:110px 155px 1fr !important;
+  }
+
+  .event-row-close,
+  .event-row-actions-only{
+    grid-column:auto !important;
+    justify-content:start !important;
+  }
+}
+
+@media(max-width:720px){
+  .event-row-card{
+    grid-template-columns:1fr !important;
+  }
+}

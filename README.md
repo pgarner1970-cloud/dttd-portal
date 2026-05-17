@@ -1,17 +1,17 @@
-# Dance Thru the Decades Portal v54 - Apply Requests Layout
+# Dance Thru the Decades Portal v55 - Events Sort Clean Labels
 
 ## Changes
 
-- Requests page now applies the layout selected in Settings.
-- Supported layouts:
-  - Event card left, queue right
-  - Queue left, event card right
-  - Queue only
-- Correctly patches the real Requests page markup:
-  - section.touch-grid
-  - aside.active-event-panel
-  - section.request-queue-panel
-- CSS moves/hides the cards based on app_settings.requests_layout.
+- Events page now sorts:
+  - Current event first
+  - Upcoming events next
+  - Past events below, newest first
+- Removes Current / Upcoming / Past label buttons from rows.
+- Keeps row colour indicator:
+  - Green current
+  - Amber upcoming
+  - Red past
+- Keeps only the Edit button on the right.
 - No database changes.
 
 ## SQL
@@ -20,4 +20,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v54 Apply Requests Layout
+v55 Events Sort Clean Labels

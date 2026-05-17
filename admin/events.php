@@ -5,12 +5,39 @@ $events = db()->query("
     SELECT e.*,
            (SELECT COUNT(*) FROM song_requests sr WHERE sr.event_id = e.id) AS request_count
     FROM events e
-    ORDER BY
-      CASE WHEN e.event_date IS NULL THEN 1 ELSE 0 END,
-      e.event_date ASC,
-      e.start_time ASC,
-      e.id ASC
 ")->fetchAll();
+
+usort($events, function($a, $b) {
+    $state_a = dttd_calculated_event_state($a);
+    $state_b = dttd_calculated_event_state($b);
+
+    $rank = [
+        'current' => 0,
+        'upcoming' => 1,
+        'past' => 2,
+    ];
+
+    $rank_a = $rank[$state_a] ?? 1;
+    $rank_b = $rank[$state_b] ?? 1;
+
+    if ($rank_a !== $rank_b) {
+        return $rank_a <=> $rank_b;
+    }
+
+    $date_a = trim(($a['event_date'] ?? '') . ' ' . input_time($a['start_time'] ?? ''));
+    $date_b = trim(($b['event_date'] ?? '') . ' ' . input_time($b['start_time'] ?? ''));
+
+    $time_a = $date_a ? strtotime($date_a) : 0;
+    $time_b = $date_b ? strtotime($date_b) : 0;
+
+    if ($state_a === 'past') {
+        // Past events newest first, oldest at the bottom.
+        return $time_b <=> $time_a;
+    }
+
+    // Current/upcoming events soonest first.
+    return $time_a <=> $time_b;
+});
 
 function event_row_state_class($event) {
     $state = dttd_calculated_event_state($event);
@@ -26,20 +53,6 @@ function event_row_state_class($event) {
     return 'row-future';
 }
 
-function event_row_state_label($event) {
-    $state = dttd_calculated_event_state($event);
-
-    if ($state === 'current') {
-        return '<div class="current-label">Current</div>';
-    }
-
-    if ($state === 'past') {
-        return '<div class="past-label">Past</div>';
-    }
-
-    return '<div class="upcoming-label">Upcoming</div>';
-}
-
 admin_header('Events - DJ Portal');
 ?>
 <main class="touch-wrap">
@@ -47,7 +60,7 @@ admin_header('Events - DJ Portal');
     <div class="touch-panel-header">
       <div>
         <h1 class="touch-panel-title">Events</h1>
-        <p class="touch-subtitle">All events are listed. Current event is calculated automatically from the event date and time.</p>
+        <p class="touch-subtitle">Current event is shown first, followed by upcoming and previous events.</p>
       </div>
       <div>
         <a class="touch-btn blue" href="/admin/event-edit.php">＋ Add Event</a>
@@ -82,11 +95,7 @@ admin_header('Events - DJ Portal');
             <span><?= h($e['requests_close_at'] ? date('d/m/Y H:i', strtotime($e['requests_close_at'])) : 'Not set') ?></span>
           </div>
 
-          <div class="event-row-state">
-            <?= event_row_state_label($e) ?>
-          </div>
-
-          <div class="event-row-actions">
+          <div class="event-row-actions event-row-actions-only">
             <a class="action-tile maybe" href="/admin/event-edit.php?id=<?= (int)$e['id'] ?>">
               <span class="big-icon">⚙</span>
               <span>Edit</span>
