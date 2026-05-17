@@ -1,20 +1,21 @@
-# Dance Thru the Decades Portal v14 - Dashboard Repair
+# Dance Thru the Decades Portal v15 - Events/Form Repair
 
 ## Changes
 
-- Restored active event panel styling and spacing.
-- Removed Guest Link and Portal from the main tile navigation.
-- Top tiles are now:
+- Events page top tiles now only show:
   - Requests
   - Events
-  - Settings
-- Removed View Guest Portal / Edit Event buttons from the left active event panel.
-- Replaced raw event dropdown with styled selector.
-- Added working sort selector:
-  - Queue: pending first
-  - Oldest first
-  - Newest first
-- Kept request queue order as pending/maybe/duplicate/played/rejected by default.
+- Removed duplicate large tiles:
+  - Add Event
+  - Portal
+  - Logout
+- Restored polished Add/Edit Event page layout.
+- Restored grouped sections:
+  - Event Details
+  - Timing
+  - Portal Behaviour
+  - Advanced Timing Override
+- Improved date/time picker icon visibility in the dark theme.
 
 ## SQL
 

@@ -14,9 +14,6 @@ admin_header('Events - DJ Portal');
   <nav class="touch-tile-nav">
     <a class="touch-tile" href="/admin/"><span class="tile-icon">♫</span><span>Requests</span></a>
     <a class="touch-tile active" href="/admin/events.php"><span class="tile-icon">▦</span><span>Events</span></a>
-    <a class="touch-tile" href="/admin/event-edit.php"><span class="tile-icon">＋</span><span>Add Event</span></a>
-    <a class="touch-tile" href="/"><span class="tile-icon">⌂</span><span>Portal</span></a>
-    <a class="touch-tile" href="/admin/?logout=1"><span class="tile-icon">⏻</span><span>Logout</span></a>
   </nav>
 
   <section class="touch-panel">

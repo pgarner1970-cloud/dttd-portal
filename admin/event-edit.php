@@ -98,9 +98,6 @@ admin_header($edit ? 'Edit Event - DJ Portal' : 'Add Event - DJ Portal');
   <nav class="touch-tile-nav">
     <a class="touch-tile" href="/admin/"><span class="tile-icon">♫</span><span>Requests</span></a>
     <a class="touch-tile" href="/admin/events.php"><span class="tile-icon">▦</span><span>Events</span></a>
-    <a class="touch-tile active" href="/admin/event-edit.php<?= $edit ? '?id='.(int)$edit['id'] : '' ?>"><span class="tile-icon">＋</span><span><?= $edit ? 'Edit' : 'Add' ?></span></a>
-    <a class="touch-tile" href="/"><span class="tile-icon">⌂</span><span>Portal</span></a>
-    <a class="touch-tile" href="/admin/?logout=1"><span class="tile-icon">⏻</span><span>Logout</span></a>
   </nav>
 
   <section class="touch-panel">
