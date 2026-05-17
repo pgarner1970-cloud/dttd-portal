@@ -1,12 +1,16 @@
-# Dance Thru the Decades Portal v76 - Merge Self Exclude Status Move
+# Dance Thru the Decades Portal v77 - Merge Self Exclude Status Restore
 
 ## Changes
 
-- Makes merge self-exclusion more reliable by adding explicit group-id data attributes.
-- Merge modal now compares both full group key and stripped group id.
-- Tightens merge filtering so candidates must have a closely matching title.
-- Moves the status badge beside the request count pill to save horizontal space.
-- Hides the old separate status column.
+- Fixes merge modal still offering the current group as a merge target.
+- Adds stable group_id values to source groups and merge candidates.
+- Merge modal compares:
+  - full group key
+  - stripped gid
+  - explicit group_id
+- Restores the status pill beside the request count where possible.
+- Stops hiding status without replacement.
+- Keeps stricter merge matching to avoid unrelated tracks.
 - No SQL changes.
 
 ## SQL
@@ -15,4 +19,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v76 Merge Self Exclude Status Move
+v77 Merge Self Exclude Status Restore

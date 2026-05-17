@@ -324,6 +324,7 @@ foreach ($requests as $r) {
     if (!isset($groups[$key])) {
         $groups[$key] = [
             'key' => $key,
+            'group_id' => (dttd_group_id_column_exists() && !empty($r['request_group_id'])) ? (string)$r['request_group_id'] : (string)$key,
             'song_title' => $r['song_title'],
             'artist' => $r['artist'],
             'status' => $r['status'],
@@ -387,6 +388,7 @@ foreach ($grouped_requests as $candidate_group) {
 
     $merge_candidates[] = [
         'key' => (string)$candidate_group['key'],
+        'group_id' => (string)($candidate_group['group_id'] ?? str_replace('gid:', '', (string)$candidate_group['key'])),
         'song_title' => (string)$candidate_group['song_title'],
         'artist' => (string)$candidate_group['artist'],
         'status' => (string)$candidate_group['status'],
@@ -520,7 +522,7 @@ admin_header('DJ Portal');
                 <?php elseif ($action === 'duplicate'): ?>
                   <button type="button" class="action-tile <?= h($action) ?> merge-modal-trigger"
                     data-group-key="<?= h($group['key']) ?>"
-                    data-group-id="<?= h(str_starts_with((string)$group['key'], 'gid:') ? substr((string)$group['key'], 4) : (string)$group['key']) ?>"
+                    data-group-id="<?= h($group['group_id'] ?? str_replace('gid:', '', (string)$group['key'])) ?>"
                     data-song-title="<?= h($group['song_title']) ?>"
                     data-artist="<?= h($group['artist']) ?>">
                     <span class="big-icon"><?= h($meta['icon']) ?></span>
@@ -1054,7 +1056,7 @@ admin_header('DJ Portal');
         <?php foreach ($merge_candidates as $candidate): ?>
           <label class="merge-target-card"
             data-group-key="<?= h($candidate['key']) ?>"
-            data-group-id="<?= h(str_starts_with((string)$candidate['key'], 'gid:') ? substr((string)$candidate['key'], 4) : (string)$candidate['key']) ?>"
+            data-group-id="<?= h($candidate['group_id'] ?? str_replace('gid:', '', (string)$candidate['key'])) ?>"
             data-song-title="<?= h(strtolower($candidate['song_title'])) ?>"
             data-artist="<?= h(strtolower($candidate['artist'])) ?>">
             <input type="radio" name="merge_target_group" value="<?= h($candidate['key']) ?>">
@@ -1090,6 +1092,10 @@ admin_header('DJ Portal');
 
   if (!modal || !sourceInput || !targetList || !submitButton) return;
 
+  function cleanGroup(value){
+    return String(value || '').trim().replace(/^gid:/, '');
+  }
+
   function normalise(value){
     return String(value || '')
       .toLowerCase()
@@ -1109,39 +1115,28 @@ admin_header('DJ Portal');
     const aa = new Set(tokens(a));
     const bb = new Set(tokens(b));
     if (!aa.size || !bb.size) return 0;
-
     let shared = 0;
-    aa.forEach(function(token){
-      if (bb.has(token)) shared++;
-    });
-
+    aa.forEach(function(token){ if (bb.has(token)) shared++; });
     return shared / Math.max(aa.size, bb.size);
   }
 
   function titleLooksClose(sourceTitle, candidateTitle){
     const source = normalise(sourceTitle);
     const candidate = normalise(candidateTitle);
-
     if (!source || !candidate) return false;
     if (source === candidate) return true;
-
-    // Permit one title containing the other only if meaningful length.
     if (source.length >= 5 && candidate.includes(source)) return true;
     if (candidate.length >= 5 && source.includes(candidate)) return true;
-
-    // Conservative similarity. This stops "September" offering "Take on me".
     return tokenOverlap(source, candidate) >= 0.80;
   }
 
   function artistLooksClose(sourceArtist, candidateArtist){
     const source = normalise(sourceArtist);
     const candidate = normalise(candidateArtist);
-
     if (!source || !candidate) return false;
     if (source === candidate) return true;
     if (source.length >= 5 && candidate.includes(source)) return true;
     if (candidate.length >= 5 && source.includes(candidate)) return true;
-
     return tokenOverlap(source, candidate) >= 0.80;
   }
 
@@ -1149,47 +1144,42 @@ admin_header('DJ Portal');
     const targetKey = card.dataset.groupKey || '';
     const targetId = card.dataset.groupId || '';
 
-    if (sourceKey && targetKey && sourceKey === targetKey) return true;
-    if (sourceId && targetId && sourceId === targetId) return true;
+    const sKey = cleanGroup(sourceKey);
+    const tKey = cleanGroup(targetKey);
+    const sId = cleanGroup(sourceId);
+    const tId = cleanGroup(targetId);
 
-    // Extra guard: compare gid stripped values.
-    const cleanSource = String(sourceKey || '').replace(/^gid:/, '');
-    const cleanTarget = String(targetKey || '').replace(/^gid:/, '');
-    return !!cleanSource && !!cleanTarget && cleanSource === cleanTarget;
+    return (
+      (sourceKey && targetKey && sourceKey === targetKey) ||
+      (sKey && tKey && sKey === tKey) ||
+      (sId && tId && sId === tId) ||
+      (sKey && tId && sKey === tId) ||
+      (sId && tKey && sId === tKey)
+    );
   }
 
   function isLikelyMerge(sourceTitle, sourceArtist, card){
-    const candidateTitle = card.dataset.songTitle || '';
-    const candidateArtist = card.dataset.artist || '';
-
-    const titleClose = titleLooksClose(sourceTitle, candidateTitle);
-    if (!titleClose) return false;
-
-    // Title match is enough. Artist only affects ordering.
-    return true;
+    return titleLooksClose(sourceTitle, card.dataset.songTitle || '');
   }
 
   function scoreCandidate(card, sourceTitle, sourceArtist){
     let score = 0;
-
     if (normalise(sourceTitle) === normalise(card.dataset.songTitle)) score += 150;
     else if (titleLooksClose(sourceTitle, card.dataset.songTitle)) score += 100;
-
     if (artistLooksClose(sourceArtist, card.dataset.artist)) score += 60;
-
     score += Math.round(tokenOverlap(sourceTitle, card.dataset.songTitle) * 30);
     score += Math.round(tokenOverlap(sourceArtist, card.dataset.artist) * 15);
-
     return score;
   }
 
   function openModal(trigger){
     const sourceKey = trigger.dataset.groupKey || '';
-    const sourceId = trigger.dataset.groupId || String(sourceKey).replace(/^gid:/, '');
+    const sourceId = trigger.dataset.groupId || cleanGroup(sourceKey);
     const sourceTitle = trigger.dataset.songTitle || '';
     const sourceArtist = trigger.dataset.artist || '';
 
     sourceInput.value = sourceKey;
+
     if (subtitle) {
       subtitle.textContent = 'Merge "' + (sourceTitle || 'this request') + '" into a matching open queue item.';
     }
@@ -1215,12 +1205,8 @@ admin_header('DJ Portal');
 
     cards
       .filter(function(card){ return !card.hidden; })
-      .sort(function(a, b){
-        return Number(b.dataset.score || 0) - Number(a.dataset.score || 0);
-      })
-      .forEach(function(card){
-        targetList.appendChild(card);
-      });
+      .sort(function(a, b){ return Number(b.dataset.score || 0) - Number(a.dataset.score || 0); })
+      .forEach(function(card){ targetList.appendChild(card); });
 
     const firstVisible = cards.find(function(card){ return !card.hidden; });
     if (firstVisible) {
@@ -1237,8 +1223,6 @@ admin_header('DJ Portal');
 
     modal.hidden = false;
     document.body.classList.add('modal-open');
-
-    if (firstVisible) firstVisible.focus();
   }
 
   function closeModal(){
@@ -1256,9 +1240,7 @@ admin_header('DJ Portal');
       return false;
     }
 
-    if (event.target === modal) {
-      closeModal();
-    }
+    if (event.target === modal) closeModal();
   }, true);
 
   ['mergeRequestCancelTop','mergeRequestCancelBottom'].forEach(function(id){
@@ -1267,9 +1249,7 @@ admin_header('DJ Portal');
   });
 
   document.addEventListener('keydown', function(event){
-    if (event.key === 'Escape' && !modal.hidden) {
-      closeModal();
-    }
+    if (event.key === 'Escape' && !modal.hidden) closeModal();
   });
 })();
 </script>
