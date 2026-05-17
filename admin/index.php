@@ -3,11 +3,6 @@ require_once __DIR__ . '/_auth.php';
 admin_header('DJ Portal');
 ?>
 <main class="touch-wrap">
-  <nav class="admin-page-nav">
-    <a class="admin-page-nav-btn" href="/admin/requests.php">Requests</a>
-    <a class="admin-page-nav-btn" href="/admin/events.php">Events</a>
-  </nav>
-
   <section class="touch-panel">
     <div class="touch-panel-header">
       <div>

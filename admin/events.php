@@ -76,12 +76,6 @@ function can_make_current($event, $current_event_id, $today) {
 admin_header('Events - DJ Portal');
 ?>
 <main class="touch-wrap">
-
-<nav class="admin-page-nav">
-  <a class="admin-page-nav-btn" href="/admin/requests.php">Requests</a>
-  <a class="admin-page-nav-btn active" href="/admin/events.php">Events</a>
-</nav>
-
 <section class="touch-panel">
     <div class="touch-panel-header">
       <div>

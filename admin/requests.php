@@ -30,12 +30,6 @@ if (!$event) {
     admin_header('Requests - DJ Portal');
     ?>
     <main class="touch-wrap">
-
-<nav class="admin-page-nav">
-  <a class="admin-page-nav-btn active" href="/admin/requests.php">Requests</a>
-  <a class="admin-page-nav-btn" href="/admin/events.php">Events</a>
-</nav>
-
 <section class="touch-panel">
         <div class="touch-panel-header">
           <div>
