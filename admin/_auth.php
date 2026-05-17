@@ -152,7 +152,7 @@ function admin_header($title = 'DJ Portal') {
     <nav class="header-admin-nav" aria-label="Admin navigation">
       <a class="header-admin-nav-btn <?= admin_nav_active('requests') ?>" href="/admin/requests.php">Requests</a>
       <a class="header-admin-nav-btn <?= admin_nav_active('events') ?>" href="/admin/events.php">Events</a>
-      <a class="header-admin-nav-btn <?= admin_nav_active('settings') ?>" href="/admin/events.php">Settings</a>
+      <a class="header-admin-nav-btn <?= admin_nav_active('settings') ?>" href="/admin/settings.php">Settings</a>
     </nav>
 
     <a class="touch-icon-btn" href="/" title="Public site">⌂</a>

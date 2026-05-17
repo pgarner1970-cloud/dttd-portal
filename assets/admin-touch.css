@@ -1849,3 +1849,10 @@ body:has(.header-event-summary) .touch-clock{
 #requestCloseCountdown.mini-ended{
   color:#f87171 !important;
 }
+
+
+/* v48 settings placeholder */
+.muted-text{
+  color:#cbd5e1;
+  font-size:15px;
+}
