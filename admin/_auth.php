@@ -1,1 +1,36 @@
-<?php session_start(); require_once __DIR__.'/../includes/db.php'; if(isset($_POST['password'])){ if($_POST['password']===ADMIN_PASSWORD){$_SESSION['admin']=true;} else {$login_error='Incorrect password.';}} if(isset($_GET['logout'])){session_destroy();header('Location: /admin/');exit;} if(empty($_SESSION['admin'])): ?><!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Admin Login</title><link rel="stylesheet" href="/assets/style.css"></head><body><main class="container"><div class="card" style="margin-top:50px"><h1>Admin Login</h1><?php if(!empty($login_error)): ?><div class="notice"><?= h($login_error) ?></div><?php endif; ?><form method="post"><label>Password</label><input type="password" name="password" required><button class="btn btn-primary" type="submit">Login</button></form></div></main></body></html><?php exit; endif; ?>
+<?php
+session_start();
+require_once __DIR__ . '/../includes/db.php';
+
+if (isset($_POST['password'])) {
+    if ($_POST['password'] === ADMIN_PASSWORD) {
+        $_SESSION['admin'] = true;
+    } else {
+        $login_error = 'Incorrect password.';
+    }
+}
+
+if (isset($_GET['logout'])) {
+    session_destroy();
+    header('Location: /admin/');
+    exit;
+}
+
+if (empty($_SESSION['admin'])):
+?>
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Admin Login</title><link rel="stylesheet" href="/assets/style.css"></head>
+<body>
+<main class="container">
+  <div class="card" style="margin-top:50px">
+    <h1>Admin Login</h1>
+    <?php if (!empty($login_error)): ?><div class="notice"><?= h($login_error) ?></div><?php endif; ?>
+    <form method="post">
+      <label>Password</label>
+      <input type="password" name="password" required>
+      <button class="btn btn-primary" type="submit">Login</button>
+    </form>
+  </div>
+</main>
+</body></html>
+<?php exit; endif; ?>

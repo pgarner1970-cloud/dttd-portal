@@ -1,2 +1,93 @@
-<?php require_once __DIR__.'/_auth.php'; $event_id=!empty($_GET['event'])?(int)$_GET['event']:0; $event=$event_id?get_event($event_id):active_event(); if(!$event){header('Location: /admin/events.php');exit;} if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'],$_POST['request_id'])){$allowed=['played','rejected','duplicate','maybe','pending'];$status=in_array($_POST['action'],$allowed,true)?$_POST['action']:'pending';$stmt=db()->prepare('UPDATE song_requests SET status=? WHERE id=?');$stmt->execute([$status,(int)$_POST['request_id']]);header('Location: /admin/?event='.(int)$event['id']);exit;} $stmt=db()->prepare("SELECT * FROM song_requests WHERE event_id=? ORDER BY FIELD(status,'pending','maybe','duplicate','played','rejected'), created_at DESC");$stmt->execute([$event['id']]);$requests=$stmt->fetchAll();$events=db()->query('SELECT id,event_name,venue_name,event_date,is_active FROM events ORDER BY event_date DESC,id DESC LIMIT 30')->fetchAll(); ?>
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>DJ Admin Dashboard</title><link rel="stylesheet" href="/assets/style.css"></head><body><nav class="topnav"><a href="/">Portal</a><a href="/admin/">Requests</a><a href="/admin/events.php">Events</a><a href="/admin/?logout=1">Logout</a></nav><main class="container"><div class="card"><h1>DJ Dashboard</h1><p><span class="pill"><?= h($event['event_name']) ?></span> <span class="pill"><?= h($event['venue_name']) ?></span></p><form method="get"><label>View requests for event</label><select name="event" onchange="this.form.submit()"><?php foreach($events as $e): ?><option value="<?= (int)$e['id'] ?>" <?= $event['id']===$e['id']?'selected':'' ?>><?= h($e['event_name']) ?> - <?= h($e['venue_name']) ?> <?= $e['event_date']?'('.h($e['event_date']).')':'' ?></option><?php endforeach; ?></select></form><a class="btn btn-secondary" href="/admin/events.php?edit=<?= (int)$event['id'] ?>">Edit this event</a></div><div class="card" style="margin-top:16px"><h2>Song Requests</h2><table class="table"><thead><tr><th>Time</th><th>Guest</th><th>Song</th><th>Message</th><th>Status</th><th>Actions</th></tr></thead><tbody><?php foreach($requests as $r): ?><tr><td><?= h(date('H:i',strtotime($r['created_at']))) ?></td><td><?= h($r['guest_name']) ?></td><td><strong><?= h($r['song_title']) ?></strong><br><?= h($r['artist']) ?></td><td><?= nl2br(h($r['dedication'])) ?></td><td class="status-<?= h($r['status']) ?>"><?= h($r['status']) ?></td><td><div class="row-actions"><?php foreach(['played','maybe','duplicate','rejected','pending'] as $s): ?><form method="post"><input type="hidden" name="request_id" value="<?= (int)$r['id'] ?>"><button class="btn btn-gold" name="action" value="<?= h($s) ?>"><?= h($s) ?></button></form><?php endforeach; ?></div></td></tr><?php endforeach; ?><?php if(!$requests): ?><tr><td colspan="6">No requests yet.</td></tr><?php endif; ?></tbody></table></div></main></body></html>
+<?php
+require_once __DIR__ . '/_auth.php';
+
+$event_id = !empty($_GET['event']) ? (int)$_GET['event'] : 0;
+$event = $event_id ? get_event($event_id) : active_event();
+
+if (!$event) {
+    header('Location: /admin/events.php');
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['request_id'])) {
+    $allowed = ['played','rejected','duplicate','maybe','pending'];
+    $status = in_array($_POST['action'], $allowed, true) ? $_POST['action'] : 'pending';
+    $stmt = db()->prepare("UPDATE song_requests SET status = ? WHERE id = ?");
+    $stmt->execute([$status, (int)$_POST['request_id']]);
+    header('Location: /admin/?event=' . (int)$event['id']);
+    exit;
+}
+
+$stmt = db()->prepare("SELECT * FROM song_requests WHERE event_id = ? ORDER BY FIELD(status,'pending','maybe','duplicate','played','rejected'), created_at DESC");
+$stmt->execute([$event['id']]);
+$requests = $stmt->fetchAll();
+
+$events = db()->query("SELECT id, event_name, venue_name, event_date, start_time, end_time, is_active FROM events ORDER BY event_date DESC, id DESC LIMIT 30")->fetchAll();
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DJ Admin Dashboard</title>
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+<nav class="topnav"><a href="/">Portal</a><a href="/admin/">Requests</a><a href="/admin/events.php">Events</a><a href="/admin/?logout=1">Logout</a></nav>
+<main class="container">
+  <div class="admin-layout">
+    <div class="card">
+      <h1>DJ Dashboard</h1>
+      <p><span class="pill"><?= h($event['event_name']) ?></span></p>
+      <p class="small"><?= h($event['venue_name']) ?> · <?= h(event_type_label($event['event_type'] ?? 'public')) ?></p>
+      <div class="summary-box">
+        <p><strong>Date:</strong> <?= h($event['event_date']) ?></p>
+        <p><strong>Time:</strong> <?= h(input_time($event['start_time'])) ?> - <?= h(input_time($event['end_time'])) ?></p>
+        <p><strong>Requests close:</strong> <?= h($event['requests_close_at'] ? date('H:i', strtotime($event['requests_close_at'])) : 'Not set') ?></p>
+      </div>
+      <form method="get">
+        <label>View another event</label>
+        <select name="event" onchange="this.form.submit()">
+          <?php foreach ($events as $e): ?>
+            <option value="<?= (int)$e['id'] ?>" <?= $event['id']===$e['id']?'selected':'' ?>>
+              <?= h($e['event_name']) ?> - <?= h($e['venue_name']) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </form>
+      <a class="btn btn-secondary" href="/admin/events.php?edit=<?= (int)$event['id'] ?>">Edit Event</a>
+      <a class="btn btn-green" href="/request.php?event=<?= (int)$event['id'] ?>" target="_blank">Guest Request Link</a>
+    </div>
+
+    <div class="card">
+      <h2>Song Requests</h2>
+      <table class="table">
+        <thead><tr><th>Time</th><th>Guest</th><th>Song</th><th>Message</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+        <?php foreach ($requests as $r): ?>
+          <tr>
+            <td><?= h(date('H:i', strtotime($r['created_at']))) ?></td>
+            <td><?= h($r['guest_name']) ?></td>
+            <td><strong><?= h($r['song_title']) ?></strong><br><?= h($r['artist']) ?></td>
+            <td><?= nl2br(h($r['dedication'])) ?></td>
+            <td class="status-<?= h($r['status']) ?>"><?= h($r['status']) ?></td>
+            <td>
+              <div class="row-actions">
+              <?php foreach (['played','maybe','duplicate','rejected','pending'] as $s): ?>
+                <form method="post">
+                  <input type="hidden" name="request_id" value="<?= (int)$r['id'] ?>">
+                  <button class="btn btn-gold" name="action" value="<?= h($s) ?>"><?= h($s) ?></button>
+                </form>
+              <?php endforeach; ?>
+              </div>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+        <?php if (!$requests): ?><tr><td colspan="6">No requests yet.</td></tr><?php endif; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+</body>
+</html>
