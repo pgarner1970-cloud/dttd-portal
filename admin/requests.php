@@ -541,14 +541,18 @@ admin_header('DJ Portal');
   }
 
   function formatRemaining(ms){
-    if (ms <= 0) return '0h 00m 00s';
+    if (ms <= 0) return '00:00:00';
+
     const totalSeconds = Math.floor(ms / 1000);
+
     const days = Math.floor(totalSeconds / 86400);
     const hours = Math.floor((totalSeconds % 86400) / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-    if (days > 0) return days + 'd ' + hours + 'h ' + pad(minutes) + 'm';
-    return hours + 'h ' + pad(minutes) + 'm ' + pad(seconds) + 's';
+
+    const totalHours = (days * 24) + hours;
+
+    return pad(totalHours) + ':' + pad(minutes) + ':' + pad(seconds);
   }
 
   function setState(el, state){
@@ -586,7 +590,7 @@ admin_header('DJ Portal');
       return;
     }
     const remaining = target - now;
-    el.textContent = formatRemaining(remaining) + ' left';
+    el.textContent = formatRemaining(remaining);
     setState(el, remaining <= warningMs ? 'mini-warning' : 'mini-live');
   }
 

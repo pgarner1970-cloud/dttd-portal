@@ -1856,3 +1856,36 @@ body:has(.header-event-summary) .touch-clock{
   color:#cbd5e1;
   font-size:15px;
 }
+
+
+/* v49 countdown formatting cleanup */
+.event-info-value.countdown{
+  font-size:28px !important;
+  line-height:1 !important;
+  font-weight:900 !important;
+  color:#ffffff !important;
+}
+
+.request-close-mini-countdown,
+#requestCloseCountdown,
+#eventEndCountdown{
+  display:block !important;
+  margin-top:4px !important;
+  font-size:11px !important;
+  line-height:1.15 !important;
+  font-weight:900 !important;
+  color:#4ade80 !important;
+  text-transform:uppercase !important;
+  letter-spacing:.02em !important;
+  font-variant-numeric: tabular-nums;
+}
+
+#requestCloseCountdown.mini-warning,
+#eventEndCountdown.mini-warning{
+  color:#fbbf24 !important;
+}
+
+#requestCloseCountdown.mini-ended,
+#eventEndCountdown.mini-ended{
+  color:#f87171 !important;
+}

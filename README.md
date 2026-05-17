@@ -1,12 +1,14 @@
-# Dance Thru the Decades Portal v48 - Settings Navigation Placeholder
+# Dance Thru the Decades Portal v49 - Countdown Format Cleanup
 
 ## Changes
 
-- Settings header button now points to:
-  - /admin/settings.php
-- Added placeholder Settings page.
-- Settings button highlights when on settings.php.
-- No database changes.
+- Active Event countdowns now display as:
+  - HH:MM:SS
+  - Example: 07:09:25
+- Removed 'hours/minutes/seconds' wording.
+- Requests Close time now visually matches Event Time styling.
+- Removed oversized blue Requests Close time styling.
+- Countdown timers still update every second.
 
 ## SQL
 
@@ -14,4 +16,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v48 Settings Navigation Placeholder
+v49 Countdown Format Cleanup
