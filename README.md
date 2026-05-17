@@ -1,13 +1,14 @@
-# Dance Thru the Decades Portal v72 - Reject Modal Markup Fix
+# Dance Thru the Decades Portal v73 - Stable Grouping Modal Fix
 
 ## Changes
 
-- Fixes the issue where Reject still submitted immediately.
-- The visible Reject button now opens the rejection reason modal.
-- Selecting a modal reason updates:
-  - status = rejected
-  - reject_reason = selected reason
-- No SQL required because reject_reason already exists.
+- Fixes played/rejected groups splitting back into individual records.
+- If request_group_id exists, grouping always uses request_group_id regardless of status.
+- Played groups remain grouped.
+- Rejected groups remain grouped.
+- Reject button now opens the reject reason modal from the actual action loop.
+- Reject modal submits status=rejected and reject_reason.
+- No SQL changes.
 
 ## SQL
 
@@ -15,4 +16,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v72 Reject Modal Markup Fix
+v73 Stable Grouping Modal Fix

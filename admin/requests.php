@@ -200,6 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_action'], $_P
         $reason = (string)($_POST['reject_reason'] ?? 'not_suitable');
         $reject_reason = in_array($reason, $allowed_reasons, true) ? $reason : 'not_suitable';
     }
+
     $group_key = (string)$_POST['group_key'];
 
     if (dttd_group_id_column_exists() && str_starts_with($group_key, 'gid:')) {
@@ -213,7 +214,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_action'], $_P
         ");
         $stmt->execute([$status, $reject_reason, (int)$event['id'], $group_id]);
     } else {
-        // Legacy fallback for sites where the SQL migration has not been applied yet.
         $parts = explode('|', $group_key);
         $bucket = array_shift($parts);
         $song_artist_key = implode('|', $parts);
@@ -455,13 +455,20 @@ admin_header('DJ Portal');
                 ];
               ?>
               <?php foreach ($actions as $action => $meta): ?>
-                <form method="post" class="req-action-form">
-                  <input type="hidden" name="group_key" value="<?= h($group['key']) ?>">
-                  <button class="action-tile <?= h($action) ?>" name="request_action" value="<?= h($action) ?>">
+                <?php if ($action === 'rejected'): ?>
+                  <button type="button" class="action-tile <?= h($action) ?> reject-modal-trigger" data-group-key="<?= h($group['key']) ?>">
                     <span class="big-icon"><?= h($meta['icon']) ?></span>
                     <span><?= h($meta['label']) ?></span>
                   </button>
-                </form>
+                <?php else: ?>
+                  <form method="post" class="req-action-form">
+                    <input type="hidden" name="group_key" value="<?= h($group['key']) ?>">
+                    <button class="action-tile <?= h($action) ?>" name="request_action" value="<?= h($action) ?>">
+                      <span class="big-icon"><?= h($meta['icon']) ?></span>
+                      <span><?= h($meta['label']) ?></span>
+                    </button>
+                  </form>
+                <?php endif; ?>
               <?php endforeach; ?>
             </div>
           </article>

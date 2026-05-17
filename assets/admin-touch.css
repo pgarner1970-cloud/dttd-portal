@@ -3252,3 +3252,22 @@ body.modal-open{ overflow:hidden; }
 @media(max-width:640px){
   .reject-reason-grid{ grid-template-columns:1fr; }
 }
+
+/* v73 stable grouping modal fix */
+body.modal-open{ overflow:hidden; }
+.dj-modal-backdrop{ position:fixed; inset:0; z-index:999; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(2,6,23,.74); backdrop-filter:blur(10px); }
+.dj-modal-backdrop[hidden]{ display:none !important; }
+.dj-modal-card{ width:min(720px,96vw); border:1px solid rgba(148,163,184,.28); border-radius:22px; background:radial-gradient(circle at 12% 0%,rgba(239,68,68,.20),transparent 34%),linear-gradient(180deg,rgba(15,23,42,.98),rgba(15,23,42,.94)); color:#fff; box-shadow:0 28px 80px rgba(0,0,0,.50); overflow:hidden; }
+.dj-modal-header{ display:flex; justify-content:space-between; gap:16px; padding:20px; border-bottom:1px solid rgba(148,163,184,.18); }
+.dj-modal-header h2{ margin:0; font-size:26px; line-height:1.05; letter-spacing:-.045em; }
+.dj-modal-header p{ margin:6px 0 0; color:#bfdbfe; font-size:14px; }
+.dj-modal-close{ width:42px; height:42px; border:1px solid rgba(148,163,184,.30); border-radius:14px; background:rgba(255,255,255,.06); color:#fff; font-size:28px; line-height:1; cursor:pointer; }
+.reject-reason-form{ padding:20px; }
+.reject-reason-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.reject-reason-grid button{ min-height:86px; padding:14px; border:1px solid rgba(148,163,184,.24); border-radius:16px; background:rgba(255,255,255,.055); color:#fff; text-align:left; font-family:inherit; cursor:pointer; }
+.reject-reason-grid button:hover,.reject-reason-grid button:focus{ outline:none; border-color:rgba(248,113,113,.75); box-shadow:0 0 0 2px rgba(248,113,113,.18); }
+.reject-reason-grid strong{ display:block; font-size:15px; font-weight:950; margin-bottom:5px; }
+.reject-reason-grid span{ display:block; color:#cbd5e1; font-size:12px; line-height:1.28; }
+.dj-modal-actions{ display:flex; justify-content:flex-end; margin-top:16px; }
+.touch-btn.muted{ background:rgba(148,163,184,.14) !important; color:#e5e7eb !important; }
+@media(max-width:640px){ .reject-reason-grid{ grid-template-columns:1fr; } }
