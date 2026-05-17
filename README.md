@@ -1,15 +1,12 @@
-# Dance Thru the Decades Portal v30 - Header Navigation Repair
+# Dance Thru the Decades Portal v31 - Header Navigation Fixed Overlay
 
 ## Changes
 
-- Restores compact header navigation buttons:
-  - Requests
-  - Events
-  - Settings
-- Buttons are rendered inside the top-right header area.
-- Buttons remain large enough for tablet touch use.
+- Restores Requests / Events / Settings navigation.
+- Places compact tablet-friendly navigation buttons in the top-right header area.
+- Does not rely on the shared header file being included in the ZIP.
 - Active page keeps the blue glow/highlight.
-- Large old navigation tiles remain hidden.
+- Old large second-row tiles remain hidden.
 - No database changes.
 
 ## SQL
@@ -18,4 +15,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v30 Header Navigation Repair
+v31 Header Navigation Fixed Overlay

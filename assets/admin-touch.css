@@ -1115,3 +1115,77 @@ details.form-advanced[open] summary:before{transform:rotate(90deg)}
     padding:0 8px !important;
   }
 }
+
+
+/* v31 fixed overlay header navigation - does not depend on shared header file */
+.admin-floating-nav{
+  position:fixed;
+  top:12px;
+  right:122px;
+  z-index:1000;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.admin-floating-nav-btn{
+  min-width:104px;
+  height:48px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0 14px;
+  border:1px solid rgba(148,163,184,.24);
+  border-radius:14px;
+  background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.045));
+  color:#e5e7eb;
+  text-decoration:none;
+  font-weight:900;
+  font-size:13px;
+  line-height:1;
+  text-transform:uppercase;
+  letter-spacing:-.015em;
+  box-shadow:0 8px 18px rgba(0,0,0,.24);
+  white-space:nowrap;
+}
+
+.admin-floating-nav-btn.active{
+  color:#fff;
+  border-color:rgba(59,130,246,.95);
+  background:
+    radial-gradient(circle at 50% 12%,rgba(59,130,246,.48),transparent 48%),
+    linear-gradient(180deg,rgba(29,78,216,.72),rgba(15,23,42,.9));
+  box-shadow:0 0 0 1px rgba(59,130,246,.38),0 0 26px rgba(59,130,246,.38);
+}
+
+/* keep old second-row tiles hidden */
+.touch-tile-nav{
+  display:none !important;
+}
+
+/* make space reclaimed from old nav; keep content close to header */
+.touch-wrap{
+  padding-top:20px !important;
+}
+
+@media(max-width:1050px){
+  .admin-floating-nav{
+    position:static;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    margin:12px 12px 0;
+    width:auto;
+  }
+
+  .admin-floating-nav-btn{
+    min-width:0;
+  }
+}
+
+@media(max-width:520px){
+  .admin-floating-nav-btn{
+    height:46px;
+    font-size:11px;
+    padding:0 8px;
+  }
+}

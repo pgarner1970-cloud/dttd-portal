@@ -29,6 +29,13 @@ if ($event_id) {
 if (!$event) {
     admin_header('Requests - DJ Portal');
     ?>
+
+<div class="admin-floating-nav">
+  <a class="admin-floating-nav-btn <?= in_array(basename($_SERVER['SCRIPT_NAME']), ['requests.php','index.php'], true) ? 'active' : '' ?>" href="/admin/requests.php">Requests</a>
+  <a class="admin-floating-nav-btn <?= basename($_SERVER['SCRIPT_NAME']) === 'events.php' ? 'active' : '' ?>" href="/admin/events.php">Events</a>
+  <a class="admin-floating-nav-btn <?= basename($_SERVER['SCRIPT_NAME']) === 'event-edit.php' ? 'active' : '' ?>" href="/admin/events.php">Settings</a>
+</div>
+
     <main class="touch-wrap">
 <section class="touch-panel">
         <div class="touch-panel-header">
