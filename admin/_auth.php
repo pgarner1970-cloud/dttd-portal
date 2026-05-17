@@ -24,7 +24,7 @@ if (empty($_SESSION['admin'])):
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Login</title>
+<title>DJ Portal Login</title>
 <link rel="stylesheet" href="/assets/admin.css">
 </head>
 <body class="admin-body">
@@ -32,7 +32,7 @@ if (empty($_SESSION['admin'])):
   <div class="admin-card">
     <div class="admin-card-header">
       <div>
-        <h1 class="admin-title">Admin Login</h1>
+        <h1 class="admin-title">DJ Portal Login</h1>
         <p class="admin-subtitle">Dance Thru the Decades Events</p>
       </div>
     </div>
@@ -52,7 +52,7 @@ if (empty($_SESSION['admin'])):
 </html>
 <?php exit; endif;
 
-function admin_header($title = 'Admin') {
+function admin_header($title = 'DJ Portal') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -65,8 +65,7 @@ function admin_header($title = 'Admin') {
 <body class="admin-body">
 <header class="admin-topbar">
   <div class="admin-brand">
-    <span>Dance Thru the Decades</span>
-    <small>Admin</small>
+    <span>DJ Portal</span>
   </div>
   <nav class="admin-nav">
     <a href="/">Portal</a>
@@ -84,3 +83,4 @@ function admin_footer() {
 </html>
 <?php
 }
+?>
