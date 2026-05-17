@@ -37,6 +37,8 @@ if (!$event) {
 
     <main class="touch-wrap"
   data-event-id="<?= (int)$event['id'] ?>"
+  data-request-fingerprint="<?= h($initial_fingerprint) ?>"
+>"
   data-request-fingerprint="<?= h($initial_fingerprint ?? '') ?>"
 >"
   data-request-fingerprint="<?= h($initial_fingerprint ?? '') ?>"
@@ -170,18 +172,6 @@ if ($sort === 'queue') {
 
 $events = db()->query("SELECT id, event_name, venue_name, event_date, start_time, end_time, is_active FROM events ORDER BY event_date DESC, id DESC LIMIT 40")->fetchAll();
 
-$ping_stmt = db()->prepare("
-    SELECT 
-        COUNT(*) AS total_requests,
-        COALESCE(MAX(UNIX_TIMESTAMP(updated_at)), 0) AS latest_updated,
-        COALESCE(MAX(UNIX_TIMESTAMP(created_at)), 0) AS latest_created
-    FROM song_requests
-    WHERE event_id = ?
-");
-$ping_stmt->execute([(int)$event['id']]);
-$ping_row = $ping_stmt->fetch();
-$initial_fingerprint = sha1((int)$event['id'] . '|' . (int)($ping_row['total_requests'] ?? 0) . '|' . (int)($ping_row['latest_updated'] ?? 0) . '|' . (int)($ping_row['latest_created'] ?? 0));
-
 function status_label($status) {
     return strtolower((string)$status);
 }
@@ -191,6 +181,57 @@ $allowed_request_layouts = ['event_left', 'event_right', 'queue_only'];
 if (!in_array($requests_layout, $allowed_request_layouts, true)) {
     $requests_layout = 'event_left';
 }
+
+
+function request_queue_fingerprint($event_id) {
+    $stmt = db()->prepare("
+        SELECT 
+            id,
+            status,
+            guest_name,
+            song_title,
+            artist,
+            message
+        FROM song_requests
+        WHERE event_id = ?
+        ORDER BY id ASC
+    ");
+    $stmt->execute([(int)$event_id]);
+    $rows = $stmt->fetchAll();
+
+    $status_counts = [
+        'pending' => 0,
+        'maybe' => 0,
+        'played' => 0,
+        'duplicate' => 0,
+        'rejected' => 0,
+    ];
+
+    $parts = [];
+
+    foreach ($rows as $row) {
+        $status = strtolower((string)($row['status'] ?? 'pending'));
+
+        if (!array_key_exists($status, $status_counts)) {
+            $status_counts[$status] = 0;
+        }
+
+        $status_counts[$status]++;
+
+        $parts[] = implode('|', [
+            (int)$row['id'],
+            $status,
+            (string)($row['guest_name'] ?? ''),
+            (string)($row['song_title'] ?? ''),
+            (string)($row['artist'] ?? ''),
+            (string)($row['message'] ?? ''),
+        ]);
+    }
+
+    return sha1((int)$event_id . '|' . count($rows) . '|' . json_encode($status_counts) . '|' . implode('~', $parts));
+}
+
+$initial_fingerprint = request_queue_fingerprint((int)$event['id']);
 
 admin_header('DJ Portal');
 ?>
@@ -382,7 +423,7 @@ admin_header('DJ Portal');
 
       if (lastFingerprint && data.fingerprint !== lastFingerprint) {
         hasUpdate = true;
-        text.textContent = 'The request queue changed at ' + (data.checked_at || 'now') + '.';
+        const total = typeof data.total_requests !== 'undefined' ? ' (' + data.total_requests + ' total)' : ''; text.textContent = 'The request queue changed at ' + (data.checked_at || 'now') + total + '.';
         banner.hidden = false;
       } else {
         lastFingerprint = data.fingerprint;
@@ -660,7 +701,7 @@ admin_header('DJ Portal');
 
       if (lastFingerprint && data.fingerprint !== lastFingerprint) {
         hasUpdate = true;
-        text.textContent = 'The request queue changed at ' + (data.checked_at || 'now') + '.';
+        const total = typeof data.total_requests !== 'undefined' ? ' (' + data.total_requests + ' total)' : ''; text.textContent = 'The request queue changed at ' + (data.checked_at || 'now') + total + '.';
         banner.hidden = false;
       } else {
         lastFingerprint = data.fingerprint;

@@ -1,17 +1,19 @@
-# Dance Thru the Decades Portal v55 - Events Sort Clean Labels
+# Dance Thru the Decades Portal v56 - Queue Update Detection Fix
 
 ## Changes
 
-- Events page now sorts:
-  - Current event first
-  - Upcoming events next
-  - Past events below, newest first
-- Removes Current / Upcoming / Past label buttons from rows.
-- Keeps row colour indicator:
-  - Green current
-  - Amber upcoming
-  - Red past
-- Keeps only the Edit button on the right.
+- Fixes request queue update detection.
+- Ping endpoint now creates a robust fingerprint from:
+  - request IDs
+  - statuses
+  - guest names
+  - song titles
+  - artists
+  - messages
+  - status counts
+- Detection no longer relies only on created_at/updated_at fields.
+- Requests page initial fingerprint now uses the same logic as the ping endpoint.
+- If another request is added in the database, the DJ should see the update banner.
 - No database changes.
 
 ## SQL
@@ -20,4 +22,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v55 Events Sort Clean Labels
+v56 Queue Update Detection Fix

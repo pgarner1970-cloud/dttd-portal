@@ -5,7 +5,7 @@ header('Content-Type: application/json; charset=utf-8');
 
 $event_id = !empty($_GET['event']) ? (int)$_GET['event'] : 0;
 
-if (!$event_id) {
+if (!$event_id && function_exists('dttd_get_calculated_current_event')) {
     $current_event = dttd_get_calculated_current_event();
     $event_id = $current_event ? (int)$current_event['id'] : 0;
 }
@@ -13,34 +13,71 @@ if (!$event_id) {
 if (!$event_id) {
     echo json_encode([
         'ok' => false,
-        'error' => 'No calculated current event'
+        'error' => 'Missing event id'
     ]);
     exit;
 }
 
+/*
+  Robust fingerprint:
+  - does not rely solely on updated_at / created_at being populated
+  - detects new request IDs
+  - detects status changes
+  - detects message/name/title/artist edits
+*/
 $stmt = db()->prepare("
     SELECT 
-        COUNT(*) AS total_requests,
-        COALESCE(MAX(UNIX_TIMESTAMP(updated_at)), 0) AS latest_updated,
-        COALESCE(MAX(UNIX_TIMESTAMP(created_at)), 0) AS latest_created
+        id,
+        status,
+        guest_name,
+        song_title,
+        artist,
+        message
     FROM song_requests
     WHERE event_id = ?
+    ORDER BY id ASC
 ");
 $stmt->execute([$event_id]);
-$row = $stmt->fetch();
+$rows = $stmt->fetchAll();
 
-$total = (int)($row['total_requests'] ?? 0);
-$latestUpdated = (int)($row['latest_updated'] ?? 0);
-$latestCreated = (int)($row['latest_created'] ?? 0);
+$total = count($rows);
 
-$fingerprint = sha1($event_id . '|' . $total . '|' . $latestUpdated . '|' . $latestCreated);
+$status_counts = [
+    'pending' => 0,
+    'maybe' => 0,
+    'played' => 0,
+    'duplicate' => 0,
+    'rejected' => 0,
+];
+
+$fingerprint_parts = [];
+
+foreach ($rows as $row) {
+    $status = strtolower((string)($row['status'] ?? 'pending'));
+
+    if (!array_key_exists($status, $status_counts)) {
+        $status_counts[$status] = 0;
+    }
+
+    $status_counts[$status]++;
+
+    $fingerprint_parts[] = implode('|', [
+        (int)$row['id'],
+        $status,
+        (string)($row['guest_name'] ?? ''),
+        (string)($row['song_title'] ?? ''),
+        (string)($row['artist'] ?? ''),
+        (string)($row['message'] ?? ''),
+    ]);
+}
+
+$fingerprint = sha1($event_id . '|' . $total . '|' . json_encode($status_counts) . '|' . implode('~', $fingerprint_parts));
 
 echo json_encode([
     'ok' => true,
     'event_id' => $event_id,
     'total_requests' => $total,
-    'latest_updated' => $latestUpdated,
-    'latest_created' => $latestCreated,
+    'status_counts' => $status_counts,
     'fingerprint' => $fingerprint,
     'checked_at' => date('H:i:s')
 ]);
