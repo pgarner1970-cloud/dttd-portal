@@ -177,8 +177,9 @@ function admin_header($title = 'DJ Portal') {
     <span>DJ Portal</span>
   </a>
 
+  
   <div class="touch-header-centre">
-  <div class="touch-clock">
+<div class="touch-clock">
     <strong id="adminHeaderClock"><?= h($time) ?></strong>
     <span id="adminHeaderDate"><?= h($date) ?></span>
   </div>
@@ -200,6 +201,8 @@ function admin_header($title = 'DJ Portal') {
           <?php endif; ?>
         </div>
       <?php endif; ?>
+
+</div>
 <div class="touch-top-actions">
     <nav class="header-admin-nav" aria-label="Admin navigation">
       <a class="header-admin-nav-btn <?= admin_nav_active('requests') ?>" href="/admin/requests.php">Requests</a>
@@ -251,7 +254,7 @@ function admin_footer() {
 <?php if (basename($_SERVER['SCRIPT_NAME']) === 'requests.php'): ?>
 <script src="/assets/request-update-check.js?v=62"></script>
 <?php endif; ?>
-<script src="/assets/header-timers.js?v=89"></script>
+<script src="/assets/header-timers.js?v=95"></script>
 </body>
 </html>
 <?php
