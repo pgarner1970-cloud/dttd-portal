@@ -9,6 +9,15 @@
 - “Make Current” only appears on non-current events dated today or in the future.
 - Past events cannot be made current from the Events page.
 - Fixed Requests tile link so it explicitly opens `/admin/index.php`.
+- Included `/admin/index.php` in the ZIP so the Requests page is present.
+
+## File note
+
+The Requests page is:
+
+`/admin/index.php`
+
+There is no `/admin/requests.php` in this build.
 
 ## SQL
 
