@@ -1080,7 +1080,6 @@ admin_header('DJ Portal');
   </div>
 </div>
 
-
 <!-- Merge Request Modal JS -->
 <script>
 (function(){
@@ -1094,30 +1093,96 @@ admin_header('DJ Portal');
   if (!modal || !sourceInput || !targetList || !submitButton) return;
 
   function normalise(value){
-    return String(value || '').trim().toLowerCase();
+    return String(value || '')
+      .toLowerCase()
+      .replace(/&/g, ' and ')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .replace(/\b(the|feat|featuring|ft)\b/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function tokens(value){
+    const n = normalise(value);
+    return n ? n.split(' ').filter(Boolean) : [];
+  }
+
+  function tokenOverlap(a, b){
+    const aa = new Set(tokens(a));
+    const bb = new Set(tokens(b));
+    if (!aa.size || !bb.size) return 0;
+
+    let shared = 0;
+    aa.forEach(function(token){
+      if (bb.has(token)) shared++;
+    });
+
+    return shared / Math.max(aa.size, bb.size);
+  }
+
+  function titleLooksClose(sourceTitle, candidateTitle){
+    const source = normalise(sourceTitle);
+    const candidate = normalise(candidateTitle);
+
+    if (!source || !candidate) return false;
+    if (source === candidate) return true;
+
+    // Handles punctuation/case/extra wording, e.g. "Mr Brightside" vs "The Killers - Mr Brightside"
+    if (source.length >= 4 && candidate.includes(source)) return true;
+    if (candidate.length >= 4 && source.includes(candidate)) return true;
+
+    return tokenOverlap(source, candidate) >= 0.66;
+  }
+
+  function artistLooksClose(sourceArtist, candidateArtist){
+    const source = normalise(sourceArtist);
+    const candidate = normalise(candidateArtist);
+
+    if (!source || !candidate) return false;
+    if (source === candidate) return true;
+    if (source.length >= 4 && candidate.includes(source)) return true;
+    if (candidate.length >= 4 && source.includes(candidate)) return true;
+
+    return tokenOverlap(source, candidate) >= 0.66;
+  }
+
+  function isLikelyMerge(sourceTitle, sourceArtist, card){
+    const candidateTitle = card.dataset.songTitle || '';
+    const candidateArtist = card.dataset.artist || '';
+
+    const titleClose = titleLooksClose(sourceTitle, candidateTitle);
+    const artistClose = artistLooksClose(sourceArtist, candidateArtist);
+
+    // Main rule: title has to look close.
+    // This prevents unrelated songs appearing just because they are open groups.
+    if (titleClose) return true;
+
+    // Conservative fallback: if artist is the same, title still needs some shared wording.
+    if (artistClose && tokenOverlap(sourceTitle, candidateTitle) >= 0.40) return true;
+
+    return false;
   }
 
   function scoreCandidate(card, sourceTitle, sourceArtist){
-    const title = normalise(card.dataset.songTitle);
-    const artist = normalise(card.dataset.artist);
     let score = 0;
 
-    if (title === sourceTitle) score += 100;
-    if (artist === sourceArtist) score += 80;
-    if (title.includes(sourceTitle) || sourceTitle.includes(title)) score += 30;
-    if (artist.includes(sourceArtist) || sourceArtist.includes(artist)) score += 20;
+    if (titleLooksClose(sourceTitle, card.dataset.songTitle)) score += 100;
+    if (artistLooksClose(sourceArtist, card.dataset.artist)) score += 80;
+
+    score += Math.round(tokenOverlap(sourceTitle, card.dataset.songTitle) * 40);
+    score += Math.round(tokenOverlap(sourceArtist, card.dataset.artist) * 20);
 
     return score;
   }
 
   function openModal(trigger){
     const sourceKey = trigger.dataset.groupKey || '';
-    const sourceTitle = normalise(trigger.dataset.songTitle);
-    const sourceArtist = normalise(trigger.dataset.artist);
+    const sourceTitle = trigger.dataset.songTitle || '';
+    const sourceArtist = trigger.dataset.artist || '';
 
     sourceInput.value = sourceKey;
     if (subtitle) {
-      subtitle.textContent = 'Merge "' + (trigger.dataset.songTitle || 'this request') + '" into another open queue item.';
+      subtitle.textContent = 'Merge "' + (sourceTitle || 'this request') + '" into a matching open queue item.';
     }
 
     const cards = Array.from(targetList.querySelectorAll('.merge-target-card'));
@@ -1125,7 +1190,9 @@ admin_header('DJ Portal');
 
     cards.forEach(function(card){
       const isSelf = card.dataset.groupKey === sourceKey;
-      if (isSelf) {
+      const likely = isLikelyMerge(sourceTitle, sourceArtist, card);
+
+      if (isSelf || !likely) {
         card.hidden = true;
         const input = card.querySelector('input');
         if (input) input.checked = false;
@@ -1152,7 +1219,11 @@ admin_header('DJ Portal');
       if (input) input.checked = true;
     }
 
-    if (emptyMessage) emptyMessage.hidden = visibleCount !== 0;
+    if (emptyMessage) {
+      emptyMessage.textContent = 'No matching open groups are available to merge into.';
+      emptyMessage.hidden = visibleCount !== 0;
+    }
+
     submitButton.disabled = visibleCount === 0;
 
     modal.hidden = false;
