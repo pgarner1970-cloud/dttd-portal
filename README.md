@@ -1,11 +1,11 @@
-# Dance Thru the Decades Portal v10 - Touchscreen Events Page
+# Dance Thru the Decades Portal v11 - Events Split
 
 ## Changes
 
-- Updated `/admin/events.php` to match the v9 touchscreen DJ Portal UI.
-- Events now display as touch-friendly cards.
-- Event create/edit form uses the dark dashboard styling.
-- No SQL changes.
+- `/admin/events.php` is now an Events list only.
+- New `/admin/event-edit.php` page for adding/editing events.
+- Form now has a full-width layout instead of being squeezed beside the list.
+- No database changes.
 
 ## SQL
 
