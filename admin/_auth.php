@@ -47,6 +47,9 @@ function dttd_event_window($event) {
     }
 
     $date = $event['event_date'];
+
+    $header_show_event_timer = app_setting('header_show_event_timer', '1') === '1';
+    $header_show_request_timer = app_setting('header_show_request_timer', '1') === '1';
 $start_time = input_time($event['start_time']);
     $end_time = !empty($event['end_time']) ? input_time($event['end_time']) : null;
 
@@ -176,6 +179,18 @@ function admin_header($title = 'DJ Portal') {
     <strong id="adminHeaderClock"><?= h($time) ?></strong>
     <span id="adminHeaderDate"><?= h($date) ?></span>
   </div>
+      <?php if ($header_show_event_timer): ?>
+        <div class="touch-clock touch-header-timer" id="headerEventTimer" hidden>
+          <strong id="headerEventTimerValue">--:--:--</strong>
+          <span>Event timer</span>
+        </div>
+      <?php endif; ?>
+      <?php if ($header_show_request_timer): ?>
+        <div class="touch-clock touch-header-timer" id="headerRequestTimer" hidden>
+          <strong id="headerRequestTimerValue">--:--:--</strong>
+          <span>Requests close</span>
+        </div>
+      <?php endif; ?>
 <div class="touch-top-actions">
     <nav class="header-admin-nav" aria-label="Admin navigation">
       <a class="header-admin-nav-btn <?= admin_nav_active('requests') ?>" href="/admin/requests.php">Requests</a>
@@ -227,6 +242,7 @@ function admin_footer() {
 <?php if (basename($_SERVER['SCRIPT_NAME']) === 'requests.php'): ?>
 <script src="/assets/request-update-check.js?v=62"></script>
 <?php endif; ?>
+<script src="/assets/header-timers.js?v=68"></script>
 </body>
 </html>
 <?php
