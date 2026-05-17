@@ -20,14 +20,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_action'], $_P
     exit;
 }
 
+$sort = $_GET['sort'] ?? 'queue';
+
+$orderSql = "
+    FIELD(status,'pending','maybe','duplicate','played','rejected'),
+    created_at ASC,
+    id ASC
+";
+
+if ($sort === 'newest') {
+    $orderSql = "created_at DESC, id DESC";
+} elseif ($sort === 'oldest') {
+    $orderSql = "created_at ASC, id ASC";
+}
+
 $stmt = db()->prepare("
     SELECT *
     FROM song_requests
     WHERE event_id = ?
-    ORDER BY
-      FIELD(status,'pending','maybe','duplicate','played','rejected'),
-      created_at ASC,
-      id ASC
+    ORDER BY $orderSql
 ");
 $stmt->execute([$event['id']]);
 $requests = $stmt->fetchAll();
@@ -49,9 +60,7 @@ admin_header('DJ Portal');
   <nav class="touch-tile-nav">
     <a class="touch-tile active" href="/admin/"><span class="tile-icon">♫</span><span>Requests</span></a>
     <a class="touch-tile" href="/admin/events.php"><span class="tile-icon">▦</span><span>Events</span></a>
-    <a class="touch-tile" href="/request.php?event=<?= (int)$event['id'] ?>" target="_blank"><span class="tile-icon">🔗</span><span>Guest Link</span></a>
-    <a class="touch-tile" href="/"><span class="tile-icon">⌂</span><span>Portal</span></a>
-    <a class="touch-tile" href="/admin/events.php?edit=<?= (int)$event['id'] ?>"><span class="tile-icon">⚙</span><span>Settings</span></a>
+    <a class="touch-tile" href="/admin/event-edit.php?id=<?= (int)$event['id'] ?>"><span class="tile-icon">⚙</span><span>Settings</span></a>
   </nav>
 
   <section class="touch-grid">
@@ -64,17 +73,25 @@ admin_header('DJ Portal');
         <div class="event-info">
           <div class="event-info-row">
             <div class="event-info-icon">◷</div>
-            <div><?= h(input_time($event['start_time'])) ?> - <?= h(input_time($event['end_time'])) ?></div>
+            <div>
+              <div class="event-info-title">Event time</div>
+              <div class="event-info-value"><?= h(input_time($event['start_time'])) ?> - <?= h(input_time($event['end_time'])) ?></div>
+            </div>
           </div>
+
           <div class="event-info-row">
             <div class="event-info-icon">▣</div>
-            <div><?= h($event['event_date'] ? date('D, j M Y', strtotime($event['event_date'])) : 'Date not set') ?></div>
+            <div>
+              <div class="event-info-title">Date</div>
+              <div class="event-info-value"><?= h($event['event_date'] ? date('D, j M Y', strtotime($event['event_date'])) : 'Date not set') ?></div>
+            </div>
           </div>
+
           <div class="event-info-row">
             <div class="event-info-icon">⏱</div>
             <div>
-              Requests close<br>
-              <span class="countdown"><?= h($event['requests_close_at'] ? date('H:i', strtotime($event['requests_close_at'])) : 'Not set') ?></span>
+              <div class="event-info-title">Requests close</div>
+              <div class="event-info-value countdown"><?= h($event['requests_close_at'] ? date('H:i', strtotime($event['requests_close_at'])) : 'Not set') ?></div>
             </div>
           </div>
         </div>
@@ -86,11 +103,6 @@ admin_header('DJ Portal');
           <div class="stat-line"><span class="stat-dot duplicate"></span><span>Duplicate</span><strong><?= (int)$counts['duplicate'] ?></strong></div>
           <div class="stat-line"><span class="stat-dot rejected"></span><span>Rejected</span><strong><?= (int)$counts['rejected'] ?></strong></div>
         </div>
-
-        <div class="sidebar-actions">
-          <a class="touch-btn blue full" href="/request.php?event=<?= (int)$event['id'] ?>" target="_blank">View Guest Portal</a>
-          <a class="touch-btn purple full" href="/admin/events.php?edit=<?= (int)$event['id'] ?>">Edit Event</a>
-        </div>
       </div>
     </aside>
 
@@ -98,19 +110,30 @@ admin_header('DJ Portal');
       <div class="touch-panel-header">
         <div>
           <h2 class="touch-panel-title">Request Queue</h2>
-          <p class="touch-subtitle">Pending requests first, oldest first within each status.</p>
+          <p class="touch-subtitle">Queue view shows actionable requests first. Played and rejected items move lower down.</p>
         </div>
       </div>
 
       <form class="queue-toolbar" method="get">
-        <select name="event" onchange="this.form.submit()">
-          <?php foreach ($events as $e): ?>
-            <option value="<?= (int)$e['id'] ?>" <?= (int)$event['id']===(int)$e['id']?'selected':'' ?>>
-              <?= h($e['event_name']) ?> - <?= h($e['venue_name']) ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
-        <div class="sort-pill">Sort: Status queue</div>
+        <div class="queue-selector">
+          <label>Selected event</label>
+          <select name="event" onchange="this.form.submit()">
+            <?php foreach ($events as $e): ?>
+              <option value="<?= (int)$e['id'] ?>" <?= (int)$event['id']===(int)$e['id']?'selected':'' ?>>
+                <?= h($e['event_name']) ?> - <?= h($e['venue_name']) ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+
+        <div class="sort-selector">
+          <label>Sort</label>
+          <select name="sort" onchange="this.form.submit()">
+            <option value="queue" <?= $sort==='queue'?'selected':'' ?>>Queue: pending first</option>
+            <option value="oldest" <?= $sort==='oldest'?'selected':'' ?>>Oldest first</option>
+            <option value="newest" <?= $sort==='newest'?'selected':'' ?>>Newest first</option>
+          </select>
+        </div>
       </form>
 
       <div class="request-list">
