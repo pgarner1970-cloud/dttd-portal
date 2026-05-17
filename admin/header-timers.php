@@ -3,7 +3,7 @@ require_once __DIR__ . '/_auth.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-function header_timer_input_time($value) {
+function header_timer_normalise_time($value) {
     if (function_exists('input_time')) {
         return input_time($value);
     }
@@ -12,17 +12,18 @@ function header_timer_input_time($value) {
         return '';
     }
 
-    return date('H:i', strtotime($value));
+    $ts = strtotime((string)$value);
+    return $ts ? date('H:i', $ts) : '';
 }
 
-function header_timer_event_state($event) {
+function header_timer_event_window($event) {
     if (!$event || empty($event['event_date']) || empty($event['start_time'])) {
-        return 'upcoming';
+        return ['state' => 'unknown', 'start' => null, 'end' => null];
     }
 
-    $start = strtotime($event['event_date'] . ' ' . header_timer_input_time($event['start_time']));
+    $start = strtotime($event['event_date'] . ' ' . header_timer_normalise_time($event['start_time']));
     $end = !empty($event['end_time'])
-        ? strtotime($event['event_date'] . ' ' . header_timer_input_time($event['end_time']))
+        ? strtotime($event['event_date'] . ' ' . header_timer_normalise_time($event['end_time']))
         : null;
 
     if ($start && $end && $end <= $start) {
@@ -31,19 +32,15 @@ function header_timer_event_state($event) {
 
     $now = time();
 
-    if ($start && $end && $now >= $start - 3600 && $now <= $end) {
-        return 'current';
+    if ($start && $end && $now >= ($start - 3600) && $now <= $end) {
+        return ['state' => 'current', 'start' => $start, 'end' => $end];
     }
 
     if ($start && $now < $start) {
-        return 'upcoming';
+        return ['state' => 'upcoming', 'start' => $start, 'end' => $end];
     }
 
-    return 'past';
-}
-
-function header_timer_iso($ts) {
-    return $ts ? date('c', $ts) : '';
+    return ['state' => 'past', 'start' => $start, 'end' => $end];
 }
 
 try {
@@ -54,7 +51,6 @@ try {
     }
 
     if (!$event) {
-        // Pick current first using PHP calculation, then next upcoming.
         $events = db()->query("
             SELECT *
             FROM events
@@ -63,7 +59,8 @@ try {
         ")->fetchAll();
 
         foreach ($events as $candidate) {
-            if (header_timer_event_state($candidate) === 'current') {
+            $window = header_timer_event_window($candidate);
+            if ($window['state'] === 'current') {
                 $event = $candidate;
                 break;
             }
@@ -71,7 +68,8 @@ try {
 
         if (!$event) {
             foreach ($events as $candidate) {
-                if (header_timer_event_state($candidate) === 'upcoming') {
+                $window = header_timer_event_window($candidate);
+                if ($window['state'] === 'upcoming') {
                     $event = $candidate;
                     break;
                 }
@@ -88,34 +86,30 @@ try {
         exit;
     }
 
-    $event_end_ts = null;
+    $window = header_timer_event_window($event);
+    $event_end_iso = $window['end'] ? date('c', $window['end']) : '';
 
-    if (!empty($event['event_date']) && !empty($event['end_time'])) {
-        $event_end_ts = strtotime($event['event_date'] . ' ' . header_timer_input_time($event['end_time']));
-
-        if (!empty($event['start_time'])) {
-            $start_ts = strtotime($event['event_date'] . ' ' . header_timer_input_time($event['start_time']));
-            if ($start_ts && $event_end_ts && $event_end_ts <= $start_ts) {
-                $event_end_ts = strtotime('+1 day', $event_end_ts);
-            }
-        }
+    $requests_close_iso = '';
+    if (!empty($event['requests_close_at'])) {
+        $close_ts = strtotime($event['requests_close_at']);
+        $requests_close_iso = $close_ts ? date('c', $close_ts) : '';
     }
-
-    $request_close_ts = !empty($event['requests_close_at']) ? strtotime($event['requests_close_at']) : null;
 
     echo json_encode([
         'ok' => true,
         'has_event' => true,
         'event_id' => (int)$event['id'],
         'event_name' => (string)($event['event_name'] ?? ''),
-        'event_end' => header_timer_iso($event_end_ts),
-        'requests_close' => header_timer_iso($request_close_ts),
+        'state' => $window['state'],
+        'event_end' => $event_end_iso,
+        'requests_close' => $requests_close_iso,
         'checked_at' => date('H:i:s')
     ]);
 } catch (Throwable $e) {
     echo json_encode([
         'ok' => false,
-        'error' => 'Timer endpoint failed: ' . $e->getMessage(),
+        'has_event' => false,
+        'error' => 'Header timer endpoint failed',
         'checked_at' => date('H:i:s')
     ]);
 }

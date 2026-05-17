@@ -159,6 +159,8 @@ function save_app_setting($key, $value) {
 function admin_header($title = 'DJ Portal') {
     $time = date('H:i');
     $date = date('D, j M');
+    $header_show_event_timer = app_setting('header_show_event_timer', '1') === '1';
+    $header_show_request_timer = app_setting('header_show_request_timer', '1') === '1';
     ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -247,7 +249,7 @@ function admin_footer() {
 <?php if (basename($_SERVER['SCRIPT_NAME']) === 'requests.php'): ?>
 <script src="/assets/request-update-check.js?v=62"></script>
 <?php endif; ?>
-<script src="/assets/header-timers.js?v=70"></script>
+<script src="/assets/header-timers.js?v=86"></script>
 </body>
 </html>
 <?php

@@ -3530,3 +3530,64 @@ body.modal-open{ overflow:hidden; }
 .group-count-pill-row > .status-badge *{
   line-height:28px !important;
 }
+
+
+/* v86 shared header timers */
+.header-timer-cluster{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:22px !important;
+  margin-left:22px !important;
+  margin-right:22px !important;
+}
+
+.touch-header-timer{
+  min-width:118px !important;
+  text-align:center !important;
+}
+
+.touch-header-timer strong{
+  display:block !important;
+  font-variant-numeric:tabular-nums !important;
+}
+
+.touch-header-timer span{
+  display:block !important;
+}
+
+.touch-header-timer.timer-loading strong,
+.touch-header-timer.timer-unavailable strong{
+  color:#94a3b8 !important;
+}
+
+.touch-header-timer.timer-green strong{
+  color:#4ade80 !important;
+}
+
+.touch-header-timer.timer-amber strong{
+  color:#fbbf24 !important;
+}
+
+.touch-header-timer.timer-red strong,
+.touch-header-timer.timer-ended strong{
+  color:#f87171 !important;
+}
+
+@media(max-width:1200px){
+  .header-timer-cluster{
+    gap:12px !important;
+    margin-left:12px !important;
+    margin-right:12px !important;
+  }
+
+  .touch-header-timer{
+    min-width:96px !important;
+  }
+}
+
+@media(max-width:900px){
+  .header-timer-cluster{
+    display:none !important;
+  }
+}

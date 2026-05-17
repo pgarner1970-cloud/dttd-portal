@@ -41,6 +41,7 @@
 
     function setState(el, ms){
       if (!el) return;
+
       el.classList.remove('timer-loading','timer-green','timer-amber','timer-red','timer-ended','timer-unavailable');
 
       if (ms <= 0) {
@@ -86,24 +87,22 @@
           credentials: 'same-origin'
         });
 
-        if (!response.ok) {
-          console.error('Header timers HTTP error', response.status);
-          return;
-        }
+        if (!response.ok) return;
 
         const data = await response.json();
 
         if (!data.ok || !data.has_event) {
-          console.error('Header timers unavailable', data);
+          eventEndTarget = null;
+          requestCloseTarget = null;
+          tick();
           return;
         }
 
         eventEndTarget = parseTarget(data.event_end);
         requestCloseTarget = parseTarget(data.requests_close);
-
         tick();
       } catch (error) {
-        console.error('Header timer load failed', error);
+        // Do not interrupt DJ workflow.
       }
     }
 
