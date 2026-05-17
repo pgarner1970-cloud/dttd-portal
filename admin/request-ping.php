@@ -6,9 +6,14 @@ header('Content-Type: application/json; charset=utf-8');
 $event_id = !empty($_GET['event']) ? (int)$_GET['event'] : 0;
 
 if (!$event_id) {
+    $current_event = dttd_get_calculated_current_event();
+    $event_id = $current_event ? (int)$current_event['id'] : 0;
+}
+
+if (!$event_id) {
     echo json_encode([
         'ok' => false,
-        'error' => 'Missing event id'
+        'error' => 'No calculated current event'
     ]);
     exit;
 }

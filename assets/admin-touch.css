@@ -1630,3 +1630,29 @@ body:has(.header-event-summary) .touch-clock{
     grid-template-columns:repeat(2,1fr);
   }
 }
+
+
+/* v39 automatic current event */
+.request-queue-compact-header.no-event-selector{
+  grid-template-columns:minmax(260px,1fr) 230px !important;
+}
+
+.upcoming-label{
+  min-height:54px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid rgba(245,158,11,.45);
+  border-radius:12px;
+  background:rgba(245,158,11,.10);
+  color:#fbbf24;
+  font-size:10px;
+  font-weight:900;
+  text-transform:uppercase;
+}
+
+@media(max-width:980px){
+  .request-queue-compact-header.no-event-selector{
+    grid-template-columns:1fr !important;
+  }
+}

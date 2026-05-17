@@ -1,16 +1,20 @@
-# Dance Thru the Decades Portal v38 - Header Timer Summary
+# Dance Thru the Decades Portal v39 - Automatic Current Event
 
 ## Changes
 
-- Restores the Requests page layout by removing the large timer row from the main screen.
-- Moves the live event timing summary into the header area.
-- Header summary shows:
-  - Now
-  - Event status
-  - Requests close countdown
-  - Event end countdown
-- Summary updates every second in the browser.
-- Keeps the existing request queue layout.
+- Requests page now automatically chooses the current event using event date/start/end time.
+- Current event rule:
+  - current from 1 hour before start time
+  - current until end time
+  - if end time is missing, current until start + 6 hours
+- If no event is currently live, Requests page shows the next upcoming event.
+- Removed the Selected Event dropdown from the Requests page.
+- Events page now uses the same calculated state:
+  - Green = current
+  - Amber = upcoming
+  - Red = past
+- Removed manual Make Current action from Events page.
+- Events page now shows Current / Upcoming / Past as labels.
 - No database changes.
 
 ## SQL
@@ -19,4 +23,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v38 Header Timer Summary
+v39 Automatic Current Event

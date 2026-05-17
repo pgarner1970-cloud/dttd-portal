@@ -1,30 +1,11 @@
 <?php
 require_once __DIR__ . '/_auth.php';
 
-$event_id = !empty($_GET['event']) ? (int)$_GET['event'] : 0;
-
-if ($event_id) {
-    $event = get_event($event_id);
-} else {
-    // Do not rely on active_event() here because that may apply timing/window rules
-    // and redirect back to Events. The DJ dashboard should still be viewable.
-    $event = db()->query("
-        SELECT *
-        FROM events
-        WHERE is_active = 1
-        ORDER BY event_date DESC, id DESC
-        LIMIT 1
-    ")->fetch();
-
-    if (!$event) {
-        $event = db()->query("
-            SELECT *
-            FROM events
-            ORDER BY event_date DESC, id DESC
-            LIMIT 1
-        ")->fetch();
-    }
-}
+// v39: calculated current event.
+// The request queue now follows the event timing automatically:
+// current from 1 hour before start until event end.
+// If no event is currently live, show the next upcoming event.
+$event = dttd_get_calculated_current_event();
 
 if (!$event) {
     admin_header('Requests - DJ Portal');
@@ -92,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_action'], $_P
     ");
     $stmt->execute([$status, (int)$event['id'], $group_key]);
 
-    header('Location: /admin/requests.php?event=' . (int)$event['id']);
+    header('Location: /admin/requests.php');
     exit;
 }
 
@@ -233,20 +214,10 @@ admin_header('DJ Portal');
     </aside>
 
     <section class="touch-panel">
-      <form class="request-queue-compact-header" method="get">
+      <form class="request-queue-compact-header no-event-selector" method="get">
         <div>
           <h2 class="touch-panel-title">Request Queue</h2>
-        </div>
-
-        <div class="queue-selector">
-          <label>Selected event</label>
-          <select name="event" onchange="this.form.submit()">
-            <?php foreach ($events as $e): ?>
-              <option value="<?= (int)$e['id'] ?>" <?= (int)$event['id']===(int)$e['id']?'selected':'' ?>>
-                <?= h($e['event_name']) ?> - <?= h($e['venue_name']) ?>
-              </option>
-            <?php endforeach; ?>
-          </select>
+          <p class="touch-subtitle">Automatically showing the current or next event.</p>
         </div>
 
         <div class="sort-selector">

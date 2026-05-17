@@ -40,6 +40,90 @@ function admin_nav_active($page) {
     return '';
 }
 
+
+function dttd_event_window($event) {
+    if (!$event || empty($event['event_date']) || empty($event['start_time'])) {
+        return null;
+    }
+
+    $date = $event['event_date'];
+    $start_time = input_time($event['start_time']);
+    $end_time = !empty($event['end_time']) ? input_time($event['end_time']) : null;
+
+    try {
+        $start = new DateTime($date . ' ' . $start_time);
+        $current_from = clone $start;
+        $current_from->modify('-1 hour');
+
+        if ($end_time) {
+            $end = new DateTime($date . ' ' . $end_time);
+            if ($end <= $start) {
+                $end->modify('+1 day');
+            }
+        } else {
+            $end = clone $start;
+            $end->modify('+6 hours');
+        }
+
+        return [
+            'start' => $start,
+            'current_from' => $current_from,
+            'end' => $end,
+        ];
+    } catch (Throwable $e) {
+        return null;
+    }
+}
+
+function dttd_calculated_event_state($event) {
+    $window = dttd_event_window($event);
+    if (!$window) {
+        return 'upcoming';
+    }
+
+    $now = new DateTime('now');
+
+    if ($now >= $window['current_from'] && $now <= $window['end']) {
+        return 'current';
+    }
+
+    if ($now > $window['end']) {
+        return 'past';
+    }
+
+    return 'upcoming';
+}
+
+function dttd_get_calculated_current_event() {
+    $stmt = db()->query("
+        SELECT *
+        FROM events
+        WHERE event_date IS NOT NULL
+        AND start_time IS NOT NULL
+        ORDER BY event_date ASC, start_time ASC, id ASC
+    ");
+    $events = $stmt->fetchAll();
+
+    foreach ($events as $event) {
+        if (dttd_calculated_event_state($event) === 'current') {
+            return $event;
+        }
+    }
+
+    foreach ($events as $event) {
+        if (dttd_calculated_event_state($event) === 'upcoming') {
+            return $event;
+        }
+    }
+
+    if ($events) {
+        return end($events);
+    }
+
+    return null;
+}
+
+
 function admin_header($title = 'DJ Portal') {
     $time = date('H:i');
     $date = date('D, j M');
