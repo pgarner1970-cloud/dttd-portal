@@ -1,0 +1,3 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Privacy Notice</title><link rel="stylesheet" href="/assets/style.css"></head>
+<body><main class="container"><div class="card"><h1>Privacy Notice</h1><p>Dance Thru the Decades Events may collect song requests, names and optional messages submitted through this portal. This information is used to manage the event and improve guest interaction.</p><p>Marketing contact details will only be collected later if a separate consent option is added.</p><p><a href="/">Back to portal</a></p></div></main></body></html>

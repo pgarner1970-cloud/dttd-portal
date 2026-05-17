@@ -1,0 +1,30 @@
+CREATE TABLE IF NOT EXISTS events (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  event_name VARCHAR(190) NOT NULL,
+  venue_name VARCHAR(190) NOT NULL,
+  event_date DATE NULL,
+  queue_visibility ENUM('venue','public','private') NOT NULL DEFAULT 'venue',
+  is_active TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS song_requests (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  event_id INT NOT NULL,
+  guest_name VARCHAR(120) NOT NULL,
+  song_title VARCHAR(190) NOT NULL,
+  artist VARCHAR(190) NOT NULL,
+  dedication TEXT NULL,
+  source ENUM('manual','api') NOT NULL DEFAULT 'manual',
+  status ENUM('pending','played','rejected','duplicate','maybe') NOT NULL DEFAULT 'pending',
+  admin_note VARCHAR(255) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  INDEX(event_id),
+  INDEX(status),
+  CONSTRAINT fk_song_event FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO events (event_name, venue_name, queue_visibility, is_active)
+SELECT 'Tonight’s Event', 'Dance Thru the Decades', 'venue', 1
+WHERE NOT EXISTS (SELECT 1 FROM events WHERE is_active = 1);
