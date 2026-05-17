@@ -2862,3 +2862,92 @@ body:has(.header-event-summary) .touch-clock{
     min-width:92px;
   }
 }
+
+
+/* v69 genuine queue density reduction */
+.request-queue-panel article{
+  padding-top:8px !important;
+  padding-bottom:8px !important;
+  margin-bottom:6px !important;
+  min-height:0 !important;
+}
+
+/* The current request rows are large grid cards; reduce the row content height */
+.request-queue-panel article > *{
+  min-height:0 !important;
+}
+
+.request-queue-panel article .action-tile{
+  min-height:44px !important;
+  height:44px !important;
+  padding:5px 8px !important;
+}
+
+.request-queue-panel article .big-icon{
+  font-size:20px !important;
+  line-height:1 !important;
+}
+
+.request-queue-panel article form,
+.request-queue-panel article .request-actions,
+.request-queue-panel article [class*="actions"]{
+  gap:6px !important;
+}
+
+/* Requester detail cards inside the grouped row */
+.request-queue-panel article [class*="requester"],
+.request-queue-panel article [class*="person"],
+.request-queue-panel article [class*="guest"],
+.request-queue-panel article [class*="message"]{
+  padding-top:6px !important;
+  padding-bottom:6px !important;
+  min-height:0 !important;
+}
+
+/* Stacked request cards inside a group */
+.request-queue-panel article [class*="items"],
+.request-queue-panel article [class*="people"],
+.request-queue-panel article [class*="messages"],
+.request-queue-panel article [class*="stack"]{
+  gap:5px !important;
+}
+
+/* The specific current visual card appears to use CSS grid; trim internal row spacing */
+.request-queue-panel article{
+  row-gap:6px !important;
+  column-gap:12px !important;
+}
+
+/* Reduce title/time block vertical spacing */
+.request-queue-panel article h2,
+.request-queue-panel article h3,
+.request-queue-panel article strong{
+  margin-top:0 !important;
+  margin-bottom:3px !important;
+}
+
+.request-queue-panel article small{
+  line-height:1.1 !important;
+}
+
+/* More compact request count pill */
+.request-queue-panel article [class*="badge"],
+.request-queue-panel article [class*="pill"]{
+  padding-top:3px !important;
+  padding-bottom:3px !important;
+}
+
+/* Reduce spacing between cards at panel level */
+.request-queue-panel .event-list,
+.request-queue-panel .request-list,
+.request-queue-panel .queue-list,
+.request-queue-panel .touch-panel-pad{
+  gap:6px !important;
+}
+
+/* Keep the panel footer closer */
+.request-queue-panel .last-updated,
+.last-updated{
+  margin-top:6px !important;
+  padding-top:4px !important;
+}

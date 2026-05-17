@@ -1,6 +1,53 @@
 <?php
 require_once __DIR__ . '/_auth.php';
 
+
+function dttd_index_group_id_column_exists() {
+    static $exists = null;
+    if ($exists !== null) return $exists;
+
+    try {
+        $stmt = db()->query("SHOW COLUMNS FROM song_requests LIKE 'request_group_id'");
+        $exists = (bool)$stmt->fetch();
+    } catch (Throwable $e) {
+        $exists = false;
+    }
+
+    return $exists;
+}
+
+function dttd_index_new_request_group_id() {
+    try {
+        return 'grp_' . bin2hex(random_bytes(8));
+    } catch (Throwable $e) {
+        return 'grp_' . uniqid('', true);
+    }
+}
+
+function dttd_index_open_group_id_for_request($event_id, $song_title, $artist) {
+    if (!dttd_index_group_id_column_exists()) {
+        return null;
+    }
+
+    $base_key = strtolower(trim((string)$song_title)) . '|' . strtolower(trim((string)$artist));
+
+    $stmt = db()->prepare("
+        SELECT request_group_id
+        FROM song_requests
+        WHERE event_id = ?
+        AND request_group_id IS NOT NULL
+        AND request_group_id <> ''
+        AND status IN ('pending','maybe','duplicate')
+        AND CONCAT(LOWER(TRIM(song_title)), '|', LOWER(TRIM(artist))) = ?
+        ORDER BY created_at ASC, id ASC
+        LIMIT 1
+    ");
+    $stmt->execute([(int)$event_id, $base_key]);
+    $existing = $stmt->fetchColumn();
+
+    return $existing ?: dttd_index_new_request_group_id();
+}
+
 $success = '';
 $error = '';
 
@@ -28,34 +75,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_t
             $error = 'Please enter guest name, song title and artist.';
         } else {
             try {
-                $stmt = db()->prepare("
-                    INSERT INTO song_requests
-                    (event_id, guest_name, song_title, artist, message, status, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, 'pending', NOW(), NOW())
-                ");
-                $stmt->execute([
-                    (int)$event['id'],
-                    $guest_name,
-                    $song_title,
-                    $artist,
-                    $message
-                ]);
+                if (dttd_index_group_id_column_exists()) {
+                    $request_group_id = dttd_index_open_group_id_for_request((int)$event['id'], $song_title, $artist);
 
-                $success = 'Test request added.';
-            } catch (Throwable $e) {
-                // Fallback for older schemas without created_at/updated_at or message.
-                try {
                     $stmt = db()->prepare("
                         INSERT INTO song_requests
-                        (event_id, guest_name, song_title, artist, status)
-                        VALUES (?, ?, ?, ?, 'pending')
+                        (event_id, guest_name, song_title, artist, message, status, request_group_id, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, 'pending', ?, NOW(), NOW())
                     ");
                     $stmt->execute([
                         (int)$event['id'],
                         $guest_name,
                         $song_title,
-                        $artist
+                        $artist,
+                        $message,
+                        $request_group_id
                     ]);
+                } else {
+                    $stmt = db()->prepare("
+                        INSERT INTO song_requests
+                        (event_id, guest_name, song_title, artist, message, status, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, 'pending', NOW(), NOW())
+                    ");
+                    $stmt->execute([
+                        (int)$event['id'],
+                        $guest_name,
+                        $song_title,
+                        $artist,
+                        $message
+                    ]);
+                }
+
+                $success = 'Test request added.';
+            } catch (Throwable $e) {
+                // Fallback for older schemas without created_at/updated_at or message.
+                try {
+                    if (dttd_index_group_id_column_exists()) {
+                        $request_group_id = dttd_index_open_group_id_for_request((int)$event['id'], $song_title, $artist);
+
+                        $stmt = db()->prepare("
+                            INSERT INTO song_requests
+                            (event_id, guest_name, song_title, artist, status, request_group_id)
+                            VALUES (?, ?, ?, ?, 'pending', ?)
+                        ");
+                        $stmt->execute([
+                            (int)$event['id'],
+                            $guest_name,
+                            $song_title,
+                            $artist,
+                            $request_group_id
+                        ]);
+                    } else {
+                        $stmt = db()->prepare("
+                            INSERT INTO song_requests
+                            (event_id, guest_name, song_title, artist, status)
+                            VALUES (?, ?, ?, ?, 'pending')
+                        ");
+                        $stmt->execute([
+                            (int)$event['id'],
+                            $guest_name,
+                            $song_title,
+                            $artist
+                        ]);
+                    }
 
                     $success = 'Test request added.';
                 } catch (Throwable $e2) {

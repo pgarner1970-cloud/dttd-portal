@@ -91,35 +91,144 @@ if (!$event) {
     exit;
 }
 
+
+function dttd_request_base_key($song_title, $artist) {
+    return strtolower(trim((string)$song_title)) . '|' . strtolower(trim((string)$artist));
+}
+
+function dttd_new_request_group_id() {
+    try {
+        return 'grp_' . bin2hex(random_bytes(8));
+    } catch (Throwable $e) {
+        return 'grp_' . uniqid('', true);
+    }
+}
+
+function dttd_group_id_column_exists() {
+    static $exists = null;
+
+    if ($exists !== null) {
+        return $exists;
+    }
+
+    try {
+        $stmt = db()->query("SHOW COLUMNS FROM song_requests LIKE 'request_group_id'");
+        $exists = (bool)$stmt->fetch();
+    } catch (Throwable $e) {
+        $exists = false;
+    }
+
+    return $exists;
+}
+
+function dttd_ensure_request_group_ids($event_id) {
+    if (!dttd_group_id_column_exists()) {
+        return;
+    }
+
+    $stmt = db()->prepare("
+        SELECT *
+        FROM song_requests
+        WHERE event_id = ?
+        ORDER BY created_at ASC, id ASC
+    ");
+    $stmt->execute([(int)$event_id]);
+    $requests = $stmt->fetchAll();
+
+if (dttd_group_id_column_exists()) {
+    dttd_ensure_request_group_ids((int)$event['id']);
+
+    $stmt->execute([$event['id']]);
+    $requests = $stmt->fetchAll();
+}
+
+    $open_groups = [];
+
+    foreach ($requests as $request) {
+        if (!empty($request['request_group_id'])) {
+            continue;
+        }
+
+        $status = strtolower((string)($request['status'] ?? 'pending'));
+        $base_key = dttd_request_base_key($request['song_title'] ?? '', $request['artist'] ?? '');
+
+        if (in_array($status, ['pending', 'maybe', 'duplicate'], true)) {
+            if (empty($open_groups[$base_key])) {
+                $open_groups[$base_key] = dttd_new_request_group_id();
+            }
+            $group_id = $open_groups[$base_key];
+        } else {
+            $group_id = dttd_new_request_group_id();
+        }
+
+        $update = db()->prepare("UPDATE song_requests SET request_group_id = ? WHERE id = ? AND event_id = ?");
+        $update->execute([$group_id, (int)$request['id'], (int)$event_id]);
+    }
+}
+
+function dttd_open_group_id_for_request($event_id, $song_title, $artist) {
+    if (!dttd_group_id_column_exists()) {
+        return null;
+    }
+
+    $base_key = dttd_request_base_key($song_title, $artist);
+
+    $stmt = db()->prepare("
+        SELECT request_group_id
+        FROM song_requests
+        WHERE event_id = ?
+        AND request_group_id IS NOT NULL
+        AND request_group_id <> ''
+        AND status IN ('pending','maybe','duplicate')
+        AND CONCAT(LOWER(TRIM(song_title)), '|', LOWER(TRIM(artist))) = ?
+        ORDER BY created_at ASC, id ASC
+        LIMIT 1
+    ");
+    $stmt->execute([(int)$event_id, $base_key]);
+    $existing = $stmt->fetchColumn();
+
+    return $existing ?: dttd_new_request_group_id();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_action'], $_POST['group_key'])) {
     $allowed = ['played','rejected','duplicate','maybe','pending'];
     $status = in_array($_POST['request_action'], $allowed, true) ? $_POST['request_action'] : 'pending';
     $group_key = (string)$_POST['group_key'];
 
-    $parts = explode('|', $group_key);
-    $bucket = array_shift($parts);
-    $song_artist_key = implode('|', $parts);
+    if (dttd_group_id_column_exists() && str_starts_with($group_key, 'gid:')) {
+        $group_id = substr($group_key, 4);
 
-    if (str_starts_with($bucket, 'final-') && preg_match('/-(\\d+)$/', $bucket, $matches)) {
-        // Final/closed groups are unique by request id.
         $stmt = db()->prepare("
             UPDATE song_requests
             SET status = ?
             WHERE event_id = ?
-            AND id = ?
+            AND request_group_id = ?
         ");
-        $stmt->execute([$status, (int)$event['id'], (int)$matches[1]]);
+        $stmt->execute([$status, (int)$event['id'], $group_id]);
     } else {
-        // Open grouped requests: only update requests that are still open.
-        // This prevents a later re-request from changing old played/rejected records.
-        $stmt = db()->prepare("
-            UPDATE song_requests
-            SET status = ?
-            WHERE event_id = ?
-            AND status IN ('pending','maybe','duplicate')
-            AND CONCAT(LOWER(TRIM(song_title)), '|', LOWER(TRIM(artist))) = ?
-        ");
-        $stmt->execute([$status, (int)$event['id'], $song_artist_key]);
+        // Legacy fallback for sites where the SQL migration has not been applied yet.
+        $parts = explode('|', $group_key);
+        $bucket = array_shift($parts);
+        $song_artist_key = implode('|', $parts);
+
+        if (str_starts_with($bucket, 'final-') && preg_match('/-(\\d+)$/', $bucket, $matches)) {
+            $stmt = db()->prepare("
+                UPDATE song_requests
+                SET status = ?
+                WHERE event_id = ?
+                AND id = ?
+            ");
+            $stmt->execute([$status, (int)$event['id'], (int)$matches[1]]);
+        } else {
+            $stmt = db()->prepare("
+                UPDATE song_requests
+                SET status = ?
+                WHERE event_id = ?
+                AND status IN ('pending','maybe','duplicate')
+                AND CONCAT(LOWER(TRIM(song_title)), '|', LOWER(TRIM(artist))) = ?
+            ");
+            $stmt->execute([$status, (int)$event['id'], $song_artist_key]);
+        }
     }
 
     header('Location: /admin/requests.php');
@@ -156,10 +265,14 @@ foreach ($requests as $r) {
 
 $groups = [];
 foreach ($requests as $r) {
-    $status_bucket = in_array(strtolower((string)($r['status'] ?? 'pending')), ['played', 'rejected'], true)
+    if (dttd_group_id_column_exists() && !empty($r['request_group_id'])) {
+        $key = 'gid:' . (string)$r['request_group_id'];
+    } else {
+        $status_bucket = in_array(strtolower((string)($r['status'] ?? 'pending')), ['played', 'rejected'], true)
             ? 'final-' . strtolower((string)($r['status'] ?? 'pending')) . '-' . (int)($r['id'] ?? 0)
             : 'open';
         $key = $status_bucket . '|' . strtolower(trim($r['song_title'])) . '|' . strtolower(trim($r['artist']));
+    }
 
     if (!isset($groups[$key])) {
         $groups[$key] = [
