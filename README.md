@@ -1,10 +1,14 @@
-# Dance Thru the Decades Portal v83 - Separate Status Pill
+# Dance Thru the Decades Portal v85 - Force Uniform Pills
 
 ## Changes
 
-- Fixes the status pill rendering inside the request count pill.
-- Request count and status now render as two separate side-by-side badges.
-- Keeps merge and reject logic unchanged.
+- Strengthens CSS so request-count and status pills are forced to identical height.
+- Targets actual status badge classes directly:
+  - pending
+  - maybe
+  - duplicate
+  - played
+  - rejected
 - No SQL changes.
 
 ## SQL
@@ -13,4 +17,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v83 Separate Status Pill
+v85 Force Uniform Pills

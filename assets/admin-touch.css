@@ -3461,3 +3461,72 @@ body.modal-open{ overflow:hidden; }
   min-height:22px !important;
   white-space:nowrap !important;
 }
+
+
+/* v84 uniform request/status pills */
+.group-count-pill-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:8px;
+}
+
+.group-count-pill-row .group-count,
+.group-count-pill-row .inline-status{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+
+  min-height:28px !important;
+  padding:0 12px !important;
+
+  font-size:11px !important;
+  font-weight:700 !important;
+  line-height:1 !important;
+
+  border-radius:999px !important;
+  box-sizing:border-box;
+  white-space:nowrap;
+}
+
+
+/* v85 force uniform request/status pill sizing */
+.group-count-pill-row{
+  display:flex !important;
+  align-items:center !important;
+  gap:8px !important;
+  flex-wrap:wrap !important;
+  margin-top:8px !important;
+}
+
+.group-count-pill-row > .group-count,
+.group-count-pill-row > .status-badge,
+.group-count-pill-row > .status-badge.inline-status,
+.group-count-pill-row > .status-badge.pending,
+.group-count-pill-row > .status-badge.maybe,
+.group-count-pill-row > .status-badge.duplicate,
+.group-count-pill-row > .status-badge.played,
+.group-count-pill-row > .status-badge.rejected{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  height:28px !important;
+  min-height:28px !important;
+  max-height:28px !important;
+  padding:0 12px !important;
+  margin:0 !important;
+  font-size:11px !important;
+  font-weight:800 !important;
+  line-height:28px !important;
+  border-radius:999px !important;
+  box-sizing:border-box !important;
+  white-space:nowrap !important;
+  vertical-align:middle !important;
+}
+
+/* Ensure text inside both pills cannot shrink the badge height differently */
+.group-count-pill-row > .group-count *,
+.group-count-pill-row > .status-badge *{
+  line-height:28px !important;
+}
