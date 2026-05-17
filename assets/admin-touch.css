@@ -3340,3 +3340,33 @@ body.modal-open{ overflow:hidden; }
   opacity:.45;
   cursor:not-allowed;
 }
+
+
+/* v76 inline queue status badge */
+.inline-status{
+  display:inline-flex !important;
+  align-items:center;
+  justify-content:center;
+  margin-left:8px;
+  vertical-align:middle;
+  font-size:11px !important;
+  padding:4px 9px !important;
+}
+
+.req-status{
+  display:none !important;
+}
+
+/* Pull actions left now that the separate status column is gone */
+.request-card{
+  column-gap:12px !important;
+}
+
+.req-actions{
+  margin-left:0 !important;
+}
+
+/* Keep count and status together */
+.request-count + .inline-status{
+  white-space:nowrap;
+}
