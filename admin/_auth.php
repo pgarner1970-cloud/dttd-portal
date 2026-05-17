@@ -60,8 +60,8 @@ function admin_header($title = 'DJ Portal') {
   </a>
 
   <div class="touch-clock">
-    <strong><?= h($time) ?></strong>
-    <span><?= h($date) ?></span>
+    <strong id="adminHeaderClock"><?= h($time) ?></strong>
+    <span id="adminHeaderDate"><?= h($date) ?></span>
   </div>
 
   <div class="touch-top-actions">
@@ -80,6 +80,29 @@ function admin_header($title = 'DJ Portal') {
 
 function admin_footer() {
     ?>
+<!-- Header Live Clock JS -->
+
+<script>
+(function(){
+  const clock = document.getElementById('adminHeaderClock');
+  const dateEl = document.getElementById('adminHeaderDate');
+  if (!clock) return;
+
+  function pad(num){ return String(num).padStart(2, '0'); }
+
+  function updateHeaderClock(){
+    const now = new Date();
+    clock.textContent = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    if (dateEl) {
+      dateEl.textContent = now.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
+    }
+  }
+
+  updateHeaderClock();
+  window.setInterval(updateHeaderClock, 1000);
+})();
+</script>
+
 </body>
 </html>
 <?php

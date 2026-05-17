@@ -39,6 +39,35 @@ if (!$event) {
     <button type="button" id="requestUpdateRefresh">Refresh queue</button>
   </div>
 
+  <section class="live-event-timer"
+    data-now="<?= h(date('c')) ?>"
+    data-event-date="<?= h($event['event_date'] ?? '') ?>"
+    data-start-time="<?= h(input_time($event['start_time'] ?? '')) ?>"
+    data-end-time="<?= h(input_time($event['end_time'] ?? '')) ?>"
+    data-requests-close="<?= h($event['requests_close_at'] ?? '') ?>"
+  >
+    <div class="timer-cell">
+      <span>Live time</span>
+      <strong id="liveClock">--:--:--</strong>
+    </div>
+
+    <div class="timer-cell">
+      <span>Event status</span>
+      <strong id="eventStatus">Checking...</strong>
+    </div>
+
+    <div class="timer-cell">
+      <span>Requests close</span>
+      <strong id="requestsCountdown">--</strong>
+    </div>
+
+    <div class="timer-cell">
+      <span>Event ends</span>
+      <strong id="eventCountdown">--</strong>
+    </div>
+  </section>
+
+
 <section class="touch-panel">
         <div class="touch-panel-header">
           <div>
@@ -362,6 +391,116 @@ admin_header('DJ Portal');
   });
 
   window.setInterval(checkForUpdates, 10000);
+})();
+</script>
+
+<!-- Live Event Timer Panel JS -->
+
+<script>
+(function(){
+  function pad(num){ return String(num).padStart(2, '0'); }
+
+  function formatClock(date){
+    return pad(date.getHours()) + ':' + pad(date.getMinutes()) + ':' + pad(date.getSeconds());
+  }
+
+  function formatCountdown(ms){
+    if (ms <= 0) return '0m';
+
+    const totalSeconds = Math.floor(ms / 1000);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+    if (days > 0) return days + 'd ' + hours + 'h';
+    if (hours > 0) return hours + 'h ' + minutes + 'm';
+    return minutes + 'm';
+  }
+
+  function parseLocalDateTime(dateValue, timeValue){
+    if (!dateValue || !timeValue) return null;
+
+    const parts = dateValue.split('-').map(Number);
+    const timeParts = timeValue.split(':').map(Number);
+
+    if (parts.length < 3 || timeParts.length < 2) return null;
+
+    return new Date(parts[0], parts[1] - 1, parts[2], timeParts[0], timeParts[1], 0);
+  }
+
+  function parseSqlDateTime(value){
+    if (!value) return null;
+    const safe = value.replace(' ', 'T');
+    const parsed = new Date(safe);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const panel = document.querySelector('.live-event-timer');
+  const liveClock = document.getElementById('liveClock');
+  const eventStatus = document.getElementById('eventStatus');
+  const requestsCountdown = document.getElementById('requestsCountdown');
+  const eventCountdown = document.getElementById('eventCountdown');
+
+  if (!panel || !liveClock || !eventStatus || !requestsCountdown || !eventCountdown) return;
+
+  const eventDate = panel.dataset.eventDate || '';
+  const startTime = panel.dataset.startTime || '';
+  const endTime = panel.dataset.endTime || '';
+  const closeRaw = panel.dataset.requestsClose || '';
+
+  const startDate = parseLocalDateTime(eventDate, startTime);
+  let endDate = parseLocalDateTime(eventDate, endTime);
+  const closeDate = parseSqlDateTime(closeRaw);
+
+  if (startDate && endDate && endDate <= startDate) {
+    endDate.setDate(endDate.getDate() + 1);
+  }
+
+  function updateTimers(){
+    const now = new Date();
+    liveClock.textContent = formatClock(now);
+
+    if (!startDate) {
+      eventStatus.textContent = 'No start time';
+    } else if (now < startDate) {
+      eventStatus.textContent = 'Starts in ' + formatCountdown(startDate - now);
+    } else if (endDate && now > endDate) {
+      eventStatus.textContent = 'Event ended';
+    } else {
+      eventStatus.textContent = 'Live now';
+    }
+
+    if (!closeDate) {
+      requestsCountdown.textContent = 'Not set';
+      requestsCountdown.classList.remove('timer-warning', 'timer-ended');
+    } else if (now >= closeDate) {
+      requestsCountdown.textContent = 'Closed';
+      requestsCountdown.classList.add('timer-ended');
+      requestsCountdown.classList.remove('timer-warning');
+    } else {
+      const remaining = closeDate - now;
+      requestsCountdown.textContent = formatCountdown(remaining);
+      requestsCountdown.classList.toggle('timer-warning', remaining <= 15 * 60 * 1000);
+      requestsCountdown.classList.remove('timer-ended');
+    }
+
+    if (!endDate) {
+      eventCountdown.textContent = 'Not set';
+      eventCountdown.classList.remove('timer-warning', 'timer-ended');
+    } else if (now >= endDate) {
+      eventCountdown.textContent = 'Ended';
+      eventCountdown.classList.add('timer-ended');
+      eventCountdown.classList.remove('timer-warning');
+    } else {
+      const remaining = endDate - now;
+      eventCountdown.textContent = formatCountdown(remaining);
+      eventCountdown.classList.toggle('timer-warning', remaining <= 30 * 60 * 1000);
+      eventCountdown.classList.remove('timer-ended');
+    }
+  }
+
+  updateTimers();
+  window.setInterval(updateTimers, 1000);
 })();
 </script>
 
