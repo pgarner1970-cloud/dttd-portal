@@ -38,36 +38,6 @@ if (!$event) {
     </div>
     <button type="button" id="requestUpdateRefresh">Refresh queue</button>
   </div>
-
-  <section class="live-event-timer"
-    data-now="<?= h(date('c')) ?>"
-    data-event-date="<?= h($event['event_date'] ?? '') ?>"
-    data-start-time="<?= h(input_time($event['start_time'] ?? '')) ?>"
-    data-end-time="<?= h(input_time($event['end_time'] ?? '')) ?>"
-    data-requests-close="<?= h($event['requests_close_at'] ?? '') ?>"
-  >
-    <div class="timer-cell">
-      <span>Live time</span>
-      <strong id="liveClock">--:--:--</strong>
-    </div>
-
-    <div class="timer-cell">
-      <span>Event status</span>
-      <strong id="eventStatus">Checking...</strong>
-    </div>
-
-    <div class="timer-cell">
-      <span>Requests close</span>
-      <strong id="requestsCountdown">--</strong>
-    </div>
-
-    <div class="timer-cell">
-      <span>Event ends</span>
-      <strong id="eventCountdown">--</strong>
-    </div>
-  </section>
-
-
 <section class="touch-panel">
         <div class="touch-panel-header">
           <div>
@@ -236,6 +206,34 @@ admin_header('DJ Portal');
       </div>
     </aside>
 
+      <section class="live-event-timer"
+        data-event-date="<?= h($event['event_date'] ?? '') ?>"
+        data-start-time="<?= h(input_time($event['start_time'] ?? '')) ?>"
+        data-end-time="<?= h(input_time($event['end_time'] ?? '')) ?>"
+        data-requests-close="<?= h($event['requests_close_at'] ?? '') ?>"
+      >
+        <div class="timer-cell">
+          <span>Live time</span>
+          <strong id="liveClock">--:--:--</strong>
+        </div>
+
+        <div class="timer-cell">
+          <span>Event status</span>
+          <strong id="eventStatus">Checking...</strong>
+        </div>
+
+        <div class="timer-cell">
+          <span>Requests close</span>
+          <strong id="requestsCountdown">--</strong>
+        </div>
+
+        <div class="timer-cell">
+          <span>Event ends</span>
+          <strong id="eventCountdown">--</strong>
+        </div>
+      </section>
+
+
     <section class="touch-panel">
       <form class="request-queue-compact-header" method="get">
         <div>
@@ -395,7 +393,6 @@ admin_header('DJ Portal');
 </script>
 
 <!-- Live Event Timer Panel JS -->
-
 <script>
 (function(){
   function pad(num){ return String(num).padStart(2, '0'); }
@@ -430,18 +427,18 @@ admin_header('DJ Portal');
 
   function parseSqlDateTime(value){
     if (!value) return null;
-    const safe = value.replace(' ', 'T');
-    const parsed = new Date(safe);
+    const normalised = value.replace(' ', 'T');
+    const parsed = new Date(normalised);
     return isNaN(parsed.getTime()) ? null : parsed;
   }
 
   const panel = document.querySelector('.live-event-timer');
+  if (!panel) return;
+
   const liveClock = document.getElementById('liveClock');
   const eventStatus = document.getElementById('eventStatus');
   const requestsCountdown = document.getElementById('requestsCountdown');
   const eventCountdown = document.getElementById('eventCountdown');
-
-  if (!panel || !liveClock || !eventStatus || !requestsCountdown || !eventCountdown) return;
 
   const eventDate = panel.dataset.eventDate || '';
   const startTime = panel.dataset.startTime || '';
@@ -458,44 +455,53 @@ admin_header('DJ Portal');
 
   function updateTimers(){
     const now = new Date();
-    liveClock.textContent = formatClock(now);
 
-    if (!startDate) {
-      eventStatus.textContent = 'No start time';
-    } else if (now < startDate) {
-      eventStatus.textContent = 'Starts in ' + formatCountdown(startDate - now);
-    } else if (endDate && now > endDate) {
-      eventStatus.textContent = 'Event ended';
-    } else {
-      eventStatus.textContent = 'Live now';
+    if (liveClock) {
+      liveClock.textContent = formatClock(now);
     }
 
-    if (!closeDate) {
-      requestsCountdown.textContent = 'Not set';
-      requestsCountdown.classList.remove('timer-warning', 'timer-ended');
-    } else if (now >= closeDate) {
-      requestsCountdown.textContent = 'Closed';
-      requestsCountdown.classList.add('timer-ended');
-      requestsCountdown.classList.remove('timer-warning');
-    } else {
-      const remaining = closeDate - now;
-      requestsCountdown.textContent = formatCountdown(remaining);
-      requestsCountdown.classList.toggle('timer-warning', remaining <= 15 * 60 * 1000);
-      requestsCountdown.classList.remove('timer-ended');
+    if (eventStatus) {
+      if (!startDate) {
+        eventStatus.textContent = 'No start time';
+      } else if (now < startDate) {
+        eventStatus.textContent = 'Starts in ' + formatCountdown(startDate - now);
+      } else if (endDate && now > endDate) {
+        eventStatus.textContent = 'Event ended';
+      } else {
+        eventStatus.textContent = 'Live now';
+      }
     }
 
-    if (!endDate) {
-      eventCountdown.textContent = 'Not set';
-      eventCountdown.classList.remove('timer-warning', 'timer-ended');
-    } else if (now >= endDate) {
-      eventCountdown.textContent = 'Ended';
-      eventCountdown.classList.add('timer-ended');
-      eventCountdown.classList.remove('timer-warning');
-    } else {
-      const remaining = endDate - now;
-      eventCountdown.textContent = formatCountdown(remaining);
-      eventCountdown.classList.toggle('timer-warning', remaining <= 30 * 60 * 1000);
-      eventCountdown.classList.remove('timer-ended');
+    if (requestsCountdown) {
+      if (!closeDate) {
+        requestsCountdown.textContent = 'Not set';
+        requestsCountdown.classList.remove('timer-warning', 'timer-ended');
+      } else if (now >= closeDate) {
+        requestsCountdown.textContent = 'Closed';
+        requestsCountdown.classList.add('timer-ended');
+        requestsCountdown.classList.remove('timer-warning');
+      } else {
+        const remaining = closeDate - now;
+        requestsCountdown.textContent = formatCountdown(remaining);
+        requestsCountdown.classList.toggle('timer-warning', remaining <= 15 * 60 * 1000);
+        requestsCountdown.classList.remove('timer-ended');
+      }
+    }
+
+    if (eventCountdown) {
+      if (!endDate) {
+        eventCountdown.textContent = 'Not set';
+        eventCountdown.classList.remove('timer-warning', 'timer-ended');
+      } else if (now >= endDate) {
+        eventCountdown.textContent = 'Ended';
+        eventCountdown.classList.add('timer-ended');
+        eventCountdown.classList.remove('timer-warning');
+      } else {
+        const remaining = endDate - now;
+        eventCountdown.textContent = formatCountdown(remaining);
+        eventCountdown.classList.toggle('timer-warning', remaining <= 30 * 60 * 1000);
+        eventCountdown.classList.remove('timer-ended');
+      }
     }
   }
 

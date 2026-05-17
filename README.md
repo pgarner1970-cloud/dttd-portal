@@ -1,21 +1,16 @@
-# Dance Thru the Decades Portal v36 - Live Event Timer Panel
+# Dance Thru the Decades Portal v37 - Live Timer Panel Repair
 
 ## Changes
 
-- Adds a live timer panel to the Requests page.
-- Timer panel updates every second without refreshing the page.
+- Repairs the live event timer panel placement.
+- Timer panel is now forced directly above the Request Queue card.
 - Shows:
   - Live time
   - Event status
   - Time until requests close
   - Time until event ends
-- Header clock now updates dynamically in the browser.
-- Handles:
-  - future event
-  - live event
-  - closed requests
-  - ended event
-  - missing event end time
+- Panel updates every second in the browser.
+- Header clock also updates dynamically.
 - No database changes.
 
 ## SQL
@@ -24,4 +19,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v36 Live Event Timer Panel
+v37 Live Timer Panel Repair
