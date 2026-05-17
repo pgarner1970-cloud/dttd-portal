@@ -1,17 +1,12 @@
-# Dance Thru the Decades Portal v12 - Event Form Polish
+# Dance Thru the Decades Portal v13 - Date Validation and Picker Visibility
 
 ## Changes
 
-- Reworked `/admin/event-edit.php` into proper themed form sections.
-- Added professional touchscreen-styled inputs, selects and textareas.
-- Grouped form into:
-  - Event Details
-  - Timing
-  - Portal Behaviour
-  - Advanced Timing Override
-- Added sticky action bar.
-- Improved mobile layout.
-- Added required CSS updates to `/assets/admin-touch.css`.
+- Event dates in the past are blocked server-side.
+- Event date field now has a browser `min` value set to today.
+- Date/time picker icons are improved for dark theme visibility.
+- Date/time fields have slightly clearer styling.
+- Existing form data is preserved when validation fails.
 
 ## SQL
 

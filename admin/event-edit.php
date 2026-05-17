@@ -10,6 +10,8 @@ if (!empty($_GET['id'])) {
     $edit = get_event((int)$_GET['id']);
 }
 
+$error = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = !empty($_POST['id']) ? (int)$_POST['id'] : 0;
 
@@ -24,24 +26,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $notes = trim(post_value('notes'));
     $is_active = !empty($_POST['is_active']) ? 1 : 0;
 
+    if ($event_date && $event_date < date('Y-m-d')) {
+        $error = 'Event date cannot be in the past.';
+    }
+
     $portal_available_from = null;
     $portal_available_until = null;
     $requests_close_at = null;
 
-    if ($event_date && $start_time && $end_time) {
+    if (!$error && $event_date && $start_time && $end_time) {
         $times = build_event_times($event_date, $start_time, $end_time, $requests_close_minutes);
         $portal_available_from = $times['portal_available_from'];
         $portal_available_until = $times['portal_available_until'];
         $requests_close_at = $times['requests_close_at'];
     }
 
-    if (!empty($_POST['manual_override'])) {
+    if (!$error && !empty($_POST['manual_override'])) {
         $portal_available_from = trim(post_value('manual_portal_available_from')) ? str_replace('T', ' ', trim(post_value('manual_portal_available_from'))) . ':00' : $portal_available_from;
         $portal_available_until = trim(post_value('manual_portal_available_until')) ? str_replace('T', ' ', trim(post_value('manual_portal_available_until'))) . ':00' : $portal_available_until;
         $requests_close_at = trim(post_value('manual_requests_close_at')) ? str_replace('T', ' ', trim(post_value('manual_requests_close_at'))) . ':00' : $requests_close_at;
     }
 
-    if ($event_name !== '' && $venue_name !== '') {
+    if (!$error && $event_name !== '' && $venue_name !== '') {
         if ($id) {
             $stmt = db()->prepare("
                 UPDATE events SET
@@ -68,15 +74,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $queue_visibility, $notes, $is_active
             ]);
         }
-    }
 
-    header('Location: /admin/events.php');
-    exit;
+        header('Location: /admin/events.php');
+        exit;
+    }
 }
 
-$event_type = $edit['event_type'] ?? 'public';
-$close_mins = $edit['requests_close_minutes'] ?? 30;
-$qv = $edit['queue_visibility'] ?? 'venue';
+$event_type = $_POST['event_type'] ?? ($edit['event_type'] ?? 'public');
+$close_mins = $_POST['requests_close_minutes'] ?? ($edit['requests_close_minutes'] ?? 30);
+$qv = $_POST['queue_visibility'] ?? ($edit['queue_visibility'] ?? 'venue');
+
+$event_name_value = $_POST['event_name'] ?? ($edit['event_name'] ?? '');
+$venue_name_value = $_POST['venue_name'] ?? ($edit['venue_name'] ?? '');
+$event_date_value = $_POST['event_date'] ?? ($edit['event_date'] ?? '');
+$start_time_value = $_POST['start_time'] ?? input_time($edit['start_time'] ?? '19:30');
+$end_time_value = $_POST['end_time'] ?? input_time($edit['end_time'] ?? '01:30');
+$notes_value = $_POST['notes'] ?? ($edit['notes'] ?? '');
+$is_active_value = isset($_POST['is_active']) || (!$_POST && !empty($edit['is_active']));
 
 admin_header($edit ? 'Edit Event - DJ Portal' : 'Add Event - DJ Portal');
 ?>
@@ -99,6 +113,10 @@ admin_header($edit ? 'Edit Event - DJ Portal' : 'Add Event - DJ Portal');
     </div>
 
     <div class="touch-panel-pad">
+      <?php if ($error): ?>
+        <div class="form-alert"><?= h($error) ?></div>
+      <?php endif; ?>
+
       <form method="post" class="event-form-shell">
         <?php if ($edit): ?><input type="hidden" name="id" value="<?= (int)$edit['id'] ?>"><?php endif; ?>
 
@@ -115,12 +133,12 @@ admin_header($edit ? 'Edit Event - DJ Portal' : 'Add Event - DJ Portal');
             <div class="form-grid">
               <div class="form-field span-6">
                 <label>Event name *</label>
-                <input name="event_name" required value="<?= h($edit['event_name'] ?? '') ?>" placeholder="80s & 90s Party Night">
+                <input name="event_name" required value="<?= h($event_name_value) ?>" placeholder="80s & 90s Party Night">
               </div>
 
               <div class="form-field span-6">
                 <label>Venue name *</label>
-                <input name="venue_name" required value="<?= h($edit['venue_name'] ?? '') ?>" placeholder="The Crown Inn">
+                <input name="venue_name" required value="<?= h($venue_name_value) ?>" placeholder="The Crown Inn">
               </div>
 
               <div class="form-field span-4">
@@ -135,7 +153,7 @@ admin_header($edit ? 'Edit Event - DJ Portal' : 'Add Event - DJ Portal');
 
               <div class="form-field span-8">
                 <label>Notes</label>
-                <textarea name="notes" placeholder="Internal event notes"><?= h($edit['notes'] ?? '') ?></textarea>
+                <textarea name="notes" placeholder="Internal event notes"><?= h($notes_value) ?></textarea>
               </div>
             </div>
           </div>
@@ -154,17 +172,18 @@ admin_header($edit ? 'Edit Event - DJ Portal' : 'Add Event - DJ Portal');
             <div class="form-grid">
               <div class="form-field span-3">
                 <label>Event date</label>
-                <input type="date" name="event_date" value="<?= h($edit['event_date'] ?? '') ?>">
+                <input type="date" name="event_date" min="<?= h(date('Y-m-d')) ?>" value="<?= h($event_date_value) ?>">
+                <small>Past dates are not allowed.</small>
               </div>
 
               <div class="form-field span-3">
                 <label>Start time</label>
-                <input type="time" name="start_time" value="<?= h(input_time($edit['start_time'] ?? '19:30')) ?>">
+                <input type="time" name="start_time" value="<?= h(input_time($start_time_value)) ?>">
               </div>
 
               <div class="form-field span-3">
                 <label>End time</label>
-                <input type="time" name="end_time" value="<?= h(input_time($edit['end_time'] ?? '01:30')) ?>">
+                <input type="time" name="end_time" value="<?= h(input_time($end_time_value)) ?>">
                 <small>Example: 19:30 to 01:30 spans midnight.</small>
               </div>
 
@@ -203,7 +222,7 @@ admin_header($edit ? 'Edit Event - DJ Portal' : 'Add Event - DJ Portal');
               <div class="form-field span-8">
                 <label>Availability</label>
                 <label class="form-check-card">
-                  <input type="checkbox" name="is_active" value="1" <?= !empty($edit['is_active']) ? 'checked' : '' ?>>
+                  <input type="checkbox" name="is_active" value="1" <?= $is_active_value ? 'checked' : '' ?>>
                   <span>
                     <strong>Active / available for portal selection</strong>
                     <span>Active events can accept requests during their availability window.</span>
