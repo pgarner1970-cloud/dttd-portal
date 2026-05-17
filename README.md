@@ -1,12 +1,15 @@
-# Dance Thru the Decades Portal v29 - Public Landing Page
+# Dance Thru the Decades Portal v30 - Header Navigation Repair
 
 ## Changes
 
-- Adds a new jazzy public-facing homepage.
-- Strong Facebook follow/check-in/photo prompts.
-- Adds event QR/event portal explanation section.
-- Adds guest Wi-Fi explanation section.
-- Keeps admin/event/request work separate.
+- Restores compact header navigation buttons:
+  - Requests
+  - Events
+  - Settings
+- Buttons are rendered inside the top-right header area.
+- Buttons remain large enough for tablet touch use.
+- Active page keeps the blue glow/highlight.
+- Large old navigation tiles remain hidden.
 - No database changes.
 
 ## SQL
@@ -15,4 +18,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v29 Public Landing Page
+v30 Header Navigation Repair
