@@ -4167,3 +4167,89 @@ body.modal-open{ overflow:hidden; }
   object-fit:cover;
   display:block;
 }
+
+
+/* v93 lock header navigation to the right even when timers are hidden */
+.touch-topbar{
+  position:relative !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  min-height:72px !important;
+  padding-top:8px !important;
+  padding-bottom:8px !important;
+}
+
+.touch-brand{
+  flex:0 0 auto !important;
+  margin-right:auto !important;
+  z-index:2 !important;
+}
+
+.touch-header-centre,
+.touch-topbar > .touch-clock{
+  position:absolute !important;
+  left:50% !important;
+  top:50% !important;
+  transform:translate(-50%, -50%) !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:14px !important;
+  z-index:1 !important;
+  pointer-events:none !important;
+}
+
+.touch-header-centre .touch-clock,
+.touch-topbar > .touch-clock{
+  pointer-events:auto !important;
+}
+
+.header-timer-cluster{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:8px !important;
+  margin:0 !important;
+}
+
+.touch-top-actions{
+  flex:0 0 auto !important;
+  margin-left:auto !important;
+  justify-self:auto !important;
+  margin-right:0 !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  z-index:3 !important;
+}
+
+.header-admin-nav{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+}
+
+/* When timers are off, the centre group still only contains the clock and stays centred */
+.touch-header-centre:empty{
+  display:none !important;
+}
+
+/* Prevent older grid layout rules from dragging nav into the centre */
+.touch-top-actions,
+.header-admin-nav,
+.touch-brand{
+  grid-column:auto !important;
+}
+
+/* On narrower screens, keep nav right and hide timers before wrapping */
+@media(max-width:1080px){
+  .header-timer-cluster{
+    display:none !important;
+  }
+
+  .touch-header-centre,
+  .touch-topbar > .touch-clock{
+    gap:0 !important;
+  }
+}

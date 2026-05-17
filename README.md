@@ -1,35 +1,18 @@
-# Dance Thru the Decades Portal v92 - Event Image Upload
+# Dance Thru the Decades Portal v93 - Header Right Nav Lock
 
 ## Changes
 
-- Adds support for uploading an event flyer/image.
-- Uploads are stored in:
-  - uploads/events/
-- Supported formats:
-  - JPG
-  - PNG
-  - WebP
-  - GIF
-- Event edit/create form includes an image upload field when the database column exists.
-- Existing event images show a small preview in the form.
-- Event list cards can show a small flyer thumbnail.
-- Keeps request queue, merge, reject and header timer logic unchanged.
+- Fixes header buttons moving into the centre when event/request timers are disabled.
+- Keeps DJ Portal logo on the left.
+- Keeps live clock/date centred.
+- Keeps Requests, Events, Settings, Home and Logout buttons on the right.
+- Timers can be toggled on/off without changing the nav position.
+- No SQL changes.
 
-## SQL to run
+## SQL
 
-Run once:
-
-```sql
-ALTER TABLE events
-ADD COLUMN event_image VARCHAR(255) NULL;
-```
-
-A copy is included at:
-
-```text
-sql/v92_event_image.sql
-```
+No SQL to run.
 
 ## Suggested Git commit title
 
-v92 Event Image Upload
+v93 Header Right Nav Lock
