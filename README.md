@@ -1,12 +1,14 @@
-# Dance Thru the Decades Portal v78 - Merge Server Candidates
+# Dance Thru the Decades Portal v79 - Restore Queue Safe Merge Candidates
 
 ## Changes
 
-- Fixes merge self-exclusion properly.
-- Merge candidates are now built per source group in PHP.
-- The current group is excluded before the modal opens.
-- The modal no longer uses one shared candidate list.
-- Unrelated tracks are also filtered server-side by title.
+- Rolls back the broken v78 queue rendering approach.
+- Keeps main queue cards and action buttons intact.
+- Builds merge candidates per source group in hidden server-rendered templates.
+- Current group is excluded in PHP before candidates are shown.
+- Merge modal no longer uses one shared candidate list.
+- Avoids JSON in HTML attributes, which caused layout/action issues.
+- Status pill is no longer hidden unless inline placement succeeds.
 - No SQL changes.
 
 ## SQL
@@ -15,4 +17,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v78 Merge Server Candidates
+v79 Restore Queue Safe Merge Candidates

@@ -3391,3 +3391,20 @@ body.modal-open{ overflow:hidden; }
   flex-wrap:wrap;
   gap:6px;
 }
+
+
+/* v79 restore queue and safe merge candidates */
+#mergeCandidateTemplates{
+  display:none !important;
+}
+
+.inline-status{
+  display:inline-flex !important;
+  align-items:center;
+  justify-content:center;
+  margin-left:8px;
+  vertical-align:middle;
+  font-size:11px !important;
+  padding:4px 9px !important;
+  white-space:nowrap;
+}

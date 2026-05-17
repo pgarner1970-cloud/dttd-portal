@@ -376,6 +376,83 @@ if (!in_array($requests_layout, $allowed_request_layouts, true)) {
 $initial_fingerprint = '';
 /* v60 grouping rule note: grouping should keep played/rejected requests separate from open pending/maybe/duplicate groups. */
 
+$merge_candidates = [];
+foreach ($grouped_requests as $candidate_group) {
+    if (!str_starts_with((string)$candidate_group['key'], 'gid:')) {
+        continue;
+    }
+
+    if (!in_array((string)$candidate_group['status'], ['pending', 'maybe', 'duplicate'], true)) {
+        continue;
+    }
+
+    $merge_candidates[] = [
+        'key' => (string)$candidate_group['key'],
+        'group_id' => (string)($candidate_group['group_id'] ?? str_replace('gid:', '', (string)$candidate_group['key'])),
+        'song_title' => (string)$candidate_group['song_title'],
+        'artist' => (string)$candidate_group['artist'],
+        'status' => (string)$candidate_group['status'],
+        'request_count' => count($candidate_group['items']),
+        'created_at' => (string)$candidate_group['created_at'],
+    ];
+}
+
+
+function dttd_merge_candidates_for_group($source_group, $all_groups) {
+    $source_key = (string)($source_group['key'] ?? '');
+    $source_group_id = (string)($source_group['group_id'] ?? str_replace('gid:', '', $source_key));
+
+    $source_title = strtolower(trim((string)($source_group['song_title'] ?? '')));
+    $source_norm = trim(preg_replace('/\s+/', ' ', preg_replace('/[^a-z0-9]+/', ' ', $source_title)));
+
+    $candidates = [];
+
+    foreach ($all_groups as $candidate) {
+        $candidate_key = (string)($candidate['key'] ?? '');
+        $candidate_group_id = (string)($candidate['group_id'] ?? str_replace('gid:', '', $candidate_key));
+
+        if ($candidate_key === $source_key || $candidate_group_id === $source_group_id) {
+            continue;
+        }
+
+        if (!str_starts_with($candidate_key, 'gid:')) {
+            continue;
+        }
+
+        if (!in_array((string)($candidate['status'] ?? ''), ['pending', 'maybe', 'duplicate'], true)) {
+            continue;
+        }
+
+        $candidate_title = strtolower(trim((string)($candidate['song_title'] ?? '')));
+        $candidate_norm = trim(preg_replace('/\s+/', ' ', preg_replace('/[^a-z0-9]+/', ' ', $candidate_title)));
+
+        if ($source_norm === '' || $candidate_norm === '') {
+            continue;
+        }
+
+        $title_match = (
+            $source_norm === $candidate_norm ||
+            (strlen($source_norm) >= 5 && str_contains($candidate_norm, $source_norm)) ||
+            (strlen($candidate_norm) >= 5 && str_contains($source_norm, $candidate_norm))
+        );
+
+        if (!$title_match) {
+            continue;
+        }
+
+        $candidates[] = [
+            'key' => $candidate_key,
+            'group_id' => $candidate_group_id,
+            'song_title' => (string)($candidate['song_title'] ?? ''),
+            'artist' => (string)($candidate['artist'] ?? ''),
+            'status' => (string)($candidate['status'] ?? ''),
+            'request_count' => count($candidate['items'] ?? []),
+        ];
+    }
+
+    return $candidates;
+}
+
 admin_header('DJ Portal');
 ?>
 <main class="touch-wrap">
@@ -398,6 +475,7 @@ admin_header('DJ Portal');
                     data-start-time="<?= h(input_time($event['start_time'] ?? '')) ?>"
                     data-end-time="<?= h(input_time($event['end_time'] ?? '')) ?>"
                   >-- left</span>
+                <span class="status-badge inline-status <?= h(status_label($group['status'])) ?>"><?= h($group['status']) ?></span>
                 <?php endif; ?>
               </div>
             </div>
@@ -503,8 +581,7 @@ admin_header('DJ Portal');
                     data-group-key="<?= h($group['key']) ?>"
                     data-group-id="<?= h($group['group_id'] ?? str_replace('gid:', '', (string)$group['key'])) ?>"
                     data-song-title="<?= h($group['song_title']) ?>"
-                    data-artist="<?= h($group['artist']) ?>"
-                    data-candidates="<?= merge_candidate_json_for_group($group, $grouped_requests) ?>">
+                    data-artist="<?= h($group['artist']) ?>">
                     <span class="big-icon"><?= h($meta['icon']) ?></span>
                     <span><?= h($meta['label']) ?></span>
                   </button>
@@ -1018,6 +1095,26 @@ admin_header('DJ Portal');
 </script>
 
 
+
+<div id="mergeCandidateTemplates" hidden>
+  <?php foreach ($grouped_requests as $source_for_merge): ?>
+    <?php $source_candidates = dttd_merge_candidates_for_group($source_for_merge, $grouped_requests); ?>
+    <div class="merge-candidate-template" data-source-group="<?= h($source_for_merge['key']) ?>">
+      <?php foreach ($source_candidates as $candidate): ?>
+        <label class="merge-target-card"
+          data-group-key="<?= h($candidate['key']) ?>"
+          data-group-id="<?= h($candidate['group_id']) ?>">
+          <input type="radio" name="merge_target_group" value="<?= h($candidate['key']) ?>">
+          <span>
+            <strong><?= h($candidate['song_title']) ?></strong>
+            <small><?= h($candidate['artist']) ?> · <?= h(ucfirst($candidate['status'])) ?> · <?= (int)$candidate['request_count'] ?> request<?= (int)$candidate['request_count'] === 1 ? '' : 's' ?></small>
+          </span>
+        </label>
+      <?php endforeach; ?>
+    </div>
+  <?php endforeach; ?>
+</div>
+
 <!-- Merge Request Modal -->
 <div class="dj-modal-backdrop" id="mergeRequestModal" hidden>
   <div class="dj-modal-card merge-modal-card" role="dialog" aria-modal="true" aria-labelledby="mergeRequestTitle">
@@ -1055,29 +1152,18 @@ admin_header('DJ Portal');
   const targetList = document.getElementById('mergeTargetList');
   const emptyMessage = document.getElementById('mergeEmptyMessage');
   const submitButton = document.getElementById('mergeRequestSubmit');
+  const templates = document.getElementById('mergeCandidateTemplates');
 
-  if (!modal || !sourceInput || !targetList || !submitButton) return;
+  if (!modal || !sourceInput || !targetList || !submitButton || !templates) return;
 
-  function escapeHtml(value){
-    return String(value || '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
+  function attrEscape(value){
+    if (window.CSS && CSS.escape) return CSS.escape(value);
+    return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   }
 
   function openModal(trigger){
     const sourceKey = trigger.dataset.groupKey || '';
     const sourceTitle = trigger.dataset.songTitle || 'this request';
-    let candidates = [];
-
-    try {
-      candidates = JSON.parse(trigger.dataset.candidates || '[]');
-    } catch (error) {
-      candidates = [];
-      console.error('Could not parse merge candidates', error);
-    }
 
     sourceInput.value = sourceKey;
 
@@ -1087,20 +1173,18 @@ admin_header('DJ Portal');
 
     targetList.innerHTML = '';
 
-    candidates.forEach(function(candidate, index){
-      const count = Number(candidate.request_count || 0);
-      const label = document.createElement('label');
-      label.className = 'merge-target-card';
-      label.innerHTML =
-        '<input type="radio" name="merge_target_group" value="' + escapeHtml(candidate.key) + '"' + (index === 0 ? ' checked' : '') + '>' +
-        '<span>' +
-          '<strong>' + escapeHtml(candidate.song_title) + '</strong>' +
-          '<small>' + escapeHtml(candidate.artist) + ' · ' + escapeHtml(candidate.status.charAt(0).toUpperCase() + candidate.status.slice(1)) + ' · ' + count + ' request' + (count === 1 ? '' : 's') + '</small>' +
-        '</span>';
-      targetList.appendChild(label);
+    const selector = '.merge-candidate-template[data-source-group="' + attrEscape(sourceKey) + '"]';
+    const template = templates.querySelector(selector);
+    const cards = template ? Array.from(template.querySelectorAll('.merge-target-card')) : [];
+
+    cards.forEach(function(card, index){
+      const clone = card.cloneNode(true);
+      const input = clone.querySelector('input');
+      if (input && index === 0) input.checked = true;
+      targetList.appendChild(clone);
     });
 
-    const hasCandidates = candidates.length > 0;
+    const hasCandidates = cards.length > 0;
 
     if (emptyMessage) {
       emptyMessage.textContent = 'No matching open groups are available to merge into.';
