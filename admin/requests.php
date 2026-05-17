@@ -38,6 +38,8 @@ if (!$event) {
     <main class="touch-wrap"
   data-event-id="<?= (int)$event['id'] ?>"
   data-request-fingerprint="<?= h($initial_fingerprint ?? '') ?>"
+>"
+  data-request-fingerprint="<?= h($initial_fingerprint ?? '') ?>"
   data-event-date="<?= h($event['event_date'] ?? '') ?>"
   data-start-time="<?= h(input_time($event['start_time'] ?? '')) ?>"
   data-end-time="<?= h(input_time($event['end_time'] ?? '')) ?>"
@@ -601,6 +603,73 @@ admin_header('DJ Portal');
 
   update();
   window.setInterval(update, 1000);
+})();
+</script>
+
+
+<!-- Request Queue Update Indicator JS -->
+<script>
+(function(){
+  const wrap = document.querySelector('main.touch-wrap[data-event-id]');
+  const banner = document.getElementById('requestUpdateBanner');
+  const refreshButton = document.getElementById('requestUpdateRefresh');
+  const text = document.getElementById('requestUpdateText');
+
+  if (!wrap || !banner || !refreshButton) return;
+
+  const eventId = wrap.dataset.eventId;
+  let lastFingerprint = wrap.dataset.requestFingerprint || '';
+  let hasUpdate = false;
+  let isBusy = false;
+
+  function markBusy(){
+    isBusy = true;
+    window.clearTimeout(window.__dttdBusyTimer);
+    window.__dttdBusyTimer = window.setTimeout(function(){
+      isBusy = false;
+    }, 8000);
+  }
+
+  document.addEventListener('pointerdown', function(event){
+    if (event.target.closest('button, a, select, input, textarea')) {
+      markBusy();
+    }
+  }, {passive:true});
+
+  document.addEventListener('change', markBusy, {passive:true});
+
+  async function checkForUpdates(){
+    if (document.hidden || isBusy || hasUpdate) return;
+
+    try {
+      const response = await fetch('/admin/request-ping.php?event=' + encodeURIComponent(eventId) + '&_=' + Date.now(), {
+        cache: 'no-store',
+        credentials: 'same-origin'
+      });
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+
+      if (!data.ok || !data.fingerprint) return;
+
+      if (lastFingerprint && data.fingerprint !== lastFingerprint) {
+        hasUpdate = true;
+        text.textContent = 'The request queue changed at ' + (data.checked_at || 'now') + '.';
+        banner.hidden = false;
+      } else {
+        lastFingerprint = data.fingerprint;
+      }
+    } catch (error) {
+      // Silent by design.
+    }
+  }
+
+  refreshButton.addEventListener('click', function(){
+    window.location.reload();
+  });
+
+  window.setInterval(checkForUpdates, 10000);
 })();
 </script>
 

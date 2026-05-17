@@ -1,14 +1,17 @@
-# Dance Thru the Decades Portal v49 - Countdown Format Cleanup
+# Dance Thru the Decades Portal v50 - Request Close Font Update Prompt
 
 ## Changes
 
-- Active Event countdowns now display as:
-  - HH:MM:SS
-  - Example: 07:09:25
-- Removed 'hours/minutes/seconds' wording.
-- Requests Close time now visually matches Event Time styling.
-- Removed oversized blue Requests Close time styling.
-- Countdown timers still update every second.
+- Requests Close time now matches the Event Time font size.
+- Keeps the green countdown underneath.
+- Ensures the request queue update prompt is present.
+- Requests page checks for queue changes every 10 seconds.
+- It does not auto-refresh.
+- If requests are added/changed, a banner appears:
+  - Queue updates available
+  - Refresh queue
+- Adds/keeps:
+  - /admin/request-ping.php
 
 ## SQL
 
@@ -16,4 +19,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v49 Countdown Format Cleanup
+v50 Request Close Font Update Prompt
