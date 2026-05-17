@@ -1,39 +1,17 @@
-# Dance Thru the Decades Portal v100 - Event Image On Edit Page
-
-## Fix
-
-The image upload belongs on the add/edit event page, not `events.php`.
-
-This build adds complete add/edit pages:
-
-```text
-admin/event-edit.php
-admin/events-edit.php
-```
-
-Both files contain the Event Image / Flyer upload section.
+# Dance Thru the Decades Portal v101 - Event Edit Layout Restore
 
 ## Changes
 
-- Removes the misplaced upload section from `events.php`.
-- Adds image upload to the event add/edit form.
-- Supports both URL conventions:
-  - `/admin/event-edit.php`
-  - `/admin/events-edit.php`
-- Saves uploaded images to:
-
-```text
-uploads/events/
-```
-
-- Saves image path to:
-
-```text
-events.event_image
-```
-
-- Keeps Events list clean.
-- Keeps request queue/header changes untouched.
+- Keeps the correct `event-edit.php` page.
+- Restores the add/edit form to a card-based layout similar to the original:
+  - proper section cards
+  - blue icon tiles
+  - improved spacing
+  - better input styling
+- Keeps Event Image / Flyer upload on the edit page.
+- Keeps `events-edit.php` as an alias.
+- Does not move the upload back to the Events list page.
+- No SQL changes beyond the event_image column if not already applied.
 
 ## SQL
 
@@ -48,4 +26,4 @@ If already run, no SQL is needed.
 
 ## Suggested Git commit title
 
-v100 Event Image On Edit Page
+v101 Event Edit Layout Restore

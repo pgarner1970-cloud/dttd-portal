@@ -250,7 +250,7 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
       </div>
     </div>
 
-    <form method="post" enctype="multipart/form-data" class="event-edit-form">
+    <form method="post" enctype="multipart/form-data" class="event-edit-form restored-event-form">
       <?php if ($error): ?>
         <div class="settings-alert error"><?= h($error) ?></div>
       <?php endif; ?>
@@ -292,7 +292,7 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
 
       <section class="settings-card event-image-upload-card">
         <div class="settings-card-header">
-          <div class="settings-card-icon">🖼️</div>
+          <div class="settings-card-icon">▣</div>
           <div>
             <h3>Event Image / Flyer</h3>
             <p>Upload a flyer or promotional image for this event.</p>
@@ -347,6 +347,7 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
           <label>
             <span>End time</span>
             <input type="time" name="end_time" value="<?= h(input_time($event['end_time'])) ?>">
+            <small>Optional. Example: 19:30 to 01:30 spans midnight.</small>
           </label>
 
           <label>
