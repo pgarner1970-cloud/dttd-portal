@@ -179,16 +179,21 @@ function admin_header($title = 'DJ Portal') {
     <strong id="adminHeaderClock"><?= h($time) ?></strong>
     <span id="adminHeaderDate"><?= h($date) ?></span>
   </div>
-      <?php if ($header_show_event_timer): ?>
-        <div class="touch-clock touch-header-timer" id="headerEventTimer" hidden>
-          <strong id="headerEventTimerValue">--:--:--</strong>
-          <span>Event timer</span>
-        </div>
-      <?php endif; ?>
-      <?php if ($header_show_request_timer): ?>
-        <div class="touch-clock touch-header-timer" id="headerRequestTimer" hidden>
-          <strong id="headerRequestTimerValue">--:--:--</strong>
-          <span>Requests close</span>
+      <?php if ($header_show_event_timer || $header_show_request_timer): ?>
+        <div class="header-timer-cluster" id="headerTimerCluster">
+          <?php if ($header_show_event_timer): ?>
+            <div class="touch-clock touch-header-timer timer-loading" id="headerEventTimer">
+              <strong id="headerEventTimerValue">--:--:--</strong>
+              <span>Event timer</span>
+            </div>
+          <?php endif; ?>
+
+          <?php if ($header_show_request_timer): ?>
+            <div class="touch-clock touch-header-timer timer-loading" id="headerRequestTimer">
+              <strong id="headerRequestTimerValue">--:--:--</strong>
+              <span>Requests close</span>
+            </div>
+          <?php endif; ?>
         </div>
       <?php endif; ?>
 <div class="touch-top-actions">
@@ -242,7 +247,7 @@ function admin_footer() {
 <?php if (basename($_SERVER['SCRIPT_NAME']) === 'requests.php'): ?>
 <script src="/assets/request-update-check.js?v=62"></script>
 <?php endif; ?>
-<script src="/assets/header-timers.js?v=68"></script>
+<script src="/assets/header-timers.js?v=70"></script>
 </body>
 </html>
 <?php

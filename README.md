@@ -1,39 +1,25 @@
-# Dance Thru the Decades Portal v69 - Queue Density Stable Groups
+# Dance Thru the Decades Portal v70 - Header Timers Visible Fix
 
 ## Changes
 
-- Adds stable request grouping using request_group_id.
-- A played group now stays grouped after being marked Played.
-- Later requests for the same song create or join a new open group.
-- Open statuses that group together:
-  - pending
-  - maybe
-  - duplicate
-- Final statuses no longer absorb later requests:
-  - played
-  - rejected
-- Admin test request tool now assigns request_group_id when the column exists.
-- Existing records are automatically assigned group IDs on Requests page load after SQL is applied.
-- Further tightens request queue vertical padding and spacing.
+- Fixes header timers not appearing.
+- Adds a dedicated header timer cluster beside the live clock/date.
+- Timers render as visible placeholders first, then JavaScript fills them from:
+  - /admin/header-timers.php
+- Keeps event/timing lookup out of shared header rendering to avoid 500 errors.
+- Timer colours:
+  - Green normally
+  - Amber under 30 minutes
+  - Red under 15 minutes
+- Timers respect Settings toggles:
+  - header_show_event_timer
+  - header_show_request_timer
+- No database changes.
 
-## SQL to run
+## SQL
 
-Run this once before deploying or immediately after deploying:
-
-```sql
-ALTER TABLE song_requests
-ADD COLUMN request_group_id VARCHAR(64) NULL;
-
-CREATE INDEX idx_song_requests_group
-ON song_requests (event_id, request_group_id);
-```
-
-A copy is included at:
-
-```text
-sql/v69_request_group_id.sql
-```
+No SQL to run.
 
 ## Suggested Git commit title
 
-v69 Queue Density Stable Groups
+v70 Header Timers Visible Fix

@@ -41,7 +41,7 @@
 
     function setState(el, ms){
       if (!el) return;
-      el.classList.remove('timer-green','timer-amber','timer-red','timer-ended');
+      el.classList.remove('timer-loading','timer-green','timer-amber','timer-red','timer-ended','timer-unavailable');
 
       if (ms <= 0) {
         el.classList.add('timer-ended');
@@ -54,16 +54,24 @@
       }
     }
 
+    function setUnavailable(el, valueEl){
+      if (!el || !valueEl) return;
+      valueEl.textContent = '--:--:--';
+      el.classList.remove('timer-loading','timer-green','timer-amber','timer-red','timer-ended');
+      el.classList.add('timer-unavailable');
+    }
+
     function updateTimer(el, valueEl, target){
-      if (!el || !valueEl || !target) {
-        if (el) el.hidden = true;
+      if (!el || !valueEl) return;
+
+      if (!target) {
+        setUnavailable(el, valueEl);
         return;
       }
 
       const remaining = target - new Date();
       valueEl.textContent = formatRemaining(remaining);
       setState(el, remaining);
-      el.hidden = false;
     }
 
     function tick(){
@@ -78,11 +86,17 @@
           credentials: 'same-origin'
         });
 
-        if (!response.ok) return;
+        if (!response.ok) {
+          console.error('Header timers HTTP error', response.status);
+          return;
+        }
 
         const data = await response.json();
 
-        if (!data.ok || !data.has_event) return;
+        if (!data.ok || !data.has_event) {
+          console.error('Header timers unavailable', data);
+          return;
+        }
 
         eventEndTarget = parseTarget(data.event_end);
         requestCloseTarget = parseTarget(data.requests_close);
@@ -93,6 +107,7 @@
       }
     }
 
+    tick();
     loadTargets();
     window.setInterval(tick, 1000);
     window.setInterval(loadTargets, 60000);
