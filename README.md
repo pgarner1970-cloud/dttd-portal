@@ -1,11 +1,17 @@
-# Dance Thru the Decades Portal v11 - Events Split
+# Dance Thru the Decades Portal v12 - Event Form Polish
 
 ## Changes
 
-- `/admin/events.php` is now an Events list only.
-- New `/admin/event-edit.php` page for adding/editing events.
-- Form now has a full-width layout instead of being squeezed beside the list.
-- No database changes.
+- Reworked `/admin/event-edit.php` into proper themed form sections.
+- Added professional touchscreen-styled inputs, selects and textareas.
+- Grouped form into:
+  - Event Details
+  - Timing
+  - Portal Behaviour
+  - Advanced Timing Override
+- Added sticky action bar.
+- Improved mobile layout.
+- Added required CSS updates to `/assets/admin-touch.css`.
 
 ## SQL
 
