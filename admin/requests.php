@@ -138,7 +138,10 @@ foreach ($requests as $r) {
 
 $groups = [];
 foreach ($requests as $r) {
-    $key = strtolower(trim($r['song_title'])) . '|' . strtolower(trim($r['artist']));
+    $status_bucket = in_array(strtolower((string)($r['status'] ?? 'pending')), ['played', 'rejected'], true)
+            ? 'final-' . strtolower((string)($r['status'] ?? 'pending')) . '-' . (int)($r['id'] ?? 0)
+            : 'open';
+        $key = $status_bucket . '|' . strtolower(trim($r['song_title'])) . '|' . strtolower(trim($r['artist']));
 
     if (!isset($groups[$key])) {
         $groups[$key] = [
