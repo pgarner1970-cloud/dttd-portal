@@ -47,7 +47,35 @@ function dttd_event_window($event) {
     }
 
     $date = $event['event_date'];
-    $start_time = input_time($event['start_time']);
+    
+    $header_show_event_timer = app_setting('header_show_event_timer', '1') === '1';
+    $header_show_request_timer = app_setting('header_show_request_timer', '1') === '1';
+    $header_timer_event = ($header_show_event_timer || $header_show_request_timer) ? dttd_header_timer_event() : null;
+
+    $header_event_end_iso = '';
+    $header_request_close_iso = '';
+
+    if ($header_timer_event) {
+        if (!empty($header_timer_event['event_date']) && !empty($header_timer_event['end_time'])) {
+            $start_ts = !empty($header_timer_event['start_time'])
+                ? strtotime($header_timer_event['event_date'] . ' ' . input_time($header_timer_event['start_time']))
+                : 0;
+            $end_ts = strtotime($header_timer_event['event_date'] . ' ' . input_time($header_timer_event['end_time']));
+
+            if ($start_ts && $end_ts && $end_ts <= $start_ts) {
+                $end_ts = strtotime('+1 day', $end_ts);
+            }
+
+            if ($end_ts) {
+                $header_event_end_iso = date('Y-m-d\\TH:i:s', $end_ts);
+            }
+        }
+
+        if (!empty($header_timer_event['requests_close_at'])) {
+            $header_request_close_iso = date('Y-m-d\\TH:i:s', strtotime($header_timer_event['requests_close_at']));
+        }
+    }
+$start_time = input_time($event['start_time']);
     $end_time = !empty($event['end_time']) ? input_time($event['end_time']) : null;
 
     try {
@@ -155,6 +183,30 @@ function save_app_setting($key, $value) {
 }
 
 
+
+function dttd_header_timer_event() {
+    try {
+        if (function_exists('dttd_get_calculated_current_event')) {
+            $event = dttd_get_calculated_current_event();
+            if ($event) {
+                return $event;
+            }
+        }
+
+        $stmt = db()->query("
+            SELECT *
+            FROM events
+            WHERE event_date IS NOT NULL
+            ORDER BY event_date ASC, start_time ASC, id ASC
+            LIMIT 1
+        ");
+        return $stmt->fetch();
+    } catch (Throwable $e) {
+        return null;
+    }
+}
+
+
 function admin_header($title = 'DJ Portal') {
     $time = date('H:i');
     $date = date('D, j M');
@@ -178,6 +230,18 @@ function admin_header($title = 'DJ Portal') {
     <strong id="adminHeaderClock"><?= h($time) ?></strong>
     <span id="adminHeaderDate"><?= h($date) ?></span>
   </div>
+      <?php if ($header_show_event_timer && $header_event_end_iso): ?>
+        <div class="touch-clock touch-header-timer" data-header-timer-target="<?= h($header_event_end_iso) ?>">
+          <strong id="headerEventTimerValue">--:--:--</strong>
+          <span>Event timer</span>
+        </div>
+      <?php endif; ?>
+      <?php if ($header_show_request_timer && $header_request_close_iso): ?>
+        <div class="touch-clock touch-header-timer" data-header-timer-target="<?= h($header_request_close_iso) ?>">
+          <strong id="headerRequestTimerValue">--:--:--</strong>
+          <span>Requests close</span>
+        </div>
+      <?php endif; ?>
 
   <div class="touch-top-actions">
     <nav class="header-admin-nav" aria-label="Admin navigation">
@@ -230,6 +294,60 @@ function admin_footer() {
 <?php if (basename($_SERVER['SCRIPT_NAME']) === 'requests.php'): ?>
 <script src="/assets/request-update-check.js?v=62"></script>
 <?php endif; ?>
+
+
+<!-- Admin Header Timer Countdown JS -->
+<script>
+(function(){
+  function pad(value){ return String(value).padStart(2, '0'); }
+
+  function parseTarget(value){
+    if (!value) return null;
+    const parsed = new Date(String(value));
+    return isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  function formatRemaining(ms){
+    if (ms <= 0) return '00:00:00';
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return pad(hours) + ':' + pad(minutes) + ':' + pad(seconds);
+  }
+
+  function setTimerState(timer, ms){
+    timer.classList.remove('timer-green','timer-amber','timer-red','timer-ended');
+
+    if (ms <= 0) {
+      timer.classList.add('timer-ended');
+    } else if (ms <= 15 * 60 * 1000) {
+      timer.classList.add('timer-red');
+    } else if (ms <= 30 * 60 * 1000) {
+      timer.classList.add('timer-amber');
+    } else {
+      timer.classList.add('timer-green');
+    }
+  }
+
+  function updateHeaderTimers(){
+    const now = new Date();
+
+    document.querySelectorAll('.touch-header-timer[data-header-timer-target]').forEach(function(timer){
+      const target = parseTarget(timer.dataset.headerTimerTarget);
+      const value = timer.querySelector('strong');
+      if (!target || !value) return;
+
+      const remaining = target - now;
+      value.textContent = formatRemaining(remaining);
+      setTimerState(timer, remaining);
+    });
+  }
+
+  updateHeaderTimers();
+  window.setInterval(updateHeaderTimers, 1000);
+})();
+</script>
 
 </body>
 </html>

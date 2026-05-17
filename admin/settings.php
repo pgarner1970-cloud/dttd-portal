@@ -8,6 +8,9 @@ if (!in_array($current_layout, $allowed_layouts, true)) {
     $current_layout = 'event_left';
 }
 
+$header_show_event_timer = app_setting('header_show_event_timer', '1') === '1';
+$header_show_request_timer = app_setting('header_show_request_timer', '1') === '1';
+
 $saved = false;
 $error = '';
 
@@ -17,8 +20,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!in_array($selected, $allowed_layouts, true)) {
         $error = 'Invalid layout selected.';
     } else {
-        if (save_app_setting('requests_layout', $selected)) {
+        $ok = true;
+        $ok = save_app_setting('requests_layout', $selected) && $ok;
+        $ok = save_app_setting('header_show_event_timer', !empty($_POST['header_show_event_timer']) ? '1' : '0') && $ok;
+        $ok = save_app_setting('header_show_request_timer', !empty($_POST['header_show_request_timer']) ? '1' : '0') && $ok;
+
+        if ($ok) {
             $current_layout = $selected;
+            $header_show_event_timer = !empty($_POST['header_show_event_timer']);
+            $header_show_request_timer = !empty($_POST['header_show_request_timer']);
             $saved = true;
         } else {
             $error = 'Settings could not be saved. Please check the app_settings table exists.';
@@ -49,6 +59,31 @@ admin_header('Settings - DJ Portal');
       <form method="post" class="settings-form">
         <section class="settings-section">
           <div class="settings-section-header">
+            <h2>Header</h2>
+            <p>Choose which live timers appear in the admin header.</p>
+          </div>
+
+          <div class="settings-toggle-grid">
+            <label class="settings-toggle-card">
+              <input type="checkbox" name="header_show_event_timer" value="1" <?= $header_show_event_timer ? 'checked' : '' ?>>
+              <span>
+                <strong>Show event timer</strong>
+                <small>Displays the countdown to the current event end time in the header.</small>
+              </span>
+            </label>
+
+            <label class="settings-toggle-card">
+              <input type="checkbox" name="header_show_request_timer" value="1" <?= $header_show_request_timer ? 'checked' : '' ?>>
+              <span>
+                <strong>Show requests close timer</strong>
+                <small>Displays the countdown to when requests close in the header.</small>
+              </span>
+            </label>
+          </div>
+        </section>
+
+        <section class="settings-section">
+          <div class="settings-section-header">
             <h2>Requests Page Layout</h2>
             <p>Choose how the Requests screen should be arranged for the DJ view.</p>
           </div>
@@ -61,7 +96,7 @@ admin_header('Settings - DJ Portal');
                 <span class="preview-large"></span>
               </span>
               <strong>Event left, queue right</strong>
-              <small>Current layout. Event summary on the left and request queue on the right.</small>
+              <small>Event summary on the left and request queue on the right.</small>
             </label>
 
             <label class="layout-radio-card <?= $current_layout === 'event_right' ? 'selected' : '' ?>">
