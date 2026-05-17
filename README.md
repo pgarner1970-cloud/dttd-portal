@@ -1,12 +1,14 @@
-# Dance Thru the Decades Portal v90 - Compact Dedication Cards
+# Dance Thru the Decades Portal v91 - Ultra Compact Queue Cards
 
 ## Changes
 
-- Compacts dedication/request cards in the queue.
-- Moves the request time underneath the avatar/initial circle.
-- Keeps requester name and dedication together on the right.
-- Reduces dedication card padding and vertical spacing.
-- Keeps action buttons, merge, reject and header timer logic unchanged.
+- Further compacts dedication/request cards.
+- Reduces avatar circle size.
+- Re-centres the initial letter inside the avatar.
+- Reduces padding inside dedication cards.
+- Reduces gaps between dedication cards.
+- Tightens dedication text line-height.
+- Keeps merge, reject, timers, sorting and action buttons unchanged.
 - No SQL changes.
 
 ## SQL
@@ -15,4 +17,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v90 Compact Dedication Cards
+v91 Ultra Compact Queue Cards

@@ -4058,3 +4058,62 @@ body.modal-open{ overflow:hidden; }
   padding-top:10px !important;
   padding-bottom:10px !important;
 }
+
+
+/* v91 ultra compact dedication cards */
+.request-queue-panel .compact-queue-card .group-messages{
+  gap:5px !important;
+}
+
+.request-queue-panel .compact-queue-card .compact-dedication-card{
+  grid-template-columns:30px minmax(0, 1fr) !important;
+  column-gap:8px !important;
+  padding:5px 8px !important;
+  border-radius:12px !important;
+  min-height:0 !important;
+}
+
+.compact-dedication-card .dedication-side{
+  gap:3px !important;
+}
+
+.compact-dedication-card .req-person{
+  width:24px !important;
+  height:24px !important;
+  min-width:24px !important;
+  min-height:24px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  font-size:12px !important;
+  line-height:1 !important;
+  padding:0 !important;
+}
+
+.compact-dedication-card .message-time{
+  font-size:9px !important;
+  line-height:1 !important;
+  margin:0 !important;
+}
+
+.compact-dedication-card .dedication-main{
+  padding-top:0 !important;
+}
+
+.compact-dedication-card .message-person{
+  font-size:13px !important;
+  line-height:1.05 !important;
+  margin:0 0 3px 0 !important;
+}
+
+.compact-dedication-card .message-text{
+  font-size:12px !important;
+  line-height:1.18 !important;
+  margin:0 !important;
+}
+
+/* Trim the queue row a little more now the message cards are smaller */
+.request-queue-panel .compact-queue-card{
+  padding-top:8px !important;
+  padding-bottom:8px !important;
+}
