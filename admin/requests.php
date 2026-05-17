@@ -567,12 +567,14 @@ admin_header('DJ Portal');
 
             <div class="group-messages">
               <?php foreach ($group['items'] as $item): ?>
-                <div class="group-message">
-                  <span class="req-person"><?= h(strtoupper(substr($item['guest_name'], 0, 1))) ?></span>
-                  <div>
+                <div class="group-message compact-dedication-card">
+                  <div class="dedication-side">
+                    <span class="req-person"><?= h(strtoupper(substr($item['guest_name'], 0, 1))) ?></span>
+                    <div class="message-time"><?= h(date('H:i', strtotime($item['created_at']))) ?></div>
+                  </div>
+                  <div class="dedication-main">
                     <div class="message-person"><?= h($item['guest_name']) ?></div>
                     <div class="message-text"><?= nl2br(h($item['dedication'] ?: '—')) ?></div>
-                    <div class="message-time"><?= h(date('H:i', strtotime($item['created_at']))) ?></div>
                   </div>
                 </div>
               <?php endforeach; ?>
