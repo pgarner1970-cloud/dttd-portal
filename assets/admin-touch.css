@@ -690,3 +690,149 @@ details.form-advanced[open] summary:before{transform:rotate(90deg)}
     margin-bottom:0;
   }
 }
+
+
+/* v21 compact event rows and active/future/past states */
+.event-list{
+  display:grid;
+  gap:10px;
+  padding:12px;
+}
+
+.event-row-card{
+  display:grid;
+  grid-template-columns:118px 155px minmax(260px,1fr) 190px 170px;
+  gap:14px;
+  align-items:center;
+  min-height:96px;
+  padding:11px 14px;
+  border:1px solid var(--line);
+  border-left:4px solid var(--amber);
+  border-radius:16px;
+  background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.035));
+  box-shadow:0 10px 28px rgba(0,0,0,.24);
+}
+
+.event-row-card.row-current{
+  border-left-color:var(--green);
+  box-shadow:0 0 0 1px rgba(34,197,94,.14),0 10px 28px rgba(0,0,0,.24);
+}
+
+.event-row-card.row-future{
+  border-left-color:var(--amber);
+}
+
+.event-row-card.row-past{
+  border-left-color:var(--red);
+  opacity:.82;
+}
+
+.event-row-date{
+  color:#f97316;
+  font-size:18px;
+  font-weight:900;
+  line-height:1.1;
+}
+
+.event-row-date small{
+  display:block;
+  color:#fb923c;
+  font-size:12px;
+  margin-top:4px;
+}
+
+.event-row-type{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-weight:900;
+}
+
+.event-row-title strong{
+  display:block;
+  font-size:20px;
+  font-weight:900;
+  letter-spacing:-.035em;
+}
+
+.event-row-title span,
+.event-row-close span{
+  display:block;
+  color:#cbd5e1;
+  margin-top:4px;
+}
+
+.event-row-close strong{
+  color:#dbeafe;
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+
+.event-row-actions{
+  display:grid;
+  grid-template-columns:70px 90px;
+  gap:8px;
+  justify-content:end;
+}
+
+.event-row-actions .action-tile{
+  min-height:54px !important;
+  width:100% !important;
+  font-size:9px !important;
+  padding:6px 4px !important;
+}
+
+.event-row-actions .big-icon{
+  font-size:18px !important;
+}
+
+.event-row-actions .set-active-btn{
+  border:1px solid rgba(34,197,94,.65);
+  color:#4ade80;
+}
+
+.event-row-actions .current-label{
+  min-height:54px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid rgba(34,197,94,.45);
+  border-radius:12px;
+  background:rgba(34,197,94,.12);
+  color:#4ade80;
+  font-size:10px;
+  font-weight:900;
+  text-transform:uppercase;
+}
+
+.inline-form{
+  margin:0;
+}
+
+@media(max-width:1180px){
+  .event-row-card{
+    grid-template-columns:110px 155px 1fr;
+  }
+
+  .event-row-close{
+    grid-column:1/2;
+  }
+
+  .event-row-actions{
+    grid-column:2/-1;
+    justify-content:start;
+  }
+}
+
+@media(max-width:720px){
+  .event-row-card{
+    grid-template-columns:1fr;
+    gap:10px;
+  }
+
+  .event-row-actions{
+    grid-template-columns:70px 90px;
+    justify-content:start;
+  }
+}

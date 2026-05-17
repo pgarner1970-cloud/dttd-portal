@@ -12,6 +12,20 @@ if (!empty($_GET['id'])) {
 
 $error = '';
 
+
+function normalise_event_datetime($date, $time) {
+    if (!$date || !$time) {
+        return null;
+    }
+    return new DateTime($date . ' ' . $time);
+}
+
+function event_ranges_overlap($startA, $endA, $startB, $endB) {
+    return $startA < $endB && $startB < $endA;
+}
+
+$error = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = !empty($_POST['id']) ? (int)$_POST['id'] : 0;
 
@@ -26,19 +40,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $notes = trim(post_value('notes'));
     $is_active = !empty($_POST['is_active']) ? 1 : 0;
 
-    if ($event_date && $event_date < date('Y-m-d')) {
+    if ($event_name === '') {
+        $error = 'Event name is required.';
+    } elseif ($venue_name === '') {
+        $error = 'Venue name is required.';
+    } elseif (!$event_date) {
+        $error = 'Event date is required.';
+    } elseif ($event_date < date('Y-m-d')) {
         $error = 'Event date cannot be in the past.';
+    } elseif (!$start_time) {
+        $error = 'Start time is required.';
     }
 
     $portal_available_from = null;
     $portal_available_until = null;
     $requests_close_at = null;
 
+    if (!$error) {
+        $portal_available_from = $event_date . ' ' . $start_time . ':00';
+
+        if ($end_time) {
+            $times = build_event_times($event_date, $start_time, $end_time, $requests_close_minutes);
+            $portal_available_from = $times['portal_available_from'];
+            $portal_available_until = $times['portal_available_until'];
+            $requests_close_at = $times['requests_close_at'];
+        }
+    }
+
     if (!$error && $event_date && $start_time && $end_time) {
-        $times = build_event_times($event_date, $start_time, $end_time, $requests_close_minutes);
-        $portal_available_from = $times['portal_available_from'];
-        $portal_available_until = $times['portal_available_until'];
-        $requests_close_at = $times['requests_close_at'];
+        $new_start = normalise_event_datetime($event_date, $start_time);
+        $new_end = normalise_event_datetime($event_date, $end_time);
+
+        if ($new_end <= $new_start) {
+            $new_end->modify('+1 day');
+        }
+
+        $stmt = db()->prepare("
+            SELECT id, event_name, start_time, end_time
+            FROM events
+            WHERE event_date = ?
+            AND id <> ?
+            AND start_time IS NOT NULL
+            AND end_time IS NOT NULL
+        ");
+        $stmt->execute([$event_date, $id]);
+        $same_day_events = $stmt->fetchAll();
+
+        foreach ($same_day_events as $existing) {
+            $existing_start = normalise_event_datetime($event_date, input_time($existing['start_time']));
+            $existing_end = normalise_event_datetime($event_date, input_time($existing['end_time']));
+
+            if ($existing_start && $existing_end) {
+                if ($existing_end <= $existing_start) {
+                    $existing_end->modify('+1 day');
+                }
+
+                if (event_ranges_overlap($new_start, $new_end, $existing_start, $existing_end)) {
+                    $error = 'This event overlaps with: ' . $existing['event_name'];
+                    break;
+                }
+            }
+        }
     }
 
     if (!$error && !empty($_POST['manual_override'])) {
@@ -47,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $requests_close_at = trim(post_value('manual_requests_close_at')) ? str_replace('T', ' ', trim(post_value('manual_requests_close_at'))) . ':00' : $requests_close_at;
     }
 
-    if (!$error && $event_name !== '' && $venue_name !== '') {
+    if (!$error) {
         if ($id) {
             $stmt = db()->prepare("
                 UPDATE events SET
@@ -169,19 +231,19 @@ admin_header($edit ? 'Edit Event - DJ Portal' : 'Add Event - DJ Portal');
             <div class="form-grid">
               <div class="form-field span-3">
                 <label>Event date</label>
-                <input type="date" name="event_date" min="<?= h(date('Y-m-d')) ?>" value="<?= h($event_date_value) ?>">
+                <input type="date" name="event_date" min="<?= h(date('Y-m-d')) ?>" value="<?= h($event_date_value) ?>" required>
                 <small>Past dates are not allowed.</small>
               </div>
 
               <div class="form-field span-3">
                 <label>Start time</label>
-                <input type="time" name="start_time" value="<?= h(input_time($start_time_value)) ?>">
+                <input type="time" name="start_time" value="<?= h(input_time($start_time_value)) ?>" required>
               </div>
 
               <div class="form-field span-3">
                 <label>End time</label>
                 <input type="time" name="end_time" value="<?= h(input_time($end_time_value)) ?>">
-                <small>Example: 19:30 to 01:30 spans midnight.</small>
+                <small>Optional. Example: 19:30 to 01:30 spans midnight.</small>
               </div>
 
               <div class="form-field span-3">
