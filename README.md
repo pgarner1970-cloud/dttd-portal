@@ -1,20 +1,14 @@
-# Dance Thru the Decades Portal v86 - Header Timers Final
+# Dance Thru the Decades Portal v87 - Compact Right Action Grid
 
 ## Changes
 
-- Enables the existing shared header timer placeholders correctly.
-- Adds live event and request-close timers beside the main clock.
-- Timers appear on all admin pages using the shared header.
-- Timers respect Settings toggles:
-  - header_show_event_timer
-  - header_show_request_timer
-- Timer values update every second.
-- Timer data refreshes from the server every 60 seconds.
-- Timer colours:
-  - Green normally
-  - Amber under 30 minutes
-  - Red under 15 minutes
-- Event lookup is handled by /admin/header-timers.php.
+- Keeps the four queue action buttons on the right-hand side.
+- Changes the action buttons into a compact 2x2 grid:
+  - Played / Maybe
+  - Merge / Reject
+- Keeps request cards in the middle/right area.
+- Reduces vertical height of each queue row.
+- Keeps merge/reject/header timer logic unchanged.
 - No SQL changes.
 
 ## SQL
@@ -23,4 +17,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v86 Header Timers Final
+v87 Compact Right Action Grid

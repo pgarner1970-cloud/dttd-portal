@@ -548,7 +548,7 @@ admin_header('DJ Portal');
       <div class="request-list">
         <?php foreach ($grouped_requests as $group): ?>
           <?php $first = $group['items'][0]; ?>
-          <article class="request-card status-<?= h($group['status']) ?>">
+          <article class="request-card status-<?= h($group['status']) ?> compact-queue-card">
             <div class="req-time">
               <?= h(date('H:i', strtotime($group['created_at']))) ?>
               <small><?= h(date('d M', strtotime($group['created_at']))) ?></small>

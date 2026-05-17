@@ -3591,3 +3591,116 @@ body.modal-open{ overflow:hidden; }
     display:none !important;
   }
 }
+
+
+/* v87 compact queue with right-side 2x2 action grid */
+.request-queue-panel .compact-queue-card{
+  display:grid !important;
+  grid-template-columns:82px minmax(220px, 300px) minmax(300px, 1fr) 170px !important;
+  grid-template-areas:"time track messages actions" !important;
+  align-items:center !important;
+  column-gap:16px !important;
+  row-gap:8px !important;
+  padding-top:12px !important;
+  padding-bottom:12px !important;
+  min-height:0 !important;
+}
+
+.request-queue-panel .compact-queue-card > :nth-child(1){
+  grid-area:time !important;
+}
+
+.request-queue-panel .compact-queue-card > :nth-child(2){
+  grid-area:track !important;
+  min-width:0 !important;
+}
+
+.request-queue-panel .compact-queue-card .group-messages{
+  grid-area:messages !important;
+  display:flex !important;
+  flex-direction:column !important;
+  gap:7px !important;
+  min-width:0 !important;
+}
+
+.request-queue-panel .compact-queue-card .req-actions{
+  grid-area:actions !important;
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important;
+  gap:7px !important;
+  align-self:center !important;
+  justify-self:end !important;
+  width:160px !important;
+  margin:0 !important;
+}
+
+.request-queue-panel .compact-queue-card .req-action-form{
+  margin:0 !important;
+}
+
+.request-queue-panel .compact-queue-card .action-tile{
+  width:100% !important;
+  min-width:0 !important;
+  height:42px !important;
+  min-height:42px !important;
+  padding:4px 6px !important;
+  border-radius:11px !important;
+}
+
+.request-queue-panel .compact-queue-card .action-tile .big-icon{
+  font-size:18px !important;
+  line-height:1 !important;
+}
+
+.request-queue-panel .compact-queue-card .action-tile span:last-child{
+  font-size:10px !important;
+  line-height:1 !important;
+}
+
+.request-queue-panel .compact-queue-card .group-message{
+  min-height:0 !important;
+  padding-top:8px !important;
+  padding-bottom:8px !important;
+}
+
+.request-queue-panel .compact-queue-card .req-person{
+  width:30px !important;
+  height:30px !important;
+  min-width:30px !important;
+}
+
+/* Tablet width: keep actions on the right as requested, just tighten columns */
+@media(max-width:1180px){
+  .request-queue-panel .compact-queue-card{
+    grid-template-columns:76px minmax(190px, 260px) minmax(280px, 1fr) 156px !important;
+    column-gap:12px !important;
+    padding-top:10px !important;
+    padding-bottom:10px !important;
+  }
+
+  .request-queue-panel .compact-queue-card .req-actions{
+    width:150px !important;
+    gap:6px !important;
+  }
+
+  .request-queue-panel .compact-queue-card .action-tile{
+    height:40px !important;
+    min-height:40px !important;
+  }
+}
+
+/* Narrow screens can stack, but landscape/tablet keeps the right action grid */
+@media(max-width:820px){
+  .request-queue-panel .compact-queue-card{
+    grid-template-columns:70px 1fr !important;
+    grid-template-areas:
+      "time track"
+      "messages messages"
+      "actions actions" !important;
+  }
+
+  .request-queue-panel .compact-queue-card .req-actions{
+    justify-self:start !important;
+    width:220px !important;
+  }
+}
