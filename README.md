@@ -1,13 +1,18 @@
-# Dance Thru the Decades Portal v42 - 500 Fix Active Countdowns
+# Dance Thru the Decades Portal v43 - Header Clock Events List Fix
 
 ## Changes
 
-- Fixes the Requests page 500 error caused by the previous countdown patch.
-- Keeps header clock with seconds.
-- Keeps active event card countdowns:
-  - request close countdown
-  - event end countdown
-- Rebuilds the Requests page `<main>` data attributes safely.
+- Shared admin header clock now updates with seconds across all admin pages.
+- Events page now lists all events from the database.
+- Events page no longer depends on any current-event filtering.
+- Event row colour remains automatic:
+  - Green = current
+  - Amber = upcoming
+  - Red = past
+- Event rows show status label:
+  - Current
+  - Upcoming
+  - Past
 - No database changes.
 
 ## SQL
@@ -16,4 +21,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v42 500 Fix Active Countdowns
+v43 Header Clock Events List Fix

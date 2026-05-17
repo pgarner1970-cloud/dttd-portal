@@ -1723,3 +1723,56 @@ body:has(.header-event-summary) .touch-clock{
 .countdown .mini-countdown{
   font-size:11px;
 }
+
+
+/* v43 header clock + all-events list repair */
+.touch-clock strong{
+  font-variant-numeric:tabular-nums;
+  min-width:92px;
+}
+
+.event-row-card{
+  grid-template-columns:118px 155px minmax(260px,1fr) 190px 130px 70px !important;
+}
+
+.event-row-state{
+  display:flex;
+  justify-content:flex-end;
+}
+
+.event-row-actions{
+  grid-template-columns:70px !important;
+}
+
+.upcoming-label{
+  min-height:54px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid rgba(245,158,11,.45);
+  border-radius:12px;
+  background:rgba(245,158,11,.10);
+  color:#fbbf24;
+  font-size:10px;
+  font-weight:900;
+  text-transform:uppercase;
+}
+
+@media(max-width:1180px){
+  .event-row-card{
+    grid-template-columns:110px 155px 1fr !important;
+  }
+
+  .event-row-close,
+  .event-row-state,
+  .event-row-actions{
+    grid-column:auto !important;
+    justify-content:start;
+  }
+}
+
+@media(max-width:720px){
+  .event-row-card{
+    grid-template-columns:1fr !important;
+  }
+}
