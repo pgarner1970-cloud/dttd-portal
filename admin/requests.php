@@ -490,7 +490,6 @@ admin_header('DJ Portal');
                     data-start-time="<?= h(input_time($event['start_time'] ?? '')) ?>"
                     data-end-time="<?= h(input_time($event['end_time'] ?? '')) ?>"
                   >-- left</span>
-                <span class="status-badge inline-status <?= h(status_label($group['status'])) ?>"><?= h($group['status']) ?></span>
                 <?php endif; ?>
               </div>
             </div>
@@ -560,6 +559,7 @@ admin_header('DJ Portal');
               <div class="req-track-artist"><?= h($group['artist']) ?></div>
               <div class="group-count">
                 <?= count($group['items']) ?> request<?= count($group['items']) === 1 ? '' : 's' ?>
+                <span class="status-badge inline-status <?= h(status_label($group['status'])) ?>"><?= h($group['status']) ?></span>
               </div>
             </div>
 

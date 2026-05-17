@@ -1,12 +1,11 @@
-# Dance Thru the Decades Portal v81 - Status Pill Next To Count
+# Dance Thru the Decades Portal v82 - Status Pill Actual Markup Fix
 
 ## Changes
 
-- Restores the queue status pill next to the request-count pill.
-- Removes the separate status column only after inline status has been inserted.
-- Does not change merge logic.
-- Does not change reject logic.
-- Does not change database schema.
+- Fixes the status pill not appearing beside the request-count pill.
+- Targets the actual rendered request-count markup.
+- Keeps the merge self-exclusion fix from v80/v81.
+- No SQL changes.
 
 ## SQL
 
@@ -14,4 +13,4 @@ No SQL to run.
 
 ## Suggested Git commit title
 
-v81 Status Pill Next To Count
+v82 Status Pill Actual Markup Fix

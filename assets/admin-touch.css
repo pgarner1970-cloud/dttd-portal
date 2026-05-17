@@ -3343,15 +3343,7 @@ body.modal-open{ overflow:hidden; }
 
 
 /* v76 inline queue status badge */
-.inline-status{
-  display:inline-flex !important;
-  align-items:center;
-  justify-content:center;
-  margin-left:8px;
-  vertical-align:middle;
-  font-size:11px !important;
-  padding:4px 9px !important;
-}
+
 
 /* Pull actions left now that the separate status column is gone */
 .request-card{
@@ -3363,26 +3355,13 @@ body.modal-open{ overflow:hidden; }
 }
 
 /* Keep count and status together */
-.request-count + .inline-status{
-  white-space:nowrap;
-}
+.request-count + 
 
 
 /* v77 inline status restore */
-.inline-status{
-  display:inline-flex !important;
-  align-items:center;
-  justify-content:center;
-  margin-left:8px;
-  vertical-align:middle;
-  font-size:11px !important;
-  padding:4px 9px !important;
-  white-space:nowrap;
-}
 
-.request-count + .inline-status{
-  margin-top:0;
-}
+
+.request-count + 
 
 .song-meta,
 .req-song-meta{
@@ -3398,39 +3377,17 @@ body.modal-open{ overflow:hidden; }
   display:none !important;
 }
 
-.inline-status{
-  display:inline-flex !important;
-  align-items:center;
-  justify-content:center;
-  margin-left:8px;
-  vertical-align:middle;
-  font-size:11px !important;
-  padding:4px 9px !important;
-  white-space:nowrap;
-}
+
 
 
 /* v81 status pill beside request count */
-.inline-status{
-  display:inline-flex !important;
-  align-items:center;
-  justify-content:center;
-  margin-left:8px !important;
-  vertical-align:middle;
-  font-size:11px !important;
-  line-height:1 !important;
-  padding:4px 9px !important;
-  min-height:22px !important;
-  white-space:nowrap;
-}
+
 
 .request-count + .inline-status,
 .count-pill + .inline-status,
 .request-pill + .inline-status,
 .request-badge + .inline-status,
-.badge + .inline-status{
-  margin-left:8px !important;
-}
+.badge + 
 
 /* Let the song meta area wrap cleanly when the request-count and status pills sit together */
 .req-song,
@@ -3442,6 +3399,35 @@ body.modal-open{ overflow:hidden; }
 }
 
 /* If the old status column still exists on any older markup, keep it out of the action area */
+.req-status:empty{
+  display:none !important;
+}
+
+
+/* v82 actual status pill placement */
+.status-badge.inline-status{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  margin-left:8px !important;
+  vertical-align:middle !important;
+  font-size:11px !important;
+  line-height:1 !important;
+  padding:4px 9px !important;
+  min-height:22px !important;
+  white-space:nowrap !important;
+}
+
+/* Allow request count and status to sit neatly beside each other */
+.req-song .status-badge.inline-status,
+.song-info .status-badge.inline-status,
+.request-song .status-badge.inline-status,
+.request-title .status-badge.inline-status,
+.req-title .status-badge.inline-status{
+  margin-top:6px !important;
+}
+
+/* Keep old status column hidden only when it is genuinely empty/removed */
 .req-status:empty{
   display:none !important;
 }
