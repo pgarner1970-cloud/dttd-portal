@@ -63,17 +63,25 @@ a{color:inherit}
 .touch-top-actions{display:flex;justify-content:flex-end;gap:10px}
 .touch-icon-btn{min-width:48px;height:48px;display:grid;place-items:center;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.055);color:#fff;text-decoration:none;font-weight:800}
 
-.touch-wrap{width:min(1500px,100%);margin:0 auto;padding:20px}
+.touch-wrap{
+  width:min(1500px,100%);
+  margin:0 auto;
+  padding:20px;
+}
 
+/* fixed-width top touchscreen tiles instead of stretched full-width blocks */
 .touch-tile-nav{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(150px,1fr));
+  display:flex;
+  flex-wrap:wrap;
   gap:14px;
   margin-bottom:18px;
+  align-items:stretch;
 }
 
 .touch-tile{
-  min-height:112px;
+  width:260px;
+  max-width:100%;
+  min-height:104px;
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -88,6 +96,7 @@ a{color:inherit}
   text-transform:uppercase;
   letter-spacing:-.02em;
   box-shadow:0 10px 24px rgba(0,0,0,.25);
+  white-space:nowrap;
 }
 
 .touch-tile .tile-icon{font-size:32px;line-height:1}
@@ -188,7 +197,21 @@ a{color:inherit}
 .sort-selector{min-width:230px}
 
 .request-list{display:grid;gap:12px;padding:14px}
-.request-card{display:grid;grid-template-columns:78px 120px minmax(210px,1.1fr) minmax(170px,.8fr) 96px minmax(330px,auto);gap:14px;align-items:center;padding:14px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.035));box-shadow:0 10px 28px rgba(0,0,0,.24)}
+
+/* action column widened so reject button is not clipped */
+.request-card{
+  display:grid;
+  grid-template-columns:78px 120px minmax(210px,1.05fr) minmax(170px,.8fr) 96px minmax(390px,auto);
+  gap:14px;
+  align-items:center;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.035));
+  box-shadow:0 10px 28px rgba(0,0,0,.24);
+  overflow:visible;
+}
+
 .request-card.status-pending{border-left:4px solid var(--amber)}
 .request-card.status-maybe{border-left:4px solid var(--yellow)}
 .request-card.status-played{border-left:4px solid var(--green)}
@@ -201,10 +224,40 @@ a{color:inherit}
 .req-track-title{font-size:20px;font-weight:900;letter-spacing:-.035em}
 .req-track-artist{color:#cbd5e1;margin-top:4px}
 .req-message{color:#e5e7eb}
-.req-actions{display:grid;grid-template-columns:repeat(4,minmax(70px,1fr));gap:8px}
+
+/* four buttons remain on one line where possible */
+.req-actions{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(78px,1fr));
+  gap:8px;
+  min-width:360px;
+}
+
 .req-action-form{display:block}
 
-.action-tile{min-height:64px;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:12px;font-family:inherit;font-weight:900;font-size:11px;text-transform:uppercase;cursor:pointer;color:#fff;background:rgba(255,255,255,.055);text-decoration:none;text-align:center}
+.action-tile{
+  min-height:64px;
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  border-radius:12px;
+  font-family:inherit;
+  font-weight:900;
+  font-size:11px;
+  line-height:1.05;
+  text-transform:uppercase;
+  cursor:pointer;
+  color:#fff;
+  background:rgba(255,255,255,.055);
+  text-decoration:none;
+  text-align:center;
+  padding:8px 6px;
+  white-space:nowrap;
+}
+
 .action-tile .big-icon{font-size:22px;line-height:1}
 .action-tile.played{border:1px solid rgba(34,197,94,.65);color:#4ade80}
 .action-tile.maybe{border:1px solid rgba(234,179,8,.7);color:#fde047}
@@ -220,7 +273,7 @@ a{color:inherit}
 .empty-queue{padding:26px;text-align:center;color:var(--muted)}
 .last-updated{padding:12px 20px 18px;color:#93c5fd;text-align:center;font-size:13px}
 
-/* polished Add/Edit Event form */
+/* polished Add/Edit Event form retained */
 .event-form-shell{display:grid;gap:18px}
 .form-section{border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.035));overflow:hidden}
 .form-section-header{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.035)}
@@ -300,15 +353,19 @@ details.form-advanced[open] summary:before{transform:rotate(90deg)}
 .login-subtitle{color:var(--muted);margin:0 0 18px}
 .login-input{width:100%;min-height:52px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.08);color:#fff;padding:0 14px;font-family:inherit;font-size:16px}
 
-@media(max-width:1250px){
-  .request-card{grid-template-columns:70px 110px 1fr 1fr}
+@media(max-width:1380px){
+  .request-card{
+    grid-template-columns:70px 110px 1fr 1fr;
+  }
   .req-status{grid-column:1/2}
-  .req-actions{grid-column:2/-1}
+  .req-actions{
+    grid-column:2/-1;
+    min-width:0;
+  }
 }
 
 @media(max-width:980px){
   .touch-grid{grid-template-columns:1fr}
-  .touch-tile-nav{grid-template-columns:repeat(2,1fr)}
   .touch-topbar{grid-template-columns:1fr auto}
   .touch-clock{display:none}
   .form-field.span-8,.form-field.span-6,.form-field.span-4,.form-field.span-3{grid-column:span 6}
@@ -320,8 +377,8 @@ details.form-advanced[open] summary:before{transform:rotate(90deg)}
   .touch-top-actions{justify-content:stretch}
   .touch-icon-btn{flex:1}
   .touch-brand{font-size:21px}
-  .touch-tile-nav{grid-template-columns:1fr;gap:10px}
-  .touch-tile{min-height:88px}
+  .touch-tile-nav{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .touch-tile{width:100%;min-height:88px}
   .queue-toolbar{grid-template-columns:1fr}
   .sort-selector{min-width:0}
   .request-card{grid-template-columns:1fr;gap:10px}

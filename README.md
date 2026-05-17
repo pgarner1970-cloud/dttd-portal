@@ -1,21 +1,13 @@
-# Dance Thru the Decades Portal v15 - Events/Form Repair
+# Dance Thru the Decades Portal v16 - Dashboard Spacing Fix
 
 ## Changes
 
-- Events page top tiles now only show:
-  - Requests
-  - Events
-- Removed duplicate large tiles:
-  - Add Event
-  - Portal
-  - Logout
-- Restored polished Add/Edit Event page layout.
-- Restored grouped sections:
-  - Event Details
-  - Timing
-  - Portal Behaviour
-  - Advanced Timing Override
-- Improved date/time picker icon visibility in the dark theme.
+- Top touchscreen buttons no longer stretch across the whole row.
+- Requests / Events / Settings tiles use fixed width on desktop.
+- Mobile layout remains responsive.
+- Request action area widened.
+- Reject button should no longer be clipped/truncated.
+- No functionality changes.
 
 ## SQL
 
