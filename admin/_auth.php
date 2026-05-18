@@ -28,6 +28,7 @@ function admin_nav_active($page) {
     $map = [
         'requests' => ['requests.php', 'index.php', 'request-debug.php'],
         'events' => ['events.php', 'event-edit.php', 'event-qr.php'],
+        'venues' => ['venues.php'],
         'settings' => ['settings.php'],
     ];
 
@@ -203,6 +204,7 @@ function admin_header($title = 'DJ Portal') {
       <nav class="header-admin-nav" aria-label="Admin navigation">
         <a class="header-admin-nav-btn <?= admin_nav_active('requests') ?>" href="/admin/requests.php">Requests</a>
         <a class="header-admin-nav-btn <?= admin_nav_active('events') ?>" href="/admin/events.php">Events</a>
+        <a class="header-admin-nav-btn <?= admin_nav_active('venues') ?>" href="/admin/venues.php">Venues</a>
         <a class="header-admin-nav-btn <?= admin_nav_active('settings') ?>" href="/admin/settings.php">Settings</a>
       </nav>
 

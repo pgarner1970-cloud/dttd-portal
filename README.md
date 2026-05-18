@@ -1,19 +1,24 @@
-# Dance Thru the Decades Portal v117 - Event Edit Cleanup
+# Dance Thru the Decades Portal v119 - Venue Maintenance Page
 
 ## Changes
 
-- Removes duplicate Venue name from the top Event Details section.
-- Keeps Venue name in Venue Details & Social.
-- Makes Notes use the freed-up space in Event Details.
-- Removes the visible Event Code field from Portal Behaviour.
-- Keeps one hidden Event Code field so the existing code is preserved when saving.
+- Adds a new admin page:
+  - `admin/venues.php`
+- Adds **Venues** to the top admin menu.
+- Allows venue maintenance:
+  - Add venue
+  - Edit venue
+  - Delete venue if unused
+  - View saved venues
+  - See event count per venue
+  - Map/Facebook/Website quick links
+- Event edit can still create/select venues as before.
 - Keeps `event-edit.php` as the only event edit page.
-- Does not recreate `events-edit.php`.
 
 ## SQL
 
-No SQL changes.
+No SQL changes if the venues table already exists.
 
 ## Suggested Git commit title
 
-v117 Event Edit Cleanup
+v119 Venue Maintenance Page
