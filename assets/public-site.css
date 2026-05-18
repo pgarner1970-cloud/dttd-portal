@@ -1157,3 +1157,160 @@ body.homepage-option-one{
     padding-left:.32em !important;
   }
 }
+
+
+/* v135 homepage fade and glitter refinement */
+
+/* Let the hero bleed/fade into the lower section rather than ending abruptly */
+.option-one-hero{
+  padding-bottom:150px !important;
+  overflow:hidden !important;
+}
+
+.option-one-hero::after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:-1px;
+  height:230px;
+  z-index:2;
+  pointer-events:none;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(11,0,20,0) 0%,
+      rgba(11,0,20,.22) 28%,
+      rgba(11,0,20,.72) 64%,
+      #08000f 100%
+    );
+}
+
+.option-one-floor-glow{
+  height:270px !important;
+  bottom:0 !important;
+  z-index:2 !important;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255,79,216,.20), transparent 55%),
+    linear-gradient(180deg, transparent 0%, rgba(0,0,0,.56) 62%, #08000f 100%) !important;
+}
+
+.option-one-action-strip{
+  z-index:7 !important;
+}
+
+.home-info-section{
+  margin-top:0 !important;
+  padding-top:58px !important;
+  background:
+    radial-gradient(ellipse at 50% -12%, rgba(255,79,216,.16), transparent 42%),
+    linear-gradient(180deg, #08000f 0%, #13001e 42%, #09000e 100%) !important;
+}
+
+.home-info-grid{
+  position:relative;
+  z-index:4;
+}
+
+/* More glittery CSS disco ball */
+.option-one-disco-ball{
+  width:150px !important;
+  height:150px !important;
+  opacity:.96 !important;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(255,255,255,.98), transparent 9%),
+    radial-gradient(circle at 70% 68%, rgba(255,0,220,.88), transparent 10%),
+    linear-gradient(135deg, rgba(255,255,255,.22), transparent 32%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.30) 0 2px, transparent 2px 12px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.24) 0 2px, transparent 2px 12px),
+    radial-gradient(circle at 35% 28%, #ff7adf 0%, #a855f7 34%, #4c1d95 58%, #120028 78%) !important;
+  box-shadow:
+    0 0 16px rgba(255,255,255,.42),
+    0 0 42px rgba(255,79,216,.74),
+    0 0 86px rgba(168,85,247,.48) !important;
+}
+
+.option-one-disco-ball::before{
+  content:"";
+  position:absolute;
+  inset:-18px;
+  border-radius:50%;
+  background:
+    radial-gradient(circle at 27% 22%, rgba(255,255,255,.9), transparent 4%),
+    radial-gradient(circle at 62% 18%, rgba(255,255,255,.75), transparent 3%),
+    radial-gradient(circle at 78% 62%, rgba(255,79,216,.82), transparent 4%),
+    radial-gradient(circle at 42% 78%, rgba(255,255,255,.65), transparent 3%);
+  filter:blur(.2px);
+  pointer-events:none;
+}
+
+.option-one-disco-ball::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:220%;
+  height:2px;
+  transform:translate(-50%,-50%) rotate(-28deg);
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.85), rgba(255,79,216,.7), transparent);
+  filter:blur(.4px);
+  opacity:.78;
+}
+
+.option-one-disco-sparkles{
+  position:absolute;
+  right:5.2%;
+  top:5.7%;
+  width:180px;
+  height:180px;
+  z-index:2;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 18% 30%, rgba(255,255,255,.95) 0 2px, transparent 3px),
+    radial-gradient(circle at 82% 18%, rgba(255,255,255,.88) 0 2px, transparent 3px),
+    radial-gradient(circle at 72% 78%, rgba(255,79,216,.92) 0 2px, transparent 3px),
+    radial-gradient(circle at 35% 82%, rgba(255,213,74,.9) 0 2px, transparent 3px);
+  filter:drop-shadow(0 0 8px rgba(255,255,255,.9)) drop-shadow(0 0 15px rgba(255,79,216,.75));
+}
+
+/* Make lower cards feel part of same scene */
+.home-info-card{
+  background:
+    linear-gradient(180deg, rgba(111,38,141,.76), rgba(37,7,57,.82)) !important;
+  box-shadow:
+    0 18px 42px rgba(0,0,0,.28),
+    inset 0 1px 0 rgba(255,255,255,.09) !important;
+}
+
+/* Prevent content being hidden behind the browser bottom on shorter screens */
+@media(max-height:820px) and (min-width:900px){
+  .option-one-hero{
+    min-height:720px !important;
+    padding-top:30px !important;
+  }
+
+  .option-one-logo-shell{
+    width:190px !important;
+  }
+}
+
+@media(max-width:850px){
+  .option-one-hero{
+    padding-bottom:54px !important;
+  }
+
+  .option-one-hero::after{
+    height:130px;
+  }
+
+  .home-info-section{
+    padding-top:26px !important;
+  }
+
+  .option-one-disco-sparkles{
+    width:110px;
+    height:110px;
+    right:4%;
+    top:5%;
+  }
+}
