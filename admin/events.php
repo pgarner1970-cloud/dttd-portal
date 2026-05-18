@@ -1,3 +1,22 @@
+
+function admin_upload_url($path) {
+    $path = trim((string)$path);
+    if ($path === '') {
+        return '';
+    }
+    if (preg_match('~^https?://~i', $path)) {
+        return $path;
+    }
+    $path = ltrim($path, '/');
+    if (str_starts_with($path, 'uploads/')) {
+        return 'https://dancethruthedecades.co.uk/' . $path;
+    }
+    if (str_contains($path, '/')) {
+        return 'https://dancethruthedecades.co.uk/' . $path;
+    }
+    return 'https://dancethruthedecades.co.uk/uploads/events/' . $path;
+}
+
 <?php
 require_once __DIR__ . '/_auth.php';
 
@@ -50,7 +69,7 @@ function dttd_handle_event_image_upload($field_name = 'event_image_upload') {
         return null;
     }
 
-    $upload_dir = dirname(__DIR__) . '/uploads/events';
+    $upload_dir = dirname(__DIR__) . 'https://dancethruthedecades.co.uk/uploads/events';
     if (!is_dir($upload_dir)) {
         mkdir($upload_dir, 0775, true);
     }
@@ -62,7 +81,7 @@ function dttd_handle_event_image_upload($field_name = 'event_image_upload') {
         return null;
     }
 
-    return '/uploads/events/' . $filename;
+    return 'https://dancethruthedecades.co.uk/uploads/events/' . $filename;
 }
 
 
@@ -166,12 +185,12 @@ admin_header('Events - DJ Portal');
                 <img src="<?= h($e['event_image']) ?>" alt="<?= h($e['event_name']) ?> image">
               </div>
             <?php endif; ?>
-            <a class="action-tile duplicate event-qr-link" href="/admin/event-qr.php?id=<?= (int)$e['id'] ?>">
+            <a class="action-tile duplicate event-qr-link" href="event-qr.php?id=<?= (int)$e['id'] ?>">
                 <span class="big-icon">▦</span>
                 <span>QR</span>
               </a>
 
-            <a class="action-tile maybe" href="/admin/event-edit.php?id=<?= (int)$e['id'] ?>">
+            <a class="action-tile maybe" href="event-edit.php?id=<?= (int)$e['id'] ?>">
               <span class="big-icon">⚙</span>
               <span>Edit</span>
             </a>

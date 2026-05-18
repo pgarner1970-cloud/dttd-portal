@@ -116,7 +116,7 @@ admin_header('Venues - DJ Portal');
             </div>
 
             <div class="venue-row-actions">
-              <a class="action-tile maybe venue-square-action" href="/admin/venue-edit.php?id=<?= (int)$venue['id'] ?>">
+              <a class="action-tile maybe venue-square-action" href="venue-edit.php?id=<?= (int)$venue['id'] ?>">
                 <span class="big-icon">⚙</span>
                 <span>Edit</span>
               </a>

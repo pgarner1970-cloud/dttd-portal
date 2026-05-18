@@ -36,7 +36,7 @@ if (empty($event['event_code'])) {
             <h1 class="touch-panel-title">Event QR Code</h1>
             <p class="touch-subtitle">This event does not have an event code yet.</p>
           </div>
-          <a class="touch-btn" href="/admin/event-edit.php?id=<?= (int)$event['id'] ?>">Edit Event</a>
+          <a class="touch-btn" href="event-edit.php?id=<?= (int)$event['id'] ?>">Edit Event</a>
         </div>
       </section>
     </main>
@@ -65,7 +65,7 @@ admin_header('Event QR - DJ Portal');
       </div>
       <div class="settings-actions">
         <a class="touch-btn" href="events.php">Back to Events</a>
-        <a class="touch-btn blue" href="/admin/event-edit.php?id=<?= (int)$event['id'] ?>">Edit Event</a>
+        <a class="touch-btn blue" href="event-edit.php?id=<?= (int)$event['id'] ?>">Edit Event</a>
       </div>
     </div>
 

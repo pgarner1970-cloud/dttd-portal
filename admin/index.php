@@ -50,7 +50,7 @@ function dttd_handle_event_image_upload($field_name = 'event_image_upload') {
         return null;
     }
 
-    $upload_dir = dirname(__DIR__) . '/uploads/events';
+    $upload_dir = dirname(__DIR__) . 'https://dancethruthedecades.co.uk/uploads/events';
     if (!is_dir($upload_dir)) {
         mkdir($upload_dir, 0775, true);
     }
@@ -62,7 +62,7 @@ function dttd_handle_event_image_upload($field_name = 'event_image_upload') {
         return null;
     }
 
-    return '/uploads/events/' . $filename;
+    return 'https://dancethruthedecades.co.uk/uploads/events/' . $filename;
 }
 
 

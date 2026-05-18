@@ -68,7 +68,7 @@ function event_upload_image() {
         return null;
     }
 
-    $upload_dir = dirname(__DIR__) . '/uploads/events';
+    $upload_dir = dirname(__DIR__) . 'https://dancethruthedecades.co.uk/uploads/events';
     if (!is_dir($upload_dir)) {
         mkdir($upload_dir, 0775, true);
     }
@@ -80,7 +80,7 @@ function event_upload_image() {
         return null;
     }
 
-    return '/uploads/events/' . $filename;
+    return 'https://dancethruthedecades.co.uk/uploads/events/' . $filename;
 }
 
 
@@ -704,7 +704,7 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
               </div>
 
               <div class="event-qr-actions">
-                <a class="touch-btn blue" href="/admin/event-qr.php?id=<?= (int)$event['id'] ?>">Open QR Page</a>
+                <a class="touch-btn blue" href="event-qr.php?id=<?= (int)$event['id'] ?>">Open QR Page</a>
                 <button type="button" class="touch-btn qr-print-btn">Print QR</button>
                 <button type="button" class="touch-btn qr-copy-btn">Copy Link</button>
               </div>
