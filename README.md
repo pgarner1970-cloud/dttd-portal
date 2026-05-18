@@ -1,20 +1,20 @@
-# Dance Thru the Decades Portal v126 - Public Header Redesign
+# Dance Thru the Decades Portal v127 - Homepage Logo Fix
 
 ## Changes
 
-- Cleans up public-facing headers.
-- Makes the uploaded Dance Thru The Decades logo clearly visible at the top of public pages.
-- Removes unnecessary public header buttons:
+- Patches the actual public homepage files, not only `event.php` and `request.php`.
+- Adds the uploaded Dance Thru The Decades Events logo visibly to the homepage/header.
+- Removes unnecessary public buttons:
   - Facebook
   - Tonight’s Event
-- Keeps admin/DJ Portal styling untouched.
-- Public pages continue using `assets/public.css`.
+  - Follow us on Facebook
+  - Check in / Tag us
+- Keeps admin/DJ Portal untouched.
 
-## Files adjusted
+## Public files updated
 
-- `event.php`
-- `request.php`
-- `assets/public.css`
+- event.php
+- request.php
 
 ## SQL
 
@@ -22,4 +22,4 @@ No SQL changes.
 
 ## Suggested Git commit title
 
-v126 Public Header Redesign
+v127 Homepage Logo Fix

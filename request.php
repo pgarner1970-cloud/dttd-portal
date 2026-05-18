@@ -73,7 +73,7 @@ function request_self_link($event) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Request a Song</title>
 <link rel="stylesheet" href="/assets/style.css">
-  <link rel="stylesheet" href="/assets/public.css?v=126">
+  <link rel="stylesheet" href="/assets/public.css?v=127">
 </head>
 <body class="public-page">
 <nav class="topnav">
@@ -82,6 +82,7 @@ function request_self_link($event) {
 </nav>
 
 <section class="hero">
+      <div class="homepage-logo-wrap"><img class="site-logo-img" src="/assets/dttd-logo.webp" alt="Dance Thru The Decades Events logo"></div>
   <span class="badge">Song Requests</span>
   <h1>Request a Song</h1>
   <?php if ($event): ?>

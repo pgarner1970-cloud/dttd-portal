@@ -84,12 +84,13 @@ $status = public_event_status($event);
   margin-bottom:4px;
 }
 </style>
-  <link rel="stylesheet" href="/assets/public.css?v=126">
+  <link rel="stylesheet" href="/assets/public.css?v=127">
 </head>
 <body class="public-page">
 <nav class="topnav"><a href="/">Home</a></nav>
 
 <section class="hero">
+      <div class="homepage-logo-wrap"><img class="site-logo-img" src="/assets/dttd-logo.webp" alt="Dance Thru The Decades Events logo"></div>
   <span class="badge">Event Portal</span>
   <?php if ($event): ?>
     <h1><?= h($event['event_name']) ?></h1>
