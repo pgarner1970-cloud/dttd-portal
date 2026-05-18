@@ -23,7 +23,7 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dance Thru the Decades Events</title>
   <meta name="description" content="Dance Thru the Decades Events — 60s, 70s, 80s, 90s and 00s party nights, DJ events, song requests and Facebook event updates.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=132">
+  <link rel="stylesheet" href="/assets/public-site.css?v=134">
 </head>
 <body class="homepage-option-one">
   <main class="home-option-one">
@@ -33,14 +33,14 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
       <div class="option-one-floor-glow" aria-hidden="true"></div>
 
       <div class="option-one-inner">
-        <img class="option-one-logo" src="/assets/dttd-neon-logo.png?v=133" alt="Dance Thru The Decades Events logo">
+        <div class="option-one-logo-shell"><img class="option-one-logo" src="/assets/dttd-logo.webp?v=134" alt="Dance Thru The Decades Events logo"></div>
 
         <p class="option-one-eyebrow">60s · 70s · 80s · 90s · 00s</p>
 
         <h1>
-          <span>DANCE THRU</span>
-          <span>THE</span>
-          <span>DECADES</span>
+          <span class="headline-main">DANCE THRU</span>
+          <span class="headline-the"><i></i><b>THE</b><i></i></span>
+          <span class="headline-main">DECADES</span>
           <span class="events-line">EVENTS</span>
         </h1>
 
