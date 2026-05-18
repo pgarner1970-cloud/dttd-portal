@@ -69,20 +69,11 @@ admin_header('Venues - DJ Portal');
         <p class="touch-subtitle">Saved venues can be reused when adding or editing events.</p>
       </div>
       <div class="settings-actions">
-        <a class="touch-btn" href="/admin/events.php">Back to Events</a>
         <a class="touch-btn blue" href="/admin/venue-edit.php">+ Add Venue</a>
       </div>
     </div>
 
     <div class="settings-card venue-list-card">
-      <div class="settings-card-header">
-        <div class="settings-card-icon">⌖</div>
-        <div>
-          <h3>Saved Venues</h3>
-          <p><?= count($venues) ?> saved venue<?= count($venues) === 1 ? '' : 's' ?>.</p>
-        </div>
-      </div>
-
       <div class="venue-list">
         <?php if ($error): ?>
           <div class="settings-alert error"><?= h($error) ?></div>
@@ -108,24 +99,24 @@ admin_header('Venues - DJ Portal');
 
             <div class="venue-row-links">
               <?php if (!empty($venue['venue_postcode'])): ?>
-                <a href="https://www.google.com/maps/search/?api=1&query=<?= rawurlencode(($venue['venue_name'] ?? '') . ' ' . ($venue['venue_postcode'] ?? '')) ?>" target="_blank" rel="noopener">Map</a>
+                <a href="https://www.google.com/maps/search/?api=1&query=<?= rawurlencode(($venue['venue_name'] ?? '') . ' ' . ($venue['venue_postcode'] ?? '')) ?>" target="_blank" rel="noopener">⌖</a>
               <?php endif; ?>
 
               <?php if (!empty($venue['venue_facebook_url'])): ?>
-                <a href="<?= h($venue['venue_facebook_url']) ?>" target="_blank" rel="noopener">Facebook</a>
+                <a href="<?= h($venue['venue_facebook_url']) ?>" target="_blank" rel="noopener">f</a>
               <?php endif; ?>
 
               <?php if (!empty($venue['venue_website_url'])): ?>
-                <a href="<?= h($venue['venue_website_url']) ?>" target="_blank" rel="noopener">Website</a>
+                <a href="<?= h($venue['venue_website_url']) ?>" target="_blank" rel="noopener">⌂</a>
               <?php endif; ?>
 
               <?php if (!empty($venue['venue_ticket_url'])): ?>
-                <a href="<?= h($venue['venue_ticket_url']) ?>" target="_blank" rel="noopener">Tickets</a>
+                <a href="<?= h($venue['venue_ticket_url']) ?>" target="_blank" rel="noopener">🎟</a>
               <?php endif; ?>
             </div>
 
             <div class="venue-row-actions">
-              <a class="action-tile maybe" href="/admin/venue-edit.php?id=<?= (int)$venue['id'] ?>">
+              <a class="action-tile maybe venue-square-action" href="/admin/venue-edit.php?id=<?= (int)$venue['id'] ?>">
                 <span class="big-icon">⚙</span>
                 <span>Edit</span>
               </a>
@@ -133,7 +124,7 @@ admin_header('Venues - DJ Portal');
               <form method="post" onsubmit="return confirm('Delete this venue?');">
                 <input type="hidden" name="action" value="delete_venue">
                 <input type="hidden" name="venue_id" value="<?= (int)$venue['id'] ?>">
-                <button class="action-tile reject" type="submit" <?= ((int)($venue['event_count'] ?? 0) > 0) ? 'disabled' : '' ?>>
+                <button class="action-tile reject venue-square-action" type="submit" <?= ((int)($venue['event_count'] ?? 0) > 0) ? 'disabled' : '' ?>>
                   <span class="big-icon">×</span>
                   <span>Delete</span>
                 </button>

@@ -5314,3 +5314,44 @@ button.action-tile:disabled{
     grid-template-columns:1fr;
   }
 }
+
+
+/* v122 venue page cleanup */
+.venue-row{
+  min-height:96px;
+}
+
+.venue-row-links a{
+  width:42px;
+  height:42px;
+  padding:0 !important;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:12px !important;
+  font-size:16px !important;
+  font-weight:900;
+}
+
+.venue-square-action{
+  width:56px !important;
+  min-width:56px !important;
+  height:56px !important;
+  padding:0 !important;
+  display:flex !important;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  border-radius:14px !important;
+}
+
+.venue-square-action .big-icon{
+  font-size:18px;
+  line-height:1;
+}
+
+.venue-square-action span:last-child{
+  font-size:11px;
+  line-height:1;
+  margin-top:3px;
+}
