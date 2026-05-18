@@ -189,7 +189,7 @@ try {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upcoming Events | Dance Thru the Decades</title>
   <meta name="description" content="Upcoming public Dance Thru the Decades events, party nights and request-enabled DJ events.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=150">
+  <link rel="stylesheet" href="/assets/public-site.css?v=151">
 </head>
 <body class="homepage-option-one public-list-page">
   <main class="home-option-one">
@@ -197,7 +197,7 @@ try {
 
     <section class="public-list-hero">
       <div class="option-one-logo-shell public-list-logo">
-        <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=150" alt="Dance Thru The Decades Events logo">
+        <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=151" alt="Dance Thru The Decades Events logo">
       </div>
 
       <p class="option-one-eyebrow">Public Nights</p>
@@ -273,6 +273,7 @@ try {
         </div>
       <?php endif; ?>
     </section>
+      <?php require __DIR__ . '/includes/public-footer.php'; ?>
   </main>
 </body>
 </html>

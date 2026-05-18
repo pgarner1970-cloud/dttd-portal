@@ -21,7 +21,7 @@ $navItems = [
 ?>
 <header class="public-site-header">
   <a class="public-site-brand" href="/" aria-label="Dance Thru The Decades home">
-    <img src="/assets/dttd-logo-inner.png?v=150" alt="" aria-hidden="true">
+    <img src="/assets/dttd-logo-inner.png?v=151" alt="" aria-hidden="true">
     <span>Dance Thru<br><strong>The Decades</strong></span>
   </a>
 

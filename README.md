@@ -1,40 +1,31 @@
-# Dance Thru the Decades Portal v150 - Platform Structure Update
+# Dance Thru the Decades Portal v151 - Public Footer
 
 ## Changes
 
-- Adds reusable public navigation header:
+- Adds reusable public footer:
+  - `includes/public-footer.php`
+- Adds footer to public pages.
+- Footer includes:
+  - brand/logo
   - Home
   - Events
   - Gallery
-  - Facebook
-- Removes the floating public Home/DJ Login button styling from public pages.
-- Keeps DJ/admin access through the `dj.dancethruthedecades.co.uk` subdomain.
-- Adds support for stable public event slugs.
-- Adds support for event status:
-  - draft
-  - scheduled
-  - live
-  - ended
-  - cancelled
-  - private
-- Cancelled public events remain viewable and show a cancellation notice.
-- Draft/private events are excluded from public event lists and slug lookup.
-- Keeps event codes hidden and only available for QR/private access.
-- Keeps SEO URLs:
-  - `/events`
-  - `/events/event-slug`
-- Event detail pages display descriptions where available.
-- Flyer images continue to use non-cropped contain display.
-- Embedded venue map retained.
+  - Privacy
+  - Terms
+  - Facebook link
+  - Website provided by Yellow Arrow
+- WhatsApp is supported as an optional future variable, but not shown unless a URL is explicitly configured.
+- Avoids exposing a personal phone number.
+- Bumps public-site.css cache version to v151.
+
+## WhatsApp note
+
+For now, WhatsApp is intentionally not displayed unless `$whatsappUrl` is set. This avoids putting a personal phone number directly on the public site.
 
 ## SQL
 
-Recommended SQL included:
-
-```text
-sql/v150_event_status_public_slug.sql
-```
+No SQL changes.
 
 ## Suggested Git commit title
 
-v150 Platform Structure Update
+v151 Public Footer
