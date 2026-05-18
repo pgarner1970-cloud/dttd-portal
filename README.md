@@ -1,20 +1,18 @@
-# Dance Thru the Decades Portal v127 - Homepage Logo Fix
+# Dance Thru the Decades Portal v131 - Homepage Heading Refinement
 
 ## Changes
 
-- Patches the actual public homepage files, not only `event.php` and `request.php`.
-- Adds the uploaded Dance Thru The Decades Events logo visibly to the homepage/header.
-- Removes unnecessary public buttons:
-  - Facebook
-  - Tonight’s Event
-  - Follow us on Facebook
-  - Check in / Tag us
-- Keeps admin/DJ Portal untouched.
-
-## Public files updated
-
-- event.php
-- request.php
+- Removes the word "event" from the hero subtitle.
+- Makes the decades line larger and more visual.
+- Adds a subtle gold neon shimmer to:
+  - 60s · 70s · 80s · 90s · 00s
+- Changes the main heading to match the logo structure:
+  - DANCE THRU
+  - THE
+  - DECADES
+  - EVENTS
+- Styles THE and EVENTS separately for a more branded retro look.
+- Bumps `public-site.css` cache version to v131.
 
 ## SQL
 
@@ -22,4 +20,4 @@ No SQL changes.
 
 ## Suggested Git commit title
 
-v127 Homepage Logo Fix
+v131 Homepage Heading Refinement
