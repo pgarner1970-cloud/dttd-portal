@@ -2492,3 +2492,30 @@ body.homepage-option-one::after{
 [data-event-code-display]{
   display:none !important;
 }
+
+
+/* v147 portal subdomain + public navigation */
+.public-dj-login{
+  text-transform:none;
+}
+
+.public-home-link{
+  border-color:rgba(255,213,74,.72) !important;
+  box-shadow:
+    0 0 12px rgba(255,213,74,.28),
+    inset 0 1px 0 rgba(255,255,255,.12) !important;
+}
+
+.public-home-link .login-icon{
+  color:#ffd54a !important;
+  text-shadow:0 0 8px rgba(255,213,74,.75) !important;
+}
+
+@media(max-width:760px){
+  .public-dj-login span:last-child{
+    max-width:80px;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+  }
+}

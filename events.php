@@ -101,20 +101,20 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upcoming Events | Dance Thru the Decades</title>
   <meta name="description" content="Upcoming public Dance Thru the Decades events, party nights and request-enabled DJ events.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=146">
+  <link rel="stylesheet" href="/assets/public-site.css?v=147">
 </head>
 <body class="homepage-option-one public-list-page">
   <main class="home-option-one">
-    <a class="public-dj-login" href="/admin/">
-      <span class="login-icon">♬</span>
-      <span>DJ Login</span>
+    <a class="public-dj-login public-home-link" href="/">
+      <span class="login-icon">⌂</span>
+      <span>Home</span>
     </a>
 
     <section class="public-list-hero">
       <a class="public-back-link" href="/">← Home</a>
 
       <div class="option-one-logo-shell public-list-logo">
-        <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=146" alt="Dance Thru The Decades Events logo">
+        <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=147" alt="Dance Thru The Decades Events logo">
       </div>
 
       <p class="option-one-eyebrow">Public Nights</p>

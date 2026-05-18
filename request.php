@@ -76,6 +76,10 @@ function request_self_link($event) {
   <link rel="stylesheet" href="/assets/public.css?v=127">
 </head>
 <body class="public-page">
+    <a class="public-dj-login public-home-link" href="/">
+      <span class="login-icon">⌂</span>
+      <span>Home</span>
+    </a>
 <nav class="topnav">
   <a href="/">Home</a>
   <?php if ($event && $access_ok): ?><a href="<?= h(request_link_for_event($event)) ?>">Event Portal</a><?php endif; ?>
