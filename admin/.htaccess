@@ -1,1 +1,6 @@
 DirectoryIndex index.php login.php
+
+
+# v155 note:
+# Admin navigation can be relative for the DJ subdomain,
+# but shared assets should remain root-relative, e.g. /assets/admin.css.
