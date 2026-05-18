@@ -5024,3 +5024,21 @@ body.modal-open{ overflow:hidden; }
   line-height:1.35;
   font-style:normal;
 }
+
+
+/* v117 event edit cleanup */
+.restored-event-form .event-details-card .settings-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+}
+
+.restored-event-form .event-details-card .event-notes-field{
+  grid-row:span 2 !important;
+}
+
+.restored-event-form .event-details-card .event-notes-field textarea{
+  min-height:152px !important;
+}
+
+.restored-event-form .event-details-card label:not(.event-notes-field){
+  align-self:start !important;
+}

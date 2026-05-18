@@ -445,6 +445,10 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
     <form method="post" enctype="multipart/form-data" class="event-edit-form restored-event-form">
       <input type="hidden" name="event_code" value="<?= h($event['event_code'] ?? '') ?>">
 
+">
+
+">
+
       <?php if ($error): ?>
         <div class="settings-alert error"><?= h($error) ?></div>
       <?php endif; ?>
@@ -495,17 +499,7 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
         </div>
 
         <div class="settings-grid">
-          <label>
-            <span>Event name *</span>
-            <input name="event_name" value="<?= h($event['event_name']) ?>" required>
-          </label>
-
-          <label>
-            <span>Venue name *</span>
-            <input name="venue_name" id="venue_name_input" value="<?= h($event['venue_name']) ?>" required>
-          </label>
-
-          <label>
+<label>
             <span>Event type</span>
             <select name="event_type">
               <option value="public" <?= ($event['event_type'] ?? '') === 'public' ? 'selected' : '' ?>>Public Night</option>
@@ -513,7 +507,7 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
             </select>
           </label>
 
-          <label>
+          <label class="event-notes-field">
             <span>Notes</span>
             <textarea name="notes" placeholder="Internal event notes"><?= h($event['notes'] ?? '') ?></textarea>
           </label>

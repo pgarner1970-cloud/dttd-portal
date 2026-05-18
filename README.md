@@ -1,12 +1,12 @@
-# Dance Thru the Decades Portal v116 - Simplify Event Code Management
+# Dance Thru the Decades Portal v117 - Event Edit Cleanup
 
 ## Changes
 
-- Removes the duplicate visible Event Code field from Portal Behaviour.
-- Keeps the QR Code & Event Code section as the single visible location for the event code.
-- Adds a hidden event_code field so existing values are preserved on save.
-- Keeps automatic event code generation unchanged.
-- Adds helper wording explaining the event code is generated automatically.
+- Removes duplicate Venue name from the top Event Details section.
+- Keeps Venue name in Venue Details & Social.
+- Makes Notes use the freed-up space in Event Details.
+- Removes the visible Event Code field from Portal Behaviour.
+- Keeps one hidden Event Code field so the existing code is preserved when saving.
 - Keeps `event-edit.php` as the only event edit page.
 - Does not recreate `events-edit.php`.
 
@@ -16,4 +16,4 @@ No SQL changes.
 
 ## Suggested Git commit title
 
-v116 Simplify Event Code Management
+v117 Event Edit Cleanup
