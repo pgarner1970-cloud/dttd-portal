@@ -23,7 +23,7 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dance Thru the Decades Events</title>
   <meta name="description" content="Dance Thru the Decades Events — 60s, 70s, 80s, 90s and 00s party nights, DJ events, song requests and Facebook event updates.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=139">
+  <link rel="stylesheet" href="/assets/public-site.css?v=140">
 </head>
 <body class="homepage-option-one">
   <main class="home-option-one">
@@ -32,13 +32,13 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
       <span>DJ Login</span>
     </a>
     <section class="option-one-hero">
-      <img class="glitter-ball-img" src="/assets/glitter-ball-clean.png?v=139" alt="" aria-hidden="true">
+      <img class="glitter-ball-img" src="/assets/glitter-ball-clean.png?v=140" alt="" aria-hidden="true">
       <div class="option-one-disco-ball" aria-hidden="true"></div>
       <div class="option-one-crowd" aria-hidden="true"></div>
       <div class="option-one-floor-glow" aria-hidden="true"></div>
 
       <div class="option-one-inner">
-        <div class="option-one-logo-shell"><img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=138" alt="Dance Thru The Decades Events logo"></div>
+        <div class="option-one-logo-shell"><img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=140" alt="Dance Thru The Decades Events logo"></div>
 
         <p class="option-one-eyebrow">60s · 70s · 80s · 90s · 00s</p>
 
@@ -88,20 +88,7 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
         </div>
       </div>
     </section>
-
-
-    <section class="disco-light-strip" aria-hidden="true">
-      <div class="disco-light-track">
-        <span></span><span></span><span></span><span></span><span></span><span></span>
-        <span></span><span></span><span></span><span></span><span></span><span></span>
-      </div>
-      <div class="disco-light-track disco-light-track-two">
-        <span></span><span></span><span></span><span></span><span></span><span></span>
-        <span></span><span></span><span></span><span></span><span></span><span></span>
-      </div>
-    </section>
-
-    <section class="home-info-section" id="memories">
+<section class="home-info-section" id="memories">
       <div class="home-info-grid">
         <article class="home-info-card">
           <span>👍</span>

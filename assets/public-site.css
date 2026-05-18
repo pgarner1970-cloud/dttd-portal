@@ -1854,3 +1854,122 @@ body.homepage-option-one{
     opacity:.82 !important;
   }
 }
+
+
+/* v140 remove disco blocks and smooth page blend */
+.disco-light-strip{
+  display:none !important;
+}
+
+/* Extend hero background down so the action strip doesn't sit in a hard black band */
+.option-one-hero{
+  padding-bottom:120px !important;
+  background:
+    radial-gradient(circle at 50% 14%, rgba(255,72,219,.42), transparent 14rem),
+    radial-gradient(circle at 50% 42%, rgba(124,58,237,.26), transparent 34rem),
+    radial-gradient(ellipse at 50% 94%, rgba(255,79,216,.14), transparent 42%),
+    repeating-conic-gradient(from 0deg at 50% 38%, rgba(255,255,255,.06) 0deg 4deg, transparent 4deg 10deg),
+    linear-gradient(180deg, #05000d 0%, #26043a 48%, #150020 78%, #0b0012 100%) !important;
+}
+
+/* Replace hard end with a deeper but smoother fade */
+.option-one-hero::after{
+  height:300px !important;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(11,0,20,0) 0%,
+      rgba(18,0,32,.18) 25%,
+      rgba(16,0,28,.46) 56%,
+      rgba(12,0,22,.86) 84%,
+      #0a0011 100%
+    ) !important;
+}
+
+.option-one-floor-glow{
+  height:320px !important;
+  background:
+    radial-gradient(ellipse at 50% 4%, rgba(255,79,216,.18), transparent 48%),
+    linear-gradient(180deg, transparent 0%, rgba(14,0,25,.52) 62%, #0a0011 100%) !important;
+}
+
+/* Let the action strip belong to the same transition layer */
+.option-one-action-strip{
+  position:relative !important;
+  z-index:8 !important;
+  background:
+    linear-gradient(180deg, rgba(28,0,42,.72), rgba(10,0,18,.66)) !important;
+  border-color:rgba(255,79,216,.62) !important;
+  box-shadow:
+    0 0 18px rgba(255,79,216,.18),
+    0 24px 55px rgba(0,0,0,.34),
+    inset 0 1px 0 rgba(255,255,255,.06) !important;
+}
+
+/* Smooth transition into the lower cards */
+.home-info-section{
+  margin-top:0 !important;
+  padding-top:54px !important;
+  background:
+    radial-gradient(ellipse at 50% -8%, rgba(255,79,216,.18), transparent 34%),
+    radial-gradient(ellipse at 20% 20%, rgba(124,58,237,.12), transparent 38%),
+    radial-gradient(ellipse at 80% 20%, rgba(255,79,216,.08), transparent 36%),
+    linear-gradient(180deg, #0a0011 0%, #14001f 38%, #12001d 72%, #07000d 100%) !important;
+  border-top:1px solid rgba(255,79,216,.10);
+}
+
+.home-info-section::before{
+  content:"";
+  display:block;
+  position:absolute;
+  left:0;
+  right:0;
+  top:-80px;
+  height:80px;
+  pointer-events:none;
+  background:linear-gradient(180deg, rgba(10,0,17,0), #0a0011);
+}
+
+.home-info-section{
+  position:relative;
+}
+
+.home-info-grid{
+  position:relative;
+  z-index:2;
+}
+
+.home-info-card{
+  background:
+    linear-gradient(180deg, rgba(92,18,122,.78), rgba(31,5,50,.86)) !important;
+  border-color:rgba(255,79,216,.38) !important;
+  box-shadow:
+    0 20px 50px rgba(0,0,0,.32),
+    0 0 24px rgba(255,79,216,.08),
+    inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+
+/* Remove old v138 animation rules visually even if CSS remains earlier */
+.disco-light-track,
+.disco-light-track-two{
+  display:none !important;
+}
+
+@media(max-width:760px){
+  .option-one-hero{
+    padding-bottom:48px !important;
+  }
+
+  .option-one-hero::after{
+    height:150px !important;
+  }
+
+  .home-info-section{
+    padding-top:30px !important;
+  }
+
+  .home-info-section::before{
+    top:-42px;
+    height:42px;
+  }
+}
