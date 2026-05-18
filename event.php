@@ -84,7 +84,7 @@ $status = public_event_status($event);
   margin-bottom:4px;
 }
 </style>
-  <link rel="stylesheet" href="/assets/public.css?v=125">
+  <link rel="stylesheet" href="/assets/public.css?v=126">
 </head>
 <body class="public-page">
 <nav class="topnav"><a href="/">Home</a></nav>
@@ -104,8 +104,8 @@ $status = public_event_status($event);
 </section>
 
 <main class="container">
-      <div class="public-logo-wrap"><img class="public-logo" src="/assets/dttd-logo.webp" alt="Dance Thru The Decades Events logo"></div>
-  <div class="card event-hero-card">
+      <div class="public-logo-wrap public-logo-primary"><img class="public-logo" src="/assets/dttd-logo.webp" alt="Dance Thru The Decades Events logo"></div>
+<div class="card event-hero-card">
     <?php if (!$event): ?>
       <h2>Check the link or QR code</h2>
       <p>Please check that the event code has been entered correctly, or scan the QR code again at the venue.</p>

@@ -1,19 +1,20 @@
-# Dance Thru the Decades Portal v125 - Public Logo Integration
+# Dance Thru the Decades Portal v126 - Public Header Redesign
 
 ## Changes
 
-- Adds the uploaded Dance Thru The Decades Events logo to public-facing pages.
-- Logo assets added:
-  - `assets/dttd-logo.jpg`
-  - `assets/dttd-logo.webp`
-- Updates `assets/public.css` only.
-- Admin/DJ Portal CSS and admin header are not changed.
-- Public pages continue to use `public.css`.
+- Cleans up public-facing headers.
+- Makes the uploaded Dance Thru The Decades logo clearly visible at the top of public pages.
+- Removes unnecessary public header buttons:
+  - Facebook
+  - Tonight’s Event
+- Keeps admin/DJ Portal styling untouched.
+- Public pages continue using `assets/public.css`.
 
-## Public files updated
+## Files adjusted
 
-- event.php
-- request.php
+- `event.php`
+- `request.php`
+- `assets/public.css`
 
 ## SQL
 
@@ -21,4 +22,4 @@ No SQL changes.
 
 ## Suggested Git commit title
 
-v125 Public Logo Integration
+v126 Public Header Redesign

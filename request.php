@@ -73,7 +73,7 @@ function request_self_link($event) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Request a Song</title>
 <link rel="stylesheet" href="/assets/style.css">
-  <link rel="stylesheet" href="/assets/public.css?v=125">
+  <link rel="stylesheet" href="/assets/public.css?v=126">
 </head>
 <body class="public-page">
 <nav class="topnav">
@@ -92,8 +92,8 @@ function request_self_link($event) {
 </section>
 
 <main class="container">
-      <div class="public-logo-wrap"><img class="public-logo" src="/assets/dttd-logo.webp" alt="Dance Thru The Decades Events logo"></div>
-  <div class="card">
+      <div class="public-logo-wrap public-logo-primary"><img class="public-logo" src="/assets/dttd-logo.webp" alt="Dance Thru The Decades Events logo"></div>
+<div class="card">
     <?php if (!$access_ok): ?>
       <h2>Event access required</h2>
       <p>Song requests are only available from a valid event link or QR code.</p>

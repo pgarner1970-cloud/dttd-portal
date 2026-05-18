@@ -191,3 +191,52 @@ body.public-page{
 .public-card-header.has-public-logo h2{
   margin-top:0;
 }
+
+
+/* v126 public header redesign */
+.public-logo-primary{
+  margin-top:0;
+  margin-bottom:18px;
+}
+
+.public-card-header.has-public-logo{
+  padding-top:28px;
+  text-align:center;
+}
+
+.public-card-header.has-public-logo .public-logo{
+  width:clamp(138px, 30vw, 230px);
+}
+
+.public-card-header.has-public-logo h1,
+.public-card-header.has-public-logo h2{
+  margin-top:8px;
+}
+
+.public-card-header.has-public-logo p{
+  max-width:680px;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+.public-nav,
+.hero-actions,
+.public-actions,
+.nav-actions{
+  display:none !important;
+}
+
+.public-logo{
+  background:#fff;
+  padding:3px;
+}
+
+@media(max-width:700px){
+  .public-card-header.has-public-logo{
+    padding-top:20px;
+  }
+
+  .public-card-header.has-public-logo .public-logo{
+    width:145px;
+  }
+}
