@@ -1,22 +1,12 @@
-# Dance Thru the Decades Portal v132 - Clean Homepage Heading Update
 
-## Changes
+# v133 Neon Logo Refinement
 
-- Clean deployment ZIP.
-- Excludes `.git`, uploads and server config files.
-- Forces the homepage heading to:
-  - DANCE THRU
-  - THE
-  - DECADES
-  - EVENTS
-- Removes the word "event" from the subtitle.
-- Bumps `public-site.css` cache version to v132.
-- Adds stronger final CSS overrides for the heading and decades line.
+Changes:
+- Neon edge logo treatment
+- Removed harsh white badge effect
+- Cleaner decades line styling
+- Refined hero glow
+- Clean deployment ZIP
 
-## SQL
-
-No SQL changes.
-
-## Suggested Git commit title
-
-v132 Clean Homepage Heading Update
+Suggested commit:
+v133 Neon Logo Refinement

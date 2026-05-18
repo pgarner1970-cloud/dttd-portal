@@ -933,3 +933,40 @@ body.homepage-option-one{
   color:rgba(255,255,255,.88) !important;
   margin-top:.38em !important;
 }
+
+
+/* v133 neon logo refinement */
+
+.option-one-logo-wrap{
+    background:none !important;
+    box-shadow:none !important;
+    border:none !important;
+}
+
+.option-one-logo{
+    width:min(280px, 48vw) !important;
+    filter:
+        drop-shadow(0 0 10px rgba(255,0,200,.55))
+        drop-shadow(0 0 28px rgba(160,80,255,.55))
+        drop-shadow(0 0 60px rgba(255,255,255,.22));
+}
+
+.option-one-eyebrow{
+    background:none !important;
+    padding:0 !important;
+    border:none !important;
+    box-shadow:none !important;
+    font-size:clamp(1.1rem,1.7vw,1.6rem) !important;
+    letter-spacing:.24rem !important;
+    color:#ffd95a !important;
+    text-shadow:
+      0 0 6px rgba(255,215,90,.7),
+      0 0 14px rgba(255,120,220,.25);
+}
+
+.option-one-hero h1{
+    text-shadow:
+      0 0 10px rgba(255,255,255,.14),
+      0 0 28px rgba(255,255,255,.10),
+      0 10px 30px rgba(0,0,0,.45);
+}

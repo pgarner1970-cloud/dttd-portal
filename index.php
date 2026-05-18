@@ -33,7 +33,7 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
       <div class="option-one-floor-glow" aria-hidden="true"></div>
 
       <div class="option-one-inner">
-        <img class="option-one-logo" src="/assets/dttd-logo.webp?v=132" alt="Dance Thru The Decades Events logo">
+        <img class="option-one-logo" src="/assets/dttd-neon-logo.png?v=133" alt="Dance Thru The Decades Events logo">
 
         <p class="option-one-eyebrow">60s · 70s · 80s · 90s · 00s</p>
 
