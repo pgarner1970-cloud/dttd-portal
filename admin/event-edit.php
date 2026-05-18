@@ -445,10 +445,6 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
     <form method="post" enctype="multipart/form-data" class="event-edit-form restored-event-form">
       <input type="hidden" name="event_code" value="<?= h($event['event_code'] ?? '') ?>">
 
-">
-
-">
-
       <?php if ($error): ?>
         <div class="settings-alert error"><?= h($error) ?></div>
       <?php endif; ?>
