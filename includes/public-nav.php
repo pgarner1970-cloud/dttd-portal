@@ -21,7 +21,7 @@ $navItems = [
 ?>
 <header class="public-site-header">
   <a class="public-site-brand" href="/" aria-label="Dance Thru The Decades home">
-    <img src="/assets/dttd-logo-inner.png?v=151" alt="" aria-hidden="true">
+    <img src="/assets/dttd-logo-inner.png?v=152" alt="" aria-hidden="true">
     <span>Dance Thru<br><strong>The Decades</strong></span>
   </a>
 
@@ -31,6 +31,9 @@ $navItems = [
         <?= public_h($item['label']) ?>
       </a>
     <?php endforeach; ?>
-    <a href="<?= public_h($facebookUrl) ?>" target="_blank" rel="noopener">Facebook</a>
+
+    <a class="public-nav-social facebook" href="<?= public_h($facebookUrl) ?>" target="_blank" rel="noopener" aria-label="Facebook">
+      <span aria-hidden="true">f</span>
+    </a>
   </nav>
 </header>

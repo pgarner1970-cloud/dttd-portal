@@ -20,7 +20,7 @@ $whatsappUrl = $whatsappUrl ?? '';
 <footer class="public-site-footer">
   <div class="public-footer-inner">
     <div class="public-footer-brand">
-      <img src="/assets/dttd-logo-inner.png?v=151" alt="" aria-hidden="true">
+      <img src="/assets/dttd-logo-inner.png?v=152" alt="" aria-hidden="true">
       <div>
         <strong>Dance Thru The Decades Events</strong>
         <span>Feel-good party nights, classic floor-fillers and moments worth sharing.</span>
@@ -50,6 +50,6 @@ $whatsappUrl = $whatsappUrl ?? '';
 
   <div class="public-footer-bottom">
     <span>&copy; <?= date('Y') ?> Dance Thru The Decades Events</span>
-    <span>Website provided by Yellow Arrow</span>
+    <span>Website provided by <a href="https://yellowarrow.co.uk" target="_blank" rel="noopener">Yellow Arrow</a></span>
   </div>
 </footer>

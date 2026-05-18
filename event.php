@@ -230,7 +230,7 @@ if ($event) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : 'Event Not Found' ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event information.' ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=151">
+  <link rel="stylesheet" href="/assets/public-site.css?v=152">
 </head>
 <body class="homepage-option-one public-event-detail-page">
   <main class="home-option-one">
@@ -239,7 +239,7 @@ if ($event) {
     <?php if (!$event): ?>
       <section class="public-event-detail-hero">
         <div class="option-one-logo-shell public-list-logo">
-          <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=151" alt="Dance Thru The Decades Events logo">
+          <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=152" alt="Dance Thru The Decades Events logo">
         </div>
         <p class="option-one-eyebrow">Event Portal</p>
         <h1 class="event-detail-title">Event Not Found</h1>
@@ -254,7 +254,7 @@ if ($event) {
     <?php else: ?>
       <section class="public-event-detail-hero">
         <div class="option-one-logo-shell public-list-logo">
-          <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=151" alt="Dance Thru The Decades Events logo">
+          <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=152" alt="Dance Thru The Decades Events logo">
         </div>
         <p class="option-one-eyebrow"><?= $isCancelled ? 'Cancelled Event' : 'Event Details' ?></p>
         <h1 class="event-detail-title"><?= public_h($title) ?></h1>
