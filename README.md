@@ -1,15 +1,20 @@
-# Dance Thru the Decades Portal v120 - Restore Event Name Field
+# Dance Thru the Decades Portal v121 - Split Venue List And Edit
 
 ## Changes
 
-- Restores Event name to the Event Details card.
-- Keeps Venue name out of Event Details.
-- Event Details layout is now:
-  - Left: Event name, then Event type
-  - Right: Notes
-- Keeps Venue name in Venue Details & Social.
-- Keeps venues maintenance page from v119.
-- Does not recreate `events-edit.php`.
+Venues now follows the same structure as Events:
+
+- `admin/venues.php`
+  - lists saved venues
+  - shows Add Venue button
+  - provides Edit/Delete actions
+  - shows Map/Facebook/Website/Tickets quick links
+
+- `admin/venue-edit.php`
+  - add or edit one venue
+  - maintains venue address/social/ticketing fields
+
+The Event edit page can still select/create venues as before.
 
 ## SQL
 
@@ -17,4 +22,4 @@ No SQL changes.
 
 ## Suggested Git commit title
 
-v120 Restore Event Name Field
+v121 Split Venue List And Edit

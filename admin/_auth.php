@@ -28,7 +28,7 @@ function admin_nav_active($page) {
     $map = [
         'requests' => ['requests.php', 'index.php', 'request-debug.php'],
         'events' => ['events.php', 'event-edit.php', 'event-qr.php'],
-        'venues' => ['venues.php'],
+        'venues' => ['venues.php', 'venue-edit.php'],
         'settings' => ['settings.php'],
     ];
 
