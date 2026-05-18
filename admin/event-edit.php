@@ -271,6 +271,8 @@ $event = [
     'requests_close_at' => '',
     'is_active' => 1,
     'event_code' => '',
+    'status' => 'scheduled',
+    'public_slug' => '',
     'queue_visibility' => 'public',
     'event_image' => '',
 ];
@@ -331,6 +333,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $event_code = trim((string)($_POST['event_code'] ?? ''));
     $event_code = $event_code !== '' ? $event_code : event_unique_code($id);
     $queue_visibility = trim((string)($_POST['queue_visibility'] ?? 'public'));
+    $status = trim((string)($_POST['status'] ?? 'scheduled'));
+    $public_slug = trim((string)($_POST['public_slug'] ?? ''));
 
     if ($event_name === '' || $venue_name === '' || $event_date === '' || $start_time === '') {
         $error = 'Please complete the required event fields.';
@@ -371,6 +375,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'is_active' => $is_active,
             'event_code' => $event_code,
             'queue_visibility' => $queue_visibility,
+            'status' => $status,
+            'public_slug' => $public_slug,
         ];
 
         if (event_image_column_exists() && $uploaded_image) {
@@ -720,6 +726,36 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
             <span>Event code</span>
             <input name="event_code" value="<?= h($event['event_code'] ?? '') ?>" placeholder="Auto-generated if left blank">
             <small>Used for the public request link and QR code.</small>
+          </label>
+
+          
+          <label>
+            <span>Event status</span>
+            <select name="status">
+              <?php
+                $currentStatus = $event['status'] ?? 'scheduled';
+                $statuses = [
+                  'draft' => 'Draft',
+                  'scheduled' => 'Scheduled',
+                  'live' => 'Live',
+                  'ended' => 'Ended',
+                  'cancelled' => 'Cancelled',
+                  'private' => 'Private',
+                ];
+              ?>
+              <?php foreach ($statuses as $statusValue => $statusLabel): ?>
+                <option value="<?= h($statusValue) ?>" <?= $currentStatus === $statusValue ? 'selected' : '' ?>>
+                  <?= h($statusLabel) ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+            <small>Cancelled events stay online but show a cancellation notice.</small>
+          </label>
+
+          <label>
+            <span>Public URL slug</span>
+            <input name="public_slug" value="<?= h($event['public_slug'] ?? '') ?>" placeholder="heart-and-soul-may-2026">
+            <small>Optional. Leave blank to auto-generate from event name, venue and date.</small>
           </label>
 
           <label>

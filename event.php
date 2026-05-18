@@ -56,6 +56,24 @@ function public_event_slug($event) {
     return public_slugify(implode(' ', array_filter($parts)));
 }
 
+function public_event_status($event) {
+    return strtolower(trim((string)($event['status'] ?? 'scheduled'))) ?: 'scheduled';
+}
+
+function public_event_is_private($event) {
+    $visibility = strtolower((string)($event['queue_visibility'] ?? $event['visibility'] ?? 'public'));
+    $eventType = strtolower((string)($event['event_type'] ?? ''));
+    $status = public_event_status($event);
+
+    return (
+        $status === 'private'
+        || $visibility === 'private'
+        || str_contains($eventType, 'private')
+        || str_contains($eventType, 'wedding')
+        || str_contains($eventType, 'birthday')
+    );
+}
+
 function public_event_image_url($image) {
     $image = trim((string)$image);
 
@@ -128,16 +146,20 @@ function public_event_description($event) {
     return '';
 }
 
-function public_event_is_private($event) {
-    $visibility = strtolower((string)($event['queue_visibility'] ?? $event['visibility'] ?? 'public'));
-    $eventType = strtolower((string)($event['event_type'] ?? ''));
+function public_cancelled_message($event) {
+    $fields = [
+        'cancelled_message',
+        'cancellation_message',
+        'status_message',
+    ];
 
-    return (
-        $visibility === 'private'
-        || str_contains($eventType, 'private')
-        || str_contains($eventType, 'wedding')
-        || str_contains($eventType, 'birthday')
-    );
+    foreach ($fields as $field) {
+        if (!empty($event[$field])) {
+            return trim((string)$event[$field]);
+        }
+    }
+
+    return 'This event has been cancelled. Please check our Facebook page or the venue for further updates.';
 }
 
 $event = null;
@@ -145,6 +167,8 @@ $error = '';
 $slug = trim((string)($_GET['slug'] ?? ''));
 $code = trim((string)($_GET['code'] ?? ''));
 $accessedByCode = $code !== '';
+$facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
+$public_current = 'events';
 
 try {
     if ($code !== '') {
@@ -157,20 +181,15 @@ try {
         $stmt->execute([$code]);
         $event = $stmt->fetch();
     } elseif ($slug !== '') {
-        $where = ["1=1"];
-
-        if (public_column_exists('events', 'queue_visibility')) {
-            $where[] = "(queue_visibility IS NULL OR LOWER(queue_visibility) = 'public')";
-        }
-
-        if (public_column_exists('events', 'visibility')) {
-            $where[] = "(visibility IS NULL OR LOWER(visibility) = 'public')";
-        }
-
-        $sql = "SELECT * FROM events WHERE " . implode(" AND ", $where);
-        $candidateEvents = db()->query($sql)->fetchAll();
+        $candidateEvents = db()->query("SELECT * FROM events")->fetchAll();
 
         foreach ($candidateEvents as $candidate) {
+            $status = public_event_status($candidate);
+
+            if (in_array($status, ['draft', 'private'], true)) {
+                continue;
+            }
+
             if (public_event_is_private($candidate)) {
                 continue;
             }
@@ -186,8 +205,6 @@ try {
     $error = 'Event details could not be loaded just now.';
 }
 
-$facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
-
 if ($event) {
     $title = $event['event_name'] ?? $event['name'] ?? 'Dance Thru The Decades Event';
     $venue = $event['venue_name'] ?? $event['venue'] ?? '';
@@ -195,9 +212,12 @@ if ($event) {
     $postcode = $event['postcode'] ?? $event['venue_postcode'] ?? '';
     $venueFacebook = $event['venue_facebook_url'] ?? $event['facebook_url'] ?? '';
     $venueWebsite = $event['venue_website_url'] ?? $event['website_url'] ?? '';
-    $ticketUrl = $event['ticketing_url'] ?? $event['tickets_url'] ?? '';
+    $ticketUrl = $event['ticketing_url'] ?? $event['tickets_url'] ?? $event['venue_ticket_url'] ?? '';
     $imageUrl = public_event_image_url($event['event_image'] ?? '');
     $description = public_event_description($event);
+    $status = public_event_status($event);
+    $isCancelled = $status === 'cancelled';
+    $cancelledMessage = $isCancelled ? public_cancelled_message($event) : '';
     $mapQuery = trim($venue . ' ' . $venueAddress . ' ' . $postcode);
     $mapEmbedUrl = $mapQuery ? 'https://www.google.com/maps?q=' . urlencode($mapQuery) . '&output=embed' : '';
     $mapExternalUrl = $mapQuery ? 'https://www.google.com/maps/search/?api=1&query=' . urlencode($mapQuery) : '';
@@ -210,19 +230,16 @@ if ($event) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : 'Event Not Found' ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event information.' ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=149">
+  <link rel="stylesheet" href="/assets/public-site.css?v=150">
 </head>
 <body class="homepage-option-one public-event-detail-page">
   <main class="home-option-one">
-    <a class="public-dj-login public-home-link" href="/">
-      <span class="login-icon">⌂</span>
-      <span>Home</span>
-    </a>
+    <?php require __DIR__ . '/includes/public-nav.php'; ?>
 
     <?php if (!$event): ?>
       <section class="public-event-detail-hero">
         <div class="option-one-logo-shell public-list-logo">
-          <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=149" alt="Dance Thru The Decades Events logo">
+          <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=150" alt="Dance Thru The Decades Events logo">
         </div>
         <p class="option-one-eyebrow">Event Portal</p>
         <h1 class="event-detail-title">Event Not Found</h1>
@@ -237,9 +254,9 @@ if ($event) {
     <?php else: ?>
       <section class="public-event-detail-hero">
         <div class="option-one-logo-shell public-list-logo">
-          <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=149" alt="Dance Thru The Decades Events logo">
+          <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=150" alt="Dance Thru The Decades Events logo">
         </div>
-        <p class="option-one-eyebrow">Event Details</p>
+        <p class="option-one-eyebrow"><?= $isCancelled ? 'Cancelled Event' : 'Event Details' ?></p>
         <h1 class="event-detail-title"><?= public_h($title) ?></h1>
 
         <?php if ($venue): ?>
@@ -248,7 +265,14 @@ if ($event) {
       </section>
 
       <section class="public-event-detail-section">
-        <article class="public-event-detail-card">
+        <?php if ($isCancelled): ?>
+          <div class="public-cancelled-banner">
+            <strong>Event Cancelled</strong>
+            <span><?= public_h($cancelledMessage) ?></span>
+          </div>
+        <?php endif; ?>
+
+        <article class="public-event-detail-card <?= $isCancelled ? 'is-cancelled' : '' ?>">
           <div class="public-event-detail-image <?= $imageUrl ? '' : 'public-event-placeholder' ?>">
             <?php if ($imageUrl): ?>
               <img src="<?= public_h($imageUrl) ?>" alt="<?= public_h($title) ?> event image" onerror="this.closest('.public-event-detail-image').classList.add('public-event-placeholder'); this.remove();">
@@ -264,6 +288,10 @@ if ($event) {
                 <span><?= public_h(public_event_time_range($event)) ?></span>
               <?php endif; ?>
             </div>
+
+            <?php if ($isCancelled): ?>
+              <span class="public-status-pill cancelled">Cancelled</span>
+            <?php endif; ?>
 
             <h2><?= public_h($title) ?></h2>
 
@@ -282,7 +310,7 @@ if ($event) {
             <?php endif; ?>
 
             <div class="public-event-actions">
-              <?php if ($ticketUrl): ?>
+              <?php if (!$isCancelled && $ticketUrl): ?>
                 <a class="public-neon-btn" href="<?= public_h($ticketUrl) ?>" target="_blank" rel="noopener">Tickets</a>
               <?php endif; ?>
 
@@ -301,7 +329,7 @@ if ($event) {
               <?php endif; ?>
             </div>
 
-            <?php if ($accessedByCode): ?>
+            <?php if ($accessedByCode && !$isCancelled): ?>
               <div class="public-qr-only-note">
                 <strong>At the event?</strong>
                 <span>Song requests and guest features are available from the venue QR/event code.</span>

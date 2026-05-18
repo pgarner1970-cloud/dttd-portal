@@ -56,6 +56,24 @@ function public_event_slug($event) {
     return public_slugify(implode(' ', array_filter($parts)));
 }
 
+function public_event_status($event) {
+    return strtolower(trim((string)($event['status'] ?? 'scheduled'))) ?: 'scheduled';
+}
+
+function public_event_is_private($event) {
+    $visibility = strtolower((string)($event['queue_visibility'] ?? $event['visibility'] ?? 'public'));
+    $eventType = strtolower((string)($event['event_type'] ?? ''));
+    $status = public_event_status($event);
+
+    return (
+        $status === 'private'
+        || $visibility === 'private'
+        || str_contains($eventType, 'private')
+        || str_contains($eventType, 'wedding')
+        || str_contains($eventType, 'birthday')
+    );
+}
+
 function public_event_date($event) {
     if (empty($event['event_date'])) {
         return '';
@@ -112,11 +130,16 @@ function public_event_image_url($image) {
 }
 
 $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
+$public_current = 'events';
 
 $where = ["1=1"];
 
 if (public_column_exists('events', 'event_date')) {
     $where[] = "(event_date >= CURDATE() OR event_date IS NULL)";
+}
+
+if (public_column_exists('events', 'status')) {
+    $where[] = "(status IS NULL OR LOWER(status) IN ('scheduled','live','cancelled'))";
 }
 
 if (public_column_exists('events', 'queue_visibility')) {
@@ -140,7 +163,20 @@ $error = '';
 
 try {
     $sql = "SELECT * FROM events WHERE " . implode(" AND ", $where) . " ORDER BY " . $order;
-    $events = db()->query($sql)->fetchAll();
+    $loadedEvents = db()->query($sql)->fetchAll();
+
+    foreach ($loadedEvents as $loadedEvent) {
+        if (public_event_is_private($loadedEvent)) {
+            continue;
+        }
+
+        $status = public_event_status($loadedEvent);
+        if (in_array($status, ['draft', 'private'], true)) {
+            continue;
+        }
+
+        $events[] = $loadedEvent;
+    }
 } catch (Throwable $e) {
     $error = 'Events could not be loaded just now.';
 }
@@ -153,18 +189,15 @@ try {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upcoming Events | Dance Thru the Decades</title>
   <meta name="description" content="Upcoming public Dance Thru the Decades events, party nights and request-enabled DJ events.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=149">
+  <link rel="stylesheet" href="/assets/public-site.css?v=150">
 </head>
 <body class="homepage-option-one public-list-page">
   <main class="home-option-one">
-    <a class="public-dj-login public-home-link" href="/">
-      <span class="login-icon">⌂</span>
-      <span>Home</span>
-    </a>
+    <?php require __DIR__ . '/includes/public-nav.php'; ?>
 
     <section class="public-list-hero">
       <div class="option-one-logo-shell public-list-logo">
-        <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=149" alt="Dance Thru The Decades Events logo">
+        <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=150" alt="Dance Thru The Decades Events logo">
       </div>
 
       <p class="option-one-eyebrow">Public Nights</p>
@@ -196,9 +229,10 @@ try {
               $imageUrl = public_event_image_url($event['event_image'] ?? '');
               $detailsLink = '/events/' . rawurlencode(public_event_slug($event));
               $venueFacebook = $event['venue_facebook_url'] ?? $event['facebook_url'] ?? '';
+              $status = public_event_status($event);
             ?>
 
-            <article class="public-event-card">
+            <article class="public-event-card <?= $status === 'cancelled' ? 'is-cancelled' : '' ?>">
               <div class="public-event-image <?= $imageUrl ? '' : 'public-event-placeholder' ?>">
                 <?php if ($imageUrl): ?>
                   <img src="<?= public_h($imageUrl) ?>" alt="<?= public_h($title) ?> event image" onerror="this.closest('.public-event-image').classList.add('public-event-placeholder'); this.remove();">
@@ -214,6 +248,10 @@ try {
                     <span><?= public_h(public_event_time_range($event)) ?></span>
                   <?php endif; ?>
                 </div>
+
+                <?php if ($status === 'cancelled'): ?>
+                  <span class="public-status-pill cancelled">Cancelled</span>
+                <?php endif; ?>
 
                 <h2><?= public_h($title) ?></h2>
 
