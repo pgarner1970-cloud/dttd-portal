@@ -1,29 +1,35 @@
-# Dance Thru the Decades Portal v108 - Event Types And Visibility
+# Dance Thru the Decades Portal v109 - Venue Social Details
 
 ## Changes
 
-### Event types expanded
-Added:
-- Wedding
-- Birthday Party
-- Corporate Event
-- Engagement Party
-- Anniversary
-- School Prom
-- Christmas Party
-- Festival / Outdoor Event
+Adds a new **Venue Details & Social** section to the event add/edit page.
 
-### Queue visibility
-Queue Visibility now supports:
-- Public
-- Private
+New fields supported:
+- Venue address
+- Venue postcode
+- Venue Facebook URL
+- Venue website URL
+- Venue Instagram URL
+- Social display label
 
-Private can later be used to hide queues from public displays while still allowing DJ/admin management.
+Also adds a Google Maps link when a postcode is present.
 
 ## SQL
 
-No SQL changes.
+You said this SQL has already been run:
+
+```sql
+ALTER TABLE events
+ADD COLUMN venue_address VARCHAR(255) NULL,
+ADD COLUMN venue_postcode VARCHAR(32) NULL,
+ADD COLUMN venue_facebook_url VARCHAR(255) NULL,
+ADD COLUMN venue_website_url VARCHAR(255) NULL,
+ADD COLUMN venue_instagram_url VARCHAR(255) NULL,
+ADD COLUMN venue_social_label VARCHAR(100) NULL;
+```
+
+No further SQL required.
 
 ## Suggested Git commit title
 
-v108 Event Types And Visibility
+v109 Venue Social Details

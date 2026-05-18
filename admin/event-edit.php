@@ -148,6 +148,12 @@ $event = [
     'id' => 0,
     'event_name' => '',
     'venue_name' => '',
+    'venue_address' => '',
+    'venue_postcode' => '',
+    'venue_facebook_url' => '',
+    'venue_website_url' => '',
+    'venue_instagram_url' => '',
+    'venue_social_label' => '',
     'event_type' => 'public',
     'notes' => '',
     'event_date' => date('Y-m-d'),
@@ -176,6 +182,12 @@ if ($is_edit) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $event_name = trim((string)($_POST['event_name'] ?? ''));
     $venue_name = trim((string)($_POST['venue_name'] ?? ''));
+    $venue_address = trim((string)($_POST['venue_address'] ?? ''));
+    $venue_postcode = trim((string)($_POST['venue_postcode'] ?? ''));
+    $venue_facebook_url = trim((string)($_POST['venue_facebook_url'] ?? ''));
+    $venue_website_url = trim((string)($_POST['venue_website_url'] ?? ''));
+    $venue_instagram_url = trim((string)($_POST['venue_instagram_url'] ?? ''));
+    $venue_social_label = trim((string)($_POST['venue_social_label'] ?? ''));
     $event_type = trim((string)($_POST['event_type'] ?? 'public'));
     $notes = trim((string)($_POST['notes'] ?? ''));
     $event_date = trim((string)($_POST['event_date'] ?? ''));
@@ -195,6 +207,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $data = [
             'event_name' => $event_name,
             'venue_name' => $venue_name,
+            'venue_address' => $venue_address,
+            'venue_postcode' => $venue_postcode,
+            'venue_facebook_url' => $venue_facebook_url,
+            'venue_website_url' => $venue_website_url,
+            'venue_instagram_url' => $venue_instagram_url,
+            'venue_social_label' => $venue_social_label,
             'event_type' => $event_type,
             'notes' => $notes,
             'event_date' => $event_date,
@@ -313,6 +331,56 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
           </label>
         </div>
       </section>
+
+      <section class="settings-card venue-social-card">
+        <div class="settings-card-header">
+          <div class="settings-card-icon">⌖</div>
+          <div>
+            <h3>Venue Details & Social</h3>
+            <p>Store venue location and social links for maps, check-ins and public event displays.</p>
+          </div>
+        </div>
+
+        <div class="settings-grid">
+          <label>
+            <span>Venue address</span>
+            <input name="venue_address" value="<?= h($event['venue_address'] ?? '') ?>" placeholder="Street address or venue location">
+          </label>
+
+          <label>
+            <span>Postcode</span>
+            <input name="venue_postcode" value="<?= h($event['venue_postcode'] ?? '') ?>" placeholder="e.g. DY14 0NJ">
+            <?php if (!empty($event['venue_postcode'])): ?>
+              <small>
+                <a href="https://www.google.com/maps/search/?api=1&query=<?= rawurlencode(($event['venue_name'] ?? '') . ' ' . ($event['venue_postcode'] ?? '')) ?>" target="_blank" rel="noopener">Open in Google Maps</a>
+              </small>
+            <?php endif; ?>
+          </label>
+
+          <label>
+            <span>Venue Facebook URL</span>
+            <input type="url" name="venue_facebook_url" value="<?= h($event['venue_facebook_url'] ?? '') ?>" placeholder="https://facebook.com/...">
+          </label>
+
+          <label>
+            <span>Venue website URL</span>
+            <input type="url" name="venue_website_url" value="<?= h($event['venue_website_url'] ?? '') ?>" placeholder="https://...">
+          </label>
+
+          <label>
+            <span>Venue Instagram URL</span>
+            <input type="url" name="venue_instagram_url" value="<?= h($event['venue_instagram_url'] ?? '') ?>" placeholder="https://instagram.com/...">
+          </label>
+
+          <label>
+            <span>Social display label</span>
+            <input name="venue_social_label" value="<?= h($event['venue_social_label'] ?? '') ?>" placeholder="e.g. Follow The Venue">
+            <small>Optional label for public displays, posters or QR pages.</small>
+          </label>
+        </div>
+      </section>
+
+
 
       <section class="settings-card event-image-upload-card">
         <div class="settings-card-header">
