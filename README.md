@@ -1,20 +1,17 @@
-# Dance Thru the Decades Portal v127 - Homepage Logo Fix
+# Dance Thru the Decades Portal v128 - Option 1 Homepage
 
 ## Changes
 
-- Patches the actual public homepage files, not only `event.php` and `request.php`.
-- Adds the uploaded Dance Thru The Decades Events logo visibly to the homepage/header.
-- Removes unnecessary public buttons:
-  - Facebook
-  - Tonight’s Event
-  - Follow us on Facebook
-  - Check in / Tag us
-- Keeps admin/DJ Portal untouched.
-
-## Public files updated
-
-- event.php
-- request.php
+- Rebuilds the real public homepage `index.php`.
+- Implements Option 1 visual direction:
+  - central circular logo
+  - purple disco ray background
+  - large headline
+  - action cards for Request a Song, This Event, Photos & Memories
+- Keeps public styling in `assets/public.css`.
+- Admin/DJ Portal remains separate and untouched.
+- Keeps a backup of the previous homepage as:
+  - `index.php.v127-backup`
 
 ## SQL
 
@@ -22,4 +19,4 @@ No SQL changes.
 
 ## Suggested Git commit title
 
-v127 Homepage Logo Fix
+v128 Option 1 Homepage
