@@ -253,6 +253,7 @@ function admin_footer() {
 <?php endif; ?>
 <script src="/assets/header-timers.js?v=97"></script>
 <script src="/assets/event-qr.js?v=106"></script>
+<script src="/assets/venue-select.js?v=113"></script>
 </body>
 </html>
 <?php

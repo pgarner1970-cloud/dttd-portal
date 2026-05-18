@@ -106,6 +106,112 @@ function event_unique_code($current_id = 0) {
     return $code;
 }
 
+
+function venues_table_exists() {
+    static $exists = null;
+
+    if ($exists !== null) {
+        return $exists;
+    }
+
+    try {
+        $stmt = db()->query("SHOW TABLES LIKE 'venues'");
+        $exists = (bool)$stmt->fetch();
+    } catch (Throwable $e) {
+        $exists = false;
+    }
+
+    return $exists;
+}
+
+function venue_column_exists($column) {
+    static $cache = [];
+
+    if (isset($cache[$column])) {
+        return $cache[$column];
+    }
+
+    try {
+        $stmt = db()->prepare("SHOW COLUMNS FROM venues LIKE ?");
+        $stmt->execute([$column]);
+        $cache[$column] = (bool)$stmt->fetch();
+    } catch (Throwable $e) {
+        $cache[$column] = false;
+    }
+
+    return $cache[$column];
+}
+
+function get_venues_for_select() {
+    if (!venues_table_exists()) {
+        return [];
+    }
+
+    try {
+        return db()->query("
+            SELECT *
+            FROM venues
+            ORDER BY venue_name ASC, id ASC
+        ")->fetchAll();
+    } catch (Throwable $e) {
+        return [];
+    }
+}
+
+function save_or_update_venue_from_event_form($selected_venue_id, $venue_name, $venue_address, $venue_postcode, $facebook_url, $website_url, $instagram_url, $social_label) {
+    if (!venues_table_exists()) {
+        return null;
+    }
+
+    if (trim($venue_name) === '') {
+        return null;
+    }
+
+    $data = [
+        'venue_name' => trim($venue_name),
+        'venue_address' => trim($venue_address),
+        'venue_postcode' => trim($venue_postcode),
+        'venue_facebook_url' => trim($facebook_url),
+        'venue_website_url' => trim($website_url),
+        'venue_instagram_url' => trim($instagram_url),
+        'venue_social_label' => trim($social_label),
+    ];
+
+    $data = array_filter(
+        $data,
+        fn($value, $column) => venue_column_exists($column),
+        ARRAY_FILTER_USE_BOTH
+    );
+
+    if ($selected_venue_id > 0) {
+        $sets = [];
+        $params = [];
+
+        foreach ($data as $column => $value) {
+            $sets[] = "{$column} = ?";
+            $params[] = $value;
+        }
+
+        if ($sets) {
+            $params[] = $selected_venue_id;
+            $stmt = db()->prepare("UPDATE venues SET " . implode(', ', $sets) . " WHERE id = ?");
+            $stmt->execute($params);
+        }
+
+        return $selected_venue_id;
+    }
+
+    $columns = array_keys($data);
+    $placeholders = array_fill(0, count($columns), '?');
+
+    $stmt = db()->prepare(
+        "INSERT INTO venues (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")"
+    );
+    $stmt->execute(array_values($data));
+
+    return (int)db()->lastInsertId();
+}
+
 function request_close_options() {
     return [
         '0' => 'At event end',
@@ -147,6 +253,7 @@ $success = '';
 $event = [
     'id' => 0,
     'event_name' => '',
+    'venue_id' => null,
     'venue_name' => '',
     'venue_address' => '',
     'venue_postcode' => '',
@@ -179,8 +286,30 @@ if ($is_edit) {
     }
 }
 
+
+$venues_for_select = get_venues_for_select();
+
+if (!empty($event['venue_id']) && venues_table_exists()) {
+    try {
+        $venue_stmt = db()->prepare("SELECT * FROM venues WHERE id = ? LIMIT 1");
+        $venue_stmt->execute([(int)$event['venue_id']]);
+        $selected_venue = $venue_stmt->fetch();
+
+        if ($selected_venue) {
+            foreach (['venue_name', 'venue_address', 'venue_postcode', 'venue_facebook_url', 'venue_website_url', 'venue_instagram_url', 'venue_social_label'] as $venue_field) {
+                if (array_key_exists($venue_field, $selected_venue) && empty($event[$venue_field])) {
+                    $event[$venue_field] = $selected_venue[$venue_field];
+                }
+            }
+        }
+    } catch (Throwable $e) {
+        // Keep event-level venue fields as fallback.
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $event_name = trim((string)($_POST['event_name'] ?? ''));
+    $selected_venue_id = (int)($_POST['venue_id'] ?? 0);
     $venue_name = trim((string)($_POST['venue_name'] ?? ''));
     $venue_address = trim((string)($_POST['venue_address'] ?? ''));
     $venue_postcode = trim((string)($_POST['venue_postcode'] ?? ''));
@@ -204,8 +333,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $requests_close_at = calculate_requests_close_at($event_date, $end_time ?: $start_time, $close_before);
         $uploaded_image = event_upload_image();
 
+
+        $saved_venue_id = save_or_update_venue_from_event_form(
+            $selected_venue_id,
+            $venue_name,
+            $venue_address,
+            $venue_postcode,
+            $venue_facebook_url,
+            $venue_website_url,
+            $venue_instagram_url,
+            $venue_social_label
+        );
+
         $data = [
             'event_name' => $event_name,
+            'venue_id' => $saved_venue_id,
             'venue_name' => $venue_name,
             'venue_address' => $venue_address,
             'venue_postcode' => $venue_postcode,
@@ -314,7 +456,7 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
 
           <label>
             <span>Venue name *</span>
-            <input name="venue_name" value="<?= h($event['venue_name']) ?>" required>
+            <input name="venue_name" id="venue_name_input" value="<?= h($event['venue_name']) ?>" required>
           </label>
 
           <label>
@@ -342,14 +484,41 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
         </div>
 
         <div class="settings-grid">
+          
+          <?php if (venues_table_exists()): ?>
+            <label class="venue-select-field">
+              <span>Select saved venue</span>
+              <select name="venue_id" id="venue_id_select">
+                <option value="0">Create new / manual venue</option>
+                <?php foreach ($venues_for_select as $saved_venue): ?>
+                  <option
+                    value="<?= (int)$saved_venue['id'] ?>"
+                    data-venue-name="<?= h($saved_venue['venue_name'] ?? '') ?>"
+                    data-venue-address="<?= h($saved_venue['venue_address'] ?? '') ?>"
+                    data-venue-postcode="<?= h($saved_venue['venue_postcode'] ?? '') ?>"
+                    data-venue-facebook="<?= h($saved_venue['venue_facebook_url'] ?? '') ?>"
+                    data-venue-website="<?= h($saved_venue['venue_website_url'] ?? '') ?>"
+                    data-venue-instagram="<?= h($saved_venue['venue_instagram_url'] ?? '') ?>"
+                    data-venue-social-label="<?= h($saved_venue['venue_social_label'] ?? '') ?>"
+                    <?= (int)($event['venue_id'] ?? 0) === (int)$saved_venue['id'] ? 'selected' : '' ?>
+                  >
+                    <?= h($saved_venue['venue_name'] ?? '') ?><?= !empty($saved_venue['venue_postcode']) ? ' — ' . h($saved_venue['venue_postcode']) : '' ?>
+                  </option>
+                <?php endforeach; ?>
+              </select>
+              <small>Select an existing venue to auto-fill details, or leave as manual/new venue.</small>
+            </label>
+          <?php endif; ?>
+
+
           <label>
             <span>Venue address</span>
-            <input name="venue_address" value="<?= h($event['venue_address'] ?? '') ?>" placeholder="Street address or venue location">
+            <input name="venue_address" id="venue_address_input" value="<?= h($event['venue_address'] ?? '') ?>" placeholder="Street address or venue location">
           </label>
 
           <label>
             <span>Postcode</span>
-            <input name="venue_postcode" value="<?= h($event['venue_postcode'] ?? '') ?>" placeholder="e.g. DY14 0NJ">
+            <input name="venue_postcode" id="venue_postcode_input" value="<?= h($event['venue_postcode'] ?? '') ?>" placeholder="e.g. DY14 0NJ">
             <?php if (!empty($event['venue_postcode'])): ?>
               <small>
                 <a href="https://www.google.com/maps/search/?api=1&query=<?= rawurlencode(($event['venue_name'] ?? '') . ' ' . ($event['venue_postcode'] ?? '')) ?>" target="_blank" rel="noopener">Open in Google Maps</a>
@@ -359,22 +528,22 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
 
           <label>
             <span>Venue Facebook URL</span>
-            <input type="url" name="venue_facebook_url" value="<?= h($event['venue_facebook_url'] ?? '') ?>" placeholder="https://facebook.com/...">
+            <input type="url" name="venue_facebook_url" id="venue_facebook_url_input" value="<?= h($event['venue_facebook_url'] ?? '') ?>" placeholder="https://facebook.com/...">
           </label>
 
           <label>
             <span>Venue website URL</span>
-            <input type="url" name="venue_website_url" value="<?= h($event['venue_website_url'] ?? '') ?>" placeholder="https://...">
+            <input type="url" name="venue_website_url" id="venue_website_url_input" value="<?= h($event['venue_website_url'] ?? '') ?>" placeholder="https://...">
           </label>
 
           <label>
             <span>Venue Instagram URL</span>
-            <input type="url" name="venue_instagram_url" value="<?= h($event['venue_instagram_url'] ?? '') ?>" placeholder="https://instagram.com/...">
+            <input type="url" name="venue_instagram_url" id="venue_instagram_url_input" value="<?= h($event['venue_instagram_url'] ?? '') ?>" placeholder="https://instagram.com/...">
           </label>
 
           <label>
             <span>Social display label</span>
-            <input name="venue_social_label" value="<?= h($event['venue_social_label'] ?? '') ?>" placeholder="e.g. Follow The Venue">
+            <input name="venue_social_label" id="venue_social_label_input" value="<?= h($event['venue_social_label'] ?? '') ?>" placeholder="e.g. Follow The Venue">
             <small>Optional label for public displays, posters or QR pages.</small>
           </label>
         </div>

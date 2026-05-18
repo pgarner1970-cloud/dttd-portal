@@ -4956,3 +4956,18 @@ body.modal-open{ overflow:hidden; }
 .venue-social-card small a:hover{
   text-decoration:underline !important;
 }
+
+
+/* v113 venue database selection */
+.venue-select-field{
+  grid-column:1 / -1;
+}
+
+.venue-select-field select{
+  border-color:rgba(34,197,94,.34) !important;
+  background:rgba(15,23,42,.92) !important;
+}
+
+.venue-select-field small{
+  color:#a7f3d0 !important;
+}
