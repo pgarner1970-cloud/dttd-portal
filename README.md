@@ -1,12 +1,12 @@
-# Dance Thru the Decades Portal v141 - Remove Glitter Unify Background
+# Dance Thru the Decades Portal v142 - Remove Dark Band
 
 ## Changes
 
-- Removes the glitter ball completely from the homepage.
-- Removes old glitter/sparkle markup and hides any leftover CSS versions.
-- Removes the black floor/gap effect under the action strip.
-- Reworks homepage backgrounds so the hero/starburst flows into the lower cards.
-- Makes the lower card section feel like a continuation of the same purple scene.
+- Removes the remaining dark band between the hero/action strip and lower cards.
+- Disables the old crowd/floor overlay that caused the black shelf effect.
+- Carries purple/starburst styling into the lower card section.
+- Keeps the glitter ball removed.
+- Bumps public-site.css cache version to v142.
 
 ## SQL
 
@@ -14,4 +14,4 @@ No SQL changes.
 
 ## Suggested Git commit title
 
-v141 Remove Glitter Unify Background
+v142 Remove Dark Band

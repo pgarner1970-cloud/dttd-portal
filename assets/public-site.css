@@ -2080,3 +2080,61 @@ body.homepage-option-one{
     margin-top:22px !important;
   }
 }
+
+
+/* v142 remove remaining dark band between hero and lower cards */
+.option-one-hero{
+  padding-bottom:38px !important;
+  background:
+    radial-gradient(circle at 50% 15%, rgba(255,72,219,.40), transparent 14rem),
+    radial-gradient(circle at 50% 44%, rgba(124,58,237,.24), transparent 35rem),
+    radial-gradient(ellipse at 50% 100%, rgba(255,79,216,.20), transparent 46%),
+    repeating-conic-gradient(from 0deg at 50% 38%, rgba(255,255,255,.06) 0deg 4deg, transparent 4deg 10deg),
+    linear-gradient(180deg, #05000d 0%, #26043a 52%, #1a0128 82%, #160020 100%) !important;
+}
+
+.option-one-hero::after,
+.option-one-floor-glow{
+  display:none !important;
+  content:none !important;
+}
+
+.home-info-section{
+  margin-top:-1px !important;
+  padding-top:44px !important;
+  background:
+    radial-gradient(ellipse at 50% -36px, rgba(255,79,216,.22), transparent 34%),
+    radial-gradient(ellipse at 50% 0%, rgba(124,58,237,.18), transparent 42%),
+    repeating-conic-gradient(from 0deg at 50% -150px, rgba(255,255,255,.035) 0deg 4deg, transparent 4deg 10deg),
+    linear-gradient(180deg, #160020 0%, #150020 36%, #11001b 72%, #07000d 100%) !important;
+}
+
+.home-info-section::before{
+  display:none !important;
+  content:none !important;
+}
+
+/* The action strip should not create/appear to sit on a black shelf */
+.option-one-action-strip{
+  margin-bottom:0 !important;
+  background:rgba(19,0,32,.72) !important;
+  box-shadow:
+    0 0 22px rgba(255,79,216,.20),
+    0 16px 34px rgba(0,0,0,.16),
+    inset 0 1px 0 rgba(255,255,255,.07) !important;
+}
+
+/* If older CSS left a dark overlay/floor, neutralise it */
+.option-one-crowd{
+  display:none !important;
+}
+
+@media(max-width:760px){
+  .option-one-hero{
+    padding-bottom:28px !important;
+  }
+
+  .home-info-section{
+    padding-top:28px !important;
+  }
+}
