@@ -83,6 +83,29 @@ function event_upload_image() {
     return '/uploads/events/' . $filename;
 }
 
+
+function event_generate_code($length = 6) {
+    $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    $code = '';
+
+    for ($i = 0; $i < $length; $i++) {
+        $code .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+    }
+
+    return $code;
+}
+
+function event_unique_code($current_id = 0) {
+    do {
+        $code = event_generate_code();
+        $stmt = db()->prepare("SELECT id FROM events WHERE event_code = ? AND id <> ? LIMIT 1");
+        $stmt->execute([$code, (int)$current_id]);
+        $exists = $stmt->fetch();
+    } while ($exists);
+
+    return $code;
+}
+
 function request_close_options() {
     return [
         '0' => 'At event end',
@@ -161,6 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $close_before = (int)($_POST['close_before_end'] ?? 30);
     $is_active = !empty($_POST['is_active']) ? 1 : 0;
     $event_code = trim((string)($_POST['event_code'] ?? ''));
+    $event_code = $event_code !== '' ? $event_code : event_unique_code($id);
 
     if ($event_name === '' || $venue_name === '' || $event_date === '' || $start_time === '') {
         $error = 'Please complete the required event fields.';
@@ -324,7 +348,7 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
         </div>
       </section>
 
-      <?php if ($is_edit && !empty($event['event_code'])): ?>
+      <?php if ($is_edit): ?>
         <?php
           $public_request_url = rtrim(app_setting('public_request_base_url', ''), '/');
           if ($public_request_url === '') {
@@ -332,7 +356,11 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
               $host = $_SERVER['HTTP_HOST'] ?? '';
               $public_request_url = $scheme . '://' . $host;
           }
-          $event_request_url = $public_request_url . '/request.php?code=' . rawurlencode($event['event_code']);
+
+          $has_event_code = !empty($event['event_code']);
+          $event_request_url = $has_event_code
+              ? $public_request_url . '/request.php?code=' . rawurlencode($event['event_code'])
+              : '';
         ?>
         <section class="settings-card event-qr-card">
           <div class="settings-card-header">
@@ -343,29 +371,34 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
             </div>
           </div>
 
-          <div class="event-qr-body" data-qr-url="<?= h($event_request_url) ?>">
-            <div class="event-code-panel">
-              <span>Event code</span>
-              <strong><?= h($event['event_code']) ?></strong>
-              <small><?= h($event_request_url) ?></small>
-            </div>
+          <div class="event-qr-body <?= $has_event_code ? '' : 'event-qr-missing' ?>" data-qr-url="<?= h($event_request_url) ?>">
+            <?php if (!$has_event_code): ?>
+              <div class="settings-alert warning">
+                This event does not have an event code yet. Add one in Portal Behaviour, or save the event and a code will be generated.
+              </div>
+            <?php else: ?>
+              <div class="event-code-panel">
+                <span>Event code</span>
+                <strong><?= h($event['event_code']) ?></strong>
+                <small><?= h($event_request_url) ?></small>
+              </div>
 
-            <div class="event-qr-preview">
-              <canvas class="event-qr-canvas" width="220" height="220" aria-label="Event QR code"></canvas>
-            </div>
+              <div class="event-qr-preview">
+                <canvas class="event-qr-canvas" width="220" height="220" aria-label="Event QR code"></canvas>
+              </div>
 
-            <div class="event-qr-actions">
-              <button type="button" class="touch-btn blue qr-print-btn">Print QR</button>
-              <button type="button" class="touch-btn qr-download-btn">Download PNG</button>
-              <button type="button" class="touch-btn qr-copy-btn">Copy Link</button>
-            </div>
+              <div class="event-qr-actions">
+                <a class="touch-btn blue" href="/admin/event-qr.php?id=<?= (int)$event['id'] ?>">Open QR Page</a>
+                <button type="button" class="touch-btn qr-print-btn">Print QR</button>
+                <button type="button" class="touch-btn qr-copy-btn">Copy Link</button>
+              </div>
+            <?php endif; ?>
           </div>
         </section>
       <?php endif; ?>
 
 
-
-      <section class="settings-card">
+<section class="settings-card">
         <div class="settings-card-header">
           <div class="settings-card-icon">◷</div>
           <div>
@@ -412,6 +445,13 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
         </div>
 
         <div class="settings-grid">
+          
+          <label>
+            <span>Event code</span>
+            <input name="event_code" value="<?= h($event['event_code'] ?? '') ?>" placeholder="Auto-generated if left blank">
+            <small>Used for the public request link and QR code.</small>
+          </label>
+
           <label>
             <span>Queue visibility</span>
             <select name="queue_visibility">

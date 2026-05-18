@@ -1,39 +1,19 @@
-# Dance Thru the Decades Portal v106 - Event QR Code Access
+# Dance Thru the Decades Portal v107 - QR Always Visible
 
 ## Changes
 
-- Adds QR access for events.
-- Events page now has a QR action for events with an event code.
-- Event edit page shows:
-  - Event code
-  - Public request URL
-  - QR preview
-  - Print QR
-  - Download/open PNG
-  - Copy link
-- Adds a dedicated QR page:
-
-```text
-admin/event-qr.php?id=EVENT_ID
-```
-
-- QR code is generated in the browser using the public request URL.
-- No SQL changes.
-
-## Notes
-
-The generated public request URL is:
-
-```text
-/request.php?code=EVENT_CODE
-```
-
-If a future public route differs, update the URL construction in `event-edit.php` and `event-qr.php`.
+- Makes QR access visible even when an event has no `event_code` yet.
+- Events page always shows a QR button beside Edit.
+- Event edit page always shows a QR Code & Event Code card for existing events.
+- If no event code exists, the QR card shows a warning instead of being hidden.
+- Adds an Event Code field under Portal Behaviour if missing.
+- If Event Code is left blank on save, the system auto-generates one.
+- Keeps existing request queue/event image work unchanged.
 
 ## SQL
 
-No SQL to run.
+No SQL changes.
 
 ## Suggested Git commit title
 
-v106 Event QR Code Access
+v107 QR Always Visible

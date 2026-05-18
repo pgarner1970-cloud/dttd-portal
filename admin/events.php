@@ -166,12 +166,10 @@ admin_header('Events - DJ Portal');
                 <img src="<?= h($e['event_image']) ?>" alt="<?= h($e['event_name']) ?> image">
               </div>
             <?php endif; ?>
-<?php if (!empty($e['event_code'])): ?>
-              <a class="action-tile duplicate event-qr-link" href="/admin/event-qr.php?id=<?= (int)$e['id'] ?>">
+            <a class="action-tile duplicate event-qr-link" href="/admin/event-qr.php?id=<?= (int)$e['id'] ?>">
                 <span class="big-icon">▦</span>
                 <span>QR</span>
               </a>
-            <?php endif; ?>
 
             <a class="action-tile maybe" href="/admin/event-edit.php?id=<?= (int)$e['id'] ?>">
               <span class="big-icon">⚙</span>

@@ -4912,3 +4912,25 @@ body.modal-open{ overflow:hidden; }
     flex-wrap:wrap;
   }
 }
+
+
+/* v107 always-visible QR access */
+.event-qr-card{
+  border-color:rgba(96,165,250,.34) !important;
+}
+
+.event-qr-missing{
+  display:block !important;
+}
+
+.event-row-actions.event-row-actions-only{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  gap:10px !important;
+}
+
+.event-row-actions .event-qr-link{
+  border-color:rgba(59,130,246,.75) !important;
+  color:#60a5fa !important;
+}
