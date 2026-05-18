@@ -1314,3 +1314,320 @@ body.homepage-option-one{
     top:5%;
   }
 }
+
+
+/* v136 mobile-first neon homepage */
+.home-option-one{
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 0, 204, .18), transparent 36rem),
+    linear-gradient(180deg, #03000a 0%, #10001d 45%, #050009 100%) !important;
+}
+
+.public-dj-login{
+  position:fixed;
+  top:18px;
+  left:18px;
+  z-index:50;
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  min-height:48px;
+  padding:10px 16px;
+  border:1px solid rgba(255,79,216,.8);
+  border-radius:16px;
+  color:#fff;
+  background:rgba(12,0,26,.54);
+  backdrop-filter:blur(10px);
+  text-decoration:none;
+  font-weight:850;
+  box-shadow:
+    0 0 12px rgba(255,79,216,.42),
+    inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+.public-dj-login .login-icon{
+  width:24px;
+  height:24px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.35);
+  color:#ff7adf;
+  text-shadow:0 0 8px rgba(255,79,216,.75);
+}
+
+.option-one-hero{
+  min-height:100svh !important;
+  padding:34px 18px 84px !important;
+  background:
+    radial-gradient(circle at 50% 15%, rgba(255,72,219,.42), transparent 14rem),
+    radial-gradient(circle at 50% 43%, rgba(124,58,237,.26), transparent 34rem),
+    repeating-conic-gradient(from 0deg at 50% 38%, rgba(255,255,255,.06) 0deg 4deg, transparent 4deg 10deg),
+    linear-gradient(180deg, #05000d 0%, #26043a 45%, #06000b 100%) !important;
+}
+
+.option-one-inner{
+  width:min(980px, 100%) !important;
+}
+
+.option-one-logo-shell{
+  width:clamp(158px, 18vw, 250px) !important;
+  margin-bottom:22px !important;
+  background:radial-gradient(circle, rgba(255,79,216,.22), rgba(255,79,216,.05) 58%, transparent 66%) !important;
+  filter:
+    drop-shadow(0 0 16px rgba(255,0,210,.90))
+    drop-shadow(0 0 48px rgba(168,85,247,.62)) !important;
+}
+
+.option-one-logo-shell::before{
+  inset:-6px !important;
+  background:#ff4fd8 !important;
+  box-shadow:
+    0 0 8px rgba(255,255,255,.65),
+    0 0 22px rgba(255,79,216,.95),
+    0 0 55px rgba(255,79,216,.62) !important;
+}
+
+.option-one-logo-shell::after{
+  inset:-1px !important;
+  border:2px solid rgba(255,202,243,.88) !important;
+  box-shadow:
+    0 0 8px rgba(255,255,255,.48),
+    0 0 25px rgba(255,79,216,.88) !important;
+}
+
+.option-one-logo{
+  transform:scale(1.025) !important;
+  object-fit:cover !important;
+  background:#12001f !important;
+}
+
+.option-one-eyebrow{
+  font-size:clamp(1.1rem, 2vw, 1.75rem) !important;
+  letter-spacing:.34rem !important;
+  margin-bottom:16px !important;
+  background:none !important;
+  box-shadow:none !important;
+  text-shadow:
+    0 1px 0 rgba(70,22,0,.75),
+    0 0 7px rgba(255,216,106,.8),
+    0 0 18px rgba(255,79,216,.32) !important;
+}
+
+.option-one-eyebrow::after{
+  display:none !important;
+}
+
+.option-one-hero h1{
+  text-shadow:
+    0 0 8px rgba(255,255,255,.35),
+    0 0 18px rgba(255,79,216,.28),
+    0 0 42px rgba(255,79,216,.14),
+    0 12px 34px rgba(0,0,0,.62) !important;
+}
+
+.option-one-hero h1 .headline-main{
+  color:#fff9f4 !important;
+  filter:
+    drop-shadow(0 0 5px rgba(255,255,255,.26))
+    drop-shadow(0 0 16px rgba(255,79,216,.26)) !important;
+}
+
+.option-one-hero h1 .headline-the i{
+  height:3px !important;
+  background:#ff4fd8 !important;
+  box-shadow:
+    0 0 8px rgba(255,79,216,1),
+    0 0 24px rgba(255,79,216,.78) !important;
+}
+
+.option-one-subtitle{
+  width:min(760px, 100%) !important;
+  font-size:clamp(1.15rem, 2vw, 1.75rem) !important;
+  line-height:1.22 !important;
+}
+
+.option-one-action-strip{
+  margin-top:30px !important;
+  border:1px solid rgba(255,79,216,.8) !important;
+  border-radius:18px !important;
+  background:rgba(8,0,18,.62) !important;
+  box-shadow:
+    0 0 18px rgba(255,79,216,.20),
+    0 22px 60px rgba(0,0,0,.34) !important;
+}
+
+.option-one-action-card{
+  min-height:96px !important;
+  padding:20px 22px !important;
+}
+
+.option-one-icon{
+  width:58px !important;
+  height:58px !important;
+  min-width:58px !important;
+  font-size:32px !important;
+}
+
+.option-one-disco-ball{
+  right:5.5% !important;
+  top:7.5% !important;
+  width:150px !important;
+  height:150px !important;
+  border-radius:50% !important;
+  opacity:.98 !important;
+  background:
+    radial-gradient(circle at 28% 22%, rgba(255,255,255,.98), transparent 8%),
+    radial-gradient(circle at 58% 36%, rgba(255,255,255,.55), transparent 6%),
+    radial-gradient(circle at 76% 64%, rgba(255,0,220,.82), transparent 9%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.36) 0 2px, transparent 2px 11px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.30) 0 2px, transparent 2px 11px),
+    radial-gradient(circle at 35% 28%, #ff9bea 0%, #c026d3 32%, #6d28d9 58%, #120028 80%) !important;
+  box-shadow:
+    0 0 14px rgba(255,255,255,.58),
+    0 0 40px rgba(255,79,216,.85),
+    0 0 80px rgba(168,85,247,.54) !important;
+}
+
+.option-one-disco-ball::after{
+  height:3px !important;
+  width:250% !important;
+  opacity:.86 !important;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.95), rgba(255,79,216,.82), transparent) !important;
+}
+
+.option-one-disco-sparkles{
+  opacity:1 !important;
+}
+
+.home-info-section{
+  padding-top:58px !important;
+}
+
+.home-info-card{
+  min-height:230px;
+  border-color:rgba(255,79,216,.45) !important;
+  background:
+    linear-gradient(180deg, rgba(95,21,124,.82), rgba(28,4,46,.88)) !important;
+}
+
+/* Mobile-first refinements for event guests */
+@media(max-width:760px){
+  .public-dj-login{
+    top:10px;
+    left:10px;
+    min-height:42px;
+    padding:8px 12px;
+    font-size:14px;
+    border-radius:14px;
+  }
+
+  .option-one-hero{
+    min-height:auto !important;
+    padding:72px 14px 40px !important;
+  }
+
+  .option-one-logo-shell{
+    width:138px !important;
+    margin-bottom:18px !important;
+  }
+
+  .option-one-disco-ball{
+    width:76px !important;
+    height:76px !important;
+    right:12px !important;
+    top:62px !important;
+    opacity:.74 !important;
+  }
+
+  .option-one-disco-sparkles{
+    right:4px !important;
+    top:52px !important;
+    transform:scale(.62);
+  }
+
+  .option-one-eyebrow{
+    font-size:.95rem !important;
+    letter-spacing:.14rem !important;
+    line-height:1.5 !important;
+    margin-bottom:12px !important;
+  }
+
+  .option-one-hero h1 .headline-main{
+    font-size:clamp(2.6rem, 14vw, 4.2rem) !important;
+    letter-spacing:-.052em !important;
+  }
+
+  .option-one-hero h1 .headline-the{
+    grid-template-columns:44px auto 44px !important;
+    gap:10px !important;
+    margin:.10em 0 .06em !important;
+  }
+
+  .option-one-hero h1 .headline-the b{
+    font-size:clamp(1.25rem, 7vw, 1.9rem) !important;
+    letter-spacing:.24em !important;
+    padding-left:.24em !important;
+  }
+
+  .option-one-hero h1 .events-line{
+    font-size:clamp(.95rem, 4.8vw, 1.25rem) !important;
+    letter-spacing:.30em !important;
+    padding-left:.30em !important;
+  }
+
+  .option-one-subtitle{
+    margin-top:18px !important;
+    font-size:1.08rem !important;
+    max-width:330px !important;
+  }
+
+  .option-one-action-strip{
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    width:min(100%, 380px) !important;
+    margin-top:24px !important;
+    border-radius:18px !important;
+  }
+
+  .option-one-action-card{
+    min-height:74px !important;
+    padding:14px 16px !important;
+    gap:14px !important;
+    border-right:0 !important;
+    border-bottom:1px solid rgba(255,79,216,.32) !important;
+  }
+
+  .option-one-action-card:last-child{
+    border-bottom:0 !important;
+  }
+
+  .option-one-icon{
+    width:48px !important;
+    height:48px !important;
+    min-width:48px !important;
+    font-size:26px !important;
+  }
+
+  .option-one-action-card strong{
+    font-size:1rem !important;
+  }
+
+  .option-one-action-card em{
+    font-size:.92rem !important;
+  }
+
+  .home-info-section{
+    padding:28px 14px 48px !important;
+  }
+
+  .home-info-grid{
+    grid-template-columns:1fr !important;
+    width:min(100%, 380px) !important;
+  }
+
+  .home-info-card{
+    min-height:auto !important;
+    padding:22px !important;
+  }
+}

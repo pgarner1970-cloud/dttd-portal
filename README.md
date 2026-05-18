@@ -1,13 +1,14 @@
-# Dance Thru the Decades Portal v135 - Homepage Fade Glitter Refinement
+# Dance Thru the Decades Portal v136 - Mobile Neon Homepage
 
 ## Changes
 
-- Smooths the transition between the hero background and the lower content.
-- Adds a dark purple fade-out at the bottom of the hero.
-- Adds matching glow at the top of the lower section.
-- Improves the CSS disco ball so it appears brighter and more glittery.
-- Adds sparkle highlights around the disco ball.
-- Keeps the HTML/CSS neon hero approach from v134.
+- Refactors the logo asset to reduce the white outer ring.
+- Keeps the neon logo ring/glow using CSS.
+- Adds a DJ Login link to the public homepage.
+- Improves the disco ball sparkle/glitter.
+- Makes the homepage layout more mobile-friendly for event guests.
+- Keeps large touch-friendly action cards.
+- Improves lower-section styling so it follows the same neon style.
 
 ## SQL
 
@@ -15,4 +16,4 @@ No SQL changes.
 
 ## Suggested Git commit title
 
-v135 Homepage Fade Glitter Refinement
+v136 Mobile Neon Homepage
