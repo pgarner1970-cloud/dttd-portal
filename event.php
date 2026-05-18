@@ -96,8 +96,7 @@ $status = public_event_status($event);
     <h1><?= h($event['event_name']) ?></h1>
     <p class="subtitle"><?= h($event['venue_name']) ?></p>
     <?php if (!empty($event['event_code'])): ?>
-      <span class="event-code-pill">Event Code: <?= h($event['event_code']) ?></span>
-    <?php endif; ?>
+<?php endif; ?>
   <?php else: ?>
     <h1>Event Not Found</h1>
     <p class="subtitle">This event link is not recognised.</p>

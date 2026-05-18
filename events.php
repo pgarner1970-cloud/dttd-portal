@@ -101,7 +101,7 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upcoming Events | Dance Thru the Decades</title>
   <meta name="description" content="Upcoming public Dance Thru the Decades events, party nights and request-enabled DJ events.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=144">
+  <link rel="stylesheet" href="/assets/public-site.css?v=146">
 </head>
 <body class="homepage-option-one public-list-page">
   <main class="home-option-one">
@@ -114,7 +114,7 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
       <a class="public-back-link" href="/">← Home</a>
 
       <div class="option-one-logo-shell public-list-logo">
-        <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=144" alt="Dance Thru The Decades Events logo">
+        <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=146" alt="Dance Thru The Decades Events logo">
       </div>
 
       <p class="option-one-eyebrow">Public Nights</p>
@@ -146,9 +146,9 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
           <?php
             $title = $event['event_name'] ?? $event['name'] ?? 'Dance Thru The Decades Event';
             $venue = $event['venue_name'] ?? $event['venue'] ?? '';
-            $eventCode = $event['event_code'] ?? '';
             $image = $event['event_image'] ?? '';
-            $link = $eventCode ? '/event.php?code=' . urlencode($eventCode) : '#';
+            $publicId = $event['id'] ?? '';
+            $link = $publicId ? '/event.php?id=' . urlencode((string)$publicId) : '#';
           ?>
 
           <article class="public-event-card">
@@ -177,7 +177,7 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
               <?php endif; ?>
 
               <div class="public-event-actions">
-                <?php if ($eventCode): ?>
+                <?php if ($publicId): ?>
                   <a class="public-neon-btn" href="<?= public_h($link) ?>">Event Details</a>
                 <?php endif; ?>
 

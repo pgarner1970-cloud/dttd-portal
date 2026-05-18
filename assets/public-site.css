@@ -2482,3 +2482,13 @@ body.homepage-option-one::after{
   opacity:.88;
   text-shadow:0 4px 16px rgba(0,0,0,.42);
 }
+
+
+/* v146 hide public event codes */
+.event-code,
+.code-badge,
+.public-event-code,
+.event-code-pill,
+[data-event-code-display]{
+  display:none !important;
+}

@@ -68,7 +68,7 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dance Thru the Decades Events</title>
   <meta name="description" content="Dance Thru the Decades Events — 60s, 70s, 80s, 90s and 00s party nights, DJ events, song requests and Facebook event updates.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=145">
+  <link rel="stylesheet" href="/assets/public-site.css?v=146">
 </head>
 <body class="homepage-option-one">
   <main class="home-option-one">
@@ -81,7 +81,7 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
       <div class="option-one-floor-glow" aria-hidden="true"></div>
 
       <div class="option-one-inner">
-        <div class="option-one-logo-shell"><img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=145" alt="Dance Thru The Decades Events logo"></div>
+        <div class="option-one-logo-shell"><img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=146" alt="Dance Thru The Decades Events logo"></div>
 
         <p class="option-one-eyebrow">60s · 70s · 80s · 90s · 00s</p>
 
@@ -98,15 +98,15 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
 
         <div class="option-one-action-strip dynamic-action-strip" data-homepage-state="<?= htmlspecialchars($homepage_state) ?>" aria-label="Event actions">
           <?php if ($homepage_state === 'public-event' && $active_event && !empty($active_event['event_code'])): ?>
-            <a class="option-one-action-card primary-action" href="/request.php?code=<?= htmlspecialchars($active_event['event_code']) ?>">
+            <a class="option-one-action-card primary-action" href="/request.php">
               <span class="option-one-icon">♪</span>
               <span>
                 <strong>Request a Song</strong>
-                <em>Open for tonight’s event</em>
+                <em>Available via event QR/code at the venue</em>
               </span>
             </a>
 
-            <a class="option-one-action-card" href="/event.php?code=<?= htmlspecialchars($active_event['event_code']) ?>">
+            <a class="option-one-action-card" href="/event.php">
               <span class="option-one-icon">▣</span>
               <span>
                 <strong>This Event</strong>
@@ -114,24 +114,24 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
               </span>
             </a>
 
-            <a class="option-one-action-card" href="/gallery.php?event=<?= urlencode($active_event['event_code']) ?>">
+            <a class="option-one-action-card" href="/gallery.php">
               <span class="option-one-icon">▧</span>
               <span>
                 <strong>Upload Photos</strong>
-                <em>Share memories from this event</em>
+                <em>Upload page opens from event QR/code</em>
               </span>
             </a>
 
           <?php elseif ($homepage_state === 'private-event' && $active_event && !empty($active_event['event_code'])): ?>
-            <a class="option-one-action-card primary-action" href="/request.php?code=<?= htmlspecialchars($active_event['event_code']) ?>">
+            <a class="option-one-action-card primary-action" href="/request.php">
               <span class="option-one-icon">♪</span>
               <span>
                 <strong>Guest Requests</strong>
-                <em>Request a song for this event</em>
+                <em>Use the private event QR/code</em>
               </span>
             </a>
 
-            <a class="option-one-action-card" href="/gallery.php?event=<?= urlencode($active_event['event_code']) ?>">
+            <a class="option-one-action-card" href="/gallery.php">
               <span class="option-one-icon">▧</span>
               <span>
                 <strong>Upload Photos</strong>
@@ -139,7 +139,7 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
               </span>
             </a>
 
-            <a class="option-one-action-card" href="/event.php?code=<?= htmlspecialchars($active_event['event_code']) ?>">
+            <a class="option-one-action-card" href="/event.php">
               <span class="option-one-icon">▣</span>
               <span>
                 <strong>Event Info</strong>
