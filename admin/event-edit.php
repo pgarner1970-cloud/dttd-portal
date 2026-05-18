@@ -495,7 +495,13 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
         </div>
 
         <div class="settings-grid">
-<label>
+
+          <label class="event-name-field">
+            <span>Event name *</span>
+            <input name="event_name" value="<?= h($event['event_name']) ?>" required>
+          </label>
+
+          <label class="event-type-field">
             <span>Event type</span>
             <select name="event_type">
               <option value="public" <?= ($event['event_type'] ?? '') === 'public' ? 'selected' : '' ?>>Public Night</option>

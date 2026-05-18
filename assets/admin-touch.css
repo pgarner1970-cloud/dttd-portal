@@ -5157,3 +5157,27 @@ body.modal-open{ overflow:hidden; }
     justify-content:flex-start;
   }
 }
+
+
+/* v120 restore event name field */
+.restored-event-form .event-details-card .settings-grid{
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+  align-items:start !important;
+}
+
+.restored-event-form .event-details-card .event-name-field{
+  grid-column:1 !important;
+}
+
+.restored-event-form .event-details-card .event-type-field{
+  grid-column:1 !important;
+}
+
+.restored-event-form .event-details-card .event-notes-field{
+  grid-column:2 !important;
+  grid-row:1 / span 2 !important;
+}
+
+.restored-event-form .event-details-card .event-notes-field textarea{
+  min-height:152px !important;
+}
