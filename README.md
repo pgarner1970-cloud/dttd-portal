@@ -1,14 +1,14 @@
-# Dance Thru the Decades Portal v130 - Option 1 Homepage Refinement
+# Dance Thru the Decades Portal v129 - Homepage Option 1 Public Site CSS
 
 ## Changes
 
-- Refines the Option 1 homepage to better match the sample.
-- Removes the visible white logo treatment by removing CSS padding/background/shadow.
-- Adds stronger purple glow around the logo.
-- Improves disco ball visibility.
-- Adds stronger crowd/floor glow styling.
-- Fixes overlap between the hero action strip and lower cards.
-- Hides any remaining legacy public header/buttons if cached markup remains.
+- Rebuilds the actual `index.php`.
+- Keeps the existing stylesheet path `assets/public-site.css`, now cache-busted as `?v=129`.
+- Adds the uploaded logo as:
+  - `assets/dttd-logo.webp`
+  - `assets/dttd-logo.jpg`
+- Removes the old top navigation and Facebook/Tonight buttons by replacing the full homepage body.
+- Keeps admin/DJ Portal untouched.
 
 ## SQL
 
@@ -16,4 +16,4 @@ No SQL changes.
 
 ## Suggested Git commit title
 
-v130 Option 1 Homepage Refinement
+v129 Homepage Option 1 Public Site CSS
