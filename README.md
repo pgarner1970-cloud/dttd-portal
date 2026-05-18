@@ -1,15 +1,12 @@
-# Dance Thru the Decades Portal v140 - Remove Blocks Smooth Blend
+# Dance Thru the Decades Portal v141 - Remove Glitter Unify Background
 
 ## Changes
 
-- Removes the animated coloured block/light strip from the homepage.
-- Smooths the transition between:
-  - hero background
-  - action strip
-  - lower information cards
-- Removes the hard black break between sections.
-- Adds a softer purple fade into the lower card area.
-- Keeps the cleaner glitter ball from v139.
+- Removes the glitter ball completely from the homepage.
+- Removes old glitter/sparkle markup and hides any leftover CSS versions.
+- Removes the black floor/gap effect under the action strip.
+- Reworks homepage backgrounds so the hero/starburst flows into the lower cards.
+- Makes the lower card section feel like a continuation of the same purple scene.
 
 ## SQL
 
@@ -17,4 +14,4 @@ No SQL changes.
 
 ## Suggested Git commit title
 
-v140 Remove Blocks Smooth Blend
+v141 Remove Glitter Unify Background

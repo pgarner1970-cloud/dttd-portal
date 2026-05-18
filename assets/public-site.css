@@ -1973,3 +1973,110 @@ body.homepage-option-one{
     height:42px;
   }
 }
+
+
+/* v141 remove glitter ball and unify background */
+.glitter-ball-img,
+.option-one-disco-ball,
+.option-one-disco-sparkles{
+  display:none !important;
+}
+
+/* The whole public homepage now has one continuous purple/black scene */
+.home-option-one{
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255,79,216,.22), transparent 34rem),
+    radial-gradient(ellipse at 50% 56%, rgba(124,58,237,.16), transparent 44rem),
+    linear-gradient(180deg, #05000d 0%, #230336 42%, #150020 68%, #09000f 100%) !important;
+}
+
+/* Keep the starburst in the hero but stop it ending in a hard black band */
+.option-one-hero{
+  min-height:auto !important;
+  padding-bottom:76px !important;
+  background:
+    radial-gradient(circle at 50% 16%, rgba(255,72,219,.40), transparent 14rem),
+    radial-gradient(circle at 50% 46%, rgba(124,58,237,.24), transparent 35rem),
+    radial-gradient(ellipse at 50% 100%, rgba(255,79,216,.16), transparent 44%),
+    repeating-conic-gradient(from 0deg at 50% 38%, rgba(255,255,255,.06) 0deg 4deg, transparent 4deg 10deg),
+    linear-gradient(180deg, #05000d 0%, #26043a 50%, #170021 82%, rgba(15,0,24,0) 100%) !important;
+}
+
+/* remove old dark floor overlay effect that created the big black gap */
+.option-one-hero::after,
+.option-one-floor-glow{
+  display:none !important;
+}
+
+/* The action strip should sit within the starburst area without a black floor behind it */
+.option-one-action-strip{
+  margin-bottom:0 !important;
+  background:
+    linear-gradient(180deg, rgba(33,0,48,.74), rgba(16,0,26,.64)) !important;
+  border-color:rgba(255,79,216,.62) !important;
+  box-shadow:
+    0 0 18px rgba(255,79,216,.18),
+    0 18px 45px rgba(0,0,0,.22),
+    inset 0 1px 0 rgba(255,255,255,.06) !important;
+}
+
+/* Lower section starts as a continuation of the same scene, not a new block */
+.home-info-section{
+  margin-top:0 !important;
+  padding-top:34px !important;
+  background:
+    radial-gradient(ellipse at 50% -18%, rgba(255,79,216,.20), transparent 38%),
+    radial-gradient(ellipse at 50% 12%, rgba(124,58,237,.14), transparent 48%),
+    linear-gradient(180deg, rgba(15,0,24,0) 0%, #160020 36%, #11001b 72%, #07000d 100%) !important;
+  border-top:0 !important;
+}
+
+.home-info-section::before{
+  display:none !important;
+}
+
+.home-info-grid{
+  margin-top:0 !important;
+}
+
+/* Slightly more integrated card glow */
+.home-info-card{
+  background:
+    linear-gradient(180deg, rgba(93,20,124,.76), rgba(30,4,49,.84)) !important;
+  border-color:rgba(255,79,216,.34) !important;
+  box-shadow:
+    0 20px 46px rgba(0,0,0,.24),
+    0 0 32px rgba(255,79,216,.08),
+    inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+
+/* Tighter desktop vertical rhythm after removing glitter ball */
+.option-one-logo-shell{
+  margin-bottom:18px !important;
+}
+
+.option-one-eyebrow{
+  margin-bottom:14px !important;
+}
+
+.option-one-subtitle{
+  margin-top:18px !important;
+}
+
+.option-one-action-strip{
+  margin-top:26px !important;
+}
+
+@media(max-width:760px){
+  .option-one-hero{
+    padding-bottom:34px !important;
+  }
+
+  .home-info-section{
+    padding-top:22px !important;
+  }
+
+  .option-one-action-strip{
+    margin-top:22px !important;
+  }
+}
