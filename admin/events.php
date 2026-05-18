@@ -1,3 +1,4 @@
+<?php
 
 function admin_upload_url($path) {
     $path = trim((string)$path);
@@ -17,7 +18,7 @@ function admin_upload_url($path) {
     return 'https://dancethruthedecades.co.uk/uploads/events/' . $path;
 }
 
-<?php
+
 require_once __DIR__ . '/_auth.php';
 
 function dttd_event_image_column_exists() {
