@@ -146,14 +146,7 @@ admin_header('Events - DJ Portal');
             <span class="req-person"><?= h(strtoupper(substr($e['event_name'], 0, 1))) ?></span>
             <span><?= h(event_type_label($e['event_type'] ?? 'public')) ?></span>
           </div>
-
-          <?php if (dttd_event_image_column_exists() && !empty($e['event_image'])): ?>
-            <div class="event-row-image">
-              <img src="<?= h($e['event_image']) ?>" alt="<?= h($e['event_name']) ?> image">
-            </div>
-          <?php endif; ?>
-
-          <div class="event-row-title">
+<div class="event-row-title">
             <strong><?= h($e['event_name']) ?></strong>
             <span><?= h($e['venue_name']) ?></span>
             <?php if (!empty($e['event_code'])): ?>
@@ -167,7 +160,13 @@ admin_header('Events - DJ Portal');
           </div>
 
           <div class="event-row-actions event-row-actions-only">
-            <a class="action-tile maybe" href="/admin/event-edit.php?id=<?= (int)$e['id'] ?>">
+            
+            <?php if (function_exists('dttd_event_image_column_exists') && dttd_event_image_column_exists() && !empty($e['event_image'])): ?>
+              <div class="event-row-image event-row-image-actions">
+                <img src="<?= h($e['event_image']) ?>" alt="<?= h($e['event_name']) ?> image">
+              </div>
+            <?php endif; ?>
+<a class="action-tile maybe" href="/admin/event-edit.php?id=<?= (int)$e['id'] ?>">
               <span class="big-icon">⚙</span>
               <span>Edit</span>
             </a>

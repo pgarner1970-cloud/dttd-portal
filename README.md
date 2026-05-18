@@ -1,21 +1,16 @@
-# Dance Thru the Decades Portal v101 - Event Edit Layout Restore
+# Dance Thru the Decades Portal v102 - Event Image Preview By Edit
 
 ## Changes
 
-- Keeps the correct `event-edit.php` page.
-- Restores the add/edit form to a card-based layout similar to the original:
-  - proper section cards
-  - blue icon tiles
-  - improved spacing
-  - better input styling
-- Keeps Event Image / Flyer upload on the edit page.
-- Keeps `events-edit.php` as an alias.
-- Does not move the upload back to the Events list page.
-- No SQL changes beyond the event_image column if not already applied.
+- Moves the event image thumbnail on the Events list.
+- Thumbnail now appears in the right-hand action area beside the Edit button.
+- Prevents event row layout breaking when an image is present.
+- Keeps the event image upload on `event-edit.php`.
+- No SQL changes beyond the existing `event_image` column.
 
 ## SQL
 
-Run once if not already done:
+If not already run:
 
 ```sql
 ALTER TABLE events
@@ -26,4 +21,4 @@ If already run, no SQL is needed.
 
 ## Suggested Git commit title
 
-v101 Event Edit Layout Restore
+v102 Event Image Preview By Edit
