@@ -1,21 +1,14 @@
-# Dance Thru the Decades Portal v152 - Public Nav Footer Links
+# Dance Thru the Decades Portal v153 - Venue Facebook Button
 
 ## Changes
 
-- Updates the public top navigation to match the footer structure:
-  - Home
-  - Events
-  - Gallery
-  - Facebook icon
-- Keeps Privacy and Terms in the footer only.
-- Adds a themed circular Facebook icon in the header.
-- Links Yellow Arrow in the footer to:
-
-```text
-https://yellowarrow.co.uk
-```
-
-- Bumps public-site.css cache version to v152.
+- Removes duplicate "Our Facebook" button from event cards
+- Replaces "Venue Facebook" text button with:
+  - Venue label
+  - Facebook icon badge
+- Keeps main Facebook navigation in header/footer
+- Improved cleaner event card layout
+- Bumps CSS cache to v153
 
 ## SQL
 
@@ -23,4 +16,4 @@ No SQL changes.
 
 ## Suggested Git commit title
 
-v152 Public Nav Footer Links
+v153 Venue Facebook Button

@@ -230,7 +230,7 @@ if ($event) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : 'Event Not Found' ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event information.' ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=152">
+  <link rel="stylesheet" href="/assets/public-site.css?v=153">
 </head>
 <body class="homepage-option-one public-event-detail-page">
   <main class="home-option-one">
@@ -317,7 +317,7 @@ if ($event) {
               <a class="public-neon-btn subtle" href="<?= public_h($facebookUrl) ?>" target="_blank" rel="noopener">Our Facebook</a>
 
               <?php if ($venueFacebook): ?>
-                <a class="public-neon-btn subtle" href="<?= public_h($venueFacebook) ?>" target="_blank" rel="noopener">Venue Facebook</a>
+                <a class="public-neon-btn subtle" href="<?= public_h($venueFacebook) ?>" target="_blank" rel="noopener"><span class="venue-label">Venue</span><span class="venue-facebook-icon" aria-hidden="true">f</span></a>
               <?php endif; ?>
 
               <?php if ($venueWebsite): ?>

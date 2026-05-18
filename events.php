@@ -189,7 +189,7 @@ try {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upcoming Events | Dance Thru the Decades</title>
   <meta name="description" content="Upcoming public Dance Thru the Decades events, party nights and request-enabled DJ events.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=152">
+  <link rel="stylesheet" href="/assets/public-site.css?v=153">
 </head>
 <body class="homepage-option-one public-list-page">
   <main class="home-option-one">
@@ -264,7 +264,7 @@ try {
                   <a class="public-neon-btn subtle" href="<?= public_h($facebookUrl) ?>" target="_blank" rel="noopener">Our Facebook</a>
 
                   <?php if ($venueFacebook): ?>
-                    <a class="public-neon-btn subtle" href="<?= public_h($venueFacebook) ?>" target="_blank" rel="noopener">Venue Facebook</a>
+                    <a class="public-neon-btn subtle" href="<?= public_h($venueFacebook) ?>" target="_blank" rel="noopener"><span class="venue-label">Venue</span><span class="venue-facebook-icon" aria-hidden="true">f</span></a>
                   <?php endif; ?>
                 </div>
               </div>

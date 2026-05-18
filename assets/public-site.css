@@ -3278,3 +3278,43 @@ body > a[href="/"]:not(.public-dj-login){
     height:36px;
   }
 }
+
+
+/* v153 venue facebook button */
+.venue-label{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+}
+
+.venue-facebook-icon{
+  display:inline-grid;
+  place-items:center;
+  width:24px;
+  height:24px;
+  margin-left:10px;
+  border-radius:50%;
+  background:linear-gradient(180deg,#1877f2,#1259b8);
+  color:#fff;
+  font-size:.95rem;
+  font-weight:900;
+  box-shadow:
+    0 0 12px rgba(24,119,242,.45),
+    inset 0 1px 0 rgba(255,255,255,.25);
+}
+
+a:hover .venue-facebook-icon{
+  transform:translateY(-1px);
+  box-shadow:
+    0 0 16px rgba(24,119,242,.6),
+    inset 0 1px 0 rgba(255,255,255,.35);
+}
+
+@media(max-width:760px){
+  .venue-facebook-icon{
+    width:22px;
+    height:22px;
+    margin-left:8px;
+    font-size:.85rem;
+  }
+}
