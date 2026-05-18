@@ -1,18 +1,17 @@
-# Dance Thru the Decades Portal v131 - Homepage Heading Refinement
+# Dance Thru the Decades Portal v132 - Clean Homepage Heading Update
 
 ## Changes
 
-- Removes the word "event" from the hero subtitle.
-- Makes the decades line larger and more visual.
-- Adds a subtle gold neon shimmer to:
-  - 60s · 70s · 80s · 90s · 00s
-- Changes the main heading to match the logo structure:
+- Clean deployment ZIP.
+- Excludes `.git`, uploads and server config files.
+- Forces the homepage heading to:
   - DANCE THRU
   - THE
   - DECADES
   - EVENTS
-- Styles THE and EVENTS separately for a more branded retro look.
-- Bumps `public-site.css` cache version to v131.
+- Removes the word "event" from the subtitle.
+- Bumps `public-site.css` cache version to v132.
+- Adds stronger final CSS overrides for the heading and decades line.
 
 ## SQL
 
@@ -20,4 +19,4 @@ No SQL changes.
 
 ## Suggested Git commit title
 
-v131 Homepage Heading Refinement
+v132 Clean Homepage Heading Update

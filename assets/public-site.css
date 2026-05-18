@@ -864,3 +864,72 @@ body.homepage-option-one{
     padding-left:.32em !important;
   }
 }
+
+
+/* v132 forced homepage heading update */
+.option-one-eyebrow{
+  font-size:clamp(1.15rem, 1.75vw, 1.65rem) !important;
+  letter-spacing:.28rem !important;
+  color:#ffd54a !important;
+  text-shadow:
+    0 0 8px rgba(255,213,74,.74),
+    0 0 20px rgba(255,105,180,.42),
+    0 2px 10px rgba(0,0,0,.48) !important;
+  position:relative !important;
+  display:inline-block !important;
+  overflow:hidden !important;
+}
+
+.option-one-eyebrow::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg, transparent 0%, rgba(255,255,255,.52) 50%, transparent 100%);
+  transform:translateX(-130%);
+  animation:eyebrowShimmer 4.8s linear infinite;
+  mix-blend-mode:screen;
+  pointer-events:none;
+}
+
+@keyframes eyebrowShimmer{
+  to{ transform:translateX(130%); }
+}
+
+.option-one-hero h1{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  gap:.02em !important;
+  line-height:.88 !important;
+  letter-spacing:normal !important;
+}
+
+.option-one-hero h1 span{
+  display:block !important;
+}
+
+.option-one-hero h1 span:nth-child(1),
+.option-one-hero h1 span:nth-child(3){
+  font-size:clamp(3.2rem, 8vw, 7.2rem) !important;
+  letter-spacing:-0.055em !important;
+}
+
+.option-one-hero h1 span:nth-child(2){
+  font-size:clamp(1.7rem, 3vw, 3.1rem) !important;
+  letter-spacing:.32em !important;
+  color:#ffd54a !important;
+  margin:.10em 0 .08em !important;
+  padding-left:.32em !important;
+  text-shadow:
+    0 0 10px rgba(255,213,74,.82),
+    0 0 24px rgba(255,105,180,.38),
+    0 8px 18px rgba(0,0,0,.42) !important;
+}
+
+.option-one-hero h1 .events-line{
+  font-size:clamp(1.2rem, 2.35vw, 2rem) !important;
+  letter-spacing:.42em !important;
+  padding-left:.42em !important;
+  color:rgba(255,255,255,.88) !important;
+  margin-top:.38em !important;
+}
