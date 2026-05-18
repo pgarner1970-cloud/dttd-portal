@@ -2223,3 +2223,249 @@ body.homepage-option-one::after{
     position:absolute;
   }
 }
+
+
+/* v144 public events list */
+.public-list-page .home-option-one{
+  min-height:100vh;
+}
+
+.public-list-hero{
+  position:relative;
+  text-align:center;
+  padding:90px 18px 34px;
+}
+
+.public-back-link{
+  position:absolute;
+  left:22px;
+  top:24px;
+  color:#ffd54a;
+  text-decoration:none;
+  font-weight:900;
+  text-shadow:0 0 10px rgba(255,213,74,.55);
+}
+
+.public-list-logo{
+  width:150px !important;
+  margin-bottom:20px !important;
+}
+
+.public-list-hero h1{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  margin:0;
+  text-transform:uppercase;
+  line-height:.9;
+  color:#fff;
+  text-shadow:
+    0 0 10px rgba(255,255,255,.35),
+    0 0 24px rgba(255,79,216,.24),
+    0 10px 28px rgba(0,0,0,.45);
+}
+
+.public-list-hero h1 .headline-main{
+  font-size:clamp(3rem, 7vw, 6.8rem);
+  letter-spacing:-.05em;
+}
+
+.public-list-hero h1 .headline-the{
+  display:grid;
+  grid-template-columns:minmax(60px,140px) auto minmax(60px,140px);
+  align-items:center;
+  gap:18px;
+  margin:.16em 0 0;
+}
+
+.public-list-hero h1 .headline-the b{
+  font-size:clamp(1.5rem, 3vw, 2.8rem);
+  letter-spacing:.22em;
+  padding-left:.22em;
+  color:#ffd54a;
+}
+
+.public-list-hero h1 .headline-the i{
+  display:block;
+  height:3px;
+  background:#ff4fd8;
+  box-shadow:0 0 12px rgba(255,79,216,.9);
+}
+
+.public-events-section{
+  width:min(1120px, calc(100% - 32px));
+  margin:0 auto;
+  padding:20px 0 72px;
+}
+
+.public-events-grid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:22px;
+}
+
+.public-event-card,
+.public-empty-card{
+  border:1px solid rgba(255,79,216,.38);
+  border-radius:24px;
+  background:linear-gradient(180deg, rgba(33,0,48,.76), rgba(12,0,22,.82));
+  box-shadow:
+    0 20px 50px rgba(0,0,0,.26),
+    0 0 26px rgba(255,79,216,.08),
+    inset 0 1px 0 rgba(255,255,255,.08);
+  overflow:hidden;
+  backdrop-filter:blur(8px);
+}
+
+.public-empty-card{
+  text-align:center;
+  padding:34px;
+  max-width:680px;
+  margin:0 auto;
+}
+
+.public-empty-card h2{
+  margin:0 0 10px;
+  font-size:clamp(1.6rem, 3vw, 2.4rem);
+}
+
+.public-empty-card p{
+  color:#f3e8ff;
+  margin:0 0 20px;
+}
+
+.public-event-card{
+  display:grid;
+  grid-template-columns:190px minmax(0, 1fr);
+}
+
+.public-event-image{
+  min-height:190px;
+  background:rgba(255,79,216,.10);
+}
+
+.public-event-image img{
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:cover;
+}
+
+.public-event-placeholder{
+  display:grid;
+  place-items:center;
+  font-size:4rem;
+  color:#ffd54a;
+  text-shadow:0 0 18px rgba(255,213,74,.55);
+}
+
+.public-event-body{
+  padding:22px;
+}
+
+.public-event-date{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  align-items:center;
+  color:#ffd54a;
+  font-weight:950;
+  margin-bottom:12px;
+}
+
+.public-event-date span{
+  color:#f3e8ff;
+}
+
+.public-event-body h2{
+  margin:0 0 8px;
+  font-size:clamp(1.35rem, 2vw, 2rem);
+  line-height:1.05;
+}
+
+.public-event-body p{
+  margin:0 0 18px;
+  color:#f3e8ff;
+}
+
+.public-event-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.public-neon-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:44px;
+  padding:10px 16px;
+  border:1px solid rgba(255,79,216,.7);
+  border-radius:14px;
+  color:#fff;
+  background:rgba(255,79,216,.14);
+  text-decoration:none;
+  font-weight:900;
+  box-shadow:0 0 12px rgba(255,79,216,.22);
+}
+
+.public-neon-btn.subtle{
+  background:rgba(255,255,255,.04);
+  border-color:rgba(255,255,255,.18);
+}
+
+.public-alert{
+  border:1px solid rgba(248,113,113,.45);
+  background:rgba(127,29,29,.25);
+  color:#fecaca;
+  border-radius:16px;
+  padding:14px 16px;
+  margin-bottom:18px;
+}
+
+@media(max-width:820px){
+  .public-events-grid{
+    grid-template-columns:1fr;
+  }
+
+  .public-event-card{
+    grid-template-columns:1fr;
+  }
+
+  .public-event-image{
+    min-height:220px;
+  }
+}
+
+@media(max-width:560px){
+  .public-list-hero{
+    padding-top:82px;
+  }
+
+  .public-back-link{
+    left:14px;
+    top:16px;
+  }
+
+  .public-events-section{
+    width:min(100% - 24px, 1120px);
+    padding-top:10px;
+  }
+
+  .public-list-logo{
+    width:128px !important;
+  }
+
+  .public-list-hero h1 .headline-main{
+    font-size:clamp(2.7rem, 14vw, 4rem);
+  }
+
+  .public-list-hero h1 .headline-the{
+    grid-template-columns:42px auto 42px;
+    gap:10px;
+  }
+
+  .public-event-body{
+    padding:18px;
+  }
+}
