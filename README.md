@@ -1,24 +1,19 @@
-# Dance Thru the Decades Portal v102 - Event Image Preview By Edit
+# Dance Thru the Decades Portal v103 - Test Request Dedication Fix
 
 ## Changes
 
-- Moves the event image thumbnail on the Events list.
-- Thumbnail now appears in the right-hand action area beside the Edit button.
-- Prevents event row layout breaking when an image is present.
-- Keeps the event image upload on `event-edit.php`.
-- No SQL changes beyond the existing `event_image` column.
+- Fixes Add Test Request not saving Message / Dedication.
+- The admin test request handler now reads:
+  - dedication
+  - message
+  - test_message
+- Saves the value into `song_requests.dedication`.
+- Keeps request queue, event image upload and header layout unchanged.
 
 ## SQL
 
-If not already run:
-
-```sql
-ALTER TABLE events
-ADD COLUMN event_image VARCHAR(255) NULL;
-```
-
-If already run, no SQL is needed.
+No SQL changes.
 
 ## Suggested Git commit title
 
-v102 Event Image Preview By Edit
+v103 Test Request Dedication Fix

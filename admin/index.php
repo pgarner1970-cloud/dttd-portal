@@ -134,7 +134,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_t
         $guest_name = trim($_POST['guest_name'] ?? '');
         $song_title = trim($_POST['song_title'] ?? '');
         $artist = trim($_POST['artist'] ?? '');
-        $message = trim($_POST['message'] ?? '');
+        
+        $dedication = trim((string)($_POST['dedication'] ?? $_POST['message'] ?? $_POST['test_message'] ?? ''));$message = trim($_POST['message'] ?? '');
 
         if ($guest_name === '' || $song_title === '' || $artist === '') {
             $error = 'Please enter guest name, song title and artist.';
@@ -145,17 +146,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_t
 
                     $stmt = db()->prepare("
                         INSERT INTO song_requests
-                        (event_id, guest_name, song_title, artist, message, status, request_group_id, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, 'pending', ?, NOW(), NOW())
+                        (event_id, guest_name, song_title, artist, message, status, request_group_id, created_at, updated_at, dedication)
+                        VALUES (?, ?, ?, ?, ?, 'pending', ?, NOW(), NOW(), ?)
                     ");
-                    $stmt->execute([
-                        (int)$event['id'],
+                    $stmt->execute([(int)$event['id'],
                         $guest_name,
                         $song_title,
                         $artist,
                         $message,
-                        $request_group_id
-                    ]);
+                        $request_group_id, $dedication]);
                 } else {
                     $stmt = db()->prepare("
                         INSERT INTO song_requests
