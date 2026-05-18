@@ -4971,3 +4971,17 @@ body.modal-open{ overflow:hidden; }
 .venue-select-field small{
   color:#a7f3d0 !important;
 }
+
+
+/* v114 event edit section order and venue placement */
+.restored-event-form .settings-card.venue-social-card .settings-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+}
+
+.restored-event-form .venue-select-field{
+  grid-column:1 / -1 !important;
+}
+
+.restored-event-form .event-details-card .settings-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+}

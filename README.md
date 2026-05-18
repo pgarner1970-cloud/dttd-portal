@@ -1,34 +1,26 @@
-# Dance Thru the Decades Portal v113 - Venue Database Selection
+# Dance Thru the Decades Portal v114 - Event Edit Section Order
 
 ## Changes
 
-Adds reusable venue support to `event-edit.php`.
-
-### Event edit page
-- Adds a **Select saved venue** dropdown in Venue Details & Social.
-- Selecting a saved venue auto-fills:
-  - Venue name
-  - Address
-  - Postcode
-  - Facebook URL
-  - Website URL
-  - Instagram URL
-  - Social display label
-- Leaving the dropdown as **Create new / manual venue** creates a new venue record when saving the event.
-- If an existing venue is selected, its details are updated from the form when the event is saved.
-- Stores `events.venue_id` where that column exists.
-- Keeps event-level venue fields as fallback for compatibility.
+- Moves `Venue name` out of the top Event Details card.
+- Adds `Venue name` into Venue Details & Social with the saved venue selector.
+- Reorders event edit sections to:
+  1. Event Details
+  2. Timing
+  3. Venue Details & Social
+  4. Event Image / Flyer
+  5. QR Code & Event Code
+  6. Portal Behaviour
+- Queue Visibility now has:
+  - Public
+  - Private
+- Keeps `event-edit.php` as the only event edit script.
+- Does not recreate `events-edit.php`.
 
 ## SQL
 
-You said the venues table has already been added.
-
-This build expects:
-- `venues` table
-- `events.venue_id` column
-
-No SQL included.
+No SQL changes.
 
 ## Suggested Git commit title
 
-v113 Venue Database Selection
+v114 Event Edit Section Order

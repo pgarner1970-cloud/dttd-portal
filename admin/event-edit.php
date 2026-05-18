@@ -269,6 +269,7 @@ $event = [
     'requests_close_at' => '',
     'is_active' => 1,
     'event_code' => '',
+    'queue_visibility' => 'public',
     'event_image' => '',
 ];
 
@@ -326,6 +327,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $is_active = !empty($_POST['is_active']) ? 1 : 0;
     $event_code = trim((string)($_POST['event_code'] ?? ''));
     $event_code = $event_code !== '' ? $event_code : event_unique_code($id);
+    $queue_visibility = trim((string)($_POST['queue_visibility'] ?? 'public'));
 
     if ($event_name === '' || $venue_name === '' || $event_date === '' || $start_time === '') {
         $error = 'Please complete the required event fields.';
@@ -363,6 +365,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'requests_close_at' => $requests_close_at,
             'is_active' => $is_active,
             'event_code' => $event_code,
+            'queue_visibility' => $queue_visibility,
         ];
 
         if (event_image_column_exists() && $uploaded_image) {
@@ -439,7 +442,43 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
         <div class="settings-alert error"><?= h($error) ?></div>
       <?php endif; ?>
 
-      <section class="settings-card">
+      
+
+
+      
+
+
+
+
+      
+
+
+      <?php if ($is_edit): ?>
+        <?php
+          $public_request_url = rtrim(app_setting('public_request_base_url', ''), '/');
+          if ($public_request_url === '') {
+              $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+              $host = $_SERVER['HTTP_HOST'] ?? '';
+              $public_request_url = $scheme . '://' . $host;
+          }
+
+          $has_event_code = !empty($event['event_code']);
+          $event_request_url = $has_event_code
+              ? $public_request_url . '/request.php?code=' . rawurlencode($event['event_code'])
+              : '';
+        ?>
+        
+
+      <?php endif; ?>
+
+
+
+
+
+      
+
+
+      <section class="settings-card event-details-card">
         <div class="settings-card-header">
           <div class="settings-card-icon">▦</div>
           <div>
@@ -473,8 +512,43 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
           </label>
         </div>
       </section>
+<section class="settings-card">
+        <div class="settings-card-header">
+          <div class="settings-card-icon">◷</div>
+          <div>
+            <h3>Timing</h3>
+            <p>End times earlier than start times are treated as after midnight.</p>
+          </div>
+        </div>
 
-      <section class="settings-card venue-social-card">
+        <div class="settings-grid four">
+          <label>
+            <span>Event date</span>
+            <input type="date" name="event_date" value="<?= h($event['event_date']) ?>">
+          </label>
+
+          <label>
+            <span>Start time</span>
+            <input type="time" name="start_time" value="<?= h(input_time($event['start_time'])) ?>">
+          </label>
+
+          <label>
+            <span>End time</span>
+            <input type="time" name="end_time" value="<?= h(input_time($event['end_time'])) ?>">
+            <small>Optional. Example: 19:30 to 01:30 spans midnight.</small>
+          </label>
+
+          <label>
+            <span>Close requests before end</span>
+            <select name="close_before_end">
+              <?php foreach (request_close_options() as $minutes => $label): ?>
+                <option value="<?= h($minutes) ?>" <?= (string)$minutes === (string)$close_before_value ? 'selected' : '' ?>><?= h($label) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </label>
+        </div>
+      </section>
+<section class="settings-card venue-social-card">
         <div class="settings-card-header">
           <div class="settings-card-icon">⌖</div>
           <div>
@@ -510,6 +584,12 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
             </label>
           <?php endif; ?>
 
+
+          
+          <label>
+            <span>Venue name *</span>
+            <input name="venue_name" id="venue_name_input" value="<?= h($event['venue_name']) ?>" required placeholder="Venue or location name">
+          </label>
 
           <label>
             <span>Venue address</span>
@@ -548,10 +628,7 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
           </label>
         </div>
       </section>
-
-
-
-      <section class="settings-card event-image-upload-card">
+<section class="settings-card event-image-upload-card">
         <div class="settings-card-header">
           <div class="settings-card-icon">▣</div>
           <div>
@@ -584,22 +661,7 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
           </p>
         </div>
       </section>
-
-      <?php if ($is_edit): ?>
-        <?php
-          $public_request_url = rtrim(app_setting('public_request_base_url', ''), '/');
-          if ($public_request_url === '') {
-              $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-              $host = $_SERVER['HTTP_HOST'] ?? '';
-              $public_request_url = $scheme . '://' . $host;
-          }
-
-          $has_event_code = !empty($event['event_code']);
-          $event_request_url = $has_event_code
-              ? $public_request_url . '/request.php?code=' . rawurlencode($event['event_code'])
-              : '';
-        ?>
-        <section class="settings-card event-qr-card">
+<section class="settings-card event-qr-card">
           <div class="settings-card-header">
             <div class="settings-card-icon">▦</div>
             <div>
@@ -632,47 +694,7 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
             <?php endif; ?>
           </div>
         </section>
-      <?php endif; ?>
-
-
 <section class="settings-card">
-        <div class="settings-card-header">
-          <div class="settings-card-icon">◷</div>
-          <div>
-            <h3>Timing</h3>
-            <p>End times earlier than start times are treated as after midnight.</p>
-          </div>
-        </div>
-
-        <div class="settings-grid four">
-          <label>
-            <span>Event date</span>
-            <input type="date" name="event_date" value="<?= h($event['event_date']) ?>">
-          </label>
-
-          <label>
-            <span>Start time</span>
-            <input type="time" name="start_time" value="<?= h(input_time($event['start_time'])) ?>">
-          </label>
-
-          <label>
-            <span>End time</span>
-            <input type="time" name="end_time" value="<?= h(input_time($event['end_time'])) ?>">
-            <small>Optional. Example: 19:30 to 01:30 spans midnight.</small>
-          </label>
-
-          <label>
-            <span>Close requests before end</span>
-            <select name="close_before_end">
-              <?php foreach (request_close_options() as $minutes => $label): ?>
-                <option value="<?= h($minutes) ?>" <?= (string)$minutes === (string)$close_before_value ? 'selected' : '' ?>><?= h($label) ?></option>
-              <?php endforeach; ?>
-            </select>
-          </label>
-        </div>
-      </section>
-
-      <section class="settings-card">
         <div class="settings-card-header">
           <div class="settings-card-icon">⚙</div>
           <div>
@@ -692,7 +714,8 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
           <label>
             <span>Queue visibility</span>
             <select name="queue_visibility">
-              <option value="public">Public</option>
+              <option value="public" <?= ($event['queue_visibility'] ?? 'public') === 'public' ? 'selected' : '' ?>>Public</option>
+              <option value="private" <?= ($event['queue_visibility'] ?? 'public') === 'private' ? 'selected' : '' ?>>Private</option>
             </select>
           </label>
 
@@ -702,8 +725,7 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
           </label>
         </div>
       </section>
-
-      <div class="form-actions">
+<div class="form-actions">
         <a class="touch-btn" href="/admin/events.php">Cancel</a>
         <button class="touch-btn blue" type="submit"><?= $is_edit ? 'Save Event' : 'Create Event' ?></button>
       </div>
