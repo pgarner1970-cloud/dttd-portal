@@ -1,0 +1,6 @@
+# v149 public event routing
+RewriteEngine On
+
+RewriteRule ^events/?$ events.php [L,QSA]
+RewriteRule ^events/([a-z0-9-]+)/?$ event.php?slug=$1 [L,QSA]
+

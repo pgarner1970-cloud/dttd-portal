@@ -1,27 +1,32 @@
-# Dance Thru the Decades Portal v148 - Public Events Detail Fix
+# Dance Thru the Decades Portal v149 - SEO Event URLs and Descriptions
 
 ## Changes
 
-- Fixes public event detail links using `/event.php?id=...`.
-- Rebuilds `event.php` to support:
-  - public `id` links
-  - private/QR `code` links
-  - no public event-code display
-- Removes duplicated/unstyled Home link on event pages.
-- Improves event detail page styling to match the public site.
-- Adds map button when venue/address/postcode exists.
-- Adds buttons for:
-  - Our Facebook
-  - Venue Facebook, when available
-  - Venue Website, when available
-  - Tickets, when available
-- Widens the public events list cards.
-- Improves event image fallback if the uploaded flyer is missing/broken.
+- Adds SEO-friendly public event routes:
+  - `/events`
+  - `/events/event-slug`
+- Adds `.htaccess` rewrite rules:
+  - `/events` -> `events.php`
+  - `/events/{slug}` -> `event.php?slug={slug}`
+- Public event list now links to SEO-friendly URLs.
+- Public event detail page no longer uses numeric IDs.
+- Event codes remain hidden and only work for QR/private access.
+- Event detail page now displays a public description where available:
+  - `public_description`
+  - `event_description`
+  - `description`
+  - `public_notes`
+- Flyers/images now use `object-fit: contain` so they are not cropped.
+- Adds embedded Google Map below the event detail card.
+- Mobile-friendly image and map sizing.
 
 ## SQL
 
-No SQL changes.
+No SQL changes required.
+
+Optional future improvement:
+- Add a dedicated `public_slug` column to events for fully controlled slugs.
 
 ## Suggested Git commit title
 
-v148 Public Events Detail Fix
+v149 SEO Event URLs and Descriptions

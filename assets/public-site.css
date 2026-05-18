@@ -2707,3 +2707,115 @@ body > a[href="/"]:not(.public-dj-login){
     font-size:clamp(2.5rem, 14vw, 4rem);
   }
 }
+
+
+/* v149 SEO event URLs, descriptions and non-cropped flyers */
+.public-event-image img,
+.public-event-detail-image img{
+  object-fit:contain !important;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255,79,216,.14), transparent 44%),
+    linear-gradient(180deg, rgba(33,0,48,.90), rgba(12,0,22,.96)) !important;
+}
+
+.public-event-detail-image{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:14px;
+}
+
+.public-event-detail-image img{
+  max-width:100%;
+  max-height:100%;
+  border-radius:16px;
+}
+
+.public-event-image{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:10px;
+}
+
+.public-event-image img{
+  max-width:100%;
+  max-height:100%;
+  border-radius:14px;
+}
+
+.public-event-description{
+  margin:0 0 18px;
+  padding:16px 18px;
+  border:1px solid rgba(255,79,216,.26);
+  border-radius:16px;
+  background:rgba(255,255,255,.045);
+  color:#f8efff;
+  font-size:1.05rem;
+  line-height:1.5;
+}
+
+.public-map-section{
+  margin-top:26px;
+  border:1px solid rgba(255,79,216,.34);
+  border-radius:24px;
+  background:linear-gradient(180deg, rgba(33,0,48,.68), rgba(12,0,22,.82));
+  overflow:hidden;
+  box-shadow:
+    0 20px 50px rgba(0,0,0,.24),
+    0 0 26px rgba(255,79,216,.08);
+}
+
+.public-map-section h2{
+  margin:0;
+  padding:20px 22px;
+  border-bottom:1px solid rgba(255,79,216,.20);
+  font-size:clamp(1.5rem, 3vw, 2.2rem);
+}
+
+.public-map-frame{
+  height:360px;
+  background:#160020;
+}
+
+.public-map-frame iframe{
+  width:100%;
+  height:100%;
+  border:0;
+  display:block;
+  filter:saturate(.95) contrast(.95);
+}
+
+@media(max-width:820px){
+  .public-event-detail-image{
+    min-height:260px !important;
+  }
+
+  .public-event-image{
+    min-height:230px !important;
+  }
+
+  .public-map-frame{
+    height:300px;
+  }
+}
+
+@media(max-width:560px){
+  .public-event-detail-image{
+    min-height:220px !important;
+    padding:10px;
+  }
+
+  .public-event-image{
+    min-height:200px !important;
+  }
+
+  .public-map-frame{
+    height:260px;
+  }
+
+  .public-event-description{
+    font-size:1rem;
+    padding:14px;
+  }
+}

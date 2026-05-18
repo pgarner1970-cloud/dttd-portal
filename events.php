@@ -24,6 +24,38 @@ function public_column_exists($table, $column) {
     return $cache[$key];
 }
 
+function public_slugify($value) {
+    $value = strtolower(trim((string)$value));
+    $value = preg_replace('/[^a-z0-9]+/i', '-', $value);
+    $value = trim($value, '-');
+    return $value ?: 'event';
+}
+
+function public_event_slug($event) {
+    if (!empty($event['public_slug'])) {
+        return public_slugify($event['public_slug']);
+    }
+
+    if (!empty($event['slug'])) {
+        return public_slugify($event['slug']);
+    }
+
+    $parts = [
+        $event['event_name'] ?? $event['name'] ?? 'event',
+        $event['venue_name'] ?? $event['venue'] ?? '',
+    ];
+
+    if (!empty($event['event_date'])) {
+        try {
+            $parts[] = (new DateTime($event['event_date']))->format('Y-m-d');
+        } catch (Throwable $e) {
+            $parts[] = (string)$event['event_date'];
+        }
+    }
+
+    return public_slugify(implode(' ', array_filter($parts)));
+}
+
 function public_event_date($event) {
     if (empty($event['event_date'])) {
         return '';
@@ -81,8 +113,7 @@ function public_event_image_url($image) {
 
 $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
 
-$where = [];
-$where[] = "1=1";
+$where = ["1=1"];
 
 if (public_column_exists('events', 'event_date')) {
     $where[] = "(event_date >= CURDATE() OR event_date IS NULL)";
@@ -122,7 +153,7 @@ try {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upcoming Events | Dance Thru the Decades</title>
   <meta name="description" content="Upcoming public Dance Thru the Decades events, party nights and request-enabled DJ events.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=148">
+  <link rel="stylesheet" href="/assets/public-site.css?v=149">
 </head>
 <body class="homepage-option-one public-list-page">
   <main class="home-option-one">
@@ -133,7 +164,7 @@ try {
 
     <section class="public-list-hero">
       <div class="option-one-logo-shell public-list-logo">
-        <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=148" alt="Dance Thru The Decades Events logo">
+        <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=149" alt="Dance Thru The Decades Events logo">
       </div>
 
       <p class="option-one-eyebrow">Public Nights</p>
@@ -163,8 +194,7 @@ try {
               $title = $event['event_name'] ?? $event['name'] ?? 'Dance Thru The Decades Event';
               $venue = $event['venue_name'] ?? $event['venue'] ?? '';
               $imageUrl = public_event_image_url($event['event_image'] ?? '');
-              $publicId = $event['id'] ?? '';
-              $detailsLink = $publicId ? '/event.php?id=' . urlencode((string)$publicId) : '';
+              $detailsLink = '/events/' . rawurlencode(public_event_slug($event));
               $venueFacebook = $event['venue_facebook_url'] ?? $event['facebook_url'] ?? '';
             ?>
 
@@ -192,10 +222,7 @@ try {
                 <?php endif; ?>
 
                 <div class="public-event-actions">
-                  <?php if ($detailsLink): ?>
-                    <a class="public-neon-btn" href="<?= public_h($detailsLink) ?>">Event Details</a>
-                  <?php endif; ?>
-
+                  <a class="public-neon-btn" href="<?= public_h($detailsLink) ?>">Event Details</a>
                   <a class="public-neon-btn subtle" href="<?= public_h($facebookUrl) ?>" target="_blank" rel="noopener">Our Facebook</a>
 
                   <?php if ($venueFacebook): ?>
