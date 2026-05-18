@@ -153,63 +153,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_t
         $guest_name = trim($_POST['guest_name'] ?? '');
         $song_title = trim($_POST['song_title'] ?? '');
         $artist = trim($_POST['artist'] ?? '');
+        $message = trim((string)($_POST['message'] ?? $_POST['dedication'] ?? $_POST['test_message'] ?? ''));
 
         if ($guest_name === '' || $song_title === '' || $artist === '') {
             $error = 'Please enter guest name, song title and artist.';
         } else {
             try {
+                $columns = ['event_id', 'guest_name', 'song_title', 'artist', 'status'];
+                $values = [(int)$event['id'], $guest_name, $song_title, $artist, 'pending'];
+
+                if (dttd_index_song_request_column_exists('message')) {
+                    $columns[] = 'message';
+                    $values[] = $message;
+                }
+
+                if (dttd_index_song_request_column_exists('dedication')) {
+                    $columns[] = 'dedication';
+                    $values[] = $message;
+                }
+
                 if (dttd_index_group_id_column_exists()) {
                     $request_group_id = dttd_index_open_group_id_for_request((int)$event['id'], $song_title, $artist);
-
-                    $stmt = db()->prepare("
-                        INSERT INTO song_requests
-                        (event_id, guest_name, song_title, artist, message, status, request_group_id, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, 'pending', ?, NOW(), NOW())
-                    ");
-                    $stmt->execute([(int)$event['id'],
-                        $guest_name,
-                        $song_title,
-                        $artist,
-                        $message,
-                        $request_group_id]);
-                } else {
-                    $stmt = db()->prepare("
-                        INSERT INTO song_requests
-                        (event_id, guest_name, song_title, artist, message, status, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, 'pending', NOW(), NOW())
-                    ");
-                    $stmt->execute([
-                        (int)$event['id'],
-                        $guest_name,
-                        $song_title,
-                        $artist,
-                        $message
-                    ]);
+                    $columns[] = 'request_group_id';
+                    $values[] = $request_group_id;
                 }
 
-
-                $new_request_id = (int)db()->lastInsertId();
-
-                if ($new_request_id > 0 && $message !== '') {
-                    $update_parts = [];
-                    $update_params = [];
-
-                    if (dttd_index_song_request_column_exists('message')) {
-                        $update_parts[] = 'message = ?';
-                        $update_params[] = $message;
-                    }
-
-                    if (dttd_index_song_request_column_exists('dedication')) {
-                        $update_parts[] = 'dedication = ?';
-                        $update_params[] = $message;
-                    }
-
-                    if ($update_parts) {
-                        $update_params[] = $new_request_id;
-                        $update_stmt = db()->prepare('UPDATE song_requests SET ' . implode(', ', $update_parts) . ' WHERE id = ?');
-                        $update_stmt->execute($update_params);
-                    }
+                if (dttd_index_song_request_column_exists('created_at')) {
+                    $columns[] = 'created_at';
+                    $values[] = date('Y-m-d H:i:s');
                 }
+
+                if (dttd_index_song_request_column_exists('updated_at')) {
+                    $columns[] = 'updated_at';
+                    $values[] = date('Y-m-d H:i:s');
+                }
+
+                $placeholders = array_fill(0, count($columns), '?');
+
+                $stmt = db()->prepare(
+                    "INSERT INTO song_requests (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")"
+                );
+                $stmt->execute($values);
 
                 $success = 'Test request added.';
             } catch (Throwable $e) {
