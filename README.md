@@ -1,27 +1,39 @@
-# Dance Thru the Decades Portal v155 - Admin Assets Hotfix
+# Dance Thru the Decades Portal v156 - Admin Asset Domain Hotfix
 
-## Urgent Fix
+## Urgent demo fix
 
-This hotfix restores admin asset paths so the DJ Portal styling/scripts work correctly when using:
+This fixes the unstyled DJ Portal on:
 
 ```text
 https://dj.dancethruthedecades.co.uk/
 ```
 
-while keeping the fallback admin URL working:
-
-```text
-https://dancethruthedecades.co.uk/admin/
-```
-
 ## What changed
 
-- Admin navigation/redirects remain relative for the DJ subdomain.
-- Shared assets are restored to root-relative paths:
-  - `/assets/...`
-  - `/uploads/...`
+Because the `dj.` subdomain points directly at `/admin`, root-relative links such as:
 
-This is important because the `assets` folder is still at the main site root, not inside `/admin`.
+```text
+/assets/...
+```
+
+resolve incorrectly on the subdomain.
+
+This build forces admin-side CSS/JS/images/uploads to use the full main-domain URL:
+
+```text
+https://dancethruthedecades.co.uk/assets/...
+https://dancethruthedecades.co.uk/uploads/...
+```
+
+Admin page navigation remains relative, so links such as:
+
+```text
+events.php
+requests.php
+settings.php
+```
+
+continue to work on the `dj.` subdomain.
 
 ## SQL
 
@@ -29,4 +41,4 @@ No SQL changes.
 
 ## Suggested Git commit title
 
-v155 Admin Assets Hotfix
+v156 Admin Asset Domain Hotfix

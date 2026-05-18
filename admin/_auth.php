@@ -163,7 +163,7 @@ function admin_header($title = 'DJ Portal') {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= h($title) ?></title>
-<link rel="stylesheet" href="/assets/admin-touch.css">
+<link rel="stylesheet" href="https://dancethruthedecades.co.uk/assets/admin-touch.css">
 </head>
 <body class="admin-body">
 <header class="touch-topbar">
@@ -251,11 +251,11 @@ function admin_footer() {
 
 
 <?php if (basename($_SERVER['SCRIPT_NAME']) === 'requests.php'): ?>
-<script src="/assets/request-update-check.js?v=62"></script>
+<script src="https://dancethruthedecades.co.uk/assets/request-update-check.js?v=62"></script>
 <?php endif; ?>
-<script src="/assets/header-timers.js?v=97"></script>
-<script src="/assets/event-qr.js?v=106"></script>
-<script src="/assets/venue-select.js?v=115"></script>
+<script src="https://dancethruthedecades.co.uk/assets/header-timers.js?v=97"></script>
+<script src="https://dancethruthedecades.co.uk/assets/event-qr.js?v=106"></script>
+<script src="https://dancethruthedecades.co.uk/assets/venue-select.js?v=115"></script>
 </body>
 </html>
 <?php
