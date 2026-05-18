@@ -2138,3 +2138,88 @@ body.homepage-option-one{
     padding-top:28px !important;
   }
 }
+
+
+/* v143 dynamic homepage state and fixed starburst test */
+body.homepage-option-one{
+  background:#05000d !important;
+}
+
+body.homepage-option-one::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:-2;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 50% 16%, rgba(255,72,219,.34), transparent 15rem),
+    radial-gradient(circle at 50% 44%, rgba(124,58,237,.22), transparent 38rem),
+    repeating-conic-gradient(from 0deg at 50% 38%, rgba(255,255,255,.052) 0deg 4deg, transparent 4deg 10deg),
+    linear-gradient(180deg, #05000d 0%, #26043a 52%, #160020 100%);
+}
+
+body.homepage-option-one::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:-1;
+  pointer-events:none;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.48), transparent 22%, transparent 78%, rgba(0,0,0,.48)),
+    linear-gradient(180deg, rgba(0,0,0,.12), rgba(0,0,0,.42));
+}
+
+.home-option-one{
+  background:transparent !important;
+}
+
+.option-one-hero{
+  background:transparent !important;
+}
+
+.home-info-section{
+  background:transparent !important;
+}
+
+.option-one-action-strip.dynamic-action-strip{
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+}
+
+.option-one-action-card.primary-action{
+  background:linear-gradient(180deg, rgba(255,79,216,.16), rgba(20,0,35,.58));
+}
+
+.option-one-action-card[href="/events.php"] .option-one-icon,
+.option-one-action-card[href="/gallery.php"] .option-one-icon{
+  font-size:28px;
+}
+
+.home-info-card{
+  backdrop-filter:blur(8px);
+}
+
+@media(max-width:760px){
+  body.homepage-option-one::before{
+    position:fixed;
+    background:
+      radial-gradient(circle at 50% 9%, rgba(255,72,219,.32), transparent 10rem),
+      radial-gradient(circle at 50% 34%, rgba(124,58,237,.22), transparent 24rem),
+      repeating-conic-gradient(from 0deg at 50% 30%, rgba(255,255,255,.044) 0deg 4deg, transparent 4deg 10deg),
+      linear-gradient(180deg, #05000d 0%, #230336 52%, #100018 100%);
+  }
+
+  body.homepage-option-one::after{
+    background:rgba(0,0,0,.24);
+  }
+
+  .option-one-action-strip.dynamic-action-strip{
+    grid-template-columns:1fr;
+  }
+}
+
+/* Reduced motion / low-power friendly */
+@media(prefers-reduced-motion:reduce){
+  body.homepage-option-one::before{
+    position:absolute;
+  }
+}

@@ -2,6 +2,10 @@
 require_once __DIR__ . '/includes/db.php';
 
 $active_event = null;
+$active_event_is_public = false;
+$active_event_is_private = false;
+$homepage_state = 'no-event';
+
 try {
     $active_event = db()->query("
         SELECT *
@@ -10,8 +14,24 @@ try {
         ORDER BY event_date DESC, id DESC
         LIMIT 1
     ")->fetch();
+
+    if ($active_event) {
+        $visibility = strtolower((string)($active_event['queue_visibility'] ?? $active_event['visibility'] ?? 'public'));
+        $eventType = strtolower((string)($active_event['event_type'] ?? ''));
+
+        $active_event_is_private = (
+            $visibility === 'private'
+            || str_contains($eventType, 'private')
+            || str_contains($eventType, 'wedding')
+            || str_contains($eventType, 'birthday')
+        );
+
+        $active_event_is_public = !$active_event_is_private;
+        $homepage_state = $active_event_is_private ? 'private-event' : 'public-event';
+    }
 } catch (Throwable $e) {
     $active_event = null;
+    $homepage_state = 'no-event';
 }
 
 $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
@@ -23,7 +43,7 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dance Thru the Decades Events</title>
   <meta name="description" content="Dance Thru the Decades Events — 60s, 70s, 80s, 90s and 00s party nights, DJ events, song requests and Facebook event updates.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=142">
+  <link rel="stylesheet" href="/assets/public-site.css?v=143">
 </head>
 <body class="homepage-option-one">
   <main class="home-option-one">
@@ -36,7 +56,7 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
       <div class="option-one-floor-glow" aria-hidden="true"></div>
 
       <div class="option-one-inner">
-        <div class="option-one-logo-shell"><img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=142" alt="Dance Thru The Decades Events logo"></div>
+        <div class="option-one-logo-shell"><img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=143" alt="Dance Thru The Decades Events logo"></div>
 
         <p class="option-one-eyebrow">60s · 70s · 80s · 90s · 00s</p>
 
@@ -51,60 +71,144 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
           Feel-good party nights, classic floor-fillers and moments worth sharing.
         </p>
 
-        <div class="option-one-action-strip" aria-label="Event actions">
-          <?php if ($active_event && !empty($active_event['event_code'])): ?>
-            <a class="option-one-action-card" href="/request.php?code=<?= htmlspecialchars($active_event['event_code']) ?>">
-          <?php else: ?>
-            <a class="option-one-action-card" href="/request.php">
-          <?php endif; ?>
+        <div class="option-one-action-strip dynamic-action-strip" data-homepage-state="<?= htmlspecialchars($homepage_state) ?>" aria-label="Event actions">
+          <?php if ($homepage_state === 'public-event' && $active_event && !empty($active_event['event_code'])): ?>
+            <a class="option-one-action-card primary-action" href="/request.php?code=<?= htmlspecialchars($active_event['event_code']) ?>">
               <span class="option-one-icon">♪</span>
               <span>
                 <strong>Request a Song</strong>
-                <em>Scan the QR or make a request</em>
+                <em>Open for tonight’s event</em>
               </span>
             </a>
 
-          <?php if ($active_event && !empty($active_event['event_code'])): ?>
             <a class="option-one-action-card" href="/event.php?code=<?= htmlspecialchars($active_event['event_code']) ?>">
-          <?php else: ?>
-            <a class="option-one-action-card" href="/event.php">
-          <?php endif; ?>
               <span class="option-one-icon">▣</span>
               <span>
                 <strong>This Event</strong>
-                <em>See tonight’s event details</em>
+                <em>Venue, times and event info</em>
               </span>
             </a>
 
-          <a class="option-one-action-card" href="#memories">
-            <span class="option-one-icon">▣</span>
-            <span>
-              <strong>Photos & Memories</strong>
-              <em>Share your best dancefloor moments</em>
-            </span>
-          </a>
+            <a class="option-one-action-card" href="/gallery.php?event=<?= urlencode($active_event['event_code']) ?>">
+              <span class="option-one-icon">▧</span>
+              <span>
+                <strong>Upload Photos</strong>
+                <em>Share memories from this event</em>
+              </span>
+            </a>
+
+          <?php elseif ($homepage_state === 'private-event' && $active_event && !empty($active_event['event_code'])): ?>
+            <a class="option-one-action-card primary-action" href="/request.php?code=<?= htmlspecialchars($active_event['event_code']) ?>">
+              <span class="option-one-icon">♪</span>
+              <span>
+                <strong>Guest Requests</strong>
+                <em>Request a song for this event</em>
+              </span>
+            </a>
+
+            <a class="option-one-action-card" href="/gallery.php?event=<?= urlencode($active_event['event_code']) ?>">
+              <span class="option-one-icon">▧</span>
+              <span>
+                <strong>Upload Photos</strong>
+                <em>Moderated before display</em>
+              </span>
+            </a>
+
+            <a class="option-one-action-card" href="/event.php?code=<?= htmlspecialchars($active_event['event_code']) ?>">
+              <span class="option-one-icon">▣</span>
+              <span>
+                <strong>Event Info</strong>
+                <em>Private guest event page</em>
+              </span>
+            </a>
+
+          <?php else: ?>
+            <a class="option-one-action-card primary-action" href="/events.php">
+              <span class="option-one-icon">▦</span>
+              <span>
+                <strong>Upcoming Events</strong>
+                <em>Public nights and future dates</em>
+              </span>
+            </a>
+
+            <a class="option-one-action-card" href="/gallery.php">
+              <span class="option-one-icon">▧</span>
+              <span>
+                <strong>Photos & Memories</strong>
+                <em>View and share event moments</em>
+              </span>
+            </a>
+
+            <a class="option-one-action-card" href="<?= htmlspecialchars($facebookUrl) ?>" target="_blank" rel="noopener">
+              <span class="option-one-icon">f</span>
+              <span>
+                <strong>Follow Us</strong>
+                <em>Updates, photos and announcements</em>
+              </span>
+            </a>
+          <?php endif; ?>
         </div>
       </div>
     </section>
 <section class="home-info-section" id="memories">
       <div class="home-info-grid">
-        <article class="home-info-card">
-          <span>👍</span>
-          <h2>Follow Us</h2>
-          <p>Keep up with upcoming nights, event photos, playlists and announcements.</p>
-        </article>
+        <?php if ($homepage_state === 'no-event'): ?>
+          <article class="home-info-card">
+            <span>📅</span>
+            <h2>Public Nights</h2>
+            <p>See upcoming Dance Thru The Decades events that are open to the public.</p>
+          </article>
 
-        <article class="home-info-card">
-          <span>📍</span>
-          <h2>Check In</h2>
-          <p>At one of our events? Check in, tag us and let your friends know you’re there.</p>
-        </article>
+          <article class="home-info-card">
+            <span>📸</span>
+            <h2>Photos & Memories</h2>
+            <p>Gallery uploads will be reviewed before they appear publicly on the site.</p>
+          </article>
 
-        <article class="home-info-card">
-          <span>📸</span>
-          <h2>Photos & Memories</h2>
-          <p>Share your best dancefloor moments and tag the page so we can see them.</p>
-        </article>
+          <article class="home-info-card">
+            <span>👍</span>
+            <h2>Follow Us</h2>
+            <p>Keep up with upcoming nights, event photos, playlists and announcements.</p>
+          </article>
+
+        <?php elseif ($homepage_state === 'public-event'): ?>
+          <article class="home-info-card">
+            <span>🎵</span>
+            <h2>Request Songs</h2>
+            <p>Requests are open for the current event. Send your song request to the DJ queue.</p>
+          </article>
+
+          <article class="home-info-card">
+            <span>📍</span>
+            <h2>Check In</h2>
+            <p>At the event? Tag us and let your friends know where the party is happening.</p>
+          </article>
+
+          <article class="home-info-card">
+            <span>📸</span>
+            <h2>Upload Photos</h2>
+            <p>Share dancefloor memories. Uploads are moderated before they go live.</p>
+          </article>
+
+        <?php else: ?>
+          <article class="home-info-card">
+            <span>🎵</span>
+            <h2>Guest Requests</h2>
+            <p>Guests can request songs using the private event QR or event link.</p>
+          </article>
+
+          <article class="home-info-card">
+            <span>📸</span>
+            <h2>Private Memories</h2>
+            <p>Photos can be uploaded for the event and reviewed before display.</p>
+          </article>
+
+          <article class="home-info-card">
+            <span>🔐</span>
+            <h2>Guest Access</h2>
+            <p>Future Wi-Fi and guest access features can link to this private event flow.</p>
+          </article>
+        <?php endif; ?>
       </div>
     </section>
   </main>
