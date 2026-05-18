@@ -158,7 +158,7 @@ function get_venues_for_select() {
     }
 }
 
-function save_or_update_venue_from_event_form($selected_venue_id, $venue_name, $venue_address, $venue_postcode, $facebook_url, $website_url, $instagram_url, $social_label) {
+function save_or_update_venue_from_event_form($selected_venue_id, $venue_name, $venue_address, $venue_postcode, $facebook_url, $website_url, $instagram_url, $ticket_url, $social_label) {
     if (!venues_table_exists()) {
         return null;
     }
@@ -174,6 +174,7 @@ function save_or_update_venue_from_event_form($selected_venue_id, $venue_name, $
         'venue_facebook_url' => trim($facebook_url),
         'venue_website_url' => trim($website_url),
         'venue_instagram_url' => trim($instagram_url),
+        'venue_ticket_url' => trim($ticket_url),
         'venue_social_label' => trim($social_label),
     ];
 
@@ -260,6 +261,7 @@ $event = [
     'venue_facebook_url' => '',
     'venue_website_url' => '',
     'venue_instagram_url' => '',
+    'venue_ticket_url' => '',
     'venue_social_label' => '',
     'event_type' => 'public',
     'notes' => '',
@@ -297,7 +299,7 @@ if (!empty($event['venue_id']) && venues_table_exists()) {
         $selected_venue = $venue_stmt->fetch();
 
         if ($selected_venue) {
-            foreach (['venue_name', 'venue_address', 'venue_postcode', 'venue_facebook_url', 'venue_website_url', 'venue_instagram_url', 'venue_social_label'] as $venue_field) {
+            foreach (['venue_name', 'venue_address', 'venue_postcode', 'venue_facebook_url', 'venue_website_url', 'venue_instagram_url', 'venue_ticket_url', 'venue_social_label'] as $venue_field) {
                 if (array_key_exists($venue_field, $selected_venue) && empty($event[$venue_field])) {
                     $event[$venue_field] = $selected_venue[$venue_field];
                 }
@@ -317,6 +319,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $venue_facebook_url = trim((string)($_POST['venue_facebook_url'] ?? ''));
     $venue_website_url = trim((string)($_POST['venue_website_url'] ?? ''));
     $venue_instagram_url = trim((string)($_POST['venue_instagram_url'] ?? ''));
+    $venue_ticket_url = trim((string)($_POST['venue_ticket_url'] ?? ''));
     $venue_social_label = trim((string)($_POST['venue_social_label'] ?? ''));
     $event_type = trim((string)($_POST['event_type'] ?? 'public'));
     $notes = trim((string)($_POST['notes'] ?? ''));
@@ -344,6 +347,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $venue_facebook_url,
             $venue_website_url,
             $venue_instagram_url,
+            $venue_ticket_url,
             $venue_social_label
         );
 
@@ -356,6 +360,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'venue_facebook_url' => $venue_facebook_url,
             'venue_website_url' => $venue_website_url,
             'venue_instagram_url' => $venue_instagram_url,
+            'venue_ticket_url' => $venue_ticket_url,
             'venue_social_label' => $venue_social_label,
             'event_type' => $event_type,
             'notes' => $notes,
@@ -573,6 +578,7 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
                     data-venue-facebook="<?= h($saved_venue['venue_facebook_url'] ?? '') ?>"
                     data-venue-website="<?= h($saved_venue['venue_website_url'] ?? '') ?>"
                     data-venue-instagram="<?= h($saved_venue['venue_instagram_url'] ?? '') ?>"
+                    data-venue-ticket="<?= h($saved_venue['venue_ticket_url'] ?? '') ?>"
                     data-venue-social-label="<?= h($saved_venue['venue_social_label'] ?? '') ?>"
                     <?= (int)($event['venue_id'] ?? 0) === (int)$saved_venue['id'] ? 'selected' : '' ?>
                   >
@@ -621,10 +627,17 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
             <input type="url" name="venue_instagram_url" id="venue_instagram_url_input" value="<?= h($event['venue_instagram_url'] ?? '') ?>" placeholder="https://instagram.com/...">
           </label>
 
+          
           <label>
-            <span>Social display label</span>
+            <span>Ticketing URL</span>
+            <input type="url" name="venue_ticket_url" id="venue_ticket_url_input" value="<?= h($event['venue_ticket_url'] ?? '') ?>" placeholder="https://tickets.example.com/...">
+            <small>Optional link for tickets, booking pages or external event listings.</small>
+          </label>
+
+          <label>
+            <span>Venue display label</span>
             <input name="venue_social_label" id="venue_social_label_input" value="<?= h($event['venue_social_label'] ?? '') ?>" placeholder="e.g. Follow The Venue">
-            <small>Optional label for public displays, posters or QR pages.</small>
+            <small>Optional short name for public displays, posters or QR pages.</small>
           </label>
         </div>
       </section>

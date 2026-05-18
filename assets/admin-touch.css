@@ -4985,3 +4985,31 @@ body.modal-open{ overflow:hidden; }
 .restored-event-form .event-details-card .settings-grid{
   grid-template-columns:repeat(2,minmax(0,1fr)) !important;
 }
+
+
+/* v115 event/venue cleanup */
+.restored-event-form .event-details-card .settings-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+}
+
+.restored-event-form .event-details-card textarea{
+  min-height:132px !important;
+}
+
+.restored-event-form .event-details-card label:has(textarea){
+  grid-row:span 2;
+}
+
+.restored-event-form .venue-social-card .settings-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+}
+
+.restored-event-form .venue-select-field{
+  grid-column:1 / -1 !important;
+}
+
+@supports not selector(:has(*)){
+  .restored-event-form .event-details-card textarea{
+    min-height:150px !important;
+  }
+}
