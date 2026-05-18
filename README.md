@@ -1,23 +1,14 @@
-# Dance Thru the Decades Portal v124 - Public/Admin CSS Separation
+# Dance Thru the Decades Portal v125 - Public Logo Integration
 
 ## Changes
 
-- Adds a dedicated public-facing stylesheet:
-
-```text
-assets/public.css
-```
-
-- Public-facing PHP pages outside `/admin` now load `public.css` where they have a normal `<head>` section.
-- Public pages no longer load `admin-touch.css`.
-- Admin/DJ Portal pages continue to use the admin stylesheet only:
-
-```text
-assets/admin-touch.css
-```
-
-- Removes any accidental public stylesheet include from `/admin` PHP files.
-- Keeps `event-edit.php`, `venues.php`, and `venue-edit.php` as admin-only pages.
+- Adds the uploaded Dance Thru The Decades Events logo to public-facing pages.
+- Logo assets added:
+  - `assets/dttd-logo.jpg`
+  - `assets/dttd-logo.webp`
+- Updates `assets/public.css` only.
+- Admin/DJ Portal CSS and admin header are not changed.
+- Public pages continue to use `public.css`.
 
 ## Public files updated
 
@@ -30,4 +21,4 @@ No SQL changes.
 
 ## Suggested Git commit title
 
-v124 Public Admin CSS Separation
+v125 Public Logo Integration
