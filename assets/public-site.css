@@ -1826,3 +1826,31 @@ body.homepage-option-one{
     animation:none !important;
   }
 }
+
+
+/* v139 clean glitter ball - no clipped streaks */
+.glitter-ball-img{
+  width:172px !important;
+  height:172px !important;
+  right:4.4% !important;
+  top:5.4% !important;
+  object-fit:contain !important;
+  filter:
+    drop-shadow(0 0 10px rgba(255,255,255,.34))
+    drop-shadow(0 0 28px rgba(255,79,216,.78))
+    drop-shadow(0 0 62px rgba(168,85,247,.44)) !important;
+}
+
+.option-one-disco-sparkles{
+  display:none !important;
+}
+
+@media(max-width:760px){
+  .glitter-ball-img{
+    width:82px !important;
+    height:82px !important;
+    right:10px !important;
+    top:58px !important;
+    opacity:.82 !important;
+  }
+}
