@@ -1631,3 +1631,56 @@ body.homepage-option-one{
     padding:22px !important;
   }
 }
+
+
+/* v137 proper glitter ball asset */
+.glitter-ball-img{
+  position:absolute;
+  right:4.6%;
+  top:5.5%;
+  width:170px;
+  height:170px;
+  z-index:3;
+  pointer-events:none;
+  object-fit:contain;
+  filter:
+    drop-shadow(0 0 12px rgba(255,255,255,.45))
+    drop-shadow(0 0 32px rgba(255,79,216,.80))
+    drop-shadow(0 0 70px rgba(168,85,247,.45));
+}
+
+.option-one-disco-ball{
+  display:none !important;
+}
+
+.option-one-disco-sparkles{
+  right:3.8% !important;
+  top:4.8% !important;
+  width:205px !important;
+  height:205px !important;
+  z-index:4 !important;
+  opacity:.85 !important;
+  background:
+    radial-gradient(circle at 15% 28%, rgba(255,255,255,.95) 0 2px, transparent 3px),
+    radial-gradient(circle at 76% 16%, rgba(255,255,255,.88) 0 2px, transparent 3px),
+    radial-gradient(circle at 86% 66%, rgba(255,79,216,.92) 0 2px, transparent 3px),
+    radial-gradient(circle at 32% 82%, rgba(255,213,74,.9) 0 2px, transparent 3px),
+    linear-gradient(118deg, transparent 0%, transparent 43%, rgba(255,255,255,.42) 48%, rgba(255,79,216,.46) 50%, transparent 57%, transparent 100%) !important;
+}
+
+@media(max-width:760px){
+  .glitter-ball-img{
+    width:86px;
+    height:86px;
+    right:8px;
+    top:58px;
+    opacity:.82;
+  }
+
+  .option-one-disco-sparkles{
+    width:108px !important;
+    height:108px !important;
+    right:-4px !important;
+    top:48px !important;
+  }
+}

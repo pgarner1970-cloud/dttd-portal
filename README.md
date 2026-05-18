@@ -1,14 +1,12 @@
-# Dance Thru the Decades Portal v136 - Mobile Neon Homepage
+# Dance Thru the Decades Portal v137 - Glitter Ball Asset
 
 ## Changes
 
-- Refactors the logo asset to reduce the white outer ring.
-- Keeps the neon logo ring/glow using CSS.
-- Adds a DJ Login link to the public homepage.
-- Improves the disco ball sparkle/glitter.
-- Makes the homepage layout more mobile-friendly for event guests.
-- Keeps large touch-friendly action cards.
-- Improves lower-section styling so it follows the same neon style.
+- Replaces the flat CSS-only disco ball with a generated transparent PNG glitter ball.
+- Adds mirrored tiles, bright highlights, sparkle flares and pink/purple glow.
+- Keeps the CSS sparkle overlay for extra shimmer.
+- Hides the old CSS disco ball fallback.
+- Bumps public-site.css cache version to v137.
 
 ## SQL
 
@@ -16,4 +14,4 @@ No SQL changes.
 
 ## Suggested Git commit title
 
-v136 Mobile Neon Homepage
+v137 Glitter Ball Asset
