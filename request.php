@@ -73,6 +73,9 @@ function request_self_link($event) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Request a Song</title>
 <link rel="stylesheet" href="/assets/style.css">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-public-32.png?v=160">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-public-192.png?v=160">
+  <link rel="apple-touch-icon" href="/assets/favicon-public-180.png?v=160">
   <link rel="stylesheet" href="/assets/public.css?v=127">
 </head>
 <body class="public-page">

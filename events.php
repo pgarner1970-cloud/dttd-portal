@@ -189,6 +189,9 @@ try {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upcoming Events | Dance Thru the Decades</title>
   <meta name="description" content="Upcoming public Dance Thru the Decades events, party nights and request-enabled DJ events.">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-public-32.png?v=160">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-public-192.png?v=160">
+  <link rel="apple-touch-icon" href="/assets/favicon-public-180.png?v=160">
   <link rel="stylesheet" href="/assets/public-site.css?v=153">
 </head>
 <body class="homepage-option-one public-list-page">

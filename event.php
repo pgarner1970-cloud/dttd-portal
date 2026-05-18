@@ -230,6 +230,9 @@ if ($event) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : 'Event Not Found' ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event information.' ?>">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-public-32.png?v=160">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-public-192.png?v=160">
+  <link rel="apple-touch-icon" href="/assets/favicon-public-180.png?v=160">
   <link rel="stylesheet" href="/assets/public-site.css?v=153">
 </head>
 <body class="homepage-option-one public-event-detail-page">
