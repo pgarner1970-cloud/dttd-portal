@@ -113,6 +113,25 @@ function dttd_index_open_group_id_for_request($event_id, $song_title, $artist) {
     return $existing ?: dttd_index_new_request_group_id();
 }
 
+
+function dttd_index_song_request_column_exists($column) {
+    static $cache = [];
+
+    if (isset($cache[$column])) {
+        return $cache[$column];
+    }
+
+    try {
+        $stmt = db()->prepare("SHOW COLUMNS FROM song_requests LIKE ?");
+        $stmt->execute([$column]);
+        $cache[$column] = (bool)$stmt->fetch();
+    } catch (Throwable $e) {
+        $cache[$column] = false;
+    }
+
+    return $cache[$column];
+}
+
 $success = '';
 $error = '';
 
@@ -134,8 +153,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_t
         $guest_name = trim($_POST['guest_name'] ?? '');
         $song_title = trim($_POST['song_title'] ?? '');
         $artist = trim($_POST['artist'] ?? '');
-        
-        $dedication = trim((string)($_POST['dedication'] ?? $_POST['message'] ?? $_POST['test_message'] ?? ''));$message = trim($_POST['message'] ?? '');
 
         if ($guest_name === '' || $song_title === '' || $artist === '') {
             $error = 'Please enter guest name, song title and artist.';
@@ -146,15 +163,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_t
 
                     $stmt = db()->prepare("
                         INSERT INTO song_requests
-                        (event_id, guest_name, song_title, artist, message, status, request_group_id, created_at, updated_at, dedication)
-                        VALUES (?, ?, ?, ?, ?, 'pending', ?, NOW(), NOW(), ?)
+                        (event_id, guest_name, song_title, artist, message, status, request_group_id, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, 'pending', ?, NOW(), NOW())
                     ");
                     $stmt->execute([(int)$event['id'],
                         $guest_name,
                         $song_title,
                         $artist,
                         $message,
-                        $request_group_id, $dedication]);
+                        $request_group_id]);
                 } else {
                     $stmt = db()->prepare("
                         INSERT INTO song_requests
@@ -170,6 +187,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_t
                     ]);
                 }
 
+
+                $new_request_id = (int)db()->lastInsertId();
+
+                if ($new_request_id > 0 && $message !== '') {
+                    $update_parts = [];
+                    $update_params = [];
+
+                    if (dttd_index_song_request_column_exists('message')) {
+                        $update_parts[] = 'message = ?';
+                        $update_params[] = $message;
+                    }
+
+                    if (dttd_index_song_request_column_exists('dedication')) {
+                        $update_parts[] = 'dedication = ?';
+                        $update_params[] = $message;
+                    }
+
+                    if ($update_parts) {
+                        $update_params[] = $new_request_id;
+                        $update_stmt = db()->prepare('UPDATE song_requests SET ' . implode(', ', $update_parts) . ' WHERE id = ?');
+                        $update_stmt->execute($update_params);
+                    }
+                }
+
                 $success = 'Test request added.';
             } catch (Throwable $e) {
                 // Fallback for older schemas without created_at/updated_at or message.
@@ -180,7 +221,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_t
                         $stmt = db()->prepare("
                             INSERT INTO song_requests
                             (event_id, guest_name, song_title, artist, status, request_group_id)
-                            VALUES (?, ?, ?, ?, 'pending', ?)
+                            VALUES (?, ?, ?, ?, 'pending')
                         ");
                         $stmt->execute([
                             (int)$event['id'],

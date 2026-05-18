@@ -1,19 +1,22 @@
-# Dance Thru the Decades Portal v103 - Test Request Dedication Fix
+# Dance Thru the Decades Portal v104 - Test Request Save Message And Dedication
 
 ## Changes
 
-- Fixes Add Test Request not saving Message / Dedication.
-- The admin test request handler now reads:
-  - dedication
+- Fixes Add Test Request not saving the Message / Dedication text.
+- The handler now reads the form field from:
   - message
+  - dedication
   - test_message
-- Saves the value into `song_requests.dedication`.
-- Keeps request queue, event image upload and header layout unchanged.
+- After inserting the test request, it updates the newly created row and writes the text into whichever columns exist:
+  - song_requests.message
+  - song_requests.dedication
+- This avoids schema mismatch between older inserts and the queue display.
+- No SQL changes.
 
 ## SQL
 
-No SQL changes.
+No SQL to run.
 
 ## Suggested Git commit title
 
-v103 Test Request Dedication Fix
+v104 Test Request Save Message And Dedication
