@@ -7,11 +7,36 @@ $active_event_is_private = false;
 $homepage_state = 'no-event';
 
 try {
+    /*
+     * Important:
+     * is_active means the event is available/selectable in the portal.
+     * It does NOT mean the event is happening right now.
+     *
+     * The public homepage should only show live-event actions when the current
+     * date/time sits inside the event start/end window.
+     *
+     * End times earlier than start times are treated as after midnight.
+     */
     $active_event = db()->query("
-        SELECT *
+        SELECT *,
+            TIMESTAMP(event_date, start_time) AS live_start_at,
+            CASE
+                WHEN end_time IS NULL OR end_time = '' THEN TIMESTAMP(event_date, start_time)
+                WHEN end_time < start_time THEN TIMESTAMP(DATE_ADD(event_date, INTERVAL 1 DAY), end_time)
+                ELSE TIMESTAMP(event_date, end_time)
+            END AS live_end_at
         FROM events
         WHERE is_active = 1
-        ORDER BY event_date DESC, id DESC
+          AND event_date IS NOT NULL
+          AND start_time IS NOT NULL
+          AND start_time <> ''
+          AND NOW() >= TIMESTAMP(event_date, start_time)
+          AND NOW() <= CASE
+                WHEN end_time IS NULL OR end_time = '' THEN DATE_ADD(TIMESTAMP(event_date, start_time), INTERVAL 6 HOUR)
+                WHEN end_time < start_time THEN TIMESTAMP(DATE_ADD(event_date, INTERVAL 1 DAY), end_time)
+                ELSE TIMESTAMP(event_date, end_time)
+          END
+        ORDER BY event_date ASC, start_time ASC, id ASC
         LIMIT 1
     ")->fetch();
 
@@ -43,7 +68,7 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dance Thru the Decades Events</title>
   <meta name="description" content="Dance Thru the Decades Events — 60s, 70s, 80s, 90s and 00s party nights, DJ events, song requests and Facebook event updates.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=144">
+  <link rel="stylesheet" href="/assets/public-site.css?v=145">
 </head>
 <body class="homepage-option-one">
   <main class="home-option-one">
@@ -56,7 +81,7 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
       <div class="option-one-floor-glow" aria-hidden="true"></div>
 
       <div class="option-one-inner">
-        <div class="option-one-logo-shell"><img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=144" alt="Dance Thru The Decades Events logo"></div>
+        <div class="option-one-logo-shell"><img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=145" alt="Dance Thru The Decades Events logo"></div>
 
         <p class="option-one-eyebrow">60s · 70s · 80s · 90s · 00s</p>
 
@@ -148,6 +173,10 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
             </a>
           <?php endif; ?>
         </div>
+
+        <?php if ($homepage_state === 'no-event'): ?>
+          <p class="homepage-state-note">Song requests open automatically when an event is live.</p>
+        <?php endif; ?>
       </div>
     </section>
 <section class="home-info-section" id="memories">

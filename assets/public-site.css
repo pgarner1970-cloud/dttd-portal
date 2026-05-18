@@ -2469,3 +2469,16 @@ body.homepage-option-one::after{
     padding:18px;
   }
 }
+
+
+/* v145 current event time detection */
+.homepage-state-note{
+  margin:16px auto 0;
+  max-width:640px;
+  color:#f3e8ff;
+  font-size:clamp(.95rem, 1.3vw, 1.08rem);
+  font-weight:750;
+  text-align:center;
+  opacity:.88;
+  text-shadow:0 4px 16px rgba(0,0,0,.42);
+}

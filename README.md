@@ -1,19 +1,19 @@
-# Dance Thru the Decades Portal v144 - Public Events List
+# Dance Thru the Decades Portal v145 - Current Event Time Detection
 
 ## Changes
 
-- Adds public-facing `/events.php`.
-- Homepage Upcoming Events tile now has a destination.
-- Public events list only shows events that appear public.
-- Attempts to hide private, wedding and birthday style events from public listing.
-- Shows event cards with:
-  - date
-  - time
-  - event name
-  - venue
-  - flyer/image if available
-  - event details link
-- Admin/DJ Portal remains untouched.
+- Fixes homepage live-event detection.
+- `is_active = 1` is no longer treated as "currently live".
+- Homepage only shows live-event actions when current server time is within:
+  - event_date + start_time
+  - event_date + end_time
+- Handles events that end after midnight.
+- If no event is live, homepage returns to:
+  - Upcoming Events
+  - Photos & Memories
+  - Follow Us
+- Adds note:
+  - Song requests open automatically when an event is live.
 
 ## SQL
 
@@ -21,4 +21,4 @@ No SQL changes.
 
 ## Suggested Git commit title
 
-v144 Public Events List
+v145 Current Event Time Detection
