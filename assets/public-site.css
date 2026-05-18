@@ -1684,3 +1684,145 @@ body.homepage-option-one{
     top:48px !important;
   }
 }
+
+
+/* v138 animated disco light blocks */
+.disco-light-strip{
+  position:relative;
+  height:200px;
+  overflow:hidden;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255,79,216,.18), transparent 48%),
+    linear-gradient(180deg, #08000f 0%, #12001e 52%, #07000c 100%);
+  border-top:1px solid rgba(255,79,216,.20);
+  border-bottom:1px solid rgba(255,79,216,.18);
+}
+
+.disco-light-strip::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.03) 0 1px, transparent 1px 42px),
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.06), transparent 42%);
+  mix-blend-mode:screen;
+  pointer-events:none;
+}
+
+.disco-light-strip::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.65), transparent 16%, transparent 84%, rgba(0,0,0,.65)),
+    linear-gradient(180deg, rgba(0,0,0,.28), transparent 35%, rgba(0,0,0,.34));
+  pointer-events:none;
+}
+
+.disco-light-track{
+  position:absolute;
+  top:28px;
+  left:-50%;
+  width:200%;
+  height:68px;
+  display:grid;
+  grid-template-columns:repeat(24, 1fr);
+  gap:14px;
+  animation:discoBlocksMove 9s linear infinite;
+  transform:skewX(-10deg);
+}
+
+.disco-light-track-two{
+  top:108px;
+  left:-80%;
+  height:46px;
+  gap:12px;
+  opacity:.72;
+  animation-duration:13s;
+  animation-direction:reverse;
+  transform:skewX(12deg);
+  animation-name:discoBlocksMoveTwo;
+}
+
+.disco-light-track span{
+  display:block;
+  border-radius:14px;
+  background:linear-gradient(135deg, #ff2bd6, #7c3aed);
+  box-shadow:
+    0 0 14px rgba(255,43,214,.55),
+    0 0 28px rgba(124,58,237,.28),
+    inset 0 1px 0 rgba(255,255,255,.24);
+  opacity:.82;
+  animation:discoBlockPulse 2.6s ease-in-out infinite;
+}
+
+.disco-light-track span:nth-child(3n+1){
+  background:linear-gradient(135deg, #ffd54a, #ff2bd6);
+  box-shadow:
+    0 0 14px rgba(255,213,74,.48),
+    0 0 32px rgba(255,43,214,.32);
+}
+
+.disco-light-track span:nth-child(3n+2){
+  background:linear-gradient(135deg, #22d3ee, #a855f7);
+  box-shadow:
+    0 0 14px rgba(34,211,238,.44),
+    0 0 32px rgba(168,85,247,.30);
+}
+
+.disco-light-track span:nth-child(4n){ transform:translateY(18px); }
+.disco-light-track span:nth-child(5n){ transform:translateY(-14px); }
+.disco-light-track span:nth-child(2n){ animation-delay:.45s; }
+.disco-light-track span:nth-child(3n){ animation-delay:.9s; }
+
+@keyframes discoBlocksMove{
+  0%{ transform:translateX(0) skewX(-10deg); }
+  100%{ transform:translateX(50%) skewX(-10deg); }
+}
+
+@keyframes discoBlocksMoveTwo{
+  0%{ transform:translateX(0) skewX(12deg); }
+  100%{ transform:translateX(50%) skewX(12deg); }
+}
+
+@keyframes discoBlockPulse{
+  0%,100%{
+    opacity:.48;
+    filter:saturate(1) brightness(.88);
+  }
+  45%{
+    opacity:1;
+    filter:saturate(1.35) brightness(1.25);
+  }
+}
+
+.home-info-section{
+  padding-top:48px !important;
+}
+
+@media(max-width:760px){
+  .disco-light-strip{
+    height:150px;
+  }
+
+  .disco-light-track{
+    top:22px;
+    height:52px;
+    gap:9px;
+    grid-template-columns:repeat(18, 1fr);
+    width:260%;
+    left:-90%;
+  }
+
+  .disco-light-track-two{
+    top:88px;
+    height:36px;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .disco-light-track,
+  .disco-light-track span{
+    animation:none !important;
+  }
+}
