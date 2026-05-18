@@ -443,6 +443,8 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
     </div>
 
     <form method="post" enctype="multipart/form-data" class="event-edit-form restored-event-form">
+      <input type="hidden" name="event_code" value="<?= h($event['event_code'] ?? '') ?>">
+
       <?php if ($error): ?>
         <div class="settings-alert error"><?= h($error) ?></div>
       <?php endif; ?>
@@ -679,7 +681,7 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
             <div class="settings-card-icon">▦</div>
             <div>
               <h3>QR Code & Event Code</h3>
-              <p>Use this for posters, flyers, table cards and screen displays.</p>
+              <p>Use this for posters, flyers, table cards and screen displays. The event code is generated automatically.</p>
             </div>
           </div>
 
@@ -692,7 +694,7 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
               <div class="event-code-panel">
                 <span>Event code</span>
                 <strong><?= h($event['event_code']) ?></strong>
-                <small><?= h($event_request_url) ?></small>
+                <small><?= h($event_request_url) ?></small><em class="event-code-note">Event code is generated automatically and should only be changed if QR materials have not been printed yet.</em>
               </div>
 
               <div class="event-qr-preview">

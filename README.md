@@ -1,34 +1,19 @@
-# Dance Thru the Decades Portal v115 - Event Venue Cleanup Ticketing
+# Dance Thru the Decades Portal v116 - Simplify Event Code Management
 
 ## Changes
 
-- Removes duplicate Venue name field from the top Event Details section.
-- Moves/keeps Venue name within Venue Details & Social.
-- Makes Notes larger to use the freed-up event detail space.
-- When selecting **Create new / manual venue**, the saved venue fields are cleared.
-- Renames confusing Social Display Label to **Venue display label**.
-- Adds **Ticketing URL** field for venues/events.
-- Keeps `event-edit.php` as the only event edit script.
+- Removes the duplicate visible Event Code field from Portal Behaviour.
+- Keeps the QR Code & Event Code section as the single visible location for the event code.
+- Adds a hidden event_code field so existing values are preserved on save.
+- Keeps automatic event code generation unchanged.
+- Adds helper wording explaining the event code is generated automatically.
+- Keeps `event-edit.php` as the only event edit page.
 - Does not recreate `events-edit.php`.
 
 ## SQL
 
-Run this once if the columns do not already exist:
-
-```sql
-ALTER TABLE events
-ADD COLUMN venue_ticket_url VARCHAR(255) NULL;
-
-ALTER TABLE venues
-ADD COLUMN venue_ticket_url VARCHAR(255) NULL;
-```
-
-A copy is included in:
-
-```text
-sql/v115_ticketing_url.sql
-```
+No SQL changes.
 
 ## Suggested Git commit title
 
-v115 Event Venue Cleanup Ticketing
+v116 Simplify Event Code Management
