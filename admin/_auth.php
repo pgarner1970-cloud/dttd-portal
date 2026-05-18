@@ -25,19 +25,13 @@ function admin_current_page() {
 function admin_nav_active($page) {
     $script = admin_current_page();
 
-    if ($page === 'requests' && in_array($script, ['requests.php', 'index.php'], true)) {
-        return 'active';
-    }
+    $map = [
+        'requests' => ['requests.php', 'index.php', 'request-debug.php'],
+        'events' => ['events.php', 'event-edit.php', 'event-qr.php'],
+        'settings' => ['settings.php'],
+    ];
 
-    if ($page === 'events' && $script === 'events.php') {
-        return 'active';
-    }
-
-    if ($page === 'settings' && $script === 'event-edit.php') {
-        return 'active';
-    }
-
-    return '';
+    return in_array($script, $map[$page] ?? [], true) ? 'active' : '';
 }
 
 
