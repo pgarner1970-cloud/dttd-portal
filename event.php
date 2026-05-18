@@ -84,8 +84,9 @@ $status = public_event_status($event);
   margin-bottom:4px;
 }
 </style>
+  <link rel="stylesheet" href="/assets/public.css?v=124">
 </head>
-<body>
+<body class="public-page">
 <nav class="topnav"><a href="/">Home</a></nav>
 
 <section class="hero">
