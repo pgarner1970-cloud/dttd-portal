@@ -1,20 +1,15 @@
-# Dance Thru the Decades Portal v121 - Split Venue List And Edit
+# Dance Thru the Decades Portal v123 - Simplify Venue Edit Layout
 
 ## Changes
 
-Venues now follows the same structure as Events:
-
-- `admin/venues.php`
-  - lists saved venues
-  - shows Add Venue button
-  - provides Edit/Delete actions
-  - shows Map/Facebook/Website/Tickets quick links
-
-- `admin/venue-edit.php`
-  - add or edit one venue
-  - maintains venue address/social/ticketing fields
-
-The Event edit page can still select/create venues as before.
+- Simplifies `venue-edit.php`.
+- Removes the duplicated Venue Details heading/subtitle inside the form.
+- Removes the extra icon/header strip from the edit form area.
+- Keeps the main page header:
+  - Add Venue / Edit Venue
+  - Maintain saved venue details for repeat events.
+- Tightens the form spacing.
+- Keeps venues list/edit split from v121/v122.
 
 ## SQL
 
@@ -22,4 +17,4 @@ No SQL changes.
 
 ## Suggested Git commit title
 
-v121 Split Venue List And Edit
+v123 Simplify Venue Edit Layout

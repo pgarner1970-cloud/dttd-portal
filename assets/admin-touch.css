@@ -5355,3 +5355,21 @@ button.action-tile:disabled{
   line-height:1;
   margin-top:3px;
 }
+
+
+/* v123 simplify venue edit layout */
+.venue-edit-simple-card{
+  margin-top:0 !important;
+}
+
+.venue-edit-simple-card > .settings-grid{
+  padding-top:18px !important;
+}
+
+.venue-edit-form{
+  padding-top:14px !important;
+}
+
+.venue-edit-form .venue-edit-simple-card .settings-card-header{
+  display:none !important;
+}

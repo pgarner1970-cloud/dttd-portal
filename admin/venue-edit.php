@@ -143,16 +143,8 @@ admin_header(($is_edit ? 'Edit Venue' : 'Add Venue') . ' - DJ Portal');
         <div class="settings-alert error"><?= h($error) ?></div>
       <?php endif; ?>
 
-      <section class="settings-card venue-social-card">
-        <div class="settings-card-header">
-          <div class="settings-card-icon">⌖</div>
-          <div>
-            <h3>Venue Details</h3>
-            <p>Location and contact links used by events and public displays.</p>
-          </div>
-        </div>
-
-        <div class="settings-grid">
+      <section class="settings-card venue-social-card venue-edit-simple-card">
+<div class="settings-grid">
           <label>
             <span>Venue name *</span>
             <input name="venue_name" value="<?= h($venue['venue_name']) ?>" required>
