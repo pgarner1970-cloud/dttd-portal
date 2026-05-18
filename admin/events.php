@@ -128,7 +128,7 @@ admin_header('Events - DJ Portal');
         <p class="touch-subtitle">Current event is shown first, followed by upcoming and previous events.</p>
       </div>
       <div>
-        <a class="touch-btn blue" href="/admin/event-edit.php">＋ Add Event</a>
+        <a class="touch-btn blue" href="event-edit.php">＋ Add Event</a>
       </div>
     </div>
 
@@ -182,7 +182,7 @@ admin_header('Events - DJ Portal');
       <?php if (!$events): ?>
         <div class="empty-queue">
           <p>No events yet.</p>
-          <a class="touch-btn blue" href="/admin/event-edit.php">Create First Event</a>
+          <a class="touch-btn blue" href="event-edit.php">Create First Event</a>
         </div>
       <?php endif; ?>
     </div>

@@ -413,7 +413,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute(array_values($data));
         }
 
-        header('Location: /admin/events.php');
+        header('Location: events.php');
         exit;
     }
 
@@ -444,7 +444,7 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
         <p class="touch-subtitle">Set event details, timing and request behaviour.</p>
       </div>
       <div>
-        <a class="touch-btn" href="/admin/events.php">Back to Events</a>
+        <a class="touch-btn" href="events.php">Back to Events</a>
       </div>
     </div>
 
@@ -773,7 +773,7 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
         </div>
       </section>
 <div class="form-actions">
-        <a class="touch-btn" href="/admin/events.php">Cancel</a>
+        <a class="touch-btn" href="events.php">Cancel</a>
         <button class="touch-btn blue" type="submit"><?= $is_edit ? 'Save Event' : 'Create Event' ?></button>
       </div>
     </form>

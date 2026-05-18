@@ -82,7 +82,7 @@ if (!$event) {
             <h1 class="touch-panel-title">Request Queue</h1>
             <p class="touch-subtitle">No events exist yet.</p>
           </div>
-          <a class="touch-btn blue" href="/admin/event-edit.php">＋ Add Event</a>
+          <a class="touch-btn blue" href="event-edit.php">＋ Add Event</a>
         </div>
       </section>
     </main>
@@ -226,7 +226,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['merge_source_group'],
         }
     }
 
-    header('Location: /admin/requests.php');
+    header('Location: requests.php');
     exit;
 }
 
@@ -278,7 +278,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_action'], $_P
         }
     }
 
-    header('Location: /admin/requests.php');
+    header('Location: requests.php');
     exit;
 }
 

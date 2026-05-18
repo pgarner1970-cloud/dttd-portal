@@ -9,12 +9,12 @@ if (!defined('ADMIN_PASSWORD')) {
 
 if (isset($_GET['logout'])) {
     unset($_SESSION['dttd_admin']);
-    header('Location: /admin/login.php');
+    header('Location: login.php');
     exit;
 }
 
 if (empty($_SESSION['dttd_admin'])) {
-    header('Location: /admin/login.php');
+    header('Location: login.php');
     exit;
 }
 
@@ -168,7 +168,7 @@ function admin_header($title = 'DJ Portal') {
 <body class="admin-body">
 <header class="touch-topbar">
   <div class="topbar-left">
-    <a class="touch-brand" href="/admin/index.php">
+    <a class="touch-brand" href="index.php">
       <span class="touch-brand-mark">♫</span>
       <span>DJ Portal</span>
     </a>
@@ -202,14 +202,14 @@ function admin_header($title = 'DJ Portal') {
   <div class="topbar-right">
     <div class="touch-top-actions">
       <nav class="header-admin-nav" aria-label="Admin navigation">
-        <a class="header-admin-nav-btn <?= admin_nav_active('requests') ?>" href="/admin/requests.php">Requests</a>
-        <a class="header-admin-nav-btn <?= admin_nav_active('events') ?>" href="/admin/events.php">Events</a>
-        <a class="header-admin-nav-btn <?= admin_nav_active('venues') ?>" href="/admin/venues.php">Venues</a>
-        <a class="header-admin-nav-btn <?= admin_nav_active('settings') ?>" href="/admin/settings.php">Settings</a>
+        <a class="header-admin-nav-btn <?= admin_nav_active('requests') ?>" href="requests.php">Requests</a>
+        <a class="header-admin-nav-btn <?= admin_nav_active('events') ?>" href="events.php">Events</a>
+        <a class="header-admin-nav-btn <?= admin_nav_active('venues') ?>" href="venues.php">Venues</a>
+        <a class="header-admin-nav-btn <?= admin_nav_active('settings') ?>" href="settings.php">Settings</a>
       </nav>
 
       <a class="touch-icon-btn" href="/" title="Public site">⌂</a>
-      <a class="touch-icon-btn" href="/admin/logout.php" title="Logout">⏻</a>
+      <a class="touch-icon-btn" href="logout.php" title="Logout">⏻</a>
     </div>
   </div>
 </header>

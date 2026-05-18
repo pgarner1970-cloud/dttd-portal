@@ -48,7 +48,7 @@ admin_header('Queue Debug - DJ Portal');
         <p class="touch-subtitle">Use this page to diagnose why the Requests page does or does not detect new requests.</p>
       </div>
       <div>
-        <a class="touch-btn green" href="/admin/requests.php">Back to Requests</a>
+        <a class="touch-btn green" href="requests.php">Back to Requests</a>
       </div>
     </div>
 

@@ -249,13 +249,13 @@ admin_header('DJ Portal');
     </div>
 
     <div class="admin-home-grid">
-      <a class="admin-home-card" href="/admin/requests.php">
+      <a class="admin-home-card" href="requests.php">
         <span class="admin-home-icon">♫</span>
         <strong>Requests</strong>
         <span>Live song request queue</span>
       </a>
 
-      <a class="admin-home-card" href="/admin/events.php">
+      <a class="admin-home-card" href="events.php">
         <span class="admin-home-icon">▦</span>
         <strong>Events</strong>
         <span>Create, edit and review events</span>
@@ -317,7 +317,7 @@ admin_header('DJ Portal');
 
           <div class="settings-actions">
             <button class="touch-btn blue" type="submit">Add Test Request</button>
-            <a class="touch-btn green" href="/admin/requests.php">View Requests</a>
+            <a class="touch-btn green" href="requests.php">View Requests</a>
           </div>
         </form>
       <?php endif; ?>

@@ -116,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && venues_table_exists()) {
             $stmt->execute(array_values($data));
         }
 
-        header('Location: /admin/venues.php');
+        header('Location: venues.php');
         exit;
     }
 }
@@ -132,7 +132,7 @@ admin_header(($is_edit ? 'Edit Venue' : 'Add Venue') . ' - DJ Portal');
         <p class="touch-subtitle">Maintain saved venue details for repeat events.</p>
       </div>
       <div>
-        <a class="touch-btn" href="/admin/venues.php">Back to Venues</a>
+        <a class="touch-btn" href="venues.php">Back to Venues</a>
       </div>
     </div>
 
@@ -188,7 +188,7 @@ admin_header(($is_edit ? 'Edit Venue' : 'Add Venue') . ' - DJ Portal');
       </section>
 
       <div class="form-actions">
-        <a class="touch-btn" href="/admin/venues.php">Cancel</a>
+        <a class="touch-btn" href="venues.php">Cancel</a>
         <button class="touch-btn blue" type="submit"><?= $is_edit ? 'Save Venue' : 'Add Venue' ?></button>
       </div>
     </form>

@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (hash_equals((string)ADMIN_PASSWORD, (string)$password)) {
         $_SESSION['dttd_admin'] = true;
-        header('Location: /admin/index.php');
+        header('Location: index.php');
         exit;
     }
 

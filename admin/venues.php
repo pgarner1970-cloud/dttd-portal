@@ -69,7 +69,7 @@ admin_header('Venues - DJ Portal');
         <p class="touch-subtitle">Saved venues can be reused when adding or editing events.</p>
       </div>
       <div class="settings-actions">
-        <a class="touch-btn blue" href="/admin/venue-edit.php">+ Add Venue</a>
+        <a class="touch-btn blue" href="venue-edit.php">+ Add Venue</a>
       </div>
     </div>
 
