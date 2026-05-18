@@ -1,165 +1,233 @@
 <?php
 require_once __DIR__ . '/includes/db.php';
 
-$code = strtoupper(trim($_GET['code'] ?? ''));
-$token = trim($_GET['token'] ?? '');
+function public_h($value) {
+    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
+
+function public_event_image_url($image) {
+    $image = trim((string)$image);
+
+    if ($image === '') {
+        return '';
+    }
+
+    if (preg_match('~^https?://~i', $image)) {
+        return $image;
+    }
+
+    $image = ltrim($image, '/');
+
+    if (str_starts_with($image, 'uploads/')) {
+        return '/' . $image;
+    }
+
+    if (str_contains($image, '/')) {
+        return '/' . $image;
+    }
+
+    return '/uploads/events/' . $image;
+}
+
+function public_event_date($event) {
+    if (empty($event['event_date'])) {
+        return '';
+    }
+
+    try {
+        return (new DateTime($event['event_date']))->format('D j M Y');
+    } catch (Throwable $e) {
+        return (string)$event['event_date'];
+    }
+}
+
+function public_event_time_range($event) {
+    $start = trim((string)($event['start_time'] ?? ''));
+    $end = trim((string)($event['end_time'] ?? ''));
+
+    if ($start && strlen($start) >= 5) {
+        $start = substr($start, 0, 5);
+    }
+
+    if ($end && strlen($end) >= 5) {
+        $end = substr($end, 0, 5);
+    }
+
+    if ($start && $end) {
+        return $start . ' - ' . $end;
+    }
+
+    return $start ?: $end;
+}
 
 $event = null;
+$error = '';
+$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$code = trim((string)($_GET['code'] ?? ''));
+$accessedByCode = $code !== '';
 
-if ($code !== '') {
-    $stmt = db()->prepare("SELECT * FROM events WHERE UPPER(event_code) = UPPER(?) LIMIT 1");
-    $stmt->execute([$code]);
-    $event = $stmt->fetch();
-}
+try {
+    if ($id > 0) {
+        $stmt = db()->prepare("
+            SELECT *
+            FROM events
+            WHERE id = ?
+            LIMIT 1
+        ");
+        $stmt->execute([$id]);
+        $event = $stmt->fetch();
 
-if (!$event && $token !== '') {
-    $stmt = db()->prepare("SELECT * FROM events WHERE guest_token = ? LIMIT 1");
-    $stmt->execute([$token]);
-    $event = $stmt->fetch();
-}
+        if ($event) {
+            $visibility = strtolower((string)($event['queue_visibility'] ?? $event['visibility'] ?? 'public'));
+            $eventType = strtolower((string)($event['event_type'] ?? ''));
 
-function public_event_status($event) {
-    if (!$event) return 'missing';
+            $looksPrivate = (
+                $visibility === 'private'
+                || str_contains($eventType, 'private')
+                || str_contains($eventType, 'wedding')
+                || str_contains($eventType, 'birthday')
+            );
 
-    $today = date('Y-m-d');
-
-    if (!empty($event['event_date']) && $event['event_date'] < $today) {
-        return 'past';
+            if ($looksPrivate) {
+                $event = null;
+            }
+        }
+    } elseif ($code !== '') {
+        $stmt = db()->prepare("
+            SELECT *
+            FROM events
+            WHERE event_code = ?
+            LIMIT 1
+        ");
+        $stmt->execute([$code]);
+        $event = $stmt->fetch();
     }
-
-    if (!empty($event['event_date']) && $event['event_date'] > $today) {
-        return 'future';
-    }
-
-    return 'today';
+} catch (Throwable $e) {
+    $event = null;
+    $error = 'Event details could not be loaded just now.';
 }
 
-$status = public_event_status($event);
+$facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
+
+if ($event) {
+    $title = $event['event_name'] ?? $event['name'] ?? 'Dance Thru The Decades Event';
+    $venue = $event['venue_name'] ?? $event['venue'] ?? '';
+    $venueAddress = $event['venue_address'] ?? '';
+    $postcode = $event['postcode'] ?? $event['venue_postcode'] ?? '';
+    $venueFacebook = $event['venue_facebook_url'] ?? $event['facebook_url'] ?? '';
+    $venueWebsite = $event['venue_website_url'] ?? $event['website_url'] ?? '';
+    $ticketUrl = $event['ticketing_url'] ?? $event['tickets_url'] ?? '';
+    $imageUrl = public_event_image_url($event['event_image'] ?? '');
+    $mapQuery = trim($venue . ' ' . $venueAddress . ' ' . $postcode);
+    $mapUrl = $mapQuery ? 'https://www.google.com/maps/search/?api=1&query=' . urlencode($mapQuery) : '';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><?= $event ? h($event['event_name']) . ' | ' : '' ?>Dance Thru the Decades Events</title>
-<link rel="stylesheet" href="/assets/style.css">
-<style>
-.event-hero-card{
-  max-width:920px;
-  margin:0 auto;
-  text-align:center;
-}
-.event-code-pill{
-  display:inline-block;
-  padding:8px 14px;
-  border-radius:999px;
-  background:rgba(255,255,255,.10);
-  border:1px solid rgba(255,255,255,.18);
-  color:#ffd15c;
-  font-weight:800;
-  margin-top:12px;
-}
-.event-actions{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-  gap:14px;
-  margin-top:18px;
-}
-.event-meta-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-  gap:12px;
-  margin-top:16px;
-  text-align:left;
-}
-.event-meta-box{
-  background:rgba(0,0,0,.20);
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:16px;
-  padding:14px;
-}
-.event-meta-box strong{
-  display:block;
-  color:#ffd15c;
-  margin-bottom:4px;
-}
-</style>
-  <link rel="stylesheet" href="/assets/public.css?v=127">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><?= $event ? public_h($title) : 'Event Not Found' ?> | Dance Thru the Decades</title>
+  <meta name="description" content="Dance Thru the Decades event information.">
+  <link rel="stylesheet" href="/assets/public-site.css?v=148">
 </head>
-<body class="public-page">
+<body class="homepage-option-one public-event-detail-page">
+  <main class="home-option-one">
     <a class="public-dj-login public-home-link" href="/">
       <span class="login-icon">⌂</span>
       <span>Home</span>
     </a>
-<nav class="topnav"><a href="/">Home</a></nav>
 
-<section class="hero">
-      <div class="homepage-logo-wrap"><img class="site-logo-img" src="/assets/dttd-logo.webp" alt="Dance Thru The Decades Events logo"></div>
-  <span class="badge">Event Portal</span>
-  <?php if ($event): ?>
-    <h1><?= h($event['event_name']) ?></h1>
-    <p class="subtitle"><?= h($event['venue_name']) ?></p>
-    <?php if (!empty($event['event_code'])): ?>
-<?php endif; ?>
-  <?php else: ?>
-    <h1>Event Not Found</h1>
-    <p class="subtitle">This event link is not recognised.</p>
-  <?php endif; ?>
-</section>
-
-<main class="container">
-      <div class="public-logo-wrap public-logo-primary"><img class="public-logo" src="/assets/dttd-logo.webp" alt="Dance Thru The Decades Events logo"></div>
-<div class="card event-hero-card">
     <?php if (!$event): ?>
-      <h2>Check the link or QR code</h2>
-      <p>Please check that the event code has been entered correctly, or scan the QR code again at the venue.</p>
-      <a class="btn btn-secondary" href="/">Back to Website</a>
+      <section class="public-event-detail-hero">
+        <div class="option-one-logo-shell public-list-logo">
+          <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=148" alt="Dance Thru The Decades Events logo">
+        </div>
+        <p class="option-one-eyebrow">Event Portal</p>
+        <h1 class="event-detail-title">Event Not Found</h1>
+        <p class="option-one-subtitle"><?= public_h($error ?: 'This event link is not recognised.') ?></p>
+
+        <article class="public-empty-card">
+          <h2>Check the link or QR code</h2>
+          <p>Please check that the event link is correct, or scan the QR code again at the venue.</p>
+          <a class="public-neon-btn" href="/">Back to Website</a>
+        </article>
+      </section>
     <?php else: ?>
-      <h2>Welcome</h2>
+      <section class="public-event-detail-hero">
+        <div class="option-one-logo-shell public-list-logo">
+          <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=148" alt="Dance Thru The Decades Events logo">
+        </div>
+        <p class="option-one-eyebrow">Event Details</p>
+        <h1 class="event-detail-title"><?= public_h($title) ?></h1>
 
-      <div class="event-meta-grid">
-        <div class="event-meta-box">
-          <strong>Date</strong>
-          <?= h($event['event_date'] ? date('D, j M Y', strtotime($event['event_date'])) : 'Date to be confirmed') ?>
-        </div>
-        <div class="event-meta-box">
-          <strong>Time</strong>
-          <?= h(input_time($event['start_time'])) ?><?= !empty($event['end_time']) ? ' - ' . h(input_time($event['end_time'])) : '' ?>
-        </div>
-        <div class="event-meta-box">
-          <strong>Status</strong>
-          <?php if ($status === 'today'): ?>
-            Live / today
-          <?php elseif ($status === 'future'): ?>
-            Upcoming event
-          <?php else: ?>
-            Past event
-          <?php endif; ?>
-        </div>
-      </div>
-
-      <div class="event-actions">
-        <?php if (!empty($event['event_code'])): ?>
-        <a class="btn btn-primary" href="/request.php?code=<?= h($event['event_code']) ?>">Request a Song</a>
-        <?php elseif (!empty($event['guest_token'])): ?>
-        <a class="btn btn-primary" href="/request.php?token=<?= h($event['guest_token']) ?>">Request a Song</a>
-        <?php else: ?>
-        <a class="btn btn-primary" href="/request.php?event=<?= (int)$event['id'] ?>">Request a Song</a>
+        <?php if ($venue): ?>
+          <p class="option-one-subtitle"><?= public_h($venue) ?></p>
         <?php endif; ?>
-        <a class="btn btn-secondary" href="<?= h(FACEBOOK_URL) ?>" target="_blank">Follow on Facebook</a>
-        <a class="btn btn-green" href="<?= h(FACEBOOK_URL) ?>" target="_blank">Check In / Tag Us</a>
-        <a class="btn btn-gold" href="<?= h(FACEBOOK_URL) ?>" target="_blank">Share Photos</a>
-      </div>
+      </section>
 
-      <p class="small" style="margin-top:18px">
-        This event page is intended for guests with the event link or QR code. Song request gating will be added in the next stage.
-      </p>
+      <section class="public-event-detail-section">
+        <article class="public-event-detail-card">
+          <div class="public-event-detail-image <?= $imageUrl ? '' : 'public-event-placeholder' ?>">
+            <?php if ($imageUrl): ?>
+              <img src="<?= public_h($imageUrl) ?>" alt="<?= public_h($title) ?> event image" onerror="this.closest('.public-event-detail-image').classList.add('public-event-placeholder'); this.remove();">
+            <?php else: ?>
+              <span>♫</span>
+            <?php endif; ?>
+          </div>
+
+          <div class="public-event-detail-body">
+            <div class="public-event-date">
+              <strong><?= public_h(public_event_date($event)) ?></strong>
+              <?php if (public_event_time_range($event)): ?>
+                <span><?= public_h(public_event_time_range($event)) ?></span>
+              <?php endif; ?>
+            </div>
+
+            <h2><?= public_h($title) ?></h2>
+
+            <?php if ($venue): ?>
+              <p><strong>Venue:</strong> <?= public_h($venue) ?></p>
+            <?php endif; ?>
+
+            <?php if ($venueAddress || $postcode): ?>
+              <p><strong>Address:</strong> <?= public_h(trim($venueAddress . ' ' . $postcode)) ?></p>
+            <?php endif; ?>
+
+            <?php if (!empty($event['notes'])): ?>
+              <p><?= nl2br(public_h($event['notes'])) ?></p>
+            <?php endif; ?>
+
+            <div class="public-event-actions">
+              <?php if ($ticketUrl): ?>
+                <a class="public-neon-btn" href="<?= public_h($ticketUrl) ?>" target="_blank" rel="noopener">Tickets</a>
+              <?php endif; ?>
+
+              <?php if ($mapUrl): ?>
+                <a class="public-neon-btn subtle" href="<?= public_h($mapUrl) ?>" target="_blank" rel="noopener">Map</a>
+              <?php endif; ?>
+
+              <a class="public-neon-btn subtle" href="<?= public_h($facebookUrl) ?>" target="_blank" rel="noopener">Our Facebook</a>
+
+              <?php if ($venueFacebook): ?>
+                <a class="public-neon-btn subtle" href="<?= public_h($venueFacebook) ?>" target="_blank" rel="noopener">Venue Facebook</a>
+              <?php endif; ?>
+
+              <?php if ($venueWebsite): ?>
+                <a class="public-neon-btn subtle" href="<?= public_h($venueWebsite) ?>" target="_blank" rel="noopener">Venue Website</a>
+              <?php endif; ?>
+            </div>
+
+            <?php if ($accessedByCode): ?>
+              <div class="public-qr-only-note">
+                <strong>At the event?</strong>
+                <span>Song requests and guest features are available from the venue QR/event code.</span>
+              </div>
+            <?php endif; ?>
+          </div>
+        </article>
+      </section>
     <?php endif; ?>
-  </div>
-</main>
-
-<footer class="footer">
-  © <?= date('Y') ?> Dance Thru the Decades Events · <a href="/privacy.php">Privacy</a> · <a href="/terms.php">Wi‑Fi Terms</a>
-</footer>
+  </main>
 </body>
 </html>

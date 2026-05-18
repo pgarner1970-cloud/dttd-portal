@@ -5,10 +5,10 @@ function public_h($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
-function column_exists_public($table, $column) {
+function public_column_exists($table, $column) {
     static $cache = [];
-
     $key = $table . '.' . $column;
+
     if (array_key_exists($key, $cache)) {
         return $cache[$key];
     }
@@ -24,7 +24,19 @@ function column_exists_public($table, $column) {
     return $cache[$key];
 }
 
-function event_time_range_public($event) {
+function public_event_date($event) {
+    if (empty($event['event_date'])) {
+        return '';
+    }
+
+    try {
+        return (new DateTime($event['event_date']))->format('D j M Y');
+    } catch (Throwable $e) {
+        return (string)$event['event_date'];
+    }
+}
+
+function public_event_time_range($event) {
     $start = trim((string)($event['start_time'] ?? ''));
     $end = trim((string)($event['end_time'] ?? ''));
 
@@ -43,43 +55,54 @@ function event_time_range_public($event) {
     return $start ?: $end;
 }
 
-function event_date_public($event) {
-    $date = $event['event_date'] ?? null;
+function public_event_image_url($image) {
+    $image = trim((string)$image);
 
-    if (!$date) {
+    if ($image === '') {
         return '';
     }
 
-    try {
-        return (new DateTime($date))->format('D j M Y');
-    } catch (Throwable $e) {
-        return (string)$date;
+    if (preg_match('~^https?://~i', $image)) {
+        return $image;
     }
+
+    $image = ltrim($image, '/');
+
+    if (str_starts_with($image, 'uploads/')) {
+        return '/' . $image;
+    }
+
+    if (str_contains($image, '/')) {
+        return '/' . $image;
+    }
+
+    return '/uploads/events/' . $image;
 }
+
+$facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
 
 $where = [];
 $where[] = "1=1";
 
-if (column_exists_public('events', 'event_date')) {
+if (public_column_exists('events', 'event_date')) {
     $where[] = "(event_date >= CURDATE() OR event_date IS NULL)";
 }
 
-if (column_exists_public('events', 'queue_visibility')) {
+if (public_column_exists('events', 'queue_visibility')) {
     $where[] = "(queue_visibility IS NULL OR LOWER(queue_visibility) = 'public')";
 }
 
-if (column_exists_public('events', 'visibility')) {
+if (public_column_exists('events', 'visibility')) {
     $where[] = "(visibility IS NULL OR LOWER(visibility) = 'public')";
 }
 
-if (column_exists_public('events', 'event_type')) {
-    $where[] = "(event_type IS NULL OR LOWER(event_type) NOT LIKE '%private%' AND LOWER(event_type) NOT LIKE '%wedding%' AND LOWER(event_type) NOT LIKE '%birthday%')";
+if (public_column_exists('events', 'event_type')) {
+    $where[] = "(event_type IS NULL OR (LOWER(event_type) NOT LIKE '%private%' AND LOWER(event_type) NOT LIKE '%wedding%' AND LOWER(event_type) NOT LIKE '%birthday%'))";
 }
 
-$order = "id DESC";
-if (column_exists_public('events', 'event_date')) {
-    $order = "event_date ASC, start_time ASC, id ASC";
-}
+$order = public_column_exists('events', 'event_date')
+    ? "event_date ASC, start_time ASC, id ASC"
+    : "id DESC";
 
 $events = [];
 $error = '';
@@ -88,11 +111,9 @@ try {
     $sql = "SELECT * FROM events WHERE " . implode(" AND ", $where) . " ORDER BY " . $order;
     $events = db()->query($sql)->fetchAll();
 } catch (Throwable $e) {
-    $events = [];
     $error = 'Events could not be loaded just now.';
 }
 
-$facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -101,7 +122,7 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upcoming Events | Dance Thru the Decades</title>
   <meta name="description" content="Upcoming public Dance Thru the Decades events, party nights and request-enabled DJ events.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=147">
+  <link rel="stylesheet" href="/assets/public-site.css?v=148">
 </head>
 <body class="homepage-option-one public-list-page">
   <main class="home-option-one">
@@ -111,10 +132,8 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
     </a>
 
     <section class="public-list-hero">
-      <a class="public-back-link" href="/">← Home</a>
-
       <div class="option-one-logo-shell public-list-logo">
-        <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=147" alt="Dance Thru The Decades Events logo">
+        <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=148" alt="Dance Thru The Decades Events logo">
       </div>
 
       <p class="option-one-eyebrow">Public Nights</p>
@@ -123,9 +142,7 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
         <span class="headline-the"><i></i><b>EVENTS</b><i></i></span>
       </h1>
 
-      <p class="option-one-subtitle">
-        Public nights, party events and future dates.
-      </p>
+      <p class="option-one-subtitle">Public nights, party events and future dates.</p>
     </section>
 
     <section class="public-events-section">
@@ -139,54 +156,57 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
           <p>Check back soon, or follow us on Facebook for updates and announcements.</p>
           <a class="public-neon-btn" href="<?= public_h($facebookUrl) ?>" target="_blank" rel="noopener">Follow us on Facebook</a>
         </article>
+      <?php else: ?>
+        <div class="public-events-grid">
+          <?php foreach ($events as $event): ?>
+            <?php
+              $title = $event['event_name'] ?? $event['name'] ?? 'Dance Thru The Decades Event';
+              $venue = $event['venue_name'] ?? $event['venue'] ?? '';
+              $imageUrl = public_event_image_url($event['event_image'] ?? '');
+              $publicId = $event['id'] ?? '';
+              $detailsLink = $publicId ? '/event.php?id=' . urlencode((string)$publicId) : '';
+              $venueFacebook = $event['venue_facebook_url'] ?? $event['facebook_url'] ?? '';
+            ?>
+
+            <article class="public-event-card">
+              <div class="public-event-image <?= $imageUrl ? '' : 'public-event-placeholder' ?>">
+                <?php if ($imageUrl): ?>
+                  <img src="<?= public_h($imageUrl) ?>" alt="<?= public_h($title) ?> event image" onerror="this.closest('.public-event-image').classList.add('public-event-placeholder'); this.remove();">
+                <?php else: ?>
+                  <span>♫</span>
+                <?php endif; ?>
+              </div>
+
+              <div class="public-event-body">
+                <div class="public-event-date">
+                  <strong><?= public_h(public_event_date($event)) ?></strong>
+                  <?php if (public_event_time_range($event)): ?>
+                    <span><?= public_h(public_event_time_range($event)) ?></span>
+                  <?php endif; ?>
+                </div>
+
+                <h2><?= public_h($title) ?></h2>
+
+                <?php if ($venue): ?>
+                  <p><?= public_h($venue) ?></p>
+                <?php endif; ?>
+
+                <div class="public-event-actions">
+                  <?php if ($detailsLink): ?>
+                    <a class="public-neon-btn" href="<?= public_h($detailsLink) ?>">Event Details</a>
+                  <?php endif; ?>
+
+                  <a class="public-neon-btn subtle" href="<?= public_h($facebookUrl) ?>" target="_blank" rel="noopener">Our Facebook</a>
+
+                  <?php if ($venueFacebook): ?>
+                    <a class="public-neon-btn subtle" href="<?= public_h($venueFacebook) ?>" target="_blank" rel="noopener">Venue Facebook</a>
+                  <?php endif; ?>
+                </div>
+              </div>
+            </article>
+          <?php endforeach; ?>
+        </div>
       <?php endif; ?>
-
-      <div class="public-events-grid">
-        <?php foreach ($events as $event): ?>
-          <?php
-            $title = $event['event_name'] ?? $event['name'] ?? 'Dance Thru The Decades Event';
-            $venue = $event['venue_name'] ?? $event['venue'] ?? '';
-            $image = $event['event_image'] ?? '';
-            $publicId = $event['id'] ?? '';
-            $link = $publicId ? '/event.php?id=' . urlencode((string)$publicId) : '#';
-          ?>
-
-          <article class="public-event-card">
-            <?php if ($image): ?>
-              <div class="public-event-image">
-                <img src="/uploads/events/<?= public_h($image) ?>" alt="<?= public_h($title) ?> event image">
-              </div>
-            <?php else: ?>
-              <div class="public-event-image public-event-placeholder">
-                <span>♫</span>
-              </div>
-            <?php endif; ?>
-
-            <div class="public-event-body">
-              <div class="public-event-date">
-                <strong><?= public_h(event_date_public($event)) ?></strong>
-                <?php if (event_time_range_public($event)): ?>
-                  <span><?= public_h(event_time_range_public($event)) ?></span>
-                <?php endif; ?>
-              </div>
-
-              <h2><?= public_h($title) ?></h2>
-
-              <?php if ($venue): ?>
-                <p><?= public_h($venue) ?></p>
-              <?php endif; ?>
-
-              <div class="public-event-actions">
-                <?php if ($publicId): ?>
-                  <a class="public-neon-btn" href="<?= public_h($link) ?>">Event Details</a>
-                <?php endif; ?>
-
-                <a class="public-neon-btn subtle" href="<?= public_h($facebookUrl) ?>" target="_blank" rel="noopener">Facebook</a>
-              </div>
-            </div>
-          </article>
-        <?php endforeach; ?>
-      </div>
     </section>
   </main>
 </body>
