@@ -4796,3 +4796,119 @@ body.modal-open{ overflow:hidden; }
     justify-content:flex-start !important;
   }
 }
+
+
+/* v106 event QR code access */
+.event-qr-card{
+  border-color:rgba(96,165,250,.24) !important;
+}
+
+.event-qr-body{
+  padding:18px !important;
+  display:grid !important;
+  grid-template-columns:minmax(260px,1fr) auto auto !important;
+  gap:18px !important;
+  align-items:center !important;
+}
+
+.event-code-panel{
+  border:1px solid rgba(148,163,184,.22);
+  background:rgba(15,23,42,.58);
+  border-radius:16px;
+  padding:16px;
+  min-width:0;
+}
+
+.event-code-panel span{
+  display:block;
+  color:#93c5fd;
+  font-weight:900;
+  text-transform:uppercase;
+  font-size:12px;
+  letter-spacing:.04em;
+  margin-bottom:6px;
+}
+
+.event-code-panel strong{
+  display:block;
+  font-size:34px;
+  line-height:1;
+  color:#fff;
+  font-weight:950;
+  letter-spacing:.04em;
+}
+
+.event-code-panel small{
+  display:block;
+  margin-top:10px;
+  color:#b6c9de;
+  word-break:break-all;
+}
+
+.event-qr-preview{
+  width:122px;
+  height:122px;
+  border-radius:16px;
+  overflow:hidden;
+  background:#fff;
+  padding:8px;
+  box-sizing:border-box;
+  border:1px solid rgba(148,163,184,.28);
+}
+
+.event-qr-preview.large{
+  width:380px;
+  height:380px;
+  padding:10px;
+  margin:auto;
+}
+
+.event-qr-image{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+
+.event-qr-actions{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.event-qr-actions .touch-btn{
+  justify-content:center;
+  white-space:nowrap;
+}
+
+.event-row-actions .event-qr-link{
+  flex:0 0 auto;
+}
+
+.event-qr-standalone{
+  grid-template-columns:1fr;
+  justify-items:center;
+  text-align:center;
+}
+
+.event-qr-standalone .event-code-panel{
+  width:min(680px, 100%);
+}
+
+.event-qr-standalone .event-qr-actions{
+  flex-direction:row;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+
+@media(max-width:950px){
+  .event-qr-body{
+    grid-template-columns:1fr;
+    justify-items:start;
+  }
+
+  .event-qr-actions{
+    flex-direction:row;
+    flex-wrap:wrap;
+  }
+}

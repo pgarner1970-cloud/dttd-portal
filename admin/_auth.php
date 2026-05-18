@@ -258,6 +258,7 @@ function admin_footer() {
 <script src="/assets/request-update-check.js?v=62"></script>
 <?php endif; ?>
 <script src="/assets/header-timers.js?v=97"></script>
+<script src="/assets/event-qr.js?v=106"></script>
 </body>
 </html>
 <?php

@@ -324,6 +324,47 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
         </div>
       </section>
 
+      <?php if ($is_edit && !empty($event['event_code'])): ?>
+        <?php
+          $public_request_url = rtrim(app_setting('public_request_base_url', ''), '/');
+          if ($public_request_url === '') {
+              $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+              $host = $_SERVER['HTTP_HOST'] ?? '';
+              $public_request_url = $scheme . '://' . $host;
+          }
+          $event_request_url = $public_request_url . '/request.php?code=' . rawurlencode($event['event_code']);
+        ?>
+        <section class="settings-card event-qr-card">
+          <div class="settings-card-header">
+            <div class="settings-card-icon">▦</div>
+            <div>
+              <h3>QR Code & Event Code</h3>
+              <p>Use this for posters, flyers, table cards and screen displays.</p>
+            </div>
+          </div>
+
+          <div class="event-qr-body" data-qr-url="<?= h($event_request_url) ?>">
+            <div class="event-code-panel">
+              <span>Event code</span>
+              <strong><?= h($event['event_code']) ?></strong>
+              <small><?= h($event_request_url) ?></small>
+            </div>
+
+            <div class="event-qr-preview">
+              <canvas class="event-qr-canvas" width="220" height="220" aria-label="Event QR code"></canvas>
+            </div>
+
+            <div class="event-qr-actions">
+              <button type="button" class="touch-btn blue qr-print-btn">Print QR</button>
+              <button type="button" class="touch-btn qr-download-btn">Download PNG</button>
+              <button type="button" class="touch-btn qr-copy-btn">Copy Link</button>
+            </div>
+          </div>
+        </section>
+      <?php endif; ?>
+
+
+
       <section class="settings-card">
         <div class="settings-card-header">
           <div class="settings-card-icon">◷</div>
