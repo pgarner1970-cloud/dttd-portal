@@ -1,34 +1,26 @@
-
-
-
 <?php
 
-require_once __DIR__ . '/_auth.php';
-
-
-function admin_event_image_url($path) {
+function admin_upload_url($path) {
     $path = trim((string)$path);
-
     if ($path === '') {
         return '';
     }
-
     if (preg_match('~^https?://~i', $path)) {
         return $path;
     }
-
     $path = ltrim($path, '/');
-
     if (str_starts_with($path, 'uploads/')) {
         return 'https://dancethruthedecades.co.uk/' . $path;
     }
-
     if (str_contains($path, '/')) {
         return 'https://dancethruthedecades.co.uk/' . $path;
     }
-
     return 'https://dancethruthedecades.co.uk/uploads/events/' . $path;
 }
+
+
+require_once __DIR__ . '/_auth.php';
+
 function dttd_event_image_column_exists() {
     static $exists = null;
 
