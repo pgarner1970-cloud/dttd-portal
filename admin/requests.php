@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/_auth.php';
+$spotify_flash = $_SESSION['spotify_flash'] ?? '';
+unset($_SESSION['spotify_flash']);
 
 // v39: calculated current event.
 // The request queue now follows the event timing automatically:
@@ -549,6 +551,10 @@ admin_header('DJ Portal');
         </div>
       </form>
 
+      <?php if (!empty($spotify_flash)): ?>
+        <div class="notice spotify-queue-notice"><?= h($spotify_flash) ?></div>
+      <?php endif; ?>
+
       <div class="request-list">
         <?php foreach ($grouped_requests as $group): ?>
           <?php $first = $group['items'][0]; ?>
@@ -593,6 +599,17 @@ admin_header('DJ Portal');
             </div>
 
             <div class="req-actions">
+              <?php if (!empty($group['spotify_track_id'])): ?>
+                <form method="post" action="spotify/add-to-queue.php" class="req-action-form spotify-queue-form">
+                  <input type="hidden" name="spotify_track_id" value="<?= h($group['spotify_track_id']) ?>">
+                  <input type="hidden" name="return" value="../requests.php<?= !empty($_SERVER['QUERY_STRING']) ? '?' . h($_SERVER['QUERY_STRING']) : '' ?>">
+                  <button class="action-tile spotify-queue" type="submit">
+                    <span class="big-icon">＋</span>
+                    <span>Queue</span>
+                  </button>
+                </form>
+              <?php endif; ?>
+
               <?php
                 $actions = [
                   'played' => ['icon' => '▶', 'label' => 'Played'],

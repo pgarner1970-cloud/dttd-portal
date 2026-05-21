@@ -5389,3 +5389,41 @@ button.action-tile:disabled{
 .spotify-open-link { display: inline-block; margin-top: 6px; font-size: .78rem; font-weight: 800; color: #86efac; text-decoration: none; }
 .spotify-open-link:hover { text-decoration: underline; }
 .spotify-open-link-static { color: #93c5fd; }
+
+/* Spotify queue experiment */
+.action-tile.spotify-queue {
+  border-color: #1DB954;
+  color: #1DB954;
+  background: rgba(29, 185, 84, 0.08);
+}
+.spotify-queue-notice,
+.notice {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 14px;
+  background: rgba(255,255,255,.06);
+}
+.notice.error { border-color: rgba(255, 80, 80, .45); }
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.setting-card {
+  padding: 18px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 18px;
+  background: rgba(255,255,255,.04);
+}
+.touch-button.primary {
+  display: inline-block;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(29,185,84,.7);
+  color: #fff;
+  background: rgba(29,185,84,.22);
+  text-decoration: none;
+  font-weight: 800;
+}
