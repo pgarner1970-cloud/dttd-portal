@@ -4,6 +4,13 @@ require_once __DIR__ . '/../includes/spotify.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
+if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], [
+    'https://dj.dancethruthedecades.co.uk',
+    'https://dancethruthedecades.co.uk',
+], true)) {
+    header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+    header('Vary: Origin');
+}
 
 $q = trim((string)($_GET['q'] ?? ''));
 

@@ -351,5 +351,5 @@ admin_header('DJ Portal');
     </div>
   </section>
 </main>
-<script src="/assets/spotify-request-search.js?v=1"></script>
+<script src="https://dancethruthedecades.co.uk/assets/spotify-request-search.js?v=2"></script>
 <?php admin_footer(); ?>

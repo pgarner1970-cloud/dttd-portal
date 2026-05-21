@@ -92,7 +92,7 @@
       controller = new AbortController();
       setStatus('Searching Spotify…');
 
-      fetch('/api/spotify-search.php?q=' + encodeURIComponent(query), { signal: controller.signal })
+      fetch('https://dancethruthedecades.co.uk/api/spotify-search.php?q=' + encodeURIComponent(query), { signal: controller.signal })
         .then(function (res) { return res.json(); })
         .then(function (data) {
           if (!data.configured) {

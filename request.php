@@ -199,6 +199,6 @@ function request_self_link($event) {
   </div>
 </main>
 <footer class="footer">© <?= date('Y') ?> Dance Thru the Decades Events</footer>
-<script src="/assets/spotify-request-search.js?v=1"></script>
+<script src="https://dancethruthedecades.co.uk/assets/spotify-request-search.js?v=2"></script>
 </body>
 </html>
