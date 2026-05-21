@@ -69,9 +69,9 @@ function event_upload_image() {
         return null;
     }
 
-    $upload_dir = dirname(__DIR__) . 'https://dancethruthedecades.co.uk/uploads/events';
+    $upload_dir = dirname(__DIR__) . '/uploads/events';
     if (!is_dir($upload_dir)) {
-        mkdir($upload_dir, 0775, true);
+        mkdir($upload_dir, 0755, true);
     }
 
     $filename = 'event-' . date('Ymd-His') . '-' . bin2hex(random_bytes(4)) . '.' . $allowed[$mime];
