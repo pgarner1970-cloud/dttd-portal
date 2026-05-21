@@ -470,25 +470,7 @@ function dttd_merge_candidates_for_group($source_group, $all_groups) {
 
 admin_header('DJ Portal');
 ?>
-<main class="touch-wrap"
-  data-event-id="<?= (int)$event['id'] ?>"
-  data-current-pending="<?= (int)$counts['pending'] ?>"
-  data-current-maybe="<?= (int)$counts['maybe'] ?>"
-  data-current-played="<?= (int)$counts['played'] ?>"
-  data-current-duplicate="<?= (int)$counts['duplicate'] ?>"
-  data-current-rejected="<?= (int)$counts['rejected'] ?>"
-  data-current-total="<?= (int)array_sum($counts) ?>"
->
-
-  <div id="requestUpdateBanner" class="request-update-banner" hidden>
-    <div>
-      <strong>Queue updates available</strong>
-      <span id="requestUpdateText">New or changed requests have arrived.</span>
-      <small id="requestUpdateDebug">Waiting for queue check…</small>
-    </div>
-    <button type="button" id="requestUpdateRefresh">Refresh queue</button>
-  </div>
-
+<main class="touch-wrap">
 <section class="touch-grid requests-layout-<?= h($requests_layout) ?>">
     <aside class="touch-panel active-event-panel">
       <div class="touch-panel-pad">
@@ -680,7 +662,7 @@ admin_header('DJ Portal');
     if (document.hidden || isBusy || hasUpdate) return;
 
     try {
-      const response = await fetch('request-ping.php?event=' + encodeURIComponent(eventId) + '&_=' + Date.now(), {
+      const response = await fetch('/admin/request-ping.php?event=' + encodeURIComponent(eventId) + '&_=' + Date.now(), {
         cache: 'no-store',
         credentials: 'same-origin'
       });
@@ -712,8 +694,7 @@ admin_header('DJ Portal');
     window.location.reload();
   });
 
-  window.setTimeout(checkForUpdates, 1200);
-  window.setInterval(checkForUpdates, 5000);
+  window.setInterval(checkForUpdates, 10000);
 })();
 </script>
 
@@ -993,7 +974,7 @@ admin_header('DJ Portal');
     if (document.hidden || hasUpdate) return;
 
     try {
-      const response = await fetch('request-ping.php?event=' + encodeURIComponent(eventId) + '&_=' + Date.now(), {
+      const response = await fetch('/admin/request-ping.php?event=' + encodeURIComponent(eventId) + '&_=' + Date.now(), {
         cache: 'no-store',
         credentials: 'same-origin'
       });

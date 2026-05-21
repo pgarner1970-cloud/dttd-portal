@@ -48,9 +48,6 @@
       const params = new URLSearchParams(window.location.search);
       if (params.get('event')) return params.get('event');
 
-      const wrap = document.querySelector('main.touch-wrap[data-event-id]');
-      if (wrap && wrap.dataset.eventId) return wrap.dataset.eventId;
-
       const eventInput = document.querySelector('input[name="event_id"], select[name="event"]');
       if (eventInput && eventInput.value) return eventInput.value;
 
@@ -133,8 +130,8 @@
 
       try {
         const url = eventId
-          ? 'request-ping.php?event=' + encodeURIComponent(eventId) + '&_=' + Date.now()
-          : 'request-ping.php?_=' + Date.now();
+          ? '/admin/request-ping.php?event=' + encodeURIComponent(eventId) + '&_=' + Date.now()
+          : '/admin/request-ping.php?_=' + Date.now();
 
         const response = await fetch(url, {
           cache: 'no-store',

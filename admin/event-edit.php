@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../includes/upload-paths.php';
 require_once __DIR__ . '/_auth.php';
 
 function event_image_column_exists() {

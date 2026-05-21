@@ -107,7 +107,7 @@ admin_header('Queue Debug - DJ Portal');
   if (!card) return;
 
   const eventId = card.dataset.eventId;
-  const endpoint = 'request-ping.php?event=' + encodeURIComponent(eventId);
+  const endpoint = '/admin/request-ping.php?event=' + encodeURIComponent(eventId);
 
   const loadedCounts = {
     pending: Number(card.dataset.currentPending || 0),
