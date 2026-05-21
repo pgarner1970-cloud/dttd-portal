@@ -228,7 +228,6 @@ try {
               $venue = $event['venue_name'] ?? $event['venue'] ?? '';
               $imageUrl = public_event_image_url($event['event_image'] ?? '');
               $detailsLink = '/events/' . rawurlencode(public_event_slug($event));
-              $venueFacebook = $event['venue_facebook_url'] ?? $event['facebook_url'] ?? '';
               $status = public_event_status($event);
             ?>
 
@@ -261,11 +260,6 @@ try {
 
                 <div class="public-event-actions public-event-actions-compact">
                   <a class="public-neon-btn" href="<?= public_h($detailsLink) ?>">Event Details</a>
-                  <a class="public-neon-btn subtle" href="<?= public_h($facebookUrl) ?>" target="_blank" rel="noopener">Our Facebook</a>
-
-                  <?php if ($venueFacebook): ?>
-                    <a class="public-neon-btn subtle" href="<?= public_h($venueFacebook) ?>" target="_blank" rel="noopener"><span class="venue-label">Venue</span><span class="venue-facebook-icon" aria-hidden="true">f</span></a>
-                  <?php endif; ?>
                 </div>
               </div>
             </article>

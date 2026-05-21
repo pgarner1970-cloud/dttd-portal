@@ -1,0 +1,20 @@
+# Local/server secrets
+includes/config.php
+.env
+*.log
+
+# Database exports/migrations should be kept out of deployment zips
+sql/
+*.sql
+
+# Uploaded/runtime content
+uploads/events/*
+!uploads/events/.gitkeep
+
+# Backups/temp files
+*.bak
+*.old
+*.tmp
+*.before*
+.DS_Store
+Thumbs.db
