@@ -329,6 +329,10 @@ foreach ($requests as $r) {
             'artist' => $r['artist'],
             'status' => $r['status'],
             'created_at' => $r['created_at'],
+            'spotify_track_id' => $r['spotify_track_id'] ?? '',
+            'spotify_track_url' => $r['spotify_track_url'] ?? '',
+            'spotify_album_image' => $r['spotify_album_image'] ?? '',
+            'request_source' => $r['request_source'] ?? 'manual',
             'items' => [],
         ];
     }
@@ -554,9 +558,17 @@ admin_header('DJ Portal');
               <small><?= h(date('d M', strtotime($group['created_at']))) ?></small>
             </div>
 
-            <div>
+            <div class="req-track-block">
+              <?php if (!empty($group['spotify_album_image'])): ?>
+                <img class="req-spotify-art" src="<?= h($group['spotify_album_image']) ?>" alt="">
+              <?php endif; ?>
               <div class="req-track-title"><?= h($group['song_title']) ?></div>
               <div class="req-track-artist"><?= h($group['artist']) ?></div>
+              <?php if (!empty($group['spotify_track_url'])): ?>
+                <a class="spotify-open-link" href="<?= h($group['spotify_track_url']) ?>" target="_blank" rel="noopener">Open in Spotify</a>
+              <?php elseif (!empty($group['spotify_track_id'])): ?>
+                <span class="spotify-open-link spotify-open-link-static">Spotify matched</span>
+              <?php endif; ?>
               <div class="group-count-pill-row">
                 <span class="group-count">
                   <?= count($group['items']) ?> request<?= count($group['items']) === 1 ? '' : 's' ?>

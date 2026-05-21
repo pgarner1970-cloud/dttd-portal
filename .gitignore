@@ -1,20 +1,26 @@
-# Local/server secrets
+# Local config / secrets
 includes/config.php
+includes/config.spotify.php
 .env
-*.log
+*.env
 
-# Database exports/migrations should be kept out of deployment zips
+# Database dumps / migrations kept outside deployment patches unless requested
 sql/
 *.sql
 
-# Uploaded/runtime content
+# Runtime uploads and generated files
 uploads/events/*
 !uploads/events/.gitkeep
-
-# Backups/temp files
+assets/data/
+*.log
 *.bak
-*.old
+*.backup
 *.tmp
-*.before*
+*.before-*
+
+# VCS / OS / editor noise
+.git/
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/

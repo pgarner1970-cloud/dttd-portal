@@ -172,6 +172,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_t
                     $values[] = $message;
                 }
 
+                $spotify_fields = [
+                    'spotify_track_id' => trim($_POST['spotify_track_id'] ?? ''),
+                    'spotify_track_url' => trim($_POST['spotify_track_url'] ?? ''),
+                    'spotify_artist_name' => trim($_POST['spotify_artist_name'] ?? ''),
+                    'spotify_album_image' => trim($_POST['spotify_album_image'] ?? ''),
+                    'request_source' => ($_POST['request_source'] ?? '') === 'spotify' ? 'spotify' : 'manual',
+                ];
+
+                foreach ($spotify_fields as $column => $value) {
+                    if (dttd_index_song_request_column_exists($column)) {
+                        $columns[] = $column;
+                        $values[] = $value;
+                    }
+                }
+
                 if (dttd_index_group_id_column_exists()) {
                     $request_group_id = dttd_index_open_group_id_for_request((int)$event['id'], $song_title, $artist);
                     $columns[] = 'request_group_id';
@@ -290,7 +305,7 @@ admin_header('DJ Portal');
       <?php if (!$event): ?>
         <p class="muted-text">No event exists yet. Create an event before adding test requests.</p>
       <?php else: ?>
-        <form method="post" class="test-request-form" enctype="multipart/form-data">
+        <form method="post" class="test-request-form" enctype="multipart/form-data" data-spotify-request-form>
           <input type="hidden" name="action" value="add_test_request">
 
           <div class="test-request-grid">
@@ -315,6 +330,18 @@ admin_header('DJ Portal');
             </label>
           </div>
 
+          <input type="hidden" name="spotify_track_id">
+          <input type="hidden" name="spotify_track_url">
+          <input type="hidden" name="spotify_artist_name">
+          <input type="hidden" name="spotify_album_image">
+          <input type="hidden" name="request_source" value="manual">
+
+          <div class="spotify-search-box">
+            <small class="spotify-search-status" data-spotify-status></small>
+            <div class="spotify-results" data-spotify-results hidden></div>
+            <div class="spotify-selected" data-spotify-selected hidden></div>
+          </div>
+
           <div class="settings-actions">
             <button class="touch-btn blue" type="submit">Add Test Request</button>
             <a class="touch-btn green" href="requests.php">View Requests</a>
@@ -324,4 +351,5 @@ admin_header('DJ Portal');
     </div>
   </section>
 </main>
+<script src="/assets/spotify-request-search.js?v=1"></script>
 <?php admin_footer(); ?>

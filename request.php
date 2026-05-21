@@ -29,6 +29,21 @@ $requests_open = event_requests_open($event);
 $success = false;
 $error = '';
 
+function dttd_request_column_exists($column) {
+    static $cache = [];
+    if (isset($cache[$column])) return $cache[$column];
+
+    try {
+        $stmt = db()->prepare("SHOW COLUMNS FROM song_requests LIKE ?");
+        $stmt->execute([$column]);
+        $cache[$column] = (bool)$stmt->fetch();
+    } catch (Throwable $e) {
+        $cache[$column] = false;
+    }
+
+    return $cache[$column];
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $access_ok && $requests_open) {
     $guest_name = trim($_POST['guest_name'] ?? '');
     $song_title = trim($_POST['song_title'] ?? '');
@@ -38,8 +53,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $access_ok && $requests_open) {
     if ($guest_name === '' || $song_title === '' || $artist === '') {
         $error = 'Please enter your name, song title and artist.';
     } else {
-        $stmt = db()->prepare("INSERT INTO song_requests (event_id, guest_name, song_title, artist, dedication) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([$event['id'], $guest_name, $song_title, $artist, $dedication]);
+        $columns = ['event_id', 'guest_name', 'song_title', 'artist'];
+        $values = [(int)$event['id'], $guest_name, $song_title, $artist];
+
+        if (dttd_request_column_exists('dedication')) {
+            $columns[] = 'dedication';
+            $values[] = $dedication;
+        }
+
+        $spotify_fields = [
+            'spotify_track_id' => trim($_POST['spotify_track_id'] ?? ''),
+            'spotify_track_url' => trim($_POST['spotify_track_url'] ?? ''),
+            'spotify_artist_name' => trim($_POST['spotify_artist_name'] ?? ''),
+            'spotify_album_image' => trim($_POST['spotify_album_image'] ?? ''),
+            'request_source' => ($_POST['request_source'] ?? '') === 'spotify' ? 'spotify' : 'manual',
+        ];
+
+        foreach ($spotify_fields as $column => $value) {
+            if (dttd_request_column_exists($column)) {
+                $columns[] = $column;
+                $values[] = $value;
+            }
+        }
+
+        if (dttd_request_column_exists('created_at')) {
+            $columns[] = 'created_at';
+            $values[] = date('Y-m-d H:i:s');
+        }
+
+        $placeholders = array_fill(0, count($columns), '?');
+        $stmt = db()->prepare("INSERT INTO song_requests (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")");
+        $stmt->execute($values);
         $success = true;
     }
 }
@@ -119,7 +163,7 @@ function request_self_link($event) {
       <a class="btn btn-secondary" href="<?= h(request_link_for_event($event)) ?>">Back to Event Portal</a>
     <?php else: ?>
       <?php if ($error): ?><div class="notice"><?= h($error) ?></div><?php endif; ?>
-      <form method="post">
+      <form method="post" data-spotify-request-form>
         <input type="hidden" name="event_id" value="<?= (int)$event['id'] ?>">
         <?php if (!empty($event['event_code'])): ?><input type="hidden" name="code" value="<?= h($event['event_code']) ?>"><?php endif; ?>
         <?php if (!empty($event['guest_token'])): ?><input type="hidden" name="token" value="<?= h($event['guest_token']) ?>"><?php endif; ?>
@@ -133,6 +177,18 @@ function request_self_link($event) {
         <label>Artist *</label>
         <input name="artist" required maxlength="190" placeholder="Example: Earth, Wind & Fire">
 
+        <input type="hidden" name="spotify_track_id">
+        <input type="hidden" name="spotify_track_url">
+        <input type="hidden" name="spotify_artist_name">
+        <input type="hidden" name="spotify_album_image">
+        <input type="hidden" name="request_source" value="manual">
+
+        <div class="spotify-search-box">
+          <small class="spotify-search-status" data-spotify-status></small>
+          <div class="spotify-results" data-spotify-results hidden></div>
+          <div class="spotify-selected" data-spotify-selected hidden></div>
+        </div>
+
         <label>Dedication / message</label>
         <textarea name="dedication" placeholder="Optional message or dedication"></textarea>
 
@@ -143,5 +199,6 @@ function request_self_link($event) {
   </div>
 </main>
 <footer class="footer">© <?= date('Y') ?> Dance Thru the Decades Events</footer>
+<script src="/assets/spotify-request-search.js?v=1"></script>
 </body>
 </html>
