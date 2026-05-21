@@ -2,20 +2,49 @@
 /**
  * Spotify Web API helper for Dance Thru The Decades.
  *
- * Copy includes/config.spotify.example.php to includes/config.spotify.php
- * and add your Spotify Client ID + Client Secret there. Do not commit secrets.
+ * Credentials are read from the existing app_settings table:
+ * - spotify_enabled = 1
+ * - spotify_client_id
+ * - spotify_client_secret
  */
 
-function dttd_spotify_config_loaded() {
-    $config = __DIR__ . '/config.spotify.php';
-    if (is_file($config)) {
-        require_once $config;
+function dttd_spotify_setting($key, $default = '') {
+    static $cache = [];
+
+    if (array_key_exists($key, $cache)) {
+        return $cache[$key];
     }
 
-    return defined('SPOTIFY_CLIENT_ID')
-        && defined('SPOTIFY_CLIENT_SECRET')
-        && SPOTIFY_CLIENT_ID !== ''
-        && SPOTIFY_CLIENT_SECRET !== '';
+    try {
+        $stmt = db()->prepare("SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1");
+        $stmt->execute([$key]);
+        $row = $stmt->fetch();
+        $cache[$key] = $row ? trim((string)$row['setting_value']) : $default;
+    } catch (Throwable $e) {
+        $cache[$key] = $default;
+    }
+
+    return $cache[$key];
+}
+
+function dttd_spotify_enabled() {
+    $enabled = strtolower((string)dttd_spotify_setting('spotify_enabled', '0'));
+    return in_array($enabled, ['1', 'true', 'yes', 'on'], true);
+}
+
+function dttd_spotify_credentials() {
+    return [
+        'client_id' => dttd_spotify_setting('spotify_client_id', ''),
+        'client_secret' => dttd_spotify_setting('spotify_client_secret', ''),
+    ];
+}
+
+function dttd_spotify_config_loaded() {
+    $credentials = dttd_spotify_credentials();
+
+    return dttd_spotify_enabled()
+        && $credentials['client_id'] !== ''
+        && $credentials['client_secret'] !== '';
 }
 
 function dttd_spotify_http_post($url, array $headers, $body) {
@@ -74,7 +103,9 @@ function dttd_spotify_access_token() {
         throw new RuntimeException('Spotify API is not configured.');
     }
 
-    $cache_file = sys_get_temp_dir() . '/dttd_spotify_client_token.json';
+    $credentials = dttd_spotify_credentials();
+    $cache_file = sys_get_temp_dir() . '/dttd_spotify_client_token_' . md5($credentials['client_id']) . '.json';
+
     if (is_file($cache_file)) {
         $cached = json_decode((string)file_get_contents($cache_file), true);
         if (!empty($cached['access_token']) && !empty($cached['expires_at']) && $cached['expires_at'] > time() + 60) {
@@ -82,7 +113,7 @@ function dttd_spotify_access_token() {
         }
     }
 
-    $auth = base64_encode(SPOTIFY_CLIENT_ID . ':' . SPOTIFY_CLIENT_SECRET);
+    $auth = base64_encode($credentials['client_id'] . ':' . $credentials['client_secret']);
     $data = dttd_spotify_http_post(
         'https://accounts.spotify.com/api/token',
         [
@@ -107,7 +138,7 @@ function dttd_spotify_access_token() {
 
 function dttd_spotify_search_tracks($query, $limit = 8) {
     $query = trim((string)$query);
-    if ($query === '' || mb_strlen($query) < 2) {
+    if ($query === '' || strlen($query) < 2) {
         return [];
     }
 
@@ -124,12 +155,18 @@ function dttd_spotify_search_tracks($query, $limit = 8) {
     $tracks = [];
 
     foreach ($items as $item) {
-        $artists = array_map(fn($a) => $a['name'] ?? '', $item['artists'] ?? []);
-        $artists = array_values(array_filter($artists));
+        $artists = [];
+        foreach (($item['artists'] ?? []) as $artist) {
+            if (!empty($artist['name'])) {
+                $artists[] = $artist['name'];
+            }
+        }
+
         $images = $item['album']['images'] ?? [];
         $image = '';
         if (!empty($images)) {
-            $image = $images[count($images) - 1]['url'] ?? ($images[0]['url'] ?? '');
+            $last = end($images);
+            $image = $last['url'] ?? ($images[0]['url'] ?? '');
         }
 
         $tracks[] = [
@@ -137,8 +174,8 @@ function dttd_spotify_search_tracks($query, $limit = 8) {
             'title' => $item['name'] ?? '',
             'artist' => implode(', ', $artists),
             'album' => $item['album']['name'] ?? '',
-            'url' => $item['external_urls']['spotify'] ?? '',
             'image' => $image,
+            'url' => $item['external_urls']['spotify'] ?? '',
             'duration_ms' => $item['duration_ms'] ?? null,
         ];
     }

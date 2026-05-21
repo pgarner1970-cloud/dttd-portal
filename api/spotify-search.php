@@ -4,6 +4,7 @@ require_once __DIR__ . '/../includes/spotify.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
+
 if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], [
     'https://dj.dancethruthedecades.co.uk',
     'https://dancethruthedecades.co.uk',
@@ -19,13 +20,13 @@ try {
         echo json_encode([
             'ok' => false,
             'configured' => false,
-            'message' => 'Spotify API is not configured yet.',
+            'message' => 'Spotify API is not configured yet. Check app_settings values for spotify_enabled, spotify_client_id and spotify_client_secret.',
             'tracks' => [],
         ]);
         exit;
     }
 
-    if ($q === '' || mb_strlen($q) < 2) {
+    if ($q === '' || strlen($q) < 2) {
         echo json_encode(['ok' => true, 'configured' => true, 'tracks' => []]);
         exit;
     }
