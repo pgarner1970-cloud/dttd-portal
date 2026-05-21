@@ -3318,3 +3318,19 @@ a:hover .venue-facebook-icon{
     font-size:.85rem;
   }
 }
+
+
+/* v165 public events list button tidy */
+.public-list-page .public-event-actions-compact{
+  margin-top:12px;
+}
+
+.public-list-page .public-event-actions-compact .public-neon-btn{
+  min-width:150px;
+}
+
+@media(max-width:560px){
+  .public-list-page .public-event-actions-compact .public-neon-btn{
+    width:100%;
+  }
+}

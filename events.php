@@ -189,7 +189,7 @@ try {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upcoming Events | Dance Thru the Decades</title>
   <meta name="description" content="Upcoming public Dance Thru the Decades events, party nights and request-enabled DJ events.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=153">
+  <link rel="stylesheet" href="/assets/public-site.css?v=165">
 </head>
 <body class="homepage-option-one public-list-page">
   <main class="home-option-one">
@@ -259,7 +259,7 @@ try {
                   <p><?= public_h($venue) ?></p>
                 <?php endif; ?>
 
-                <div class="public-event-actions">
+                <div class="public-event-actions public-event-actions-compact">
                   <a class="public-neon-btn" href="<?= public_h($detailsLink) ?>">Event Details</a>
                   <a class="public-neon-btn subtle" href="<?= public_h($facebookUrl) ?>" target="_blank" rel="noopener">Our Facebook</a>
 
