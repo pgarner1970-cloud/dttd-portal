@@ -596,29 +596,37 @@ admin_header('DJ Portal');
               <small><?= h(date('d M', strtotime($group['created_at']))) ?></small>
             </div>
 
-            <div class="req-wide-title"><?= h($group['song_title']) ?></div>
-
-            <div class="req-track-block">
+            <div class="req-art-col">
               <?php if (!empty($group['spotify_album_image'])): ?>
                 <img class="req-spotify-art" src="<?= h($group['spotify_album_image']) ?>" alt="">
+              <?php else: ?>
+                <div class="req-spotify-art req-spotify-art-placeholder" aria-hidden="true">♪</div>
               <?php endif; ?>
+            </div>
+
+            <div class="req-title-row">
+              <?= h($group['song_title']) ?>
+            </div>
+
+            <div class="req-track-block">
               <div class="req-track-artist"><?= h($group['artist']) ?></div>
-              <?php if (!empty($group['spotify_track_url'])): ?>
-                <a class="spotify-open-link" href="<?= h($group['spotify_track_url']) ?>" target="_blank" rel="noopener">Open in Spotify</a>
-              <?php elseif (!empty($group['spotify_track_id'])): ?>
-                <span class="spotify-open-link spotify-open-link-static">Spotify matched</span>
-              <?php endif; ?>
               <div class="group-count-pill-row">
                 <span class="group-count">
                   <?= count($group['items']) ?> request<?= count($group['items']) === 1 ? '' : 's' ?>
                 </span>
-                <span class="status-badge inline-status <?= h(status_label($display_status)) ?>">
-                  <?php if ($display_status === 'spotify'): ?>
+                <?php if ($display_status === 'spotify' && !empty($group['spotify_track_url'])): ?>
+                  <a class="status-badge inline-status spotify spotify-pill-link" href="<?= h($group['spotify_track_url']) ?>" target="_blank" rel="noopener" title="Open in Spotify">
                     <span class="spotify-badge-mark" aria-hidden="true">♬</span><span>Spotify</span>
-                  <?php else: ?>
-                    <?= h($display_status) ?>
-                  <?php endif; ?>
-                </span>
+                  </a>
+                <?php else: ?>
+                  <span class="status-badge inline-status <?= h(status_label($display_status)) ?>">
+                    <?php if ($display_status === 'spotify'): ?>
+                      <span class="spotify-badge-mark" aria-hidden="true">♬</span><span>Spotify</span>
+                    <?php else: ?>
+                      <?= h($display_status) ?>
+                    <?php endif; ?>
+                  </span>
+                <?php endif; ?>
               </div>
             </div>
 
