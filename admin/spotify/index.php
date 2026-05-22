@@ -72,4 +72,7 @@ if ($connected) {
     </div>
   </section>
 </main>
+
+<p style="margin-top:14px"><a class="btn btn-primary" href="<?= h(admin_url('spotify/mixer.php')) ?>">Open Spotify Mixer</a></p>
+
 <?php admin_footer(); ?>
