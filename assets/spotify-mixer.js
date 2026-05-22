@@ -57,8 +57,18 @@
     const d = (state?.devices || []).find(x => x.id === id);
     return d ? d.name : (id ? 'Selected device' : 'Not assigned');
   }
-  function deckIsPlaying(deck){ return state?.['player_' + deck]?.state === 'playing'; }
-  function deckCanLoad(deck){ return !!state?.['device_' + deck] && !deckIsPlaying(deck); }
+  function deckIsPlaying(deck){
+    const deviceId = state?.['device_' + deck] || '';
+    const reported = state?.['player_' + deck]?.state === 'playing';
+    const active = !!deviceId && state?.active_device_id === deviceId && !!state?.is_playing;
+    return reported || active;
+  }
+  function deckHasLoaded(deck){
+    return !!state?.['player_' + deck]?.loaded?.id;
+  }
+  function deckCanLoad(deck){
+    return !!state?.['device_' + deck] && !deckIsPlaying(deck) && !deckHasLoaded(deck);
+  }
   function clearSearchUi(){
     if(els.search){ els.search.value=''; els.search.focus(); }
     if(els.searchResults) els.searchResults.innerHTML='';
@@ -146,8 +156,10 @@
       ${prog.sameTrack ? `<div class="track-time-left">${duration(prog.remainingMs)} remaining</div>` : (prog.durationMs ? `<div class="track-time-left muted">Track length ${duration(prog.durationMs)}</div>` : '')}`;
   }
   function renderDecks(){
-    const aPlaying = state?.player_a?.state === 'playing';
-    const bPlaying = state?.player_b?.state === 'playing';
+    const aPlaying = deckIsPlaying('a');
+    const bPlaying = deckIsPlaying('b');
+    const aLoaded = deckHasLoaded('a');
+    const bLoaded = deckHasLoaded('b');
     setDeckState(els.deckAState, aPlaying); setDeckState(els.deckBState, bPlaying);
     if(els.loadedA) els.loadedA.innerHTML = trackBlock(state?.player_a?.loaded, 'a');
     if(els.loadedB) els.loadedB.innerHTML = trackBlock(state?.player_b?.loaded, 'b');
@@ -157,8 +169,18 @@
     document.querySelectorAll('[data-deck-action="pause"][data-deck="b"]').forEach(b => b.disabled = !state?.device_b);
     document.querySelectorAll('[data-deck-action="clear_loaded"][data-deck="a"]').forEach(b => b.disabled = aPlaying);
     document.querySelectorAll('[data-deck-action="clear_loaded"][data-deck="b"]').forEach(b => b.disabled = bPlaying);
-    document.querySelectorAll('[data-load-a]').forEach(b => b.disabled = aPlaying || !state?.device_a);
-    document.querySelectorAll('[data-load-b]').forEach(b => b.disabled = bPlaying || !state?.device_b);
+    document.querySelectorAll('[data-load-a]').forEach(b => {
+      b.disabled = aPlaying || aLoaded || !state?.device_a;
+      b.title = b.disabled ? (aPlaying ? 'Player A is currently playing' : (aLoaded ? 'Player A already has a loaded track' : 'Player A has no assigned device')) : 'Load to Player A';
+    });
+    document.querySelectorAll('[data-load-b]').forEach(b => {
+      b.disabled = bPlaying || bLoaded || !state?.device_b;
+      b.title = b.disabled ? (bPlaying ? 'Player B is currently playing' : (bLoaded ? 'Player B already has a loaded track' : 'Player B has no assigned device')) : 'Load to Player B';
+    });
+    document.querySelectorAll('[data-action="auto_load"]').forEach(b => {
+      b.disabled = !deckCanLoad('a') && !deckCanLoad('b');
+      b.title = b.disabled ? 'No empty standby player is available' : 'Load to the first empty standby player';
+    });
     if(els.spotifyStatus){
       if(state?.is_playing){ els.spotifyStatus.textContent = `Playing on ${state.active_device_name || 'active device'}${state.track?.title ? ' — ' + state.track.title : ''}`; }
       else els.spotifyStatus.textContent = state?.connected ? 'Standby / no active playback' : 'Spotify is not connected';

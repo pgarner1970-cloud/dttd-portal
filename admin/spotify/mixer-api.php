@@ -240,6 +240,11 @@ function mx_state() {
         'requests' => mx_requests($playlist),
     ];
 }
+function mx_deck_has_loaded($deck) {
+    $deck = $deck === 'b' ? 'b' : 'a';
+    $loaded = mx_json('spotify_mixer_loaded_' . $deck, []);
+    return is_array($loaded) && !empty($loaded['id']);
+}
 function mx_load_track_to_deck($track, $deck, $playback = null) {
     $deck = $deck === 'b' ? 'b' : 'a';
     $deviceA = mx_setting('spotify_mixer_device_a', '');
@@ -247,6 +252,7 @@ function mx_load_track_to_deck($track, $deck, $playback = null) {
     $device = $deck === 'b' ? $deviceB : $deviceA;
     if (!$device) throw new RuntimeException('Player ' . strtoupper($deck) . ' has no assigned Spotify device.');
     if (mx_device_playing($device, $playback)) throw new RuntimeException('Player ' . strtoupper($deck) . ' is currently playing. Loading is blocked.');
+    if (mx_deck_has_loaded($deck)) throw new RuntimeException('Player ' . strtoupper($deck) . ' already has a loaded track. Clear it before loading another.');
     mx_set('spotify_mixer_loaded_' . $deck, json_encode(mx_clean_track($track)));
     return $deck;
 }
@@ -321,9 +327,9 @@ try {
         if ($action === 'auto_load') {
             $aPlaying = mx_device_playing($deviceA, $playback);
             $bPlaying = mx_device_playing($deviceB, $playback);
-            if ($deviceA && !$aPlaying) $deck = 'a';
-            elseif ($deviceB && !$bPlaying) $deck = 'b';
-            else throw new RuntimeException('No safe idle player found.');
+            if ($deviceA && !$aPlaying && !mx_deck_has_loaded('a')) $deck = 'a';
+            elseif ($deviceB && !$bPlaying && !mx_deck_has_loaded('b')) $deck = 'b';
+            else throw new RuntimeException('No empty standby player found.');
         }
         mx_load_track_to_deck($playlist[$idx], $deck, $playback);
         mx_json_out(['ok' => true, 'message' => 'Loaded to Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
@@ -340,9 +346,9 @@ try {
         if ($action === 'auto_load_request') {
             $aPlaying = mx_device_playing($deviceA, $playback);
             $bPlaying = mx_device_playing($deviceB, $playback);
-            if ($deviceA && !$aPlaying) $deck = 'a';
-            elseif ($deviceB && !$bPlaying) $deck = 'b';
-            else throw new RuntimeException('No safe idle player found.');
+            if ($deviceA && !$aPlaying && !mx_deck_has_loaded('a')) $deck = 'a';
+            elseif ($deviceB && !$bPlaying && !mx_deck_has_loaded('b')) $deck = 'b';
+            else throw new RuntimeException('No empty standby player found.');
         }
         mx_load_track_to_deck($track, $deck, $playback);
         mx_flag_request_in_playlist($requestId, 'loaded_' . $deck);
