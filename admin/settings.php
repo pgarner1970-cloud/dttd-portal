@@ -17,6 +17,10 @@ $spotify_client_id = app_setting('spotify_client_id', '');
 $spotify_secret_saved = trim((string)app_setting('spotify_client_secret', '')) !== '';
 $spotify_connected = trim((string)app_setting('spotify_refresh_token', '')) !== '';
 $spotify_queue_enabled = app_setting('spotify_queue_enabled', '0') === '1';
+$spotify_queue_mode = app_setting('spotify_queue_mode', 'standard');
+if (!in_array($spotify_queue_mode, ['standard', 'mixer'], true)) {
+    $spotify_queue_mode = 'standard';
+}
 
 $saved = false;
 $error = '';
@@ -33,12 +37,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $new_spotify_client_secret = trim((string)($_POST['spotify_client_secret'] ?? ''));
         $new_spotify_enabled = !empty($_POST['spotify_enabled']);
         $new_spotify_queue_enabled = !empty($_POST['spotify_queue_enabled']);
+        $new_spotify_queue_mode = $_POST['spotify_queue_mode'] ?? 'standard';
+        if (!in_array($new_spotify_queue_mode, ['standard', 'mixer'], true)) {
+            $new_spotify_queue_mode = 'standard';
+        }
 
         $ok = save_app_setting('header_show_event_timer', !empty($_POST['header_show_event_timer']) ? '1' : '0') && $ok;
         $ok = save_app_setting('header_show_request_timer', !empty($_POST['header_show_request_timer']) ? '1' : '0') && $ok;
         $ok = save_app_setting('spotify_enabled', $new_spotify_enabled ? '1' : '0') && $ok;
         $ok = save_app_setting('spotify_client_id', $new_spotify_client_id) && $ok;
         $ok = save_app_setting('spotify_queue_enabled', ($new_spotify_enabled && $new_spotify_queue_enabled) ? '1' : '0') && $ok;
+        $ok = save_app_setting('spotify_queue_mode', $new_spotify_queue_mode) && $ok;
 
         if ($new_spotify_client_secret !== '') {
             $ok = save_app_setting('spotify_client_secret', $new_spotify_client_secret) && $ok;
@@ -52,6 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $spotify_client_id = $new_spotify_client_id;
             $spotify_secret_saved = $new_spotify_client_secret !== '' || $spotify_secret_saved;
             $spotify_queue_enabled = $new_spotify_enabled && $new_spotify_queue_enabled;
+            $spotify_queue_mode = $new_spotify_queue_mode;
             $saved = true;
         } else {
             $error = 'Settings could not be saved. Please check the app_settings table exists.';
@@ -176,9 +186,23 @@ admin_header('Settings - DJ Portal');
               <input type="checkbox" name="spotify_queue_enabled" value="1" <?= $spotify_queue_enabled ? 'checked' : '' ?>>
               <span>
                 <strong>Enable Spotify queue controls</strong>
-                <small>Shows DJ-only queue buttons when Spotify is configured and an account has been connected.</small>
+                <small>Enables DJ-only Spotify queue actions. Choose Standard mode for the device picker, or Full DJ Mixer mode for the mixer workflow.</small>
               </span>
             </label>
+
+            <div class="spotify-settings-grid spotify-mode-grid">
+              <label class="spotify-field-card spotify-mode-card <?= $spotify_queue_mode === 'standard' ? 'selected' : '' ?>">
+                <input type="radio" name="spotify_queue_mode" value="standard" <?= $spotify_queue_mode === 'standard' ? 'checked' : '' ?>>
+                <strong>Standard queue mode</strong>
+                <small>Request Queue → choose Spotify device → add track to that device queue.</small>
+              </label>
+
+              <label class="spotify-field-card spotify-mode-card <?= $spotify_queue_mode === 'mixer' ? 'selected' : '' ?>">
+                <input type="radio" name="spotify_queue_mode" value="mixer" <?= $spotify_queue_mode === 'mixer' ? 'checked' : '' ?>>
+                <strong>Full DJ Mixer mode</strong>
+                <small>Request Queue → send to Live Mixer DJ Playlist. The mixer controls loading/playing on A or B.</small>
+              </label>
+            </div>
 
             <div class="spotify-status-card">
               <div>

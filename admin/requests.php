@@ -14,9 +14,16 @@ try {
     $spotify_queue_enabled_for_buttons = false;
 }
 
+$spotify_queue_mode = app_setting('spotify_queue_mode', 'standard');
+if (!in_array($spotify_queue_mode, ['standard', 'mixer'], true)) {
+    $spotify_queue_mode = 'standard';
+}
+
 $spotify_queue_available = $spotify_queue_enabled_for_buttons
     && function_exists('dttd_spotify_queue_connected')
     && dttd_spotify_queue_connected();
+$spotify_queue_standard_mode = $spotify_queue_available && $spotify_queue_mode === 'standard';
+$spotify_queue_mixer_mode = $spotify_queue_available && $spotify_queue_mode === 'mixer';
 $spotify_flash = $_SESSION['spotify_flash'] ?? '';
 unset($_SESSION['spotify_flash']);
 
@@ -619,7 +626,7 @@ admin_header('DJ Portal');
         <?php foreach ($grouped_requests as $group): ?>
           <?php
             $first = $group['items'][0];
-            $is_spotify_queued = strtolower((string)($group['spotify_queue_status'] ?? '')) === 'queued';
+            $is_spotify_queued = in_array(strtolower((string)($group['spotify_queue_status'] ?? '')), ['queued','dj_playlist','loaded_a','loaded_b'], true);
             $display_status = ($is_spotify_queued && strtolower((string)$group['status']) === 'pending') ? 'spotify' : $group['status'];
           ?>
           <article class="request-card status-<?= h($group['status']) ?><?= $is_spotify_queued ? ' spotify-queued-card' : '' ?> compact-queue-card">
@@ -678,7 +685,7 @@ admin_header('DJ Portal');
             </div>
 
             <div class="req-actions">
-              <?php if ($spotify_queue_available && !empty($group['spotify_track_id']) && !$is_spotify_queued): ?>
+              <?php if ($spotify_queue_standard_mode && !empty($group['spotify_track_id']) && !$is_spotify_queued): ?>
                 <button type="button"
                   class="action-tile spotify-queue spotify-device-modal-trigger"
                   data-spotify-track-id="<?= h($group['spotify_track_id']) ?>"
@@ -689,6 +696,15 @@ admin_header('DJ Portal');
                   <span class="big-icon">＋</span>
                   <span>Queue</span>
                 </button>
+              <?php elseif ($spotify_queue_mixer_mode && !empty($group['spotify_track_id']) && !$is_spotify_queued): ?>
+                <form method="post" action="<?= h(admin_url('spotify/add-to-mixer.php')) ?>" class="req-action-form">
+                  <input type="hidden" name="request_group_id" value="<?= h($group['group_id'] ?? '') ?>">
+                  <input type="hidden" name="return" value="<?= h(admin_url('requests.php?view=' . urlencode($view))) ?>">
+                  <button type="submit" class="action-tile spotify-queue" title="Send to Live Mixer DJ Playlist">
+                    <span class="big-icon">＋</span>
+                    <span>Mixer</span>
+                  </button>
+                </form>
               <?php endif; ?>
 
               <?php

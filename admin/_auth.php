@@ -60,6 +60,9 @@ function dttd_event_window($event) {
 
     $header_show_event_timer = app_setting('header_show_event_timer', '1') === '1';
     $header_show_request_timer = app_setting('header_show_request_timer', '1') === '1';
+    $show_live_mixer_nav = app_setting('spotify_enabled', '0') === '1'
+        && app_setting('spotify_queue_enabled', '0') === '1'
+        && app_setting('spotify_queue_mode', 'standard') === 'mixer';
 $start_time = input_time($event['start_time']);
     $end_time = !empty($event['end_time']) ? input_time($event['end_time']) : null;
 
@@ -171,6 +174,9 @@ function admin_header($title = 'DJ Portal') {
     $date = date('D, j M');
     $header_show_event_timer = app_setting('header_show_event_timer', '1') === '1';
     $header_show_request_timer = app_setting('header_show_request_timer', '1') === '1';
+    $show_live_mixer_nav = app_setting('spotify_enabled', '0') === '1'
+        && app_setting('spotify_queue_enabled', '0') === '1'
+        && app_setting('spotify_queue_mode', 'standard') === 'mixer';
     ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -218,17 +224,19 @@ function admin_header($title = 'DJ Portal') {
   <div class="topbar-right">
     <div class="touch-top-actions">
       <nav class="header-admin-nav" aria-label="Admin navigation">
-        <a class="header-admin-nav-btn admin-nav-mixer <?= admin_nav_active('mixer') ?>" href="<?= h(admin_url('spotify/mixer.php')) ?>" title="Live mixer" aria-label="Live mixer">
-          <span class="admin-nav-icon admin-nav-icon-svg" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false" role="img">
-              <path d="M5 4v16M12 4v16M19 4v16" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/>
-              <circle cx="5" cy="9" r="2.45" fill="currentColor"/>
-              <circle cx="12" cy="15" r="2.45" fill="currentColor"/>
-              <circle cx="19" cy="7" r="2.45" fill="currentColor"/>
-            </svg>
-          </span>
-          <span class="admin-nav-text">Live Mixer</span>
-        </a>
+        <?php if ($show_live_mixer_nav): ?>
+          <a class="header-admin-nav-btn admin-nav-mixer <?= admin_nav_active('mixer') ?>" href="<?= h(admin_url('spotify/mixer.php')) ?>" title="Live mixer" aria-label="Live mixer">
+            <span class="admin-nav-icon admin-nav-icon-svg" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false" role="img">
+                <path d="M5 4v16M12 4v16M19 4v16" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/>
+                <circle cx="5" cy="9" r="2.6" fill="currentColor"/>
+                <circle cx="12" cy="15" r="2.6" fill="currentColor"/>
+                <circle cx="19" cy="7" r="2.6" fill="currentColor"/>
+              </svg>
+            </span>
+            <span class="admin-nav-text">Live Mixer</span>
+          </a>
+        <?php endif; ?>
         <a class="header-admin-nav-btn <?= admin_nav_active('requests') ?>" href="<?= h(admin_url('requests.php')) ?>" title="Requests" aria-label="Requests">
           <span class="admin-nav-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" focusable="false"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 2a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm0 4a3 3 0 1 0 .01 0H12Zm0 2a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z"/></svg>
