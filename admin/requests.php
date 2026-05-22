@@ -600,14 +600,15 @@ admin_header('DJ Portal');
 
             <div class="req-actions">
               <?php if (!empty($group['spotify_track_id'])): ?>
-                <form method="post" action="spotify/add-to-queue.php" class="req-action-form spotify-queue-form">
-                  <input type="hidden" name="spotify_track_id" value="<?= h($group['spotify_track_id']) ?>">
-                  <input type="hidden" name="return" value="../requests.php<?= !empty($_SERVER['QUERY_STRING']) ? '?' . h($_SERVER['QUERY_STRING']) : '' ?>">
-                  <button class="action-tile spotify-queue" type="submit">
-                    <span class="big-icon">＋</span>
-                    <span>Queue</span>
-                  </button>
-                </form>
+                <button type="button"
+                  class="action-tile spotify-queue spotify-device-modal-trigger"
+                  data-spotify-track-id="<?= h($group['spotify_track_id']) ?>"
+                  data-song-title="<?= h($group['song_title']) ?>"
+                  data-artist="<?= h($group['artist']) ?>"
+                  data-return="../requests.php<?= !empty($_SERVER['QUERY_STRING']) ? '?' . h($_SERVER['QUERY_STRING']) : '' ?>">
+                  <span class="big-icon">＋</span>
+                  <span>Queue</span>
+                </button>
               <?php endif; ?>
 
               <?php
@@ -1044,6 +1045,175 @@ admin_header('DJ Portal');
 
 
 <!-- Reject Reason Modal -->
+
+<div class="dj-modal-backdrop" id="spotifyDeviceModal" hidden>
+  <div class="dj-modal-card spotify-device-modal-card" role="dialog" aria-modal="true" aria-labelledby="spotifyDeviceTitle">
+    <div class="dj-modal-header">
+      <div>
+        <h2 id="spotifyDeviceTitle">Add to Spotify Queue</h2>
+        <p id="spotifyDeviceSubtitle">Choose which Spotify device should receive this track.</p>
+      </div>
+      <button type="button" class="dj-modal-close" id="spotifyDeviceCancelTop">×</button>
+    </div>
+
+    <div class="spotify-device-track" id="spotifyDeviceTrack">Track details loading…</div>
+    <div class="spotify-device-status" id="spotifyDeviceStatus">Loading Spotify devices…</div>
+    <div class="spotify-device-grid" id="spotifyDeviceGrid"></div>
+
+    <form method="post" action="spotify/add-to-queue.php" id="spotifyDeviceForm">
+      <input type="hidden" name="spotify_track_id" id="spotifyDeviceTrackId">
+      <input type="hidden" name="device_id" id="spotifyDeviceId">
+      <input type="hidden" name="return" id="spotifyDeviceReturn" value="../requests.php">
+    </form>
+
+    <div class="dj-modal-actions">
+      <button type="button" class="btn-secondary" id="spotifyDeviceCancelBottom">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.spotify-device-modal-card { max-width: 760px; }
+.spotify-device-track {
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, .55);
+  font-weight: 800;
+}
+.spotify-device-status {
+  margin: 8px 0 14px;
+  color: #cbd5e1;
+  font-size: .95rem;
+}
+.spotify-device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+.spotify-device-choice {
+  border: 1px solid rgba(34, 197, 94, .52);
+  border-radius: 18px;
+  background: rgba(10, 40, 28, .88);
+  color: #fff;
+  padding: 18px;
+  text-align: left;
+  min-height: 86px;
+  cursor: pointer;
+  box-shadow: 0 0 18px rgba(34, 197, 94, .12);
+}
+.spotify-device-choice strong { display:block; font-size: 1.05rem; margin-bottom: 6px; }
+.spotify-device-choice span { display:block; color:#bbf7d0; font-size:.86rem; }
+.spotify-device-choice.is-active { border-color:#22c55e; box-shadow:0 0 0 2px rgba(34,197,94,.25), 0 0 22px rgba(34,197,94,.25); }
+.spotify-device-choice:any-link, .spotify-device-choice:hover { transform: translateY(-1px); }
+.spotify-device-choice.fallback-device { border-color: rgba(59,130,246,.55); background: rgba(15, 35, 75, .88); }
+.spotify-device-choice.fallback-device span { color:#bfdbfe; }
+</style>
+
+<script>
+(function(){
+  const modal = document.getElementById('spotifyDeviceModal');
+  const grid = document.getElementById('spotifyDeviceGrid');
+  const status = document.getElementById('spotifyDeviceStatus');
+  const trackText = document.getElementById('spotifyDeviceTrack');
+  const form = document.getElementById('spotifyDeviceForm');
+  const trackInput = document.getElementById('spotifyDeviceTrackId');
+  const deviceInput = document.getElementById('spotifyDeviceId');
+  const returnInput = document.getElementById('spotifyDeviceReturn');
+  const cancelTop = document.getElementById('spotifyDeviceCancelTop');
+  const cancelBottom = document.getElementById('spotifyDeviceCancelBottom');
+
+  if (!modal || !grid || !status || !form || !trackInput || !deviceInput || !returnInput) return;
+
+  function closeModal(){
+    modal.hidden = true;
+    document.body.classList.remove('modal-open');
+    grid.innerHTML = '';
+    status.textContent = 'Loading Spotify devices…';
+  }
+
+  function submitDevice(deviceId){
+    deviceInput.value = deviceId || '';
+    form.submit();
+  }
+
+  function addDeviceButton(device){
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'spotify-device-choice' + (device.is_active ? ' is-active' : '');
+    button.innerHTML = '<strong></strong><span></span>';
+    button.querySelector('strong').textContent = device.name || 'Spotify device';
+    const parts = [];
+    if (device.type) parts.push(device.type);
+    if (device.is_active) parts.push('Active now');
+    button.querySelector('span').textContent = parts.join(' · ') || 'Send to this device';
+    button.addEventListener('click', function(){ submitDevice(device.id || ''); });
+    grid.appendChild(button);
+  }
+
+  function addFallbackButton(){
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'spotify-device-choice fallback-device';
+    button.innerHTML = '<strong>Current active device</strong><span>Use Spotify’s current active playback target</span>';
+    button.addEventListener('click', function(){ submitDevice(''); });
+    grid.appendChild(button);
+  }
+
+  async function loadDevices(){
+    grid.innerHTML = '';
+    status.textContent = 'Loading Spotify devices…';
+    try {
+      const response = await fetch('spotify/devices.php', { credentials: 'same-origin' });
+      const data = await response.json();
+      if (!data.ok) {
+        status.textContent = data.error || 'Could not load Spotify devices. You can still try the current active device.';
+        addFallbackButton();
+        return;
+      }
+      const devices = Array.isArray(data.devices) ? data.devices : [];
+      if (devices.length === 0) {
+        status.textContent = 'No Spotify devices are currently visible. Start playback on the tablet, then try again.';
+        addFallbackButton();
+        return;
+      }
+      status.textContent = devices.length === 1
+        ? 'One device found. Tap it to add this track to its queue.'
+        : 'Multiple devices found. Choose the tablet/device to receive this track.';
+      devices.forEach(addDeviceButton);
+      addFallbackButton();
+    } catch (error) {
+      status.textContent = 'Could not contact the Spotify device endpoint. You can still try the current active device.';
+      addFallbackButton();
+    }
+  }
+
+  document.addEventListener('click', function(event){
+    const trigger = event.target.closest('.spotify-device-modal-trigger');
+    if (!trigger) return;
+    event.preventDefault();
+
+    trackInput.value = trigger.dataset.spotifyTrackId || '';
+    returnInput.value = trigger.dataset.return || '../requests.php';
+    const title = trigger.dataset.songTitle || 'Selected track';
+    const artist = trigger.dataset.artist || '';
+    trackText.textContent = artist ? (title + ' — ' + artist) : title;
+
+    modal.hidden = false;
+    document.body.classList.add('modal-open');
+    loadDevices();
+  });
+
+  cancelTop && cancelTop.addEventListener('click', closeModal);
+  cancelBottom && cancelBottom.addEventListener('click', closeModal);
+  modal.addEventListener('click', function(event){ if (event.target === modal) closeModal(); });
+  document.addEventListener('keydown', function(event){
+    if (event.key === 'Escape' && !modal.hidden) closeModal();
+  });
+})();
+</script>
+
 <div class="dj-modal-backdrop" id="rejectReasonModal" hidden>
   <div class="dj-modal-card" role="dialog" aria-modal="true" aria-labelledby="rejectReasonTitle">
     <div class="dj-modal-header">
