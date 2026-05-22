@@ -277,6 +277,15 @@ function dttd_spotify_queue_connected() {
     return dttd_spotify_config_loaded() && dttd_spotify_setting('spotify_refresh_token', '') !== '';
 }
 
+function dttd_spotify_queue_controls_enabled() {
+    $enabled = strtolower((string)dttd_spotify_setting('spotify_queue_enabled', '0'));
+    return in_array($enabled, ['1', 'true', 'yes', 'on'], true);
+}
+
+function dttd_spotify_queue_available() {
+    return dttd_spotify_queue_controls_enabled() && dttd_spotify_queue_connected();
+}
+
 function dttd_spotify_http_put($url, array $headers, $body = '') {
     if (!function_exists('curl_init')) {
         throw new RuntimeException('PHP cURL is not available.');

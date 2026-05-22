@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/_auth.php';
 require_once dirname(__DIR__) . '/includes/spotify.php';
-$spotify_queue_available = function_exists('dttd_spotify_queue_connected') && dttd_spotify_queue_connected();
+$spotify_queue_available = function_exists('dttd_spotify_queue_available') ? dttd_spotify_queue_available() : (function_exists('dttd_spotify_queue_connected') && dttd_spotify_queue_connected());
 $spotify_flash = $_SESSION['spotify_flash'] ?? '';
 unset($_SESSION['spotify_flash']);
 
