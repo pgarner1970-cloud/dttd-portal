@@ -123,6 +123,26 @@ function dttd_group_id_column_exists() {
     return $exists;
 }
 
+
+function dttd_song_request_column_exists($column) {
+    static $cache = [];
+    $column = (string)$column;
+
+    if (isset($cache[$column])) {
+        return $cache[$column];
+    }
+
+    try {
+        $stmt = db()->prepare("SHOW COLUMNS FROM song_requests LIKE ?");
+        $stmt->execute([$column]);
+        $cache[$column] = (bool)$stmt->fetch();
+    } catch (Throwable $e) {
+        $cache[$column] = false;
+    }
+
+    return $cache[$column];
+}
+
 function dttd_ensure_request_group_ids($event_id) {
     if (!dttd_group_id_column_exists()) {
         return;
@@ -334,12 +354,21 @@ foreach ($requests as $r) {
             'spotify_track_id' => $r['spotify_track_id'] ?? '',
             'spotify_track_url' => $r['spotify_track_url'] ?? '',
             'spotify_album_image' => $r['spotify_album_image'] ?? '',
+            'spotify_queue_status' => $r['spotify_queue_status'] ?? '',
+            'spotify_queued_at' => $r['spotify_queued_at'] ?? null,
             'request_source' => $r['request_source'] ?? 'manual',
             'items' => [],
         ];
     }
 
     $groups[$key]['items'][] = $r;
+
+    if (!empty($r['spotify_queue_status']) && strtolower((string)$r['spotify_queue_status']) === 'queued') {
+        $groups[$key]['spotify_queue_status'] = 'queued';
+        if (empty($groups[$key]['spotify_queued_at']) || (!empty($r['spotify_queued_at']) && strtotime($r['spotify_queued_at']) > strtotime((string)$groups[$key]['spotify_queued_at']))) {
+            $groups[$key]['spotify_queued_at'] = $r['spotify_queued_at'] ?? null;
+        }
+    }
 
     // Queue status for the group follows the highest priority status in the group.
     $priority = ['pending' => 1, 'maybe' => 2, 'duplicate' => 3, 'played' => 4, 'rejected' => 5];
@@ -557,8 +586,12 @@ admin_header('DJ Portal');
 
       <div class="request-list">
         <?php foreach ($grouped_requests as $group): ?>
-          <?php $first = $group['items'][0]; ?>
-          <article class="request-card status-<?= h($group['status']) ?> compact-queue-card">
+          <?php
+            $first = $group['items'][0];
+            $is_spotify_queued = strtolower((string)($group['spotify_queue_status'] ?? '')) === 'queued';
+            $display_status = ($is_spotify_queued && strtolower((string)$group['status']) === 'pending') ? 'queued' : $group['status'];
+          ?>
+          <article class="request-card status-<?= h($group['status']) ?><?= $is_spotify_queued ? ' spotify-queued-card' : '' ?> compact-queue-card">
             <div class="req-time">
               <?= h(date('H:i', strtotime($group['created_at']))) ?>
               <small><?= h(date('d M', strtotime($group['created_at']))) ?></small>
@@ -579,7 +612,7 @@ admin_header('DJ Portal');
                 <span class="group-count">
                   <?= count($group['items']) ?> request<?= count($group['items']) === 1 ? '' : 's' ?>
                 </span>
-                <span class="status-badge inline-status <?= h(status_label($group['status'])) ?>"><?= h($group['status']) ?></span>
+                <span class="status-badge inline-status <?= h(status_label($display_status)) ?>"><?= h($display_status) ?></span>
               </div>
             </div>
 
@@ -599,10 +632,11 @@ admin_header('DJ Portal');
             </div>
 
             <div class="req-actions">
-              <?php if (!empty($group['spotify_track_id'])): ?>
+              <?php if (!empty($group['spotify_track_id']) && !$is_spotify_queued): ?>
                 <button type="button"
                   class="action-tile spotify-queue spotify-device-modal-trigger"
                   data-spotify-track-id="<?= h($group['spotify_track_id']) ?>"
+                  data-group-id="<?= h($group['group_id'] ?? '') ?>"
                   data-song-title="<?= h($group['song_title']) ?>"
                   data-artist="<?= h($group['artist']) ?>"
                   data-return="../requests.php<?= !empty($_SERVER['QUERY_STRING']) ? '?' . h($_SERVER['QUERY_STRING']) : '' ?>">
@@ -612,7 +646,10 @@ admin_header('DJ Portal');
               <?php endif; ?>
 
               <?php
-                $actions = [
+                $actions = $is_spotify_queued ? [
+                  'played' => ['icon' => '▶', 'label' => 'Played'],
+                  'duplicate' => ['icon' => '⧉', 'label' => 'Merge'],
+                ] : [
                   'played' => ['icon' => '▶', 'label' => 'Played'],
                   'maybe' => ['icon' => '?', 'label' => 'Maybe'],
                   'duplicate' => ['icon' => '⧉', 'label' => 'Merge'],
@@ -1062,6 +1099,7 @@ admin_header('DJ Portal');
 
     <form method="post" action="spotify/add-to-queue.php" id="spotifyDeviceForm">
       <input type="hidden" name="spotify_track_id" id="spotifyDeviceTrackId">
+      <input type="hidden" name="request_group_id" id="spotifyDeviceGroupId">
       <input type="hidden" name="device_id" id="spotifyDeviceId">
       <input type="hidden" name="return" id="spotifyDeviceReturn" value="../requests.php">
     </form>
@@ -1109,6 +1147,16 @@ admin_header('DJ Portal');
 .spotify-device-choice:any-link, .spotify-device-choice:hover { transform: translateY(-1px); }
 .spotify-device-choice.fallback-device { border-color: rgba(59,130,246,.55); background: rgba(15, 35, 75, .88); }
 .spotify-device-choice.fallback-device span { color:#bfdbfe; }
+
+.spotify-queued-card {
+  border-left-color: #22c55e !important;
+  background: linear-gradient(90deg, rgba(34,197,94,.10), rgba(15,23,42,.94) 22%, rgba(15,23,42,.94));
+}
+.status-badge.queued {
+  border-color: rgba(34,197,94,.75);
+  background: rgba(34,197,94,.18);
+  color: #86efac;
+}
 </style>
 
 <script>
@@ -1120,11 +1168,12 @@ admin_header('DJ Portal');
   const form = document.getElementById('spotifyDeviceForm');
   const trackInput = document.getElementById('spotifyDeviceTrackId');
   const deviceInput = document.getElementById('spotifyDeviceId');
+  const groupInput = document.getElementById('spotifyDeviceGroupId');
   const returnInput = document.getElementById('spotifyDeviceReturn');
   const cancelTop = document.getElementById('spotifyDeviceCancelTop');
   const cancelBottom = document.getElementById('spotifyDeviceCancelBottom');
 
-  if (!modal || !grid || !status || !form || !trackInput || !deviceInput || !returnInput) return;
+  if (!modal || !grid || !status || !form || !trackInput || !deviceInput || !groupInput || !returnInput) return;
 
   function closeModal(){
     modal.hidden = true;
