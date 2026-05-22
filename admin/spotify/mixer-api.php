@@ -41,8 +41,27 @@ function mx_clean_track($track) {
         'added_at' => (string)($track['added_at'] ?? date('Y-m-d H:i:s')),
     ];
 }
+function mx_request_select_columns($extra = []) {
+    $base = ['id', 'guest_name', 'song_title', 'artist', 'created_at', 'spotify_track_id'];
+    foreach (['spotify_track_url', 'spotify_album_image', 'status', 'message', 'dedication', 'spotify_queue_status'] as $col) {
+        if (mx_has_column('song_requests', $col)) $base[] = $col;
+    }
+    foreach ((array)$extra as $col) {
+        if (mx_has_column('song_requests', $col)) $base[] = $col;
+    }
+    return array_values(array_unique($base));
+}
+function mx_select_sql($cols) {
+    return implode(', ', array_map(function($c) { return '`' . str_replace('`', '', $c) . '`'; }, $cols));
+}
+function mx_request_message_from_row($r) {
+    if (isset($r['message']) && trim((string)$r['message']) !== '') return (string)$r['message'];
+    if (isset($r['dedication']) && trim((string)$r['dedication']) !== '') return (string)$r['dedication'];
+    return '';
+}
 function mx_track_from_request($request_id) {
-    $stmt = db()->prepare("SELECT id, guest_name, song_title, artist, message, dedication, created_at, spotify_track_id, spotify_track_url, spotify_album_image FROM song_requests WHERE id = ? LIMIT 1");
+    $cols = mx_request_select_columns();
+    $stmt = db()->prepare("SELECT " . mx_select_sql($cols) . " FROM song_requests WHERE id = ? LIMIT 1");
     $stmt->execute([(int)$request_id]);
     $r = $stmt->fetch();
     if (!$r || empty($r['spotify_track_id'])) return null;
@@ -56,7 +75,7 @@ function mx_track_from_request($request_id) {
         'source' => 'request',
         'request_id' => (int)$r['id'],
         'guest_name' => $r['guest_name'] ?? '',
-        'message' => ($r['message'] ?? ($r['dedication'] ?? '')),
+        'message' => mx_request_message_from_row($r),
     ]);
 }
 function mx_current_event_id() {
@@ -174,17 +193,23 @@ function mx_requests($playlist) {
         $where = "spotify_track_id IS NOT NULL AND spotify_track_id <> '' AND status IN ('pending','maybe','duplicate')";
         $params = [];
         if (mx_has_column('song_requests', 'spotify_queue_status')) {
-            $where .= " AND (spotify_queue_status IS NULL OR spotify_queue_status = '' OR spotify_queue_status NOT IN ('dj_playlist','loaded_a','loaded_b'))";
+            // Full Mixer public feed should only show requests deliberately sent to the mixer.
+            // This keeps the normal request page and mixer workflow separate.
+            $where .= " AND spotify_queue_status = ?";
+            $params[] = 'mixer_request';
         }
         $eventId = mx_current_event_id();
         if ($eventId > 0 && mx_has_column('song_requests', 'event_id')) {
             $where .= " AND event_id = ?";
             $params[] = $eventId;
         }
-        $stmt = db()->prepare("SELECT id, guest_name, song_title, artist, message, dedication, created_at, spotify_track_id, spotify_track_url, spotify_album_image, status FROM song_requests WHERE $where ORDER BY created_at ASC, id ASC LIMIT 30");
+        $cols = mx_request_select_columns();
+        $stmt = db()->prepare("SELECT " . mx_select_sql($cols) . " FROM song_requests WHERE $where ORDER BY created_at ASC, id ASC LIMIT 30");
         $stmt->execute($params);
         $rows = $stmt->fetchAll();
-    } catch (Throwable $e) { $rows = []; }
+    } catch (Throwable $e) {
+        $rows = [];
+    }
     $out = [];
     foreach ($rows as $r) {
         if (isset($already[(int)$r['id']])) continue;
@@ -193,10 +218,11 @@ function mx_requests($playlist) {
             'guest_name' => (string)($r['guest_name'] ?? 'Guest'),
             'title' => (string)($r['song_title'] ?? ''),
             'artist' => (string)($r['artist'] ?? ''),
-            'message' => (string)($r['message'] ?? ($r['dedication'] ?? '')),
+            'message' => mx_request_message_from_row($r),
             'image' => (string)($r['spotify_album_image'] ?? ''),
             'created_at' => (string)($r['created_at'] ?? ''),
             'status' => (string)($r['status'] ?? 'pending'),
+            'queue_status' => (string)($r['spotify_queue_status'] ?? ''),
         ];
     }
     return $out;
