@@ -39,6 +39,7 @@ function mx_clean_track($track) {
         'guest_name' => (string)($track['guest_name'] ?? ''),
         'message' => (string)($track['message'] ?? ''),
         'added_at' => (string)($track['added_at'] ?? date('Y-m-d H:i:s')),
+        'played_on_deck' => !empty($track['played_on_deck']),
     ];
 }
 function mx_request_select_columns($extra = []) {
@@ -271,16 +272,56 @@ function mx_deck_has_loaded($deck) {
     $loaded = mx_json('spotify_mixer_loaded_' . $deck, []);
     return is_array($loaded) && !empty($loaded['id']);
 }
-function mx_load_track_to_deck($track, $deck, $playback = null) {
+function mx_load_track_to_deck($track, $deck, $playback = null, &$playlist = null, $removeFromPlaylist = false) {
     $deck = $deck === 'b' ? 'b' : 'a';
     $deviceA = mx_setting('spotify_mixer_device_a', '');
     $deviceB = mx_setting('spotify_mixer_device_b', '');
     $device = $deck === 'b' ? $deviceB : $deviceA;
     if (!$device) throw new RuntimeException('Player ' . strtoupper($deck) . ' has no assigned Spotify device.');
     if (mx_device_playing($device, $playback)) throw new RuntimeException('Player ' . strtoupper($deck) . ' is currently playing. Loading is blocked.');
-    mx_set('spotify_mixer_loaded_' . $deck, json_encode(mx_clean_track($track)));
+    $clean = mx_clean_track($track);
+    if (is_array($playlist)) {
+        mx_return_loaded_if_unplayed($deck, $playlist, $clean);
+        if ($removeFromPlaylist) $playlist = mx_remove_track_from_playlist($playlist, $clean);
+        mx_save_playlist($playlist);
+    }
+    $clean['played_on_deck'] = false;
+    mx_set('spotify_mixer_loaded_' . $deck, json_encode($clean));
     return $deck;
 }
+
+function mx_track_key($track) {
+    if (!empty($track['request_id'])) return 'request:' . (int)$track['request_id'];
+    return 'track:' . (string)($track['id'] ?? '');
+}
+function mx_playlist_contains_track($playlist, $track) {
+    $key = mx_track_key($track);
+    if ($key === 'track:' || $key === 'request:0') return false;
+    foreach ((array)$playlist as $p) {
+        if (mx_track_key($p) === $key) return true;
+    }
+    return false;
+}
+function mx_return_loaded_if_unplayed($deck, &$playlist, $newTrack = null) {
+    $deck = $deck === 'b' ? 'b' : 'a';
+    $loaded = mx_json('spotify_mixer_loaded_' . $deck, []);
+    if (!is_array($loaded) || empty($loaded['id'])) return;
+    if (!empty($loaded['played_on_deck'])) return;
+    if (is_array($newTrack) && mx_track_key($loaded) === mx_track_key($newTrack)) return;
+    $loaded = mx_clean_track($loaded);
+    $loaded['added_at'] = date('Y-m-d H:i:s');
+    if (!mx_playlist_contains_track($playlist, $loaded)) {
+        array_unshift($playlist, $loaded);
+    }
+    if (!empty($loaded['request_id'])) mx_flag_request_in_playlist((int)$loaded['request_id'], 'dj_playlist');
+}
+function mx_remove_track_from_playlist($playlist, $track) {
+    $key = mx_track_key($track);
+    return array_values(array_filter((array)$playlist, function($p) use ($key) {
+        return mx_track_key($p) !== $key;
+    }));
+}
+
 function mx_json_out($data) { echo json_encode($data); exit; }
 
 try {
@@ -308,7 +349,7 @@ try {
         if (!is_array($track) || empty($track['id'])) throw new RuntimeException('No valid track selected.');
         $deck = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
         $playback = mx_playback();
-        mx_load_track_to_deck($track, $deck, $playback);
+        mx_load_track_to_deck($track, $deck, $playback, $playlist, false);
         if ($action === 'play_track_direct') {
             $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
             mx_play_track($device, $track['id'] ?? '');
@@ -367,7 +408,7 @@ try {
             elseif ($deviceB && !$bPlaying) $deck = 'b';
             else throw new RuntimeException('No empty standby player found.');
         }
-        mx_load_track_to_deck($playlist[$idx], $deck, $playback);
+        mx_load_track_to_deck($playlist[$idx], $deck, $playback, $playlist, true);
         mx_json_out(['ok' => true, 'message' => 'Loaded to Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
     }
 
@@ -386,7 +427,7 @@ try {
             elseif ($deviceB && !$bPlaying) $deck = 'b';
             else throw new RuntimeException('No empty standby player found.');
         }
-        mx_load_track_to_deck($track, $deck, $playback);
+        mx_load_track_to_deck($track, $deck, $playback, $playlist, false);
         mx_flag_request_in_playlist($requestId, 'loaded_' . $deck);
         mx_json_out(['ok' => true, 'message' => 'Public request loaded to Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
     }
@@ -399,7 +440,7 @@ try {
         if (!$track) throw new RuntimeException('That request has no Spotify track attached.');
         $deck = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
         $playback = mx_playback();
-        mx_load_track_to_deck($track, $deck, $playback);
+        mx_load_track_to_deck($track, $deck, $playback, $playlist, false);
         mx_flag_request_in_playlist($requestId, 'loaded_' . $deck);
         $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
         mx_play_track($device, $track['id'] ?? '');
@@ -420,6 +461,10 @@ try {
         $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
         $track = mx_json('spotify_mixer_loaded_' . $deck, []);
         mx_play_track($device, $track['id'] ?? '');
+        if (is_array($track) && !empty($track['id'])) {
+            $track['played_on_deck'] = true;
+            mx_set('spotify_mixer_loaded_' . $deck, json_encode(mx_clean_track($track)));
+        }
         if (!empty($track['request_id'])) mx_mark_request_played((int)$track['request_id']);
         // Remove the item from the DJ playlist once sent to play.
         $playlist = array_values(array_filter($playlist, function($p) use ($track) {
