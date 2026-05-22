@@ -236,6 +236,22 @@ try {
         mx_json_out(['ok' => true, 'message' => 'Track added to DJ playlist.', 'state' => mx_state()]);
     }
 
+
+
+    if ($action === 'load_track_direct' || $action === 'play_track_direct') {
+        $track = json_decode((string)($_POST['track_json'] ?? ''), true);
+        if (!is_array($track) || empty($track['id'])) throw new RuntimeException('No valid track selected.');
+        $deck = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
+        $playback = mx_playback();
+        mx_load_track_to_deck($track, $deck, $playback);
+        if ($action === 'play_track_direct') {
+            $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
+            mx_play_track($device, $track['id'] ?? '');
+            mx_json_out(['ok' => true, 'message' => 'Track loaded and played on Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
+        }
+        mx_json_out(['ok' => true, 'message' => 'Track loaded to Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
+    }
+
     if ($action === 'accept_request') {
         $requestId = (int)($_POST['request_id'] ?? 0);
         foreach ($playlist as $p) if (!empty($p['request_id']) && (int)$p['request_id'] === $requestId) throw new RuntimeException('That request is already in the DJ playlist.');
@@ -297,6 +313,22 @@ try {
         mx_load_track_to_deck($track, $deck, $playback);
         mx_flag_request_in_playlist($requestId, 'loaded_' . $deck);
         mx_json_out(['ok' => true, 'message' => 'Public request loaded to Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
+    }
+
+
+
+    if ($action === 'play_request_direct') {
+        $requestId = (int)($_POST['request_id'] ?? 0);
+        $track = mx_track_from_request($requestId);
+        if (!$track) throw new RuntimeException('That request has no Spotify track attached.');
+        $deck = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
+        $playback = mx_playback();
+        mx_load_track_to_deck($track, $deck, $playback);
+        mx_flag_request_in_playlist($requestId, 'loaded_' . $deck);
+        $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
+        mx_play_track($device, $track['id'] ?? '');
+        mx_mark_request_played($requestId);
+        mx_json_out(['ok' => true, 'message' => 'Public request loaded and played on Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
     }
 
     if ($action === 'clear_loaded') {

@@ -17,7 +17,8 @@
     spotifyStatus: $('#spotifyStatus'),
     search: $('#spotifySearch'), searchResults: $('#searchResults'), searchStatus: $('#searchStatus'),
     publicRequests: $('#publicRequests'), djPlaylist: $('#djPlaylist'),
-    requestCount: $('#requestCount'), playlistCount: $('#playlistCount')
+    requestCount: $('#requestCount'), playlistCount: $('#playlistCount'),
+    choiceModal: $('#mixerChoiceModal'), choiceImage: $('#choiceImage'), choiceTitle: $('#choiceTitle'), choiceArtist: $('#choiceArtist'), choiceActions: $('#choiceActions'), choiceWarning: $('#choiceWarning'), choiceCancel: $('#choiceCancel')
   };
 
   function esc(s){ return String(s ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c])); }
@@ -45,6 +46,69 @@
     const d = (state?.devices || []).find(x => x.id === id);
     return d ? d.name : (id ? 'Selected device' : 'Not assigned');
   }
+  function deckIsPlaying(deck){ return state?.['player_' + deck]?.state === 'playing'; }
+  function deckCanLoad(deck){ return !!state?.['device_' + deck] && !deckIsPlaying(deck); }
+  function clearSearchUi(){
+    if(els.search){ els.search.value=''; els.search.focus(); }
+    if(els.searchResults) els.searchResults.innerHTML='';
+    if(els.searchStatus) els.searchStatus.textContent='';
+  }
+  function closeChoice(){
+    if(!els.choiceModal) return;
+    els.choiceModal.classList.remove('open');
+    els.choiceModal.setAttribute('aria-hidden','true');
+    if(els.choiceActions) els.choiceActions.innerHTML = '';
+  }
+  function choiceButton(label, cls, action, disabled=false){
+    return `<button class="mixer-btn ${cls}${disabled ? ' choice-disabled' : ''}" data-choice-action="${esc(action)}" ${disabled ? 'disabled' : ''}>${label}</button>`;
+  }
+  function openChoice(item, source){
+    if(!els.choiceModal || !item) return;
+    const title = item.title || item.song_title || 'Selected track';
+    const artist = item.artist || '';
+    if(els.choiceImage) els.choiceImage.src = image(item.image || item.spotify_album_image || '');
+    if(els.choiceTitle) els.choiceTitle.textContent = title;
+    if(els.choiceArtist) els.choiceArtist.textContent = artist + (source === 'request' && item.guest_name ? ' • requested by ' + item.guest_name : '');
+    const aBlocked = !deckCanLoad('a');
+    const bBlocked = !deckCanLoad('b');
+    let html = '';
+    html += choiceButton('+ Add to DJ playlist', 'green full', 'playlist');
+    html += choiceButton('Load to A', 'orange', 'load_a', aBlocked);
+    html += choiceButton('Load to B', 'blue', 'load_b', bBlocked);
+    html += choiceButton('▶ Play on A now', 'green', 'play_a', aBlocked);
+    html += choiceButton('▶ Play on B now', 'green', 'play_b', bBlocked);
+    if(els.choiceActions) els.choiceActions.innerHTML = html;
+    if(els.choiceWarning){
+      const notes=[];
+      if(aBlocked) notes.push('A is unavailable or currently playing');
+      if(bBlocked) notes.push('B is unavailable or currently playing');
+      els.choiceWarning.textContent = notes.length ? notes.join(' • ') : 'Choose a safe action. Play now loads the track and starts it immediately.';
+    }
+    els.choiceModal._choice = {item, source};
+    els.choiceModal.classList.add('open');
+    els.choiceModal.setAttribute('aria-hidden','false');
+  }
+  function choiceAction(action){
+    const choice = els.choiceModal?._choice;
+    if(!choice) return;
+    const src = choice.source;
+    const item = choice.item;
+    const params = {};
+    if(src === 'request'){
+      if(action === 'playlist') Object.assign(params, {action:'accept_request', request_id:item.id});
+      if(action === 'load_a' || action === 'load_b') Object.assign(params, {action:'load_request', request_id:item.id, deck:action.slice(-1)});
+      if(action === 'play_a' || action === 'play_b') Object.assign(params, {action:'play_request_direct', request_id:item.id, deck:action.slice(-1)});
+    } else {
+      const trackJson = JSON.stringify(item);
+      if(action === 'playlist') Object.assign(params, {action:'add_track', track_json:trackJson});
+      if(action === 'load_a' || action === 'load_b') Object.assign(params, {action:'load_track_direct', track_json:trackJson, deck:action.slice(-1)});
+      if(action === 'play_a' || action === 'play_b') Object.assign(params, {action:'play_track_direct', track_json:trackJson, deck:action.slice(-1)});
+    }
+    closeChoice();
+    doAction(params);
+    if(src === 'track') clearSearchUi();
+  }
+
   function renderDevices(){
     const devices = state?.devices || [];
     const opts = ['<option value="">Choose device…</option>'].concat(devices.map(d => `<option value="${esc(d.id)}">${esc(d.name)}${d.is_active ? ' — active' : ''}</option>`)).join('');
@@ -119,10 +183,7 @@
           <div class="request-source">Public request • ${esc(r.status || 'pending')}</div>
         </div>
         <div class="row-actions quick-actions">
-          <button class="mixer-btn green wide" data-action="accept_request" data-request-id="${r.id}">+ DJ playlist</button>
-          <button class="mixer-btn green" data-action="auto_load_request" data-request-id="${r.id}">Auto</button>
-          <button class="mixer-btn orange" data-action="load_request" data-deck="a" data-load-a data-request-id="${r.id}">Load A</button>
-          <button class="mixer-btn blue" data-action="load_request" data-deck="b" data-load-b data-request-id="${r.id}">Load B</button>
+          <button class="mixer-btn green wide" data-select-request='${esc(JSON.stringify(r))}'>Choose action</button>
         </div>
       </div>`).join('');
   }
@@ -148,7 +209,7 @@
       <div class="result-row">
         <img src="${esc(image(t.image))}" alt="">
         <div><div class="result-title">${esc(t.title)}</div><div class="mini muted">${esc(t.artist)}${t.album ? ' • ' + esc(t.album) : ''}</div></div>
-        <button class="mixer-btn green" data-add-track='${esc(JSON.stringify(t))}'>+ DJ playlist</button>
+        <button class="mixer-btn green" data-select-track='${esc(JSON.stringify(t))}'>Choose</button>
       </div>`).join('');
   }
   async function search(q){
@@ -162,6 +223,19 @@
     if(save){ doAction({action:'assign_devices', device_a:els.deviceA.value, device_b:els.deviceB.value}); return; }
     const deckAction = e.target.closest('[data-deck-action]');
     if(deckAction){ doAction({action:deckAction.dataset.deckAction, deck:deckAction.dataset.deck}); return; }
+    const choiceBtn = e.target.closest('[data-choice-action]');
+    if(choiceBtn){ choiceAction(choiceBtn.dataset.choiceAction); return; }
+    if(e.target.closest('#choiceCancel') || (e.target === els.choiceModal)){ closeChoice(); return; }
+    const selectTrack = e.target.closest('[data-select-track]');
+    if(selectTrack){
+      try{ openChoice(JSON.parse(selectTrack.dataset.selectTrack), 'track'); }catch(err){ toast('Could not read track selection', false); }
+      return;
+    }
+    const selectRequest = e.target.closest('[data-select-request]');
+    if(selectRequest){
+      try{ openChoice(JSON.parse(selectRequest.dataset.selectRequest), 'request'); }catch(err){ toast('Could not read request selection', false); }
+      return;
+    }
     const actionBtn = e.target.closest('[data-action]');
     if(actionBtn){
       const params = {action:actionBtn.dataset.action};
@@ -169,14 +243,6 @@
       if(actionBtn.dataset.deck) params.deck = actionBtn.dataset.deck;
       if(actionBtn.dataset.requestId) params.request_id = actionBtn.dataset.requestId;
       doAction(params); return;
-    }
-    const addTrack = e.target.closest('[data-add-track]');
-    if(addTrack){
-      doAction({action:'add_track', track_json:addTrack.dataset.addTrack});
-      if(els.search){ els.search.value=''; els.search.focus(); }
-      if(els.searchResults) els.searchResults.innerHTML='';
-      if(els.searchStatus) els.searchStatus.textContent='';
-      return;
     }
   });
   if(els.search){
