@@ -67,7 +67,7 @@
     return !!state?.['player_' + deck]?.loaded?.id;
   }
   function deckCanLoad(deck){
-    return !!state?.['device_' + deck] && !deckIsPlaying(deck) && !deckHasLoaded(deck);
+    return !!state?.['device_' + deck] && !deckIsPlaying(deck);
   }
   function clearSearchUi(){
     if(els.search){ els.search.value=''; els.search.focus(); }
@@ -172,11 +172,11 @@
     document.querySelectorAll('[data-deck-action="clear_loaded"][data-deck="b"]').forEach(b => b.disabled = bPlaying);
     document.querySelectorAll('[data-load-a]').forEach(b => {
       b.disabled = aPlaying || aLoaded || !state?.device_a;
-      b.title = b.disabled ? (aPlaying ? 'Player A is currently playing' : (aLoaded ? 'Player A already has a loaded track' : 'Player A has no assigned device')) : 'Load to Player A';
+      b.title = b.disabled ? (aPlaying ? 'Player A is currently playing' : 'Player A has no assigned device') : (aLoaded ? 'Replace track on Player A' : 'Load to Player A');
     });
     document.querySelectorAll('[data-load-b]').forEach(b => {
       b.disabled = bPlaying || bLoaded || !state?.device_b;
-      b.title = b.disabled ? (bPlaying ? 'Player B is currently playing' : (bLoaded ? 'Player B already has a loaded track' : 'Player B has no assigned device')) : 'Load to Player B';
+      b.title = b.disabled ? (bPlaying ? 'Player B is currently playing' : 'Player B has no assigned device') : (bLoaded ? 'Replace track on Player B' : 'Load to Player B');
     });
     document.querySelectorAll('[data-action="auto_load"]').forEach(b => {
       b.disabled = !deckCanLoad('a') && !deckCanLoad('b');
