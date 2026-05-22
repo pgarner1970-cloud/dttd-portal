@@ -1,3 +1,19 @@
+(()=>{
+  // Keep DJ Playlist/Public Request rows compact: truncate request notes in overview lists only.
+  // Loaded deck request notes remain full length.
+  const overviewStyle = document.createElement('style');
+  overviewStyle.textContent = `
+    .playlist-note, .request-message {
+      display: block;
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .playlist-note strong { white-space: nowrap; }
+    .playlist-row > div, .request-row > div { min-width: 0; }
+  `;
+  document.head.appendChild(overviewStyle);
 (function(){
   const app = document.querySelector('.spotify-mixer-app');
   if(!app) return;
@@ -224,7 +240,7 @@
         <div>
           <strong>${esc(t.title)}</strong><br>
           <span class="mini muted">${esc(t.artist)}${duration(t.duration_ms) ? ' • ' + duration(t.duration_ms) : ''}${t.source === 'request' ? ' • public request' : ''}</span>
-          ${t.source === 'request' ? `<div class="playlist-note mini"><strong>${esc(t.guest_name || 'Guest')}</strong>${t.message ? ': ' + esc(t.message) : ''}</div>` : ''}
+          ${t.source === 'request' ? `<div class="playlist-note mini" title="${esc((t.guest_name || 'Guest') + (t.message ? ': ' + t.message : ''))}"><strong>${esc(t.guest_name || 'Guest')}</strong>${t.message ? ': ' + esc(t.message) : ''}</div>` : ''}
         </div>
         <div class="row-actions">
           <button class="mixer-btn green auto-btn mixer-mini-action" data-action="auto_load" data-idx="${i}" title="Auto-load to the first empty standby player" aria-label="Auto-load to the first empty standby player">⇄</button>
@@ -245,7 +261,7 @@
         <div>
           <strong>${esc(r.title)}</strong> <span class="muted">— ${esc(r.artist)}</span>
           <div class="request-detail mini"><span class="request-time">${esc((r.created_at || '').slice(11,16))}</span><span><strong>${esc(r.guest_name || 'Guest')}</strong></span></div>
-          ${r.message ? `<div class="request-message mini">${esc(r.message)}</div>` : '<div class="request-message mini muted">No dedication/message</div>'}
+          ${r.message ? `<div class="request-message mini" title="${esc(r.message)}">${esc(r.message)}</div>` : '<div class="request-message mini muted">No dedication/message</div>'}
           <div class="request-source">Public request • ${esc(r.status || 'pending')}</div>
         </div>
         <div class="row-actions quick-actions">
