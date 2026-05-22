@@ -18,21 +18,56 @@ if (empty($_SESSION['dttd_admin'])) {
     exit;
 }
 
+function admin_is_dj_subdomain() {
+    $host = strtolower($_SERVER['HTTP_HOST'] ?? '');
+    return str_starts_with($host, 'dj.');
+}
+
+function admin_url($path = '') {
+    $path = ltrim((string)$path, '/');
+
+    // The DJ subdomain document root is already /admin, so links must be root-relative there.
+    // If the admin is ever accessed through the main domain, keep /admin/ in the URL.
+    if (admin_is_dj_subdomain()) {
+        return '/' . $path;
+    }
+
+    return '/admin/' . $path;
+}
+
 function admin_current_page() {
-    return basename($_SERVER['SCRIPT_NAME']);
+    $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
+    $script = ltrim($script, '/');
+
+    if (str_starts_with($script, 'admin/')) {
+        $script = substr($script, 6);
+    }
+
+    return $script ?: 'index.php';
 }
 
 function admin_nav_active($page) {
     $script = admin_current_page();
+    $base = basename($script);
 
     $map = [
         'requests' => ['requests.php', 'index.php', 'request-debug.php'],
         'events' => ['events.php', 'event-edit.php', 'event-qr.php'],
         'venues' => ['venues.php', 'venue-edit.php'],
-        'settings' => ['settings.php'],
+        'settings' => ['settings.php', 'spotify/index.php', 'spotify/connect.php', 'spotify/callback.php'],
     ];
 
-    return in_array($script, $map[$page] ?? [], true) ? 'active' : '';
+    foreach ($map[$page] ?? [] as $candidate) {
+        if ($script === $candidate || $base === $candidate) {
+            // Prevent /spotify/index.php from incorrectly lighting up Requests.
+            if ($page === 'requests' && $script !== 'index.php' && $base === 'index.php') {
+                continue;
+            }
+            return 'active';
+        }
+    }
+
+    return '';
 }
 
 
@@ -168,7 +203,7 @@ function admin_header($title = 'DJ Portal') {
 <body class="admin-body">
 <header class="touch-topbar">
   <div class="topbar-left">
-    <a class="touch-brand" href="index.php">
+    <a class="touch-brand" href="<?= h(admin_url('index.php')) ?>">
       <span class="touch-brand-mark">♫</span>
       <span>DJ Portal</span>
     </a>
@@ -202,14 +237,14 @@ function admin_header($title = 'DJ Portal') {
   <div class="topbar-right">
     <div class="touch-top-actions">
       <nav class="header-admin-nav" aria-label="Admin navigation">
-        <a class="header-admin-nav-btn <?= admin_nav_active('requests') ?>" href="requests.php">Requests</a>
-        <a class="header-admin-nav-btn <?= admin_nav_active('events') ?>" href="events.php">Events</a>
-        <a class="header-admin-nav-btn <?= admin_nav_active('venues') ?>" href="venues.php">Venues</a>
-        <a class="header-admin-nav-btn <?= admin_nav_active('settings') ?>" href="settings.php">Settings</a>
+        <a class="header-admin-nav-btn <?= admin_nav_active('requests') ?>" href="<?= h(admin_url('requests.php')) ?>">Requests</a>
+        <a class="header-admin-nav-btn <?= admin_nav_active('events') ?>" href="<?= h(admin_url('events.php')) ?>">Events</a>
+        <a class="header-admin-nav-btn <?= admin_nav_active('venues') ?>" href="<?= h(admin_url('venues.php')) ?>">Venues</a>
+        <a class="header-admin-nav-btn <?= admin_nav_active('settings') ?>" href="<?= h(admin_url('settings.php')) ?>">Settings</a>
       </nav>
 
-      <a class="touch-icon-btn" href="/" title="Public site">⌂</a>
-      <a class="touch-icon-btn" href="logout.php" title="Logout">⏻</a>
+      <a class="touch-icon-btn" href="https://dancethruthedecades.co.uk/" title="Public site">⌂</a>
+      <a class="touch-icon-btn" href="<?= h(admin_url('logout.php')) ?>" title="Logout">⏻</a>
     </div>
   </div>
 </header>
