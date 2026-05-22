@@ -5590,3 +5590,165 @@ button.action-tile:disabled{
     justify-self:center !important;
   }
 }
+
+
+/* v87 request queue title-only span layout
+   Only the song title spans over the dedication column.
+   Artwork, artist, Spotify link and pills stay in the compact left block. */
+.compact-queue-card{
+  grid-template-columns:86px minmax(250px,300px) minmax(320px,1fr) minmax(104px,116px) !important;
+  grid-template-rows:auto 1fr !important;
+  column-gap:14px !important;
+  row-gap:4px !important;
+  align-items:start !important;
+  padding:10px 12px !important;
+  min-height:0 !important;
+}
+
+.compact-queue-card .req-time{
+  grid-column:1 !important;
+  grid-row:1 / span 2 !important;
+  align-self:center !important;
+}
+
+.compact-queue-card .req-wide-title{
+  grid-column:2 / 4 !important;
+  grid-row:1 !important;
+  align-self:start !important;
+  min-width:0 !important;
+  padding-top:0 !important;
+  font-size:19px !important;
+  line-height:1.08 !important;
+  font-weight:900 !important;
+  letter-spacing:-.035em !important;
+  color:#fff !important;
+  text-wrap:balance;
+}
+
+.compact-queue-card .req-track-block{
+  grid-column:2 !important;
+  grid-row:2 !important;
+  align-self:start !important;
+  display:grid !important;
+  grid-template-columns:48px minmax(0,1fr) !important;
+  grid-template-areas:
+    "art artist"
+    "art spotify"
+    "art pills" !important;
+  column-gap:10px !important;
+  row-gap:3px !important;
+  min-width:0 !important;
+  margin-top:0 !important;
+}
+
+.compact-queue-card .req-spotify-art{
+  grid-area:art !important;
+  width:48px !important;
+  height:48px !important;
+  object-fit:cover !important;
+  border-radius:8px !important;
+  align-self:start !important;
+}
+
+.compact-queue-card .req-track-artist{
+  grid-area:artist !important;
+  margin:0 !important;
+  min-width:0 !important;
+  line-height:1.15 !important;
+  font-size:13px !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+
+.compact-queue-card .spotify-open-link,
+.compact-queue-card .spotify-open-link-static{
+  grid-area:spotify !important;
+  margin:0 !important;
+  line-height:1.1 !important;
+  font-size:12px !important;
+  white-space:nowrap !important;
+}
+
+.compact-queue-card .group-count-pill-row{
+  grid-area:pills !important;
+  margin-top:2px !important;
+  gap:6px !important;
+}
+
+.compact-queue-card .group-count-pill-row > .group-count,
+.compact-queue-card .group-count-pill-row > .status-badge,
+.compact-queue-card .group-count-pill-row > .status-badge.inline-status{
+  height:24px !important;
+  min-height:24px !important;
+  max-height:24px !important;
+  line-height:24px !important;
+  padding:0 10px !important;
+  font-size:10px !important;
+}
+
+.compact-queue-card .group-count-pill-row > .group-count *,
+.compact-queue-card .group-count-pill-row > .status-badge *{
+  line-height:24px !important;
+}
+
+.compact-queue-card .group-messages{
+  grid-column:3 !important;
+  grid-row:2 !important;
+  align-self:start !important;
+  margin-top:0 !important;
+  gap:6px !important;
+  min-width:0 !important;
+}
+
+.compact-queue-card .compact-dedication-card{
+  padding:7px 8px !important;
+  min-height:52px !important;
+}
+
+.compact-queue-card .req-actions{
+  grid-column:4 !important;
+  grid-row:1 / span 2 !important;
+  align-self:center !important;
+  justify-self:end !important;
+  min-width:104px !important;
+  width:104px !important;
+  grid-template-columns:repeat(2,48px) !important;
+  gap:6px !important;
+}
+
+.compact-queue-card .action-tile{
+  min-height:48px !important;
+  width:48px !important;
+  padding:5px 3px !important;
+  font-size:8px !important;
+  border-radius:10px !important;
+}
+
+.compact-queue-card .action-tile .big-icon{
+  font-size:18px !important;
+  line-height:1 !important;
+}
+
+@media (max-width: 900px){
+  .compact-queue-card{
+    grid-template-columns:70px minmax(0,1fr) 104px !important;
+    grid-template-rows:auto auto auto !important;
+  }
+  .compact-queue-card .req-wide-title{
+    grid-column:2 / 4 !important;
+    grid-row:1 !important;
+  }
+  .compact-queue-card .req-track-block{
+    grid-column:2 !important;
+    grid-row:2 !important;
+  }
+  .compact-queue-card .group-messages{
+    grid-column:2 / 4 !important;
+    grid-row:3 !important;
+  }
+  .compact-queue-card .req-actions{
+    grid-column:3 !important;
+    grid-row:2 !important;
+  }
+}

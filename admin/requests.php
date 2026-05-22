@@ -596,11 +596,12 @@ admin_header('DJ Portal');
               <small><?= h(date('d M', strtotime($group['created_at']))) ?></small>
             </div>
 
+            <div class="req-wide-title"><?= h($group['song_title']) ?></div>
+
             <div class="req-track-block">
               <?php if (!empty($group['spotify_album_image'])): ?>
                 <img class="req-spotify-art" src="<?= h($group['spotify_album_image']) ?>" alt="">
               <?php endif; ?>
-              <div class="req-track-title"><?= h($group['song_title']) ?></div>
               <div class="req-track-artist"><?= h($group['artist']) ?></div>
               <?php if (!empty($group['spotify_track_url'])): ?>
                 <a class="spotify-open-link" href="<?= h($group['spotify_track_url']) ?>" target="_blank" rel="noopener">Open in Spotify</a>
