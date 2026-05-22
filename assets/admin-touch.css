@@ -5427,3 +5427,40 @@ button.action-tile:disabled{
   text-decoration: none;
   font-weight: 800;
 }
+
+
+/* v91 Spotify-aware compact request actions */
+.status-badge.spotify{
+  display:inline-flex !important;
+  align-items:center !important;
+  gap:6px !important;
+  border:1px solid rgba(29,185,84,.82) !important;
+  background:rgba(29,185,84,.10) !important;
+  color:#86efac !important;
+  box-shadow:inset 0 0 0 1px rgba(29,185,84,.16), 0 0 13px rgba(29,185,84,.10) !important;
+}
+.status-badge.spotify .spotify-badge-mark{
+  width:17px !important;
+  height:17px !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  border-radius:999px !important;
+  background:#1DB954 !important;
+  color:#06140a !important;
+  font-size:11px !important;
+  font-weight:1000 !important;
+  line-height:1 !important;
+}
+.request-queue-panel .compact-queue-card .action-tile.spotify-queue{
+  border-color:#1DB954 !important;
+  color:#86efac !important;
+  background:rgba(29,185,84,.09) !important;
+}
+.request-queue-panel .compact-queue-card .action-tile.spotify-queue .big-icon{
+  color:#1DB954 !important;
+}
+.request-queue-panel .compact-queue-card.spotify-queued-card{
+  border-left-color:#f59e0b !important;
+  background:linear-gradient(90deg, rgba(245,158,11,.10), rgba(15,23,42,.94) 22%, rgba(15,23,42,.94)) !important;
+}

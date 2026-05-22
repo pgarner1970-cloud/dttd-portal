@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/_auth.php';
+require_once dirname(__DIR__) . '/includes/spotify.php';
+$spotify_queue_available = function_exists('dttd_spotify_queue_connected') && dttd_spotify_queue_connected();
 $spotify_flash = $_SESSION['spotify_flash'] ?? '';
 unset($_SESSION['spotify_flash']);
 
@@ -609,7 +611,13 @@ admin_header('DJ Portal');
                 <span class="group-count">
                   <?= count($group['items']) ?> request<?= count($group['items']) === 1 ? '' : 's' ?>
                 </span>
-                <span class="status-badge inline-status <?= h(status_label($display_status)) ?>"><?= h($display_status) ?></span>
+                <span class="status-badge inline-status <?= h(status_label($display_status)) ?>">
+                  <?php if ($display_status === 'spotify'): ?>
+                    <span class="spotify-badge-mark" aria-hidden="true">♬</span><span>Spotify</span>
+                  <?php else: ?>
+                    <?= h($display_status) ?>
+                  <?php endif; ?>
+                </span>
               </div>
             </div>
 
@@ -629,7 +637,7 @@ admin_header('DJ Portal');
             </div>
 
             <div class="req-actions">
-              <?php if (!empty($group['spotify_track_id']) && !$is_spotify_queued): ?>
+              <?php if ($spotify_queue_available && !empty($group['spotify_track_id']) && !$is_spotify_queued): ?>
                 <button type="button"
                   class="action-tile spotify-queue spotify-device-modal-trigger"
                   data-spotify-track-id="<?= h($group['spotify_track_id']) ?>"
