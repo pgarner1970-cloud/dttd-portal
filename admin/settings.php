@@ -159,16 +159,17 @@ admin_header('Settings - DJ Portal');
             </label>
 
             <div class="spotify-settings-grid">
-              <label>
-                <span>Spotify Client ID</span>
-                <input type="text" name="spotify_client_id" value="<?= h($spotify_client_id) ?>" autocomplete="off" placeholder="Paste Client ID">
-              </label>
+              <div class="spotify-field-card">
+                <label for="spotify_client_id">Spotify Client ID</label>
+                <input id="spotify_client_id" class="spotify-settings-input" type="text" name="spotify_client_id" value="<?= h($spotify_client_id) ?>" autocomplete="off" placeholder="Paste Client ID">
+                <small>Public app identifier from your Spotify Developer app.</small>
+              </div>
 
-              <label>
-                <span>Spotify Client Secret</span>
-                <input type="password" name="spotify_client_secret" value="" autocomplete="new-password" placeholder="<?= $spotify_secret_saved ? '•••••••• saved — leave blank to keep' : 'Paste Client Secret' ?>">
+              <div class="spotify-field-card">
+                <label for="spotify_client_secret">Spotify Client Secret</label>
+                <input id="spotify_client_secret" class="spotify-settings-input" type="password" name="spotify_client_secret" value="" autocomplete="new-password" placeholder="<?= $spotify_secret_saved ? '•••••••• saved — leave blank to keep' : 'Paste Client Secret' ?>">
                 <small><?= $spotify_secret_saved ? 'A secret is already saved. Enter a new one only if you want to replace it.' : 'Secret is not saved yet.' ?></small>
-              </label>
+              </div>
             </div>
 
             <label class="settings-toggle-card spotify-main-toggle">

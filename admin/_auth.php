@@ -163,7 +163,7 @@ function admin_header($title = 'DJ Portal') {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= h($title) ?></title>
-<link rel="stylesheet" href="https://dancethruthedecades.co.uk/assets/admin-touch.css">
+<link rel="stylesheet" href="https://dancethruthedecades.co.uk/assets/admin-touch.css?v=spotify-settings-ui-20260522">
 </head>
 <body class="admin-body">
 <header class="touch-topbar">
