@@ -200,10 +200,10 @@
           ${t.source === 'request' ? `<div class="playlist-note mini"><strong>${esc(t.guest_name || 'Guest')}</strong>${t.message ? ': ' + esc(t.message) : ''}</div>` : ''}
         </div>
         <div class="row-actions">
-          <button class="mixer-btn green auto-btn" data-action="auto_load" data-idx="${i}">Auto</button>
-          <button class="mixer-btn orange" data-action="load" data-deck="a" data-load-a data-idx="${i}">Load A</button>
-          <button class="mixer-btn blue" data-action="load" data-deck="b" data-load-b data-idx="${i}">Load B</button>
-          <button class="mixer-btn red" data-action="remove_playlist" data-idx="${i}">×</button>
+          <button class="mixer-btn green auto-btn mixer-mini-action" data-action="auto_load" data-idx="${i}" title="Auto-load to the first empty standby player" aria-label="Auto-load to the first empty standby player">⇄</button>
+          <button class="mixer-btn orange mixer-mini-action" data-action="load" data-deck="a" data-load-a data-idx="${i}" title="Load to Player A" aria-label="Load to Player A">A</button>
+          <button class="mixer-btn blue mixer-mini-action" data-action="load" data-deck="b" data-load-b data-idx="${i}" title="Load to Player B" aria-label="Load to Player B">B</button>
+          <button class="mixer-btn red mixer-mini-action" data-action="remove_playlist" data-idx="${i}" title="Remove from DJ playlist" aria-label="Remove from DJ playlist">×</button>
         </div>
       </div>`).join('');
   }
@@ -226,7 +226,7 @@
         </div>
       </div>`).join('');
   }
-  function render(){ renderDevices(); renderDecks(); renderPlaylist(); renderRequests(); }
+  function render(){ renderDevices(); renderPlaylist(); renderRequests(); renderDecks(); }
   async function refresh(silent=true){
     try{ const data = await apiGet({action:'state'}); if(data.ok){ state = data.state; render(); } else { if(data.state){state=data.state; render();} if(!silent) toast(data.error || 'Update failed', false); } }
     catch(e){ if(!silent) toast('Mixer update failed', false); }
@@ -261,7 +261,8 @@
     const save = e.target.closest('[data-save-devices]');
     if(save){ doAction({action:'assign_devices', device_a:els.deviceA.value, device_b:els.deviceB.value}); return; }
     const deckAction = e.target.closest('[data-deck-action]');
-    if(deckAction){ doAction({action:deckAction.dataset.deckAction, deck:deckAction.dataset.deck}); return; }
+    if(deckAction){
+      if(deckAction.disabled || deckAction.getAttribute('aria-disabled') === 'true') return; doAction({action:deckAction.dataset.deckAction, deck:deckAction.dataset.deck}); return; }
     const choiceBtn = e.target.closest('[data-choice-action]');
     if(choiceBtn){ choiceAction(choiceBtn.dataset.choiceAction); return; }
     if(e.target.closest('#choiceCancel') || (e.target === els.choiceModal)){ closeChoice(); return; }
@@ -277,6 +278,7 @@
     }
     const actionBtn = e.target.closest('[data-action]');
     if(actionBtn){
+      if(actionBtn.disabled || actionBtn.getAttribute('aria-disabled') === 'true') return;
       const params = {action:actionBtn.dataset.action};
       if(actionBtn.dataset.idx !== undefined) params.idx = actionBtn.dataset.idx;
       if(actionBtn.dataset.deck) params.deck = actionBtn.dataset.deck;
