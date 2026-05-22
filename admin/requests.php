@@ -304,19 +304,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_action'], $_P
     exit;
 }
 
-$sort = $_GET['sort'] ?? 'queue';
+$view = $_GET['view'] ?? 'live';
+if (!in_array($view, ['live', 'full'], true)) {
+    $view = 'live';
+}
 
 $orderSql = "
     FIELD(status,'pending','maybe','duplicate','played','rejected'),
     created_at ASC,
     id ASC
 ";
-
-if ($sort === 'newest') {
-    $orderSql = "created_at DESC, id DESC";
-} elseif ($sort === 'oldest') {
-    $orderSql = "created_at ASC, id ASC";
-}
 
 $stmt = db()->prepare("
     SELECT *
@@ -383,18 +380,22 @@ foreach ($requests as $r) {
 
 $grouped_requests = array_values($groups);
 
-if ($sort === 'queue') {
-    usort($grouped_requests, function($a, $b) {
-        $priority = ['pending' => 1, 'maybe' => 2, 'duplicate' => 3, 'played' => 4, 'rejected' => 5];
-        $pa = $priority[$a['status']] ?? 9;
-        $pb = $priority[$b['status']] ?? 9;
-        if ($pa !== $pb) return $pa <=> $pb;
-        return strtotime($a['created_at']) <=> strtotime($b['created_at']);
-    });
-} elseif ($sort === 'newest') {
-    usort($grouped_requests, fn($a, $b) => strtotime($b['created_at']) <=> strtotime($a['created_at']));
-} else {
-    usort($grouped_requests, fn($a, $b) => strtotime($a['created_at']) <=> strtotime($b['created_at']));
+usort($grouped_requests, function($a, $b) {
+    $priority = ['pending' => 1, 'maybe' => 2, 'duplicate' => 3, 'played' => 4, 'rejected' => 5];
+    $pa = $priority[$a['status']] ?? 9;
+    $pb = $priority[$b['status']] ?? 9;
+    if ($pa !== $pb) return $pa <=> $pb;
+    return strtotime($a['created_at']) <=> strtotime($b['created_at']);
+});
+
+$full_group_count = count($grouped_requests);
+$live_grouped_requests = array_values(array_filter($grouped_requests, function($group) {
+    $status = strtolower((string)($group['status'] ?? 'pending'));
+    return !in_array($status, ['played', 'rejected'], true);
+}));
+$live_group_count = count($live_grouped_requests);
+if ($view === 'live') {
+    $grouped_requests = $live_grouped_requests;
 }
 
 $events = db()->query("SELECT id, event_name, venue_name, event_date, start_time, end_time, is_active FROM events ORDER BY event_date DESC, id DESC LIMIT 40")->fetchAll();
@@ -570,13 +571,9 @@ admin_header('DJ Portal');
           <p class="touch-subtitle">Automatically showing the current or next event.</p>
         </div>
 
-        <div class="sort-selector">
-          <label>Sort</label>
-          <select name="sort" onchange="this.form.submit()">
-            <option value="queue" <?= $sort==='queue'?'selected':'' ?>>Queue: pending first</option>
-            <option value="oldest" <?= $sort==='oldest'?'selected':'' ?>>Oldest first</option>
-            <option value="newest" <?= $sort==='newest'?'selected':'' ?>>Newest first</option>
-          </select>
+        <div class="view-mode-toggle" role="group" aria-label="Queue view mode">
+          <button type="submit" name="view" value="live" class="view-mode-pill <?= $view === 'live' ? 'active' : '' ?>">Live <span><?= (int)$live_group_count ?></span></button>
+          <button type="submit" name="view" value="full" class="view-mode-pill <?= $view === 'full' ? 'active' : '' ?>">Full <span><?= (int)$full_group_count ?></span></button>
         </div>
       </form>
 
@@ -589,7 +586,7 @@ admin_header('DJ Portal');
           <?php
             $first = $group['items'][0];
             $is_spotify_queued = strtolower((string)($group['spotify_queue_status'] ?? '')) === 'queued';
-            $display_status = ($is_spotify_queued && strtolower((string)$group['status']) === 'pending') ? 'queued' : $group['status'];
+            $display_status = ($is_spotify_queued && strtolower((string)$group['status']) === 'pending') ? 'spotify' : $group['status'];
           ?>
           <article class="request-card status-<?= h($group['status']) ?><?= $is_spotify_queued ? ' spotify-queued-card' : '' ?> compact-queue-card">
             <div class="req-time">
@@ -639,7 +636,7 @@ admin_header('DJ Portal');
                   data-group-id="<?= h($group['group_id'] ?? '') ?>"
                   data-song-title="<?= h($group['song_title']) ?>"
                   data-artist="<?= h($group['artist']) ?>"
-                  data-return="../requests.php<?= !empty($_SERVER['QUERY_STRING']) ? '?' . h($_SERVER['QUERY_STRING']) : '' ?>">
+                  data-return="../requests.php?view=<?= h($view) ?>">
                   <span class="big-icon">＋</span>
                   <span>Queue</span>
                 </button>
@@ -1149,13 +1146,58 @@ admin_header('DJ Portal');
 .spotify-device-choice.fallback-device span { color:#bfdbfe; }
 
 .spotify-queued-card {
-  border-left-color: #22c55e !important;
-  background: linear-gradient(90deg, rgba(34,197,94,.10), rgba(15,23,42,.94) 22%, rgba(15,23,42,.94));
+  border-left-color: #f59e0b !important;
+  background: linear-gradient(90deg, rgba(245,158,11,.10), rgba(15,23,42,.94) 22%, rgba(15,23,42,.94));
 }
-.status-badge.queued {
-  border-color: rgba(34,197,94,.75);
-  background: rgba(34,197,94,.18);
+.status-badge.spotify {
+  border: 1px solid rgba(34,197,94,.78);
+  background: rgba(10,40,28,.50);
   color: #86efac;
+  box-shadow: inset 0 0 0 1px rgba(34,197,94,.14), 0 0 14px rgba(34,197,94,.08);
+}
+.view-mode-toggle {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 5px;
+  border: 1px solid rgba(148,163,184,.22);
+  border-radius: 18px;
+  background: rgba(15,23,42,.72);
+}
+.view-mode-pill {
+  border: 1px solid rgba(59,130,246,.42);
+  border-radius: 14px;
+  background: rgba(15,23,42,.74);
+  color: #bfdbfe;
+  min-height: 50px;
+  min-width: 96px;
+  padding: 10px 16px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  cursor: pointer;
+}
+.view-mode-pill span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(59,130,246,.20);
+  color: #dbeafe;
+}
+.view-mode-pill.active {
+  border-color: rgba(245,158,11,.75);
+  color: #fff;
+  background: linear-gradient(180deg, rgba(245,158,11,.24), rgba(15,23,42,.85));
+  box-shadow: 0 0 18px rgba(245,158,11,.16);
+}
+@media (max-width: 720px) {
+  .view-mode-toggle { width: 100%; justify-content: stretch; }
+  .view-mode-pill { flex: 1; min-width: 0; }
 }
 </style>
 
