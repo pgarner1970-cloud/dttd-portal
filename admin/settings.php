@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/_auth.php';
+require_once __DIR__ . '/../includes/spotify.php';
 
 $allowed_layouts = ['event_left', 'event_right', 'queue_only'];
 $current_layout = app_setting('requests_layout', 'event_left');
@@ -10,6 +11,12 @@ if (!in_array($current_layout, $allowed_layouts, true)) {
 
 $header_show_event_timer = app_setting('header_show_event_timer', '1') === '1';
 $header_show_request_timer = app_setting('header_show_request_timer', '1') === '1';
+
+$spotify_enabled = app_setting('spotify_enabled', '0') === '1';
+$spotify_client_id = app_setting('spotify_client_id', '');
+$spotify_secret_saved = trim((string)app_setting('spotify_client_secret', '')) !== '';
+$spotify_connected = trim((string)app_setting('spotify_refresh_token', '')) !== '';
+$spotify_queue_enabled = app_setting('spotify_queue_enabled', '0') === '1';
 
 $saved = false;
 $error = '';
@@ -22,13 +29,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $ok = true;
         $ok = save_app_setting('requests_layout', $selected) && $ok;
+        $new_spotify_client_id = trim((string)($_POST['spotify_client_id'] ?? ''));
+        $new_spotify_client_secret = trim((string)($_POST['spotify_client_secret'] ?? ''));
+        $new_spotify_enabled = !empty($_POST['spotify_enabled']);
+        $new_spotify_queue_enabled = !empty($_POST['spotify_queue_enabled']);
+
         $ok = save_app_setting('header_show_event_timer', !empty($_POST['header_show_event_timer']) ? '1' : '0') && $ok;
         $ok = save_app_setting('header_show_request_timer', !empty($_POST['header_show_request_timer']) ? '1' : '0') && $ok;
+        $ok = save_app_setting('spotify_enabled', $new_spotify_enabled ? '1' : '0') && $ok;
+        $ok = save_app_setting('spotify_client_id', $new_spotify_client_id) && $ok;
+        $ok = save_app_setting('spotify_queue_enabled', ($new_spotify_enabled && $new_spotify_queue_enabled) ? '1' : '0') && $ok;
+
+        if ($new_spotify_client_secret !== '') {
+            $ok = save_app_setting('spotify_client_secret', $new_spotify_client_secret) && $ok;
+        }
 
         if ($ok) {
             $current_layout = $selected;
             $header_show_event_timer = !empty($_POST['header_show_event_timer']);
             $header_show_request_timer = !empty($_POST['header_show_request_timer']);
+            $spotify_enabled = $new_spotify_enabled;
+            $spotify_client_id = $new_spotify_client_id;
+            $spotify_secret_saved = $new_spotify_client_secret !== '' || $spotify_secret_saved;
+            $spotify_queue_enabled = $new_spotify_enabled && $new_spotify_queue_enabled;
             $saved = true;
         } else {
             $error = 'Settings could not be saved. Please check the app_settings table exists.';
@@ -117,6 +140,55 @@ admin_header('Settings - DJ Portal');
               <strong>Queue only</strong>
               <small>Hide the event summary card and use the full width for requests.</small>
             </label>
+          </div>
+        </section>
+
+        <section class="settings-section spotify-settings-section">
+          <div class="settings-section-header">
+            <h2>Spotify Integration</h2>
+            <p>Optional Spotify tools for track search, artwork, duplicate matching and sending requests to the DJ Spotify queue.</p>
+          </div>
+
+          <div class="spotify-settings-body">
+            <label class="settings-toggle-card spotify-main-toggle">
+              <input type="checkbox" name="spotify_enabled" value="1" <?= $spotify_enabled ? 'checked' : '' ?>>
+              <span>
+                <strong>Enable Spotify integration</strong>
+                <small>When enabled, requests can use Spotify search and matched tracks can be sent to Spotify.</small>
+              </span>
+            </label>
+
+            <div class="spotify-settings-grid">
+              <label>
+                <span>Spotify Client ID</span>
+                <input type="text" name="spotify_client_id" value="<?= h($spotify_client_id) ?>" autocomplete="off" placeholder="Paste Client ID">
+              </label>
+
+              <label>
+                <span>Spotify Client Secret</span>
+                <input type="password" name="spotify_client_secret" value="" autocomplete="new-password" placeholder="<?= $spotify_secret_saved ? '•••••••• saved — leave blank to keep' : 'Paste Client Secret' ?>">
+                <small><?= $spotify_secret_saved ? 'A secret is already saved. Enter a new one only if you want to replace it.' : 'Secret is not saved yet.' ?></small>
+              </label>
+            </div>
+
+            <label class="settings-toggle-card spotify-main-toggle">
+              <input type="checkbox" name="spotify_queue_enabled" value="1" <?= $spotify_queue_enabled ? 'checked' : '' ?>>
+              <span>
+                <strong>Enable Spotify queue controls</strong>
+                <small>Shows DJ-only queue buttons when Spotify is configured and an account has been connected.</small>
+              </span>
+            </label>
+
+            <div class="spotify-status-card">
+              <div>
+                <strong>Connected Spotify account</strong>
+                <span class="spotify-status-pill <?= $spotify_connected ? 'connected' : 'not-connected' ?>">
+                  <?= $spotify_connected ? 'Connected' : 'Not connected' ?>
+                </span>
+                <small>Use the Spotify Tools page to connect or reconnect the DJ Spotify account for playback and queue control.</small>
+              </div>
+              <a class="touch-btn green" href="spotify/">Spotify Tools</a>
+            </div>
           </div>
         </section>
 
