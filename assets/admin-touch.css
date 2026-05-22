@@ -5792,3 +5792,141 @@ button.action-tile:disabled{
     margin-top:6px !important;
   }
 }
+
+/* v120 queue action compression + true centred admin header */
+.touch-topbar{
+  display:grid !important;
+  grid-template-columns:minmax(210px, 1fr) auto minmax(210px, 1fr) !important;
+  align-items:center !important;
+  gap:14px !important;
+}
+.touch-topbar .topbar-left{justify-self:start !important; min-width:0 !important;}
+.touch-topbar .topbar-centre{justify-self:center !important; min-width:0 !important;}
+.touch-topbar .topbar-right{justify-self:end !important; min-width:0 !important;}
+.touch-top-actions{justify-content:flex-end !important;}
+.header-timer-cluster{justify-content:center !important;}
+
+/* Keep request rows compact, but give artwork a more useful size */
+.request-queue-panel .compact-queue-card{
+  grid-template-columns:76px 68px minmax(210px, .86fr) minmax(300px, 1fr) auto !important;
+  column-gap:10px !important;
+  padding:9px 10px !important;
+}
+.request-queue-panel .compact-queue-card .req-art-col{
+  width:68px !important;
+  min-width:68px !important;
+}
+.request-queue-panel .compact-queue-card .req-spotify-art{
+  width:58px !important;
+  height:58px !important;
+  border-radius:11px !important;
+}
+
+/* Default / non-Spotify action grid: keep the old-style 2x2 square block */
+.request-queue-panel .compact-queue-card .req-actions{
+  grid-template-columns:50px 50px !important;
+  grid-auto-rows:50px !important;
+  width:106px !important;
+  min-width:106px !important;
+  gap:6px !important;
+  align-content:center !important;
+  justify-content:end !important;
+}
+.request-queue-panel .compact-queue-card .req-actions .action-tile,
+.request-queue-panel .compact-queue-card .req-actions .req-action-form{
+  width:50px !important;
+  height:50px !important;
+  min-width:50px !important;
+  min-height:50px !important;
+}
+.request-queue-panel .compact-queue-card .req-actions .action-tile{
+  padding:4px 3px !important;
+  border-radius:12px !important;
+  gap:2px !important;
+}
+.request-queue-panel .compact-queue-card .req-actions .action-tile .big-icon{
+  font-size:20px !important;
+  line-height:1 !important;
+}
+.request-queue-panel .compact-queue-card .req-actions .action-tile span:last-child{
+  font-size:8px !important;
+  line-height:1 !important;
+  letter-spacing:.01em !important;
+}
+
+/* Spotify-available rows: compact 3 + 2 grid so five actions do not become three rows */
+.request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue){
+  grid-template-columns:46px 46px 46px !important;
+  grid-auto-rows:46px !important;
+  width:150px !important;
+  min-width:150px !important;
+  gap:5px !important;
+}
+.request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .action-tile,
+.request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .req-action-form{
+  width:46px !important;
+  height:46px !important;
+  min-width:46px !important;
+  min-height:46px !important;
+}
+.request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .action-tile{
+  padding:3px 2px !important;
+  border-radius:11px !important;
+}
+.request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .action-tile .big-icon{
+  font-size:20px !important;
+}
+.request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .action-tile span:last-child{
+  font-size:7.5px !important;
+}
+
+/* Put the high-priority actions first, secondary actions below */
+.request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .played{order:1 !important;}
+.request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .spotify-queue{order:2 !important;}
+.request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .duplicate{order:3 !important;}
+.request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .maybe{order:4 !important;}
+.request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .rejected{order:5 !important;}
+
+/* Queued Spotify rows only need Played + Merge; keep them tiny and centred */
+.request-queue-panel .compact-queue-card.spotify-queued-card .req-actions:not(:has(.spotify-queue)){
+  grid-template-columns:50px 50px !important;
+  grid-auto-rows:50px !important;
+  width:106px !important;
+  min-width:106px !important;
+}
+
+@media(max-width:1180px){
+  .touch-topbar{
+    grid-template-columns:minmax(120px, 1fr) auto minmax(120px, 1fr) !important;
+    gap:8px !important;
+  }
+  .request-queue-panel .compact-queue-card{
+    grid-template-columns:70px 62px minmax(180px, .82fr) minmax(240px, 1fr) auto !important;
+    column-gap:8px !important;
+  }
+  .request-queue-panel .compact-queue-card .req-art-col{width:62px !important; min-width:62px !important;}
+  .request-queue-panel .compact-queue-card .req-spotify-art{width:54px !important; height:54px !important;}
+  .request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue){
+    grid-template-columns:44px 44px 44px !important;
+    grid-auto-rows:44px !important;
+    width:142px !important;
+    min-width:142px !important;
+    gap:5px !important;
+  }
+  .request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .action-tile,
+  .request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .req-action-form{
+    width:44px !important;
+    height:44px !important;
+    min-width:44px !important;
+    min-height:44px !important;
+  }
+}
+
+@media(max-width:900px){
+  .touch-topbar{
+    grid-template-columns:auto 1fr auto !important;
+  }
+  .touch-topbar .topbar-centre{
+    justify-self:center !important;
+  }
+}
