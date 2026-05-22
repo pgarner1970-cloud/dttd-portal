@@ -30,6 +30,74 @@ function mixer_save_playlist($playlist) {
     mixer_update_setting('spotify_mixer_playlist', json_encode($playlist));
 }
 
+
+function mixer_playlist_contains_request($playlist, $request_id) {
+    $request_id = (int)$request_id;
+    if ($request_id <= 0) return false;
+    foreach ((array)$playlist as $item) {
+        if ((int)($item['request_id'] ?? 0) === $request_id) return true;
+    }
+    return false;
+}
+
+function mixer_remove_played_item_from_playlist($playlist, $track) {
+    $track_id = (string)($track['id'] ?? '');
+    $request_id = (int)($track['request_id'] ?? 0);
+    $out = [];
+    $removed = false;
+    foreach ((array)$playlist as $item) {
+        $same_request = $request_id > 0 && (int)($item['request_id'] ?? 0) === $request_id;
+        $same_track = $track_id !== '' && (string)($item['id'] ?? '') === $track_id && !$removed;
+        if ($same_request || $same_track) {
+            $removed = true;
+            continue;
+        }
+        $out[] = $item;
+    }
+    return $out;
+}
+
+function mixer_mark_request_played($request_id) {
+    $request_id = (int)$request_id;
+    if ($request_id <= 0) return 0;
+
+    $stmt = db()->prepare("SELECT id, event_id, request_group_id FROM song_requests WHERE id = ? LIMIT 1");
+    $stmt->execute([$request_id]);
+    $r = $stmt->fetch();
+    if (!$r) return 0;
+
+    $group_id = (string)($r['request_group_id'] ?? '');
+    if ($group_id !== '') {
+        $update = db()->prepare("
+            UPDATE song_requests
+            SET status = 'played', reject_reason = NULL
+            WHERE event_id = ?
+            AND request_group_id = ?
+            AND status IN ('pending','maybe','duplicate')
+        ");
+        $update->execute([(int)$r['event_id'], $group_id]);
+        return $update->rowCount();
+    }
+
+    $update = db()->prepare("
+        UPDATE song_requests
+        SET status = 'played', reject_reason = NULL
+        WHERE id = ?
+        AND status IN ('pending','maybe','duplicate')
+    ");
+    $update->execute([$request_id]);
+    return $update->rowCount();
+}
+
+function mixer_mark_request_accepted($request_id) {
+    $request_id = (int)$request_id;
+    if ($request_id <= 0) return;
+    try {
+        $stmt = db()->prepare("UPDATE song_requests SET spotify_queue_status = 'dj_playlist' WHERE id = ? AND status IN ('pending','maybe','duplicate')");
+        $stmt->execute([$request_id]);
+    } catch (Throwable $ignored) {}
+}
+
 function mixer_safe_track($track) {
     return [
         'id' => (string)($track['id'] ?? ''),
@@ -41,6 +109,8 @@ function mixer_safe_track($track) {
         'duration_ms' => $track['duration_ms'] ?? null,
         'source' => (string)($track['source'] ?? 'search'),
         'request_id' => $track['request_id'] ?? null,
+        'request_group_id' => $track['request_group_id'] ?? null,
+        'event_id' => $track['event_id'] ?? null,
         'added_at' => $track['added_at'] ?? date('Y-m-d H:i:s'),
     ];
 }
@@ -60,6 +130,8 @@ function mixer_track_from_request_id($request_id) {
         'duration_ms' => null,
         'source' => 'request',
         'request_id' => (int)$r['id'],
+        'request_group_id' => (string)($r['request_group_id'] ?? ''),
+        'event_id' => (int)($r['event_id'] ?? 0),
         'guest_name' => (string)($r['guest_name'] ?? ''),
         'message' => (string)($r['message'] ?? ''),
     ];
@@ -180,11 +252,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mixer_save_playlist($playlist);
             $flash = 'Track added to DJ playlist.';
         } elseif ($action === 'add_request_track') {
-            $track = mixer_track_from_request_id($_POST['request_id'] ?? 0);
+            $request_id = (int)($_POST['request_id'] ?? 0);
+            $track = mixer_track_from_request_id($request_id);
             if (!$track) throw new RuntimeException('That request has no Spotify track attached.');
-            array_unshift($playlist, mixer_safe_track($track));
-            mixer_save_playlist($playlist);
-            $flash = 'Request added to DJ playlist.';
+            if (mixer_playlist_contains_request($playlist, $request_id)) {
+                $flash = 'That request is already in the DJ playlist.';
+            } else {
+                array_unshift($playlist, mixer_safe_track($track));
+                mixer_save_playlist($playlist);
+                mixer_mark_request_accepted($request_id);
+                $flash = 'Request added to DJ playlist.';
+            }
         } elseif ($action === 'remove_playlist_item') {
             $idx = (int)($_POST['idx'] ?? -1);
             if (isset($playlist[$idx])) {
@@ -235,7 +313,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $device = $deck === 'b' ? mixer_setting('spotify_mixer_device_b', '') : mixer_setting('spotify_mixer_device_a', '');
             $track = mixer_json_setting('spotify_mixer_loaded_' . $deck, []);
             mixer_play_track_on_device($device, $track['id'] ?? '');
-            $flash = 'Play command sent to Player ' . strtoupper($deck) . '. If both devices use the same Spotify account, this may transfer playback.';
+            $playedCount = mixer_mark_request_played($track['request_id'] ?? 0);
+            $playlist = mixer_remove_played_item_from_playlist($playlist, $track);
+            mixer_save_playlist($playlist);
+            $flash = 'Play command sent to Player ' . strtoupper($deck) . '.' . ($playedCount ? ' Linked request marked as played.' : '') . ' If both devices use the same Spotify account, this may transfer playback.';
         } elseif ($action === 'pause') {
             $deck = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
             $device = $deck === 'b' ? mixer_setting('spotify_mixer_device_b', '') : mixer_setting('spotify_mixer_device_a', '');
@@ -276,7 +357,7 @@ $bPlaying = $currentDeviceId !== '' && $currentDeviceId === $deviceB && $isPlayi
 
 $recentRequests = [];
 try {
-    $stmt = db()->query("SELECT id, guest_name, song_title, artist, message, created_at, spotify_track_id, spotify_track_url, spotify_album_image FROM song_requests WHERE spotify_track_id IS NOT NULL AND spotify_track_id <> '' ORDER BY id DESC LIMIT 12");
+    $stmt = db()->query("SELECT id, guest_name, song_title, artist, message, dedication, created_at, spotify_track_id, spotify_track_url, spotify_album_image, request_group_id, event_id, status, spotify_queue_status FROM song_requests WHERE spotify_track_id IS NOT NULL AND spotify_track_id <> '' AND status IN ('pending','maybe','duplicate') ORDER BY id DESC LIMIT 12");
     $recentRequests = $stmt->fetchAll();
 } catch (Throwable $ignored) {}
 
@@ -305,7 +386,7 @@ admin_header('Spotify Mixer - DJ Portal');
     </section>
 
     <section class="mixer-panel">
-      <div class="mixer-head"><div><h1>Spotify Mixer</h1><div class="muted">Requests and search results feed a DJ playlist, then load safely to A or B.</div></div><a class="mixer-btn blue" href="<?= h(admin_url('spotify/index.php')) ?>">Tools</a></div>
+      <div class="mixer-head"><div><h1>Spotify Mixer</h1><div class="muted">Public requests and searches feed the DJ playlist. Press Play to mark linked requests as played.</div></div><a class="mixer-btn blue" href="<?= h(admin_url('spotify/index.php')) ?>">Tools</a></div>
       <div class="mixer-body">
         <?php if (!$connected): ?><p class="error">Spotify is not connected. Connect it in Spotify Tools first.</p><?php endif; ?>
         <form class="search-row" method="get"><input class="search-input" name="q" value="<?= h($q) ?>" placeholder="Search for a track, artist or album…"><button class="mixer-btn blue">Search</button></form>
@@ -314,7 +395,7 @@ admin_header('Spotify Mixer - DJ Portal');
         <div class="mixer-tabs"><a class="mixer-tab active" href="#requests">Public requests</a><a class="mixer-tab" href="#playlist">DJ playlist</a></div>
         <h2 id="requests">Recent Spotify-matched requests</h2>
         <?php if (!$recentRequests): ?><p class="muted">No Spotify-matched requests found yet.</p><?php endif; ?>
-        <?php foreach($recentRequests as $r): ?><div class="request-pick"><div><strong><?= h($r['song_title']) ?></strong> <span class="muted">— <?= h($r['artist']) ?></span><br><span class="mini muted"><?= h($r['guest_name'] ?? 'Guest') ?><?= !empty($r['message']) ? ': ' . h($r['message']) : '' ?></span></div><form method="post"><input type="hidden" name="action" value="add_request_track"><input type="hidden" name="request_id" value="<?= (int)$r['id'] ?>"><button class="mixer-btn green">Accept</button></form></div><?php endforeach; ?>
+        <?php foreach($recentRequests as $r): ?><?php $alreadyInPlaylist = mixer_playlist_contains_request($playlist, (int)$r['id']); $msg = (string)($r['dedication'] ?? $r['message'] ?? ''); ?><div class="request-pick"><div><strong><?= h($r['song_title']) ?></strong> <span class="muted">— <?= h($r['artist']) ?></span><br><span class="mini muted"><?= h($r['guest_name'] ?? 'Guest') ?><?= $msg !== '' ? ': ' . h($msg) : '' ?></span></div><form method="post"><input type="hidden" name="action" value="add_request_track"><input type="hidden" name="request_id" value="<?= (int)$r['id'] ?>"><button class="mixer-btn <?= $alreadyInPlaylist ? 'orange' : 'green' ?>" <?= $alreadyInPlaylist ? 'disabled' : '' ?>><?= $alreadyInPlaylist ? 'In Playlist' : 'Accept' ?></button></form></div><?php endforeach; ?>
 
         <div id="playlist" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px"><h2>DJ Playlist (<?= count($playlist) ?>)</h2><form method="post"><input type="hidden" name="action" value="clear_playlist"><button class="mixer-btn red">Clear</button></form></div>
         <div class="mixer-panel" style="box-shadow:none">
@@ -341,7 +422,7 @@ admin_header('Spotify Mixer - DJ Portal');
 
   <div class="mixer-bottom">
     <div><strong>Spotify status:</strong> <span id="spotifyMixerStatus"><?= $isPlaying ? 'Playing on ' . h($playback['device']['name'] ?? 'active device') : 'Standby / no active playback' ?></span></div>
-    <div class="muted mini">Auto-refreshes Spotify playback state every 5 seconds. API status can lag briefly.</div>
+    <div class="muted mini">Auto-refreshes Spotify playback state every 3 seconds. API status can lag briefly.</div>
   </div>
 </main>
 <script>
@@ -380,7 +461,7 @@ admin_header('Spotify Mixer - DJ Portal');
     }catch(e){ if(status) status.textContent = 'Spotify status check failed'; }
   }
   poll();
-  setInterval(poll, 5000);
+  setInterval(poll, 3000);
 })();
 </script>
 <?php admin_footer(); ?>
