@@ -171,16 +171,20 @@
     document.querySelectorAll('[data-deck-action="clear_loaded"][data-deck="a"]').forEach(b => b.disabled = aPlaying);
     document.querySelectorAll('[data-deck-action="clear_loaded"][data-deck="b"]').forEach(b => b.disabled = bPlaying);
     document.querySelectorAll('[data-load-a]').forEach(b => {
-      b.disabled = aPlaying || aLoaded || !state?.device_a;
-      b.title = b.disabled ? (aPlaying ? 'Player A is currently playing' : 'Player A has no assigned device') : (aLoaded ? 'Replace track on Player A' : 'Load to Player A');
+      // A loaded-but-standby deck is safe to replace. Only block if actively playing or no device is assigned.
+      b.disabled = aPlaying || !state?.device_a;
+      b.title = b.disabled ? (aPlaying ? 'Player A is currently playing' : 'Player A has no assigned device') : (aLoaded ? 'Replace loaded track on Player A' : 'Load to Player A');
     });
     document.querySelectorAll('[data-load-b]').forEach(b => {
-      b.disabled = bPlaying || bLoaded || !state?.device_b;
-      b.title = b.disabled ? (bPlaying ? 'Player B is currently playing' : 'Player B has no assigned device') : (bLoaded ? 'Replace track on Player B' : 'Load to Player B');
+      // A loaded-but-standby deck is safe to replace. Only block if actively playing or no device is assigned.
+      b.disabled = bPlaying || !state?.device_b;
+      b.title = b.disabled ? (bPlaying ? 'Player B is currently playing' : 'Player B has no assigned device') : (bLoaded ? 'Replace loaded track on Player B' : 'Load to Player B');
     });
     document.querySelectorAll('[data-action="auto_load"]').forEach(b => {
-      b.disabled = !deckCanLoad('a') && !deckCanLoad('b');
-      b.title = b.disabled ? 'No empty standby player is available' : 'Load to the first empty standby player';
+      const canA = !!state?.device_a && !aPlaying;
+      const canB = !!state?.device_b && !bPlaying;
+      b.disabled = !canA && !canB;
+      b.title = b.disabled ? 'No standby player is available' : 'Auto-load to a standby player';
     });
     if(els.spotifyStatus){
       if(state?.is_playing){ els.spotifyStatus.textContent = `Playing on ${state.active_device_name || 'active device'}${state.track?.title ? ' — ' + state.track.title : ''}`; }
