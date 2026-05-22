@@ -42,7 +42,7 @@ function mx_clean_track($track) {
     ];
 }
 function mx_track_from_request($request_id) {
-    $stmt = db()->prepare("SELECT id, guest_name, song_title, artist, message, created_at, spotify_track_id, spotify_track_url, spotify_album_image FROM song_requests WHERE id = ? LIMIT 1");
+    $stmt = db()->prepare("SELECT id, guest_name, song_title, artist, message, dedication, created_at, spotify_track_id, spotify_track_url, spotify_album_image FROM song_requests WHERE id = ? LIMIT 1");
     $stmt->execute([(int)$request_id]);
     $r = $stmt->fetch();
     if (!$r || empty($r['spotify_track_id'])) return null;
@@ -56,7 +56,7 @@ function mx_track_from_request($request_id) {
         'source' => 'request',
         'request_id' => (int)$r['id'],
         'guest_name' => $r['guest_name'] ?? '',
-        'message' => $r['message'] ?? '',
+        'message' => ($r['message'] ?? ($r['dedication'] ?? '')),
     ]);
 }
 function mx_current_event_id() {
@@ -181,7 +181,7 @@ function mx_requests($playlist) {
             $where .= " AND event_id = ?";
             $params[] = $eventId;
         }
-        $stmt = db()->prepare("SELECT id, guest_name, song_title, artist, message, created_at, spotify_track_id, spotify_track_url, spotify_album_image, status FROM song_requests WHERE $where ORDER BY created_at ASC, id ASC LIMIT 30");
+        $stmt = db()->prepare("SELECT id, guest_name, song_title, artist, message, dedication, created_at, spotify_track_id, spotify_track_url, spotify_album_image, status FROM song_requests WHERE $where ORDER BY created_at ASC, id ASC LIMIT 30");
         $stmt->execute($params);
         $rows = $stmt->fetchAll();
     } catch (Throwable $e) { $rows = []; }
@@ -193,7 +193,7 @@ function mx_requests($playlist) {
             'guest_name' => (string)($r['guest_name'] ?? 'Guest'),
             'title' => (string)($r['song_title'] ?? ''),
             'artist' => (string)($r['artist'] ?? ''),
-            'message' => (string)($r['message'] ?? ''),
+            'message' => (string)($r['message'] ?? ($r['dedication'] ?? '')),
             'image' => (string)($r['spotify_album_image'] ?? ''),
             'created_at' => (string)($r['created_at'] ?? ''),
             'status' => (string)($r['status'] ?? 'pending'),
@@ -305,11 +305,22 @@ try {
 
     if ($action === 'remove_playlist') {
         $idx = (int)($_POST['idx'] ?? -1);
-        if (isset($playlist[$idx])) { unset($playlist[$idx]); mx_save_playlist($playlist); }
+        if (isset($playlist[$idx])) {
+            $removed = $playlist[$idx];
+            if (!empty($removed['request_id'])) mx_flag_request_in_playlist((int)$removed['request_id'], 'mixer_request');
+            unset($playlist[$idx]);
+            mx_save_playlist($playlist);
+        }
         mx_json_out(['ok' => true, 'state' => mx_state()]);
     }
 
-    if ($action === 'clear_playlist') { mx_save_playlist([]); mx_json_out(['ok' => true, 'state' => mx_state()]); }
+    if ($action === 'clear_playlist') {
+        foreach ($playlist as $p) {
+            if (!empty($p['request_id'])) mx_flag_request_in_playlist((int)$p['request_id'], 'mixer_request');
+        }
+        mx_save_playlist([]);
+        mx_json_out(['ok' => true, 'state' => mx_state()]);
+    }
 
     if ($action === 'assign_devices') {
         mx_set('spotify_mixer_device_a', $_POST['device_a'] ?? '');

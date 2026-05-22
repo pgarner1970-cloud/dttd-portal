@@ -75,14 +75,7 @@ try {
         mx_redirect_back();
     }
 
-    $select = ['id', 'guest_name', 'song_title', 'artist', 'created_at', 'spotify_track_id'];
-    foreach (['spotify_track_url', 'spotify_album_image', 'message', 'dedication'] as $optionalColumn) {
-        if (mx_has_column_local('song_requests', $optionalColumn)) {
-            $select[] = $optionalColumn;
-        }
-    }
-
-    $stmt = db()->prepare('SELECT ' . implode(', ', array_map(function($c) { return '`' . $c . '`'; }, $select)) . " FROM song_requests WHERE $where ORDER BY created_at ASC, id ASC");
+    $stmt = db()->prepare("SELECT id, guest_name, song_title, artist, message, dedication, created_at, spotify_track_id, spotify_track_url, spotify_album_image FROM song_requests WHERE $where ORDER BY created_at ASC, id ASC");
     $stmt->execute($params);
     $rows = $stmt->fetchAll();
 
@@ -91,58 +84,20 @@ try {
         mx_redirect_back();
     }
 
-    $first = $rows[0];
-    $messages = [];
-    foreach ($rows as $r) {
-        $name = trim((string)($r['guest_name'] ?? 'Guest')) ?: 'Guest';
-        $msg = '';
-        if (array_key_exists('message', $r)) {
-            $msg = trim((string)$r['message']);
-        }
-        if ($msg === '' && array_key_exists('dedication', $r)) {
-            $msg = trim((string)$r['dedication']);
-        }
-        if ($msg !== '') $messages[] = $name . ': ' . $msg;
-    }
-
-    $track = [
-        'id' => (string)$first['spotify_track_id'],
-        'title' => (string)$first['song_title'],
-        'artist' => (string)$first['artist'],
-        'album' => '',
-        'image' => (string)($first['spotify_album_image'] ?? ''),
-        'url' => (string)($first['spotify_track_url'] ?? ''),
-        'duration_ms' => null,
-        'source' => 'request',
-        'request_id' => (int)$first['id'],
-        'request_group_id' => $groupId,
-        'guest_name' => (string)($first['guest_name'] ?? 'Guest'),
-        'message' => implode("\n", $messages),
-        'added_at' => date('Y-m-d H:i:s'),
-    ];
-
-    $playlist = mx_json_local('spotify_mixer_playlist', []);
-    foreach ($playlist as $p) {
-        if (!empty($p['request_group_id']) && (string)$p['request_group_id'] === $groupId) {
-            $_SESSION['spotify_flash'] = 'That request is already in the Live Mixer DJ playlist.';
-            mx_redirect_back();
-        }
-    }
-
-    array_unshift($playlist, $track);
-    mx_set_local('spotify_mixer_playlist', json_encode(array_values(array_slice($playlist, 0, 80))));
-
+    // In Full DJ Mixer mode the Request Queue button should not add straight to the DJ playlist.
+    // It marks the public request as available to the Live Mixer public-request feed.
+    // The DJ then decides whether to add it to the DJ playlist, load it to A/B, or play it immediately.
     $sets = [];
     $updateParams = [];
     if (mx_has_column_local('song_requests', 'spotify_queued_at')) { $sets[] = 'spotify_queued_at = NOW()'; }
-    if (mx_has_column_local('song_requests', 'spotify_queue_status')) { $sets[] = 'spotify_queue_status = ?'; $updateParams[] = 'dj_playlist'; }
+    if (mx_has_column_local('song_requests', 'spotify_queue_status')) { $sets[] = 'spotify_queue_status = ?'; $updateParams[] = 'mixer_request'; }
     if ($sets) {
         $updateParams[] = $groupId;
         $upd = db()->prepare('UPDATE song_requests SET ' . implode(', ', $sets) . ' WHERE request_group_id = ?');
         $upd->execute($updateParams);
     }
 
-    $_SESSION['spotify_flash'] = 'Request sent to the Live Mixer DJ playlist.';
+    $_SESSION['spotify_flash'] = 'Request sent to the Live Mixer public requests feed.';
     mx_redirect_back();
 } catch (Throwable $e) {
     $_SESSION['spotify_flash'] = 'Could not send request to Live Mixer: ' . $e->getMessage();

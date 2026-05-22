@@ -626,7 +626,7 @@ admin_header('DJ Portal');
         <?php foreach ($grouped_requests as $group): ?>
           <?php
             $first = $group['items'][0];
-            $is_spotify_queued = in_array(strtolower((string)($group['spotify_queue_status'] ?? '')), ['queued','dj_playlist','loaded_a','loaded_b'], true);
+            $is_spotify_queued = in_array(strtolower((string)($group['spotify_queue_status'] ?? '')), ['queued','mixer_request','dj_playlist','loaded_a','loaded_b'], true);
             $display_status = ($is_spotify_queued && strtolower((string)$group['status']) === 'pending') ? 'spotify' : $group['status'];
           ?>
           <article class="request-card status-<?= h($group['status']) ?><?= $is_spotify_queued ? ' spotify-queued-card' : '' ?> compact-queue-card">
@@ -700,7 +700,7 @@ admin_header('DJ Portal');
                 <form method="post" action="<?= h(admin_url('spotify/add-to-mixer.php')) ?>" class="req-action-form">
                   <input type="hidden" name="request_group_id" value="<?= h($group['group_id'] ?? '') ?>">
                   <input type="hidden" name="return" value="<?= h(admin_url('requests.php?view=' . urlencode($view))) ?>">
-                  <button type="submit" class="action-tile spotify-queue" title="Send to Live Mixer DJ Playlist">
+                  <button type="submit" class="action-tile spotify-queue" title="Send to Live Mixer public requests feed">
                     <span class="big-icon">＋</span>
                     <span>Mixer</span>
                   </button>

@@ -138,10 +138,11 @@
     if(els.deckADevice) els.deckADevice.textContent = deviceName(state.device_a);
     if(els.deckBDevice) els.deckBDevice.textContent = deviceName(state.device_b);
   }
-  function setDeckState(el, playing){
+  function setDeckState(el, playing, loaded){
     if(!el) return;
-    el.textContent = playing ? 'Playing' : 'Standby';
+    el.textContent = playing ? 'Playing' : (loaded ? 'Loaded' : 'Standby');
     el.classList.toggle('playing', !!playing);
+    el.classList.toggle('loaded', !playing && !!loaded);
   }
   function trackBlock(track, deck){
     if(!track || !track.id){
@@ -160,7 +161,7 @@
     const bPlaying = deckIsPlaying('b');
     const aLoaded = deckHasLoaded('a');
     const bLoaded = deckHasLoaded('b');
-    setDeckState(els.deckAState, aPlaying); setDeckState(els.deckBState, bPlaying);
+    setDeckState(els.deckAState, aPlaying, aLoaded); setDeckState(els.deckBState, bPlaying, bLoaded);
     if(els.loadedA) els.loadedA.innerHTML = trackBlock(state?.player_a?.loaded, 'a');
     if(els.loadedB) els.loadedB.innerHTML = trackBlock(state?.player_b?.loaded, 'b');
     document.querySelectorAll('[data-deck-action="play"][data-deck="a"]').forEach(b => b.disabled = !(state?.player_a?.loaded?.id) || !state?.device_a);
