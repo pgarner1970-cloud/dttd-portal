@@ -189,7 +189,7 @@ function dttd_spotify_update_setting($key, $value) {
 }
 
 function dttd_spotify_redirect_uri() {
-    return 'https://dj.dancethruthedecades.co.uk/admin/spotify/callback.php';
+    return 'https://dj.dancethruthedecades.co.uk/spotify/callback.php';
 }
 
 function dttd_spotify_authorize_url() {
