@@ -151,10 +151,15 @@
     const prog = deckProgress(track, deck);
     const remainingLabel = prog.durationMs ? (prog.sameTrack ? `-${duration(prog.remainingMs)}` : duration(prog.durationMs)) : '';
     const elapsedLabel = prog.sameTrack ? duration(prog.progressMs) : '0:00';
+    const hasRequestNote = track?.source === 'request' && ((track.guest_name || '').trim() !== '' || (track.message || '').trim() !== '');
+    const requestNote = hasRequestNote
+      ? `<div class="loaded-request-note"><strong>${esc(track.guest_name || 'Guest')}</strong>${track.message ? `<span>${esc(track.message)}</span>` : ''}</div>`
+      : '';
     return `<div class="loaded-track"><img src="${esc(image(track.image))}" alt=""><div><div class="track-title">${esc(track.title)}</div><div class="track-artist">${esc(track.artist)}</div></div></div>
       <div class="track-progress-meta"><span>${prog.sameTrack ? elapsedLabel : 'Ready'}</span><span>${remainingLabel}</span></div>
       <div class="now-bar ${prog.sameTrack ? 'active' : ''}"><span style="width:${prog.sameTrack ? prog.pct : 0}%"></span></div>
-      ${prog.sameTrack ? `<div class="track-time-left">${duration(prog.remainingMs)} remaining</div>` : (prog.durationMs ? `<div class="track-time-left muted">Track length ${duration(prog.durationMs)}</div>` : '')}`;
+      ${prog.sameTrack ? `<div class="track-time-left">${duration(prog.remainingMs)} remaining</div>` : (prog.durationMs ? `<div class="track-time-left muted">Track length ${duration(prog.durationMs)}</div>` : '')}
+      ${requestNote}`;
   }
   function renderDecks(){
     const aPlaying = deckIsPlaying('a');
