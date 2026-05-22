@@ -91,7 +91,11 @@
     els.djPlaylist.innerHTML = list.map((t,i)=>`
       <div class="playlist-row">
         <img src="${esc(image(t.image))}" alt="">
-        <div><strong>${esc(t.title)}</strong><br><span class="mini muted">${esc(t.artist)}${duration(t.duration_ms) ? ' • ' + duration(t.duration_ms) : ''}${t.source === 'request' ? ' • public request' : ''}</span></div>
+        <div>
+          <strong>${esc(t.title)}</strong><br>
+          <span class="mini muted">${esc(t.artist)}${duration(t.duration_ms) ? ' • ' + duration(t.duration_ms) : ''}${t.source === 'request' ? ' • public request' : ''}</span>
+          ${t.source === 'request' ? `<div class="playlist-note mini"><strong>${esc(t.guest_name || 'Guest')}</strong>${t.message ? ': ' + esc(t.message) : ''}</div>` : ''}
+        </div>
         <div class="row-actions">
           <button class="mixer-btn green auto-btn" data-action="auto_load" data-idx="${i}">Auto</button>
           <button class="mixer-btn orange" data-action="load" data-deck="a" data-load-a data-idx="${i}">Load A</button>
@@ -108,8 +112,18 @@
     els.publicRequests.innerHTML = reqs.map(r => `
       <div class="request-row">
         <img src="${esc(image(r.image))}" alt="">
-        <div><strong>${esc(r.title)}</strong> <span class="muted">— ${esc(r.artist)}</span><br><span class="mini muted">${esc(r.guest_name)}${r.message ? ': ' + esc(r.message) : ''}</span></div>
-        <div class="row-actions"><button class="mixer-btn green" data-action="accept_request" data-request-id="${r.id}">Accept to DJ playlist</button></div>
+        <div>
+          <strong>${esc(r.title)}</strong> <span class="muted">— ${esc(r.artist)}</span>
+          <div class="request-detail mini"><span class="request-time">${esc((r.created_at || '').slice(11,16))}</span><span><strong>${esc(r.guest_name || 'Guest')}</strong></span></div>
+          ${r.message ? `<div class="request-message mini">${esc(r.message)}</div>` : '<div class="request-message mini muted">No dedication/message</div>'}
+          <div class="request-source">Public request • ${esc(r.status || 'pending')}</div>
+        </div>
+        <div class="row-actions quick-actions">
+          <button class="mixer-btn green wide" data-action="accept_request" data-request-id="${r.id}">+ DJ playlist</button>
+          <button class="mixer-btn green" data-action="auto_load_request" data-request-id="${r.id}">Auto</button>
+          <button class="mixer-btn orange" data-action="load_request" data-deck="a" data-load-a data-request-id="${r.id}">Load A</button>
+          <button class="mixer-btn blue" data-action="load_request" data-deck="b" data-load-b data-request-id="${r.id}">Load B</button>
+        </div>
       </div>`).join('');
   }
   function render(){ renderDevices(); renderDecks(); renderPlaylist(); renderRequests(); }

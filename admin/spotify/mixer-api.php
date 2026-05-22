@@ -59,6 +59,15 @@ function mx_track_from_request($request_id) {
         'message' => $r['message'] ?? '',
     ]);
 }
+function mx_current_event_id() {
+    try {
+        if (function_exists('dttd_get_calculated_current_event')) {
+            $event = dttd_get_calculated_current_event();
+            if (!empty($event['id'])) return (int)$event['id'];
+        }
+    } catch (Throwable $ignored) {}
+    return 0;
+}
 function mx_has_column($table, $column) {
     static $cache = [];
     $key = $table . '.' . $column;
@@ -69,13 +78,13 @@ function mx_has_column($table, $column) {
         return $cache[$key] = (bool)$stmt->fetch();
     } catch (Throwable $e) { return $cache[$key] = false; }
 }
-function mx_flag_request_in_playlist($request_id) {
+function mx_flag_request_in_playlist($request_id, $status = 'dj_playlist') {
     if (!$request_id) return;
     try {
         $sets = [];
         $params = [];
         if (mx_has_column('song_requests', 'spotify_queued_at')) { $sets[] = 'spotify_queued_at = NOW()'; }
-        if (mx_has_column('song_requests', 'spotify_queue_status')) { $sets[] = 'spotify_queue_status = ?'; $params[] = 'dj_playlist'; }
+        if (mx_has_column('song_requests', 'spotify_queue_status')) { $sets[] = 'spotify_queue_status = ?'; $params[] = $status; }
         if (!$sets) return;
         $params[] = (int)$request_id;
         $stmt = db()->prepare("UPDATE song_requests SET " . implode(', ', $sets) . " WHERE id = ?");
@@ -128,7 +137,18 @@ function mx_requests($playlist) {
     $already = [];
     foreach ($playlist as $p) if (!empty($p['request_id'])) $already[(int)$p['request_id']] = true;
     try {
-        $stmt = db()->query("SELECT id, guest_name, song_title, artist, message, created_at, spotify_track_id, spotify_track_url, spotify_album_image, status FROM song_requests WHERE spotify_track_id IS NOT NULL AND spotify_track_id <> '' AND status IN ('pending','maybe','duplicate') ORDER BY id DESC LIMIT 20");
+        $where = "spotify_track_id IS NOT NULL AND spotify_track_id <> '' AND status IN ('pending','maybe','duplicate')";
+        $params = [];
+        if (mx_has_column('song_requests', 'spotify_queue_status')) {
+            $where .= " AND (spotify_queue_status IS NULL OR spotify_queue_status = '' OR spotify_queue_status NOT IN ('dj_playlist','loaded_a','loaded_b'))";
+        }
+        $eventId = mx_current_event_id();
+        if ($eventId > 0 && mx_has_column('song_requests', 'event_id')) {
+            $where .= " AND event_id = ?";
+            $params[] = $eventId;
+        }
+        $stmt = db()->prepare("SELECT id, guest_name, song_title, artist, message, created_at, spotify_track_id, spotify_track_url, spotify_album_image, status FROM song_requests WHERE $where ORDER BY created_at ASC, id ASC LIMIT 30");
+        $stmt->execute($params);
         $rows = $stmt->fetchAll();
     } catch (Throwable $e) { $rows = []; }
     $out = [];
@@ -142,6 +162,7 @@ function mx_requests($playlist) {
             'message' => (string)($r['message'] ?? ''),
             'image' => (string)($r['spotify_album_image'] ?? ''),
             'created_at' => (string)($r['created_at'] ?? ''),
+            'status' => (string)($r['status'] ?? 'pending'),
         ];
     }
     return $out;
@@ -184,6 +205,16 @@ function mx_state() {
         'playlist' => array_values(array_map('mx_track_output', $playlist)),
         'requests' => mx_requests($playlist),
     ];
+}
+function mx_load_track_to_deck($track, $deck, $playback = null) {
+    $deck = $deck === 'b' ? 'b' : 'a';
+    $deviceA = mx_setting('spotify_mixer_device_a', '');
+    $deviceB = mx_setting('spotify_mixer_device_b', '');
+    $device = $deck === 'b' ? $deviceB : $deviceA;
+    if (!$device) throw new RuntimeException('Player ' . strtoupper($deck) . ' has no assigned Spotify device.');
+    if (mx_device_playing($device, $playback)) throw new RuntimeException('Player ' . strtoupper($deck) . ' is currently playing. Loading is blocked.');
+    mx_set('spotify_mixer_loaded_' . $deck, json_encode(mx_clean_track($track)));
+    return $deck;
 }
 function mx_json_out($data) { echo json_encode($data); exit; }
 
@@ -244,11 +275,28 @@ try {
             elseif ($deviceB && !$bPlaying) $deck = 'b';
             else throw new RuntimeException('No safe idle player found.');
         }
-        $device = $deck === 'b' ? $deviceB : $deviceA;
-        if (!$device) throw new RuntimeException('Player ' . strtoupper($deck) . ' has no assigned Spotify device.');
-        if (mx_device_playing($device, $playback)) throw new RuntimeException('Player ' . strtoupper($deck) . ' is currently playing. Loading is blocked.');
-        mx_set('spotify_mixer_loaded_' . $deck, json_encode(mx_clean_track($playlist[$idx])));
+        mx_load_track_to_deck($playlist[$idx], $deck, $playback);
         mx_json_out(['ok' => true, 'message' => 'Loaded to Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
+    }
+
+    if ($action === 'load_request' || $action === 'auto_load_request') {
+        $requestId = (int)($_POST['request_id'] ?? 0);
+        $track = mx_track_from_request($requestId);
+        if (!$track) throw new RuntimeException('That request has no Spotify track attached.');
+        $playback = mx_playback();
+        $deviceA = mx_setting('spotify_mixer_device_a', '');
+        $deviceB = mx_setting('spotify_mixer_device_b', '');
+        $deck = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
+        if ($action === 'auto_load_request') {
+            $aPlaying = mx_device_playing($deviceA, $playback);
+            $bPlaying = mx_device_playing($deviceB, $playback);
+            if ($deviceA && !$aPlaying) $deck = 'a';
+            elseif ($deviceB && !$bPlaying) $deck = 'b';
+            else throw new RuntimeException('No safe idle player found.');
+        }
+        mx_load_track_to_deck($track, $deck, $playback);
+        mx_flag_request_in_playlist($requestId, 'loaded_' . $deck);
+        mx_json_out(['ok' => true, 'message' => 'Public request loaded to Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
     }
 
     if ($action === 'clear_loaded') {
