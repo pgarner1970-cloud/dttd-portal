@@ -5374,634 +5374,70 @@ button.action-tile:disabled{
   display:none !important;
 }
 
-/* Spotify request search */
-.spotify-search-box { margin-top: 14px; }
-.spotify-search-status { display: block; margin: 8px 0; color: rgba(255,255,255,.72); font-size: .9rem; }
-.spotify-results { display: grid; gap: 8px; margin: 10px 0 14px; }
-.spotify-result { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid rgba(255,255,255,.14); border-radius: 14px; background: rgba(255,255,255,.06); color: #fff; text-align: left; cursor: pointer; }
-.spotify-result:hover { background: rgba(59,130,246,.18); border-color: rgba(96,165,250,.65); }
-.spotify-result img, .spotify-art-placeholder { width: 42px; height: 42px; border-radius: 10px; flex: 0 0 42px; object-fit: cover; display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,.12); }
-.spotify-result strong { display: block; line-height: 1.15; }
-.spotify-result small { display: block; color: rgba(255,255,255,.68); margin-top: 3px; }
-.spotify-selected { margin-top: 8px; padding: 9px 11px; border-radius: 12px; background: rgba(34,197,94,.14); border: 1px solid rgba(34,197,94,.35); color: #dcfce7; }
-.req-track-block { min-width: 0; }
-.req-spotify-art { width: 46px; height: 46px; border-radius: 12px; object-fit: cover; float: left; margin: 0 12px 8px 0; box-shadow: 0 0 0 1px rgba(255,255,255,.15); }
-.spotify-open-link { display: inline-block; margin-top: 6px; font-size: .78rem; font-weight: 800; color: #86efac; text-decoration: none; }
-.spotify-open-link:hover { text-decoration: underline; }
-.spotify-open-link-static { color: #93c5fd; }
-
-/* Spotify queue experiment */
-.action-tile.spotify-queue {
-  border-color: #1DB954;
-  color: #1DB954;
-  background: rgba(29, 185, 84, 0.08);
-}
-.spotify-queue-notice,
-.notice {
-  margin: 12px 0;
-  padding: 12px 14px;
-  border: 1px solid rgba(255,255,255,.15);
-  border-radius: 14px;
-  background: rgba(255,255,255,.06);
-}
-.notice.error { border-color: rgba(255, 80, 80, .45); }
-.settings-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px;
-  margin-top: 16px;
-}
-.setting-card {
-  padding: 18px;
-  border: 1px solid rgba(255,255,255,.12);
-  border-radius: 18px;
-  background: rgba(255,255,255,.04);
-}
-.touch-button.primary {
-  display: inline-block;
-  padding: 12px 16px;
-  border-radius: 14px;
-  border: 1px solid rgba(29,185,84,.7);
-  color: #fff;
-  background: rgba(29,185,84,.22);
-  text-decoration: none;
-  font-weight: 800;
-}
-
-
-/* v91 Spotify-aware compact request actions */
-.status-badge.spotify{
-  display:inline-flex !important;
-  align-items:center !important;
-  gap:6px !important;
-  border:1px solid rgba(29,185,84,.82) !important;
-  background:rgba(29,185,84,.10) !important;
-  color:#86efac !important;
-  box-shadow:inset 0 0 0 1px rgba(29,185,84,.16), 0 0 13px rgba(29,185,84,.10) !important;
-}
-.status-badge.spotify .spotify-badge-mark{
-  width:17px !important;
-  height:17px !important;
-  display:inline-flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-  border-radius:999px !important;
-  background:#1DB954 !important;
-  color:#06140a !important;
-  font-size:11px !important;
-  font-weight:1000 !important;
-  line-height:1 !important;
-}
-.request-queue-panel .compact-queue-card .action-tile.spotify-queue{
-  border-color:#1DB954 !important;
-  color:#86efac !important;
-  background:rgba(29,185,84,.09) !important;
-}
-.request-queue-panel .compact-queue-card .action-tile.spotify-queue .big-icon{
-  color:#1DB954 !important;
-}
-.request-queue-panel .compact-queue-card.spotify-queued-card{
-  border-left-color:#f59e0b !important;
-  background:linear-gradient(90deg, rgba(245,158,11,.10), rgba(15,23,42,.94) 22%, rgba(15,23,42,.94)) !important;
-}
-
-/* v102 compact icon admin topbar */
-.touch-topbar{
-  grid-template-columns:minmax(180px, 1fr) minmax(300px, auto) auto !important;
-  gap:14px !important;
-  min-height:72px !important;
-}
-
-.topbar-centre{
-  max-width:560px !important;
-  overflow:hidden !important;
-}
-
-.touch-top-actions{
-  gap:8px !important;
-}
-
+/* v101 live mixer topbar button + compact icon navigation */
 .header-admin-nav{
   gap:8px !important;
 }
 
 .header-admin-nav-btn{
-  width:58px !important;
-  min-width:58px !important;
-  height:58px !important;
-  min-height:58px !important;
+  width:48px !important;
+  min-width:48px !important;
+  height:48px !important;
+  min-height:48px !important;
   padding:0 !important;
-  border-radius:18px !important;
-  font-size:0 !important;
-  line-height:1 !important;
-  position:relative !important;
-  display:inline-grid !important;
-  place-items:center !important;
-}
-
-.admin-nav-icon{
-  display:grid !important;
-  place-items:center !important;
-  width:100% !important;
-  height:100% !important;
-  font-size:26px !important;
-  line-height:1 !important;
-  font-weight:900 !important;
-  text-shadow:0 0 14px rgba(96,165,250,.55) !important;
-  filter:drop-shadow(0 0 5px rgba(96,165,250,.35)) !important;
-}
-
-.admin-nav-label{
-  position:absolute !important;
-  width:1px !important;
-  height:1px !important;
-  overflow:hidden !important;
-  clip:rect(0 0 0 0) !important;
-  white-space:nowrap !important;
-}
-
-.header-admin-nav-btn.active .admin-nav-icon{
-  text-shadow:0 0 18px rgba(255,255,255,.8), 0 0 20px rgba(59,130,246,.75) !important;
-  filter:drop-shadow(0 0 7px rgba(96,165,250,.65)) !important;
-}
-
-.touch-icon-btn{
-  width:58px !important;
-  min-width:58px !important;
-  height:58px !important;
-  min-height:58px !important;
-  border-radius:18px !important;
-  font-size:24px !important;
-  font-weight:900 !important;
-  line-height:1 !important;
-  text-shadow:0 0 14px rgba(255,255,255,.35) !important;
-}
-
-.touch-clock strong,
-.touch-header-timer strong{
-  font-size:24px !important;
-  line-height:1.05 !important;
-}
-
-.header-timer-cluster{
-  gap:10px !important;
-}
-
-.touch-header-timer{
-  min-width:104px !important;
-}
-
-@media(max-width:1180px){
-  .touch-topbar{
-    grid-template-columns:minmax(120px, .75fr) minmax(250px, auto) auto !important;
-    gap:8px !important;
-    padding-left:12px !important;
-    padding-right:12px !important;
-  }
-
-  .header-admin-nav-btn,
-  .touch-icon-btn{
-    width:52px !important;
-    min-width:52px !important;
-    height:52px !important;
-    min-height:52px !important;
-    border-radius:16px !important;
-  }
-
-  .admin-nav-icon{
-    font-size:24px !important;
-  }
-
-  .touch-brand span:last-child{
-    font-size:20px !important;
-  }
-}
-
-@media(max-width:980px){
-  .touch-brand span:last-child{
-    display:none !important;
-  }
-
-  .touch-topbar{
-    grid-template-columns:auto 1fr auto !important;
-  }
-
-  .topbar-centre{
-    justify-self:center !important;
-  }
-}
-
-/* v110 compact request queue: title spans above dedication without adding row height */
-.request-queue-panel .compact-queue-card{
-  display:grid !important;
-  grid-template-columns:76px 54px minmax(210px, 0.82fr) minmax(320px, 1fr) 116px !important;
-  grid-template-rows:auto auto !important;
-  grid-template-areas:
-    "time art title title actions"
-    "time art track messages actions" !important;
-  column-gap:12px !important;
-  row-gap:4px !important;
-  align-items:center !important;
-  padding:10px 12px !important;
-  min-height:0 !important;
-  overflow:hidden !important;
-}
-
-.request-queue-panel .compact-queue-card .req-time{
-  grid-area:time !important;
-  align-self:center !important;
-}
-
-.request-queue-panel .compact-queue-card .req-art-col{
-  grid-area:art !important;
-  align-self:center !important;
-  width:54px !important;
-  min-width:54px !important;
-}
-
-.request-queue-panel .compact-queue-card .req-spotify-art{
-  float:none !important;
-  display:block !important;
-  width:46px !important;
-  height:46px !important;
-  margin:0 !important;
-  border-radius:10px !important;
-  object-fit:cover !important;
-  box-shadow:0 0 0 1px rgba(255,255,255,.15) !important;
-}
-
-.request-queue-panel .compact-queue-card .req-title-row{
-  grid-area:title !important;
-  min-width:0 !important;
-  align-self:end !important;
-  font-size:1.05rem !important;
-  line-height:1.08 !important;
-  font-weight:900 !important;
-  color:#fff !important;
-  text-shadow:0 1px 0 rgba(0,0,0,.4) !important;
-  white-space:normal !important;
-  overflow-wrap:anywhere !important;
-  padding-right:8px !important;
-}
-
-.request-queue-panel .compact-queue-card .req-track-block{
-  grid-area:track !important;
-  min-width:0 !important;
-  align-self:start !important;
-  display:flex !important;
-  flex-direction:column !important;
-  gap:6px !important;
-}
-
-.request-queue-panel .compact-queue-card .req-track-title{
-  display:none !important;
-}
-
-.request-queue-panel .compact-queue-card .req-track-artist{
-  font-size:.86rem !important;
-  line-height:1.1 !important;
-  margin:0 !important;
-  color:rgba(255,255,255,.9) !important;
-}
-
-.request-queue-panel .compact-queue-card .spotify-open-link{
-  display:none !important;
-}
-
-.request-queue-panel .compact-queue-card .group-count-pill-row{
-  display:flex !important;
-  align-items:center !important;
-  gap:7px !important;
-  flex-wrap:wrap !important;
-  margin:0 !important;
-}
-
-.request-queue-panel .compact-queue-card .group-count,
-.request-queue-panel .compact-queue-card .status-badge.inline-status{
-  min-height:26px !important;
-  height:26px !important;
-  padding:0 10px !important;
   display:inline-flex !important;
   align-items:center !important;
   justify-content:center !important;
-  border-radius:999px !important;
-  line-height:1 !important;
-  font-size:10px !important;
-  font-weight:900 !important;
-  text-decoration:none !important;
-  white-space:nowrap !important;
-}
-
-.request-queue-panel .compact-queue-card .spotify-pill-link:hover{
-  text-decoration:none !important;
-  filter:brightness(1.12) !important;
-}
-
-.request-queue-panel .compact-queue-card .group-messages{
-  grid-area:messages !important;
-  align-self:center !important;
-  display:flex !important;
   flex-direction:column !important;
-  gap:5px !important;
-  min-width:0 !important;
-  width:100% !important;
-  max-width:100% !important;
-  overflow:hidden !important;
-  padding:0 !important;
-  margin:0 !important;
-}
-
-.request-queue-panel .compact-queue-card .compact-dedication-card{
-  display:grid !important;
-  grid-template-columns:28px minmax(0, 1fr) !important;
-  column-gap:8px !important;
-  align-items:start !important;
-  padding:6px 9px !important;
-  border-radius:12px !important;
-  min-height:0 !important;
-  width:100% !important;
-  box-sizing:border-box !important;
-}
-
-.request-queue-panel .compact-queue-card .compact-dedication-card .dedication-side{
-  gap:3px !important;
-}
-
-.request-queue-panel .compact-queue-card .compact-dedication-card .req-person{
-  width:24px !important;
-  height:24px !important;
-  min-width:24px !important;
-  min-height:24px !important;
-  font-size:12px !important;
-  line-height:1 !important;
-}
-
-.request-queue-panel .compact-queue-card .compact-dedication-card .message-time{
-  font-size:9px !important;
-  line-height:1 !important;
-}
-
-.request-queue-panel .compact-queue-card .compact-dedication-card .message-person{
-  font-size:13px !important;
-  line-height:1.05 !important;
-  margin:0 0 3px 0 !important;
-}
-
-.request-queue-panel .compact-queue-card .compact-dedication-card .message-text{
-  font-size:12px !important;
-  line-height:1.18 !important;
-}
-
-.request-queue-panel .compact-queue-card .req-actions{
-  grid-area:actions !important;
-  align-self:center !important;
-  justify-self:end !important;
-  display:grid !important;
-  grid-template-columns:52px 52px !important;
-  grid-auto-rows:52px !important;
-  width:111px !important;
-  min-width:111px !important;
-  gap:7px !important;
-  margin:0 !important;
-}
-
-@media(max-width:1180px){
-  .request-queue-panel .compact-queue-card{
-    grid-template-columns:72px 50px minmax(190px, .75fr) minmax(260px, 1fr) 108px !important;
-    column-gap:10px !important;
-    padding:9px 10px !important;
-  }
-  .request-queue-panel .compact-queue-card .req-actions{
-    grid-template-columns:50px 50px !important;
-    grid-auto-rows:50px !important;
-    width:106px !important;
-    min-width:106px !important;
-    gap:6px !important;
-  }
-}
-
-@media(max-width:860px){
-  .request-queue-panel .compact-queue-card{
-    grid-template-columns:68px 48px minmax(0,1fr) 104px !important;
-    grid-template-areas:
-      "time art title actions"
-      "time art track actions"
-      "messages messages messages messages" !important;
-  }
-  .request-queue-panel .compact-queue-card .group-messages{
-    margin-top:6px !important;
-  }
-}
-
-/* v120 queue action compression + true centred admin header */
-.touch-topbar{
-  display:grid !important;
-  grid-template-columns:minmax(210px, 1fr) auto minmax(210px, 1fr) !important;
-  align-items:center !important;
-  gap:14px !important;
-}
-.touch-topbar .topbar-left{justify-self:start !important; min-width:0 !important;}
-.touch-topbar .topbar-centre{justify-self:center !important; min-width:0 !important;}
-.touch-topbar .topbar-right{justify-self:end !important; min-width:0 !important;}
-.touch-top-actions{justify-content:flex-end !important;}
-.header-timer-cluster{justify-content:center !important;}
-
-/* Keep request rows compact, but give artwork a more useful size */
-.request-queue-panel .compact-queue-card{
-  grid-template-columns:76px 68px minmax(210px, .86fr) minmax(300px, 1fr) auto !important;
-  column-gap:10px !important;
-  padding:9px 10px !important;
-}
-.request-queue-panel .compact-queue-card .req-art-col{
-  width:68px !important;
-  min-width:68px !important;
-}
-.request-queue-panel .compact-queue-card .req-spotify-art{
-  width:58px !important;
-  height:58px !important;
-  border-radius:11px !important;
-}
-
-/* Default / non-Spotify action grid: keep the old-style 2x2 square block */
-.request-queue-panel .compact-queue-card .req-actions{
-  grid-template-columns:50px 50px !important;
-  grid-auto-rows:50px !important;
-  width:106px !important;
-  min-width:106px !important;
-  gap:6px !important;
-  align-content:center !important;
-  justify-content:end !important;
-}
-.request-queue-panel .compact-queue-card .req-actions .action-tile,
-.request-queue-panel .compact-queue-card .req-actions .req-action-form{
-  width:50px !important;
-  height:50px !important;
-  min-width:50px !important;
-  min-height:50px !important;
-}
-.request-queue-panel .compact-queue-card .req-actions .action-tile{
-  padding:4px 3px !important;
-  border-radius:12px !important;
   gap:2px !important;
-}
-.request-queue-panel .compact-queue-card .req-actions .action-tile .big-icon{
-  font-size:20px !important;
+  border-radius:14px !important;
+  font-size:0 !important;
   line-height:1 !important;
 }
-.request-queue-panel .compact-queue-card .req-actions .action-tile span:last-child{
-  font-size:8px !important;
+
+.header-admin-nav-btn .admin-nav-icon{
+  display:block !important;
+  font-size:24px !important;
   line-height:1 !important;
-  letter-spacing:.01em !important;
+  filter:drop-shadow(0 0 7px rgba(96,165,250,.35));
 }
 
-/* Spotify-available rows: compact 3 + 2 grid so five actions do not become three rows */
-.request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue){
-  grid-template-columns:46px 46px 46px !important;
-  grid-auto-rows:46px !important;
-  width:150px !important;
-  min-width:150px !important;
-  gap:5px !important;
-}
-.request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .action-tile,
-.request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .req-action-form{
-  width:46px !important;
-  height:46px !important;
-  min-width:46px !important;
-  min-height:46px !important;
-}
-.request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .action-tile{
-  padding:3px 2px !important;
-  border-radius:11px !important;
-}
-.request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .action-tile .big-icon{
-  font-size:20px !important;
-}
-.request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .action-tile span:last-child{
-  font-size:7.5px !important;
+.header-admin-nav-btn .admin-nav-text{
+  position:absolute !important;
+  width:1px !important;
+  height:1px !important;
+  padding:0 !important;
+  margin:-1px !important;
+  overflow:hidden !important;
+  clip:rect(0,0,0,0) !important;
+  white-space:nowrap !important;
+  border:0 !important;
 }
 
-/* Put the high-priority actions first, secondary actions below */
-.request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .played{order:1 !important;}
-.request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .spotify-queue{order:2 !important;}
-.request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .duplicate{order:3 !important;}
-.request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .maybe{order:4 !important;}
-.request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .rejected{order:5 !important;}
-
-/* Queued Spotify rows only need Played + Merge; keep them tiny and centred */
-.request-queue-panel .compact-queue-card.spotify-queued-card .req-actions:not(:has(.spotify-queue)){
-  grid-template-columns:50px 50px !important;
-  grid-auto-rows:50px !important;
-  width:106px !important;
-  min-width:106px !important;
+.header-admin-nav-btn.admin-nav-mixer{
+  border-color:rgba(34,197,94,.42) !important;
+  background:
+    radial-gradient(circle at 50% 18%,rgba(34,197,94,.20),transparent 48%),
+    linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.04)) !important;
 }
 
-@media(max-width:1180px){
-  .touch-topbar{
-    grid-template-columns:minmax(120px, 1fr) auto minmax(120px, 1fr) !important;
-    gap:8px !important;
-  }
-  .request-queue-panel .compact-queue-card{
-    grid-template-columns:70px 62px minmax(180px, .82fr) minmax(240px, 1fr) auto !important;
-    column-gap:8px !important;
-  }
-  .request-queue-panel .compact-queue-card .req-art-col{width:62px !important; min-width:62px !important;}
-  .request-queue-panel .compact-queue-card .req-spotify-art{width:54px !important; height:54px !important;}
-  .request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue){
-    grid-template-columns:44px 44px 44px !important;
-    grid-auto-rows:44px !important;
-    width:142px !important;
-    min-width:142px !important;
-    gap:5px !important;
-  }
-  .request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .action-tile,
-  .request-queue-panel .compact-queue-card .req-actions:has(.spotify-queue) .req-action-form{
-    width:44px !important;
-    height:44px !important;
-    min-width:44px !important;
-    min-height:44px !important;
-  }
+.header-admin-nav-btn.admin-nav-mixer.active{
+  border-color:rgba(34,197,94,.95) !important;
+  background:
+    radial-gradient(circle at 50% 18%,rgba(34,197,94,.42),transparent 52%),
+    linear-gradient(180deg,rgba(20,83,45,.78),rgba(15,23,42,.9)) !important;
+  box-shadow:0 0 0 1px rgba(34,197,94,.35),0 0 28px rgba(34,197,94,.36) !important;
 }
 
 @media(max-width:900px){
-  .touch-topbar{
-    grid-template-columns:auto 1fr auto !important;
+  .header-admin-nav-btn{
+    width:44px !important;
+    min-width:44px !important;
+    height:44px !important;
+    min-height:44px !important;
   }
-  .touch-topbar .topbar-centre{
-    justify-self:center !important;
-  }
-}
 
-/* v105 Spotify settings form polish restored after queue/topbar layout patches */
-.spotify-settings-section .spotify-settings-body{
-  padding:20px !important;
-  gap:18px !important;
-}
-.spotify-settings-section .spotify-settings-grid{
-  display:grid !important;
-  grid-template-columns:repeat(2, minmax(0, 1fr)) !important;
-  gap:16px !important;
-  align-items:stretch !important;
-  width:100% !important;
-}
-.spotify-settings-section .spotify-field-card{
-  display:flex !important;
-  flex-direction:column !important;
-  gap:9px !important;
-  padding:16px !important;
-  border:1px solid rgba(59,130,246,.26) !important;
-  border-radius:18px !important;
-  background:linear-gradient(180deg, rgba(30,41,59,.74), rgba(15,23,42,.72)) !important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.04) !important;
-  min-width:0 !important;
-}
-.spotify-settings-section .spotify-field-card label{
-  display:block !important;
-  margin:0 !important;
-  color:#bfdbfe !important;
-  font-size:12px !important;
-  line-height:1.2 !important;
-  font-weight:950 !important;
-  text-transform:uppercase !important;
-  letter-spacing:.055em !important;
-}
-.spotify-settings-section .spotify-settings-input{
-  appearance:none !important;
-  -webkit-appearance:none !important;
-  width:100% !important;
-  min-height:54px !important;
-  box-sizing:border-box !important;
-  border:1px solid rgba(96,165,250,.38) !important;
-  border-radius:15px !important;
-  background:rgba(8,13,26,.76) !important;
-  color:#fff !important;
-  padding:0 15px !important;
-  font-family:inherit !important;
-  font-size:15px !important;
-  font-weight:850 !important;
-  letter-spacing:.01em !important;
-  outline:none !important;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.03) !important;
-}
-.spotify-settings-section .spotify-settings-input::placeholder{
-  color:rgba(226,232,240,.48) !important;
-  font-weight:750 !important;
-}
-.spotify-settings-section .spotify-settings-input:focus{
-  border-color:rgba(29,185,84,.82) !important;
-  box-shadow:0 0 0 4px rgba(29,185,84,.14), inset 0 0 0 1px rgba(255,255,255,.04) !important;
-}
-.spotify-settings-section .spotify-field-card small{
-  display:block !important;
-  margin:0 !important;
-  color:rgba(219,234,254,.76) !important;
-  font-size:12px !important;
-  line-height:1.35 !important;
-  font-weight:700 !important;
-  text-transform:none !important;
-  letter-spacing:0 !important;
-}
-@media (max-width: 820px){
-  .spotify-settings-section .spotify-settings-grid{
-    grid-template-columns:1fr !important;
+  .header-admin-nav-btn .admin-nav-icon{
+    font-size:21px !important;
   }
 }

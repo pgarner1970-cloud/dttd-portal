@@ -2,7 +2,6 @@
 session_start();
 
 require_once __DIR__ . '/../includes/db.php';
-require_once __DIR__ . '/../includes/admin-paths.php';
 
 if (!defined('ADMIN_PASSWORD')) {
     define('ADMIN_PASSWORD', 'changeme');
@@ -23,26 +22,11 @@ function admin_current_page() {
     return basename($_SERVER['SCRIPT_NAME']);
 }
 
-function admin_current_path() {
-    $script = $_SERVER['SCRIPT_NAME'] ?? '';
-    $script = str_replace('\\', '/', $script);
-
-    if (($pos = strpos($script, '/admin/')) !== false) {
-        return substr($script, $pos + 7);
-    }
-
-    return ltrim($script, '/');
-}
-
 function admin_nav_active($page) {
-    $path = admin_current_path();
-    $script = basename($path);
-
-    if (strpos($path, 'spotify/') === 0 && $page === 'settings') {
-        return 'active';
-    }
+    $script = admin_current_page();
 
     $map = [
+        'mixer' => ['mixer.php'],
         'requests' => ['requests.php', 'index.php', 'request-debug.php'],
         'events' => ['events.php', 'event-edit.php', 'event-qr.php'],
         'venues' => ['venues.php', 'venue-edit.php'],
@@ -185,7 +169,7 @@ function admin_header($title = 'DJ Portal') {
 <body class="admin-body">
 <header class="touch-topbar">
   <div class="topbar-left">
-    <a class="touch-brand" href="<?= h(admin_url('index.php')) ?>">
+    <a class="touch-brand" href="index.php">
       <span class="touch-brand-mark">♫</span>
       <span>DJ Portal</span>
     </a>
@@ -219,14 +203,30 @@ function admin_header($title = 'DJ Portal') {
   <div class="topbar-right">
     <div class="touch-top-actions">
       <nav class="header-admin-nav" aria-label="Admin navigation">
-        <a class="header-admin-nav-btn <?= admin_nav_active('requests') ?>" href="<?= h(admin_url('requests.php')) ?>" title="Requests" aria-label="Requests"><span class="admin-nav-icon">💿</span><span class="admin-nav-label">Requests</span></a>
-        <a class="header-admin-nav-btn <?= admin_nav_active('events') ?>" href="<?= h(admin_url('events.php')) ?>" title="Events" aria-label="Events"><span class="admin-nav-icon">📅</span><span class="admin-nav-label">Events</span></a>
-        <a class="header-admin-nav-btn <?= admin_nav_active('venues') ?>" href="<?= h(admin_url('venues.php')) ?>" title="Venues" aria-label="Venues"><span class="admin-nav-icon">🏛</span><span class="admin-nav-label">Venues</span></a>
-        <a class="header-admin-nav-btn <?= admin_nav_active('settings') ?>" href="<?= h(admin_url('settings.php')) ?>" title="Settings" aria-label="Settings"><span class="admin-nav-icon">⚙</span><span class="admin-nav-label">Settings</span></a>
+        <a class="header-admin-nav-btn admin-nav-mixer <?= admin_nav_active('mixer') ?>" href="/spotify/mixer.php" title="Live mixer" aria-label="Live mixer">
+          <span class="admin-nav-icon">🎛</span>
+          <span class="admin-nav-text">Mixer</span>
+        </a>
+        <a class="header-admin-nav-btn <?= admin_nav_active('requests') ?>" href="/requests.php" title="Requests" aria-label="Requests">
+          <span class="admin-nav-icon">💿</span>
+          <span class="admin-nav-text">Requests</span>
+        </a>
+        <a class="header-admin-nav-btn <?= admin_nav_active('events') ?>" href="/events.php" title="Events" aria-label="Events">
+          <span class="admin-nav-icon">📅</span>
+          <span class="admin-nav-text">Events</span>
+        </a>
+        <a class="header-admin-nav-btn <?= admin_nav_active('venues') ?>" href="/venues.php" title="Venues" aria-label="Venues">
+          <span class="admin-nav-icon">🧰</span>
+          <span class="admin-nav-text">Venues</span>
+        </a>
+        <a class="header-admin-nav-btn <?= admin_nav_active('settings') ?>" href="/settings.php" title="Settings" aria-label="Settings">
+          <span class="admin-nav-icon">⚙</span>
+          <span class="admin-nav-text">Settings</span>
+        </a>
       </nav>
 
-      <a class="touch-icon-btn" href="https://dancethruthedecades.co.uk/" title="Public site" aria-label="Public site">⌂</a>
-      <a class="touch-icon-btn" href="<?= h(admin_url('logout.php')) ?>" title="Logout" aria-label="Logout">⏻</a>
+      <a class="touch-icon-btn" href="https://dancethruthedecades.co.uk/" title="Public site">⌂</a>
+      <a class="touch-icon-btn" href="/logout.php" title="Logout">⏻</a>
     </div>
   </div>
 </header>
@@ -268,9 +268,9 @@ function admin_footer() {
 
 
 <?php if (basename($_SERVER['SCRIPT_NAME']) === 'requests.php'): ?>
-<script src="https://dancethruthedecades.co.uk/assets/request-update-check.js?v=63"></script>
+<script src="https://dancethruthedecades.co.uk/assets/request-update-check.js?v=62"></script>
 <?php endif; ?>
-<script src="https://dancethruthedecades.co.uk/assets/header-timers.js?v=101"></script>
+<script src="https://dancethruthedecades.co.uk/assets/header-timers.js?v=97"></script>
 <script src="https://dancethruthedecades.co.uk/assets/event-qr.js?v=106"></script>
 <script src="https://dancethruthedecades.co.uk/assets/venue-select.js?v=115"></script>
 </body>
