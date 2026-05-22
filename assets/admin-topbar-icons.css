@@ -81,3 +81,27 @@
   .topbar-left,.topbar-centre,.topbar-right{justify-self:stretch !important;justify-content:center !important;}
   .touch-top-actions{justify-content:center !important;flex-wrap:wrap !important;}
 }
+
+/* v111 restore slider mixer icon and visible home/logout SVG buttons */
+.header-admin-nav-btn.admin-nav-mixer .admin-nav-icon svg{
+  width:29px !important;
+  height:29px !important;
+  filter:drop-shadow(0 0 8px rgba(34,211,238,.45));
+}
+.touch-icon-btn .touch-action-icon{
+  width:26px !important;
+  height:26px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  color:#e5e7eb !important;
+}
+.touch-icon-btn .touch-action-icon svg{
+  width:25px !important;
+  height:25px !important;
+  display:block !important;
+  fill:currentColor !important;
+  filter:drop-shadow(0 0 7px rgba(148,163,184,.28));
+}
+.touch-icon-btn:hover .touch-action-icon,
+.touch-icon-btn.active .touch-action-icon{color:#fff !important;}

@@ -18,6 +18,20 @@ if (empty($_SESSION['dttd_admin'])) {
     exit;
 }
 
+function admin_url($path = '') {
+    $path = ltrim((string)$path, '/');
+    if ($path === '') {
+        return '/';
+    }
+
+    // The DJ subdomain is rooted at /admin, while assets live on the public root.
+    if (strpos($path, 'assets/') === 0) {
+        return 'https://dancethruthedecades.co.uk/' . $path;
+    }
+
+    return '/' . $path;
+}
+
 function admin_current_page() {
     return basename($_SERVER['SCRIPT_NAME']);
 }
@@ -165,7 +179,7 @@ function admin_header($title = 'DJ Portal') {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= h($title) ?></title>
 <link rel="stylesheet" href="https://dancethruthedecades.co.uk/assets/admin-touch.css">
-<link rel="stylesheet" href="https://dancethruthedecades.co.uk/assets/admin-topbar-icons.css?v=20260522-1739">
+<link rel="stylesheet" href="https://dancethruthedecades.co.uk/assets/admin-topbar-icons.css?v=20260522-1810">
 </head>
 <body class="admin-body">
 <header class="touch-topbar">
@@ -204,31 +218,36 @@ function admin_header($title = 'DJ Portal') {
   <div class="topbar-right">
     <div class="touch-top-actions">
       <nav class="header-admin-nav" aria-label="Admin navigation">
-        <a class="header-admin-nav-btn admin-nav-mixer <?= admin_nav_active('mixer') ?>" href="/spotify/mixer.php" title="Live mixer" aria-label="Live mixer">
-          <span class="admin-nav-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false"><path d="M4 5h3v10.18a3 3 0 1 1-2-2.83V5Zm10 0h3v7.18a3 3 0 1 1-2-2.83V5h-1Zm-5 4h9v2H9V9Zm0 4h9v2H9v-2Z"/></svg>
+        <a class="header-admin-nav-btn admin-nav-mixer <?= admin_nav_active('mixer') ?>" href="<?= h(admin_url('spotify/mixer.php')) ?>" title="Live mixer" aria-label="Live mixer">
+          <span class="admin-nav-icon admin-nav-icon-svg" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false" role="img">
+              <path d="M5 4v16M12 4v16M19 4v16" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/>
+              <circle cx="5" cy="9" r="2.45" fill="currentColor"/>
+              <circle cx="12" cy="15" r="2.45" fill="currentColor"/>
+              <circle cx="19" cy="7" r="2.45" fill="currentColor"/>
+            </svg>
           </span>
           <span class="admin-nav-text">Live Mixer</span>
         </a>
-        <a class="header-admin-nav-btn <?= admin_nav_active('requests') ?>" href="/requests.php" title="Requests" aria-label="Requests">
+        <a class="header-admin-nav-btn <?= admin_nav_active('requests') ?>" href="<?= h(admin_url('requests.php')) ?>" title="Requests" aria-label="Requests">
           <span class="admin-nav-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" focusable="false"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 2a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm0 4a3 3 0 1 0 .01 0H12Zm0 2a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z"/></svg>
           </span>
           <span class="admin-nav-text">Requests</span>
         </a>
-        <a class="header-admin-nav-btn <?= admin_nav_active('events') ?>" href="/events.php" title="Events" aria-label="Events">
+        <a class="header-admin-nav-btn <?= admin_nav_active('events') ?>" href="<?= h(admin_url('events.php')) ?>" title="Events" aria-label="Events">
           <span class="admin-nav-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" focusable="false"><path d="M7 2h2v3h6V2h2v3h3a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h3V2Zm13 8H4v10h16V10ZM4 8h16V7H4v1Zm3 4h3v3H7v-3Zm5 0h3v3h-3v-3Z"/></svg>
           </span>
           <span class="admin-nav-text">Events</span>
         </a>
-        <a class="header-admin-nav-btn <?= admin_nav_active('venues') ?>" href="/venues.php" title="Venues" aria-label="Venues">
+        <a class="header-admin-nav-btn <?= admin_nav_active('venues') ?>" href="<?= h(admin_url('venues.php')) ?>" title="Venues" aria-label="Venues">
           <span class="admin-nav-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" focusable="false"><path d="M4 21V8l8-5 8 5v13h-5v-6H9v6H4Zm2-2h1v-6h10v6h1V9.1l-6-3.75-6 3.75V19Zm4-8h4V8h-4v3Z"/></svg>
           </span>
           <span class="admin-nav-text">Venues</span>
         </a>
-        <a class="header-admin-nav-btn <?= admin_nav_active('settings') ?>" href="/settings.php" title="Settings" aria-label="Settings">
+        <a class="header-admin-nav-btn <?= admin_nav_active('settings') ?>" href="<?= h(admin_url('settings.php')) ?>" title="Settings" aria-label="Settings">
           <span class="admin-nav-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" focusable="false"><path d="M19.43 12.98c.04-.32.07-.65.07-.98s-.02-.66-.07-.98l2.11-1.65-2-3.46-2.49 1a7.2 7.2 0 0 0-1.69-.98L15 3h-4l-.36 2.93c-.6.24-1.17.56-1.69.98l-2.49-1-2 3.46 2.11 1.65c-.04.32-.07.65-.07.98s.02.66.07.98l-2.11 1.65 2 3.46 2.49-1c.52.4 1.09.73 1.69.98L11 21h4l.36-2.93c.6-.24 1.17-.56 1.69-.98l2.49 1 2-3.46-2.11-1.65ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z"/></svg>
           </span>
@@ -236,8 +255,8 @@ function admin_header($title = 'DJ Portal') {
         </a>
       </nav>
 
-      <a class="touch-icon-btn" href="https://dancethruthedecades.co.uk/" title="Public site">⌂</a>
-      <a class="touch-icon-btn" href="/logout.php" title="Logout">⏻</a>
+      <a class="touch-icon-btn" href="https://dancethruthedecades.co.uk/" title="Public site" aria-label="Public site"><span class="touch-action-icon"><svg viewBox="0 0 24 24" focusable="false"><path d="M12 3 3 10.5l1.3 1.52L6 10.62V20h5v-5h2v5h5v-9.38l1.7 1.4L21 10.5 12 3Zm4 15h-1v-5H9v5H8V8.95l4-3.34 4 3.34V18Z"/></svg></span></a>
+      <a class="touch-icon-btn" href="<?= h(admin_url('logout.php')) ?>" title="Logout" aria-label="Logout"><span class="touch-action-icon"><svg viewBox="0 0 24 24" focusable="false"><path d="M13 3h-2v10h2V3Zm4.83 3.17-1.42 1.42A6.96 6.96 0 0 1 19 13a7 7 0 1 1-11.41-5.41L6.17 6.17A9 9 0 1 0 21 13a8.94 8.94 0 0 0-3.17-6.83Z"/></svg></span></a>
     </div>
   </div>
 </header>
