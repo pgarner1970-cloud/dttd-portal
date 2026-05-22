@@ -18,6 +18,21 @@ if (empty($_SESSION['dttd_admin'])) {
     exit;
 }
 
+
+function admin_url($path = '') {
+    $path = ltrim((string)$path, '/');
+    if ($path === '') {
+        return '/';
+    }
+
+    // The DJ subdomain is rooted at /admin, while assets live on the public root.
+    if (strpos($path, 'assets/') === 0) {
+        return 'https://dancethruthedecades.co.uk/' . $path;
+    }
+
+    return '/' . $path;
+}
+
 function admin_current_page() {
     return basename($_SERVER['SCRIPT_NAME']);
 }
@@ -204,7 +219,7 @@ function admin_header($title = 'DJ Portal') {
     <div class="touch-top-actions">
       <nav class="header-admin-nav" aria-label="Admin navigation">
         <a class="header-admin-nav-btn admin-nav-mixer <?= admin_nav_active('mixer') ?>" href="/spotify/mixer.php" title="Live mixer" aria-label="Live mixer">
-          <span class="admin-nav-icon">🎛</span>
+          <span class="admin-nav-icon admin-nav-icon-svg" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M5 4v16M12 4v16M19 4v16"/><circle cx="5" cy="9" r="2.25"/><circle cx="12" cy="15" r="2.25"/><circle cx="19" cy="7" r="2.25"/></svg></span>
           <span class="admin-nav-text">Mixer</span>
         </a>
         <a class="header-admin-nav-btn <?= admin_nav_active('requests') ?>" href="/requests.php" title="Requests" aria-label="Requests">
@@ -216,7 +231,7 @@ function admin_header($title = 'DJ Portal') {
           <span class="admin-nav-text">Events</span>
         </a>
         <a class="header-admin-nav-btn <?= admin_nav_active('venues') ?>" href="/venues.php" title="Venues" aria-label="Venues">
-          <span class="admin-nav-icon">🧰</span>
+          <span class="admin-nav-icon">▣</span>
           <span class="admin-nav-text">Venues</span>
         </a>
         <a class="header-admin-nav-btn <?= admin_nav_active('settings') ?>" href="/settings.php" title="Settings" aria-label="Settings">

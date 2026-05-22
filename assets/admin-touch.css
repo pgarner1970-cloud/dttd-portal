@@ -5441,3 +5441,32 @@ button.action-tile:disabled{
     font-size:21px !important;
   }
 }
+
+
+/* v102 stronger live mixer icon and path-safe mixer page support */
+.header-admin-nav-btn .admin-nav-icon-svg{
+  width:28px !important;
+  height:28px !important;
+  display:grid !important;
+  place-items:center !important;
+}
+.header-admin-nav-btn .admin-nav-icon-svg svg{
+  width:28px !important;
+  height:28px !important;
+  display:block !important;
+}
+.header-admin-nav-btn .admin-nav-icon-svg path,
+.header-admin-nav-btn .admin-nav-icon-svg circle{
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2.6;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.header-admin-nav-btn .admin-nav-icon-svg circle{
+  fill:rgba(255,255,255,.12);
+}
+.header-admin-nav-btn.admin-nav-mixer .admin-nav-icon-svg{
+  color:#86efac !important;
+  filter:drop-shadow(0 0 9px rgba(34,197,94,.55));
+}
