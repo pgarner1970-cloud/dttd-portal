@@ -9,7 +9,8 @@
 
   ready(function(){
     const stats = document.querySelectorAll('.stat-line');
-    if (!stats.length) return;
+    const requestPage = document.querySelector('main.touch-wrap, .request-queue-panel');
+    if (!requestPage) return;
 
     function textNumber(value){
       const n = parseInt(String(value || '').replace(/[^0-9]/g, ''), 10);
@@ -130,8 +131,8 @@
 
       try {
         const url = eventId
-          ? '/admin/request-ping.php?event=' + encodeURIComponent(eventId) + '&_=' + Date.now()
-          : '/admin/request-ping.php?_=' + Date.now();
+          ? 'request-ping.php?event=' + encodeURIComponent(eventId) + '&_=' + Date.now()
+          : 'request-ping.php?_=' + Date.now();
 
         const response = await fetch(url, {
           cache: 'no-store',

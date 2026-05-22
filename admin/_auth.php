@@ -268,7 +268,7 @@ function admin_footer() {
 
 
 <?php if (basename($_SERVER['SCRIPT_NAME']) === 'requests.php'): ?>
-<script src="https://dancethruthedecades.co.uk/assets/request-update-check.js?v=62"></script>
+<script src="https://dancethruthedecades.co.uk/assets/request-update-check.js?v=63"></script>
 <?php endif; ?>
 <script src="https://dancethruthedecades.co.uk/assets/header-timers.js?v=101"></script>
 <script src="https://dancethruthedecades.co.uk/assets/event-qr.js?v=106"></script>

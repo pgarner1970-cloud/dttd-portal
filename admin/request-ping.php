@@ -45,11 +45,39 @@ try {
         $status_counts[$status] = (int)($row['request_total'] ?? 0);
     }
 
+    $fingerprint_rows_stmt = db()->prepare("
+        SELECT *
+        FROM song_requests
+        WHERE event_id = ?
+        ORDER BY id ASC
+    ");
+    $fingerprint_rows_stmt->execute([$event_id]);
+    $fingerprint_parts = [];
+
+    foreach ($fingerprint_rows_stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $fingerprint_parts[] = implode('|', [
+            (string)($row['id'] ?? ''),
+            (string)($row['request_group_id'] ?? ''),
+            strtolower((string)($row['status'] ?? 'pending')),
+            (string)($row['song_title'] ?? ''),
+            (string)($row['artist'] ?? ''),
+            (string)($row['message'] ?? ''),
+            (string)($row['spotify_track_id'] ?? ''),
+            (string)($row['spotify_queue_status'] ?? ''),
+            (string)($row['spotify_queued_at'] ?? ''),
+            (string)($row['created_at'] ?? ''),
+            (string)($row['updated_at'] ?? ''),
+        ]);
+    }
+
+    $fingerprint = sha1(implode("\n", $fingerprint_parts));
+
     echo json_encode([
         'ok' => true,
         'event_id' => $event_id,
         'total_requests' => $total,
         'status_counts' => $status_counts,
+        'fingerprint' => $fingerprint,
         'checked_at' => date('H:i:s')
     ]);
 } catch (Throwable $e) {
