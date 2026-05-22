@@ -235,7 +235,7 @@ function mx_state() {
         'active_device_id' => $activeDeviceId,
         'active_device_name' => (string)($playback['device']['name'] ?? ''),
         'is_playing' => $isPlaying,
-        'track' => ['title' => (string)($item['name'] ?? ''), 'artist' => implode(', ', $artists), 'image' => $image, 'progress_ms' => $playback['progress_ms'] ?? null, 'duration_ms' => $item['duration_ms'] ?? null],
+        'track' => ['id' => (string)($item['id'] ?? ''), 'title' => (string)($item['name'] ?? ''), 'artist' => implode(', ', $artists), 'image' => $image, 'progress_ms' => $playback['progress_ms'] ?? null, 'duration_ms' => $item['duration_ms'] ?? null],
         'playlist' => array_values(array_map('mx_track_output', $playlist)),
         'requests' => mx_requests($playlist),
     ];

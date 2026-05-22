@@ -22,7 +22,18 @@
   };
 
   function esc(s){ return String(s ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c])); }
-  function duration(ms){ if(!ms) return ''; const sec=Math.round(Number(ms)/1000); return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'); }
+  function duration(ms){ if(!ms && ms !== 0) return ''; const sec=Math.max(0, Math.round(Number(ms)/1000)); return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'); }
+  function deckProgress(track, deck){
+    const deviceId = state?.['device_' + deck] || '';
+    const active = state?.active_device_id === deviceId && !!state?.is_playing;
+    const current = state?.track || {};
+    const sameTrack = active && track?.id && current?.id && String(track.id) === String(current.id);
+    const durationMs = sameTrack ? (Number(current.duration_ms) || Number(track.duration_ms) || 0) : (Number(track?.duration_ms) || 0);
+    const progressMs = sameTrack ? (Number(current.progress_ms) || 0) : 0;
+    const pct = durationMs ? Math.min(100, Math.max(0, (progressMs / durationMs) * 100)) : 0;
+    const remainingMs = durationMs ? Math.max(0, durationMs - progressMs) : 0;
+    return {active, sameTrack, durationMs, progressMs, remainingMs, pct};
+  }
   function toast(msg, ok=true){
     if(!els.toast) return;
     els.toast.textContent = msg;
@@ -126,7 +137,13 @@
     if(!track || !track.id){
       return `<div class="muted">No track loaded. Load from the DJ playlist when ${deck.toUpperCase()} is safe.</div>`;
     }
-    return `<div class="loaded-track"><img src="${esc(image(track.image))}" alt=""><div><div class="track-title">${esc(track.title)}</div><div class="track-artist">${esc(track.artist)}</div>${track.url ? `<a class="spotify-mark" href="${esc(track.url)}" target="_blank" rel="noopener">● Open in Spotify</a>` : ''}</div></div><div class="now-bar"><span></span></div>`;
+    const prog = deckProgress(track, deck);
+    const remainingLabel = prog.durationMs ? (prog.sameTrack ? `-${duration(prog.remainingMs)}` : duration(prog.durationMs)) : '';
+    const elapsedLabel = prog.sameTrack ? duration(prog.progressMs) : '0:00';
+    return `<div class="loaded-track"><img src="${esc(image(track.image))}" alt=""><div><div class="track-title">${esc(track.title)}</div><div class="track-artist">${esc(track.artist)}</div></div></div>
+      <div class="track-progress-meta"><span>${prog.sameTrack ? elapsedLabel : 'Ready'}</span><span>${remainingLabel}</span></div>
+      <div class="now-bar ${prog.sameTrack ? 'active' : ''}"><span style="width:${prog.sameTrack ? prog.pct : 0}%"></span></div>
+      ${prog.sameTrack ? `<div class="track-time-left">${duration(prog.remainingMs)} remaining</div>` : (prog.durationMs ? `<div class="track-time-left muted">Track length ${duration(prog.durationMs)}</div>` : '')}`;
   }
   function renderDecks(){
     const aPlaying = state?.player_a?.state === 'playing';
