@@ -228,6 +228,48 @@ function mx_requests($playlist) {
     }
     return $out;
 }
+
+function mx_track_ids_match($a, $b) {
+    $a = trim((string)$a);
+    $b = trim((string)$b);
+    if ($a === '' || $b === '') return false;
+    $a = str_replace('spotify:track:', '', $a);
+    $b = str_replace('spotify:track:', '', $b);
+    return $a === $b;
+}
+function mx_auto_unload_finished_deck($deck, $loaded, $device_id, $playback) {
+    $deck = $deck === 'b' ? 'b' : 'a';
+    if (!is_array($loaded) || empty($loaded['id']) || empty($loaded['played_on_deck'])) return $loaded;
+
+    $activeDeviceId = (string)($playback['device']['id'] ?? '');
+    $isPlaying = !empty($playback['is_playing']);
+    $currentId = (string)($playback['item']['id'] ?? '');
+    $progressMs = isset($playback['progress_ms']) ? (int)$playback['progress_ms'] : null;
+    $durationMs = isset($playback['item']['duration_ms']) ? (int)$playback['item']['duration_ms'] : (isset($loaded['duration_ms']) ? (int)$loaded['duration_ms'] : null);
+
+    $sameDevice = trim((string)$device_id) !== '' && $activeDeviceId === (string)$device_id;
+    $sameTrack = mx_track_ids_match($currentId, $loaded['id']);
+    $nearEnd = $durationMs && $progressMs !== null && $progressMs >= max(0, $durationMs - 5000);
+
+    // Once a mixer-loaded track has actually been played, clear the deck when Spotify
+    // has naturally moved past it or reports it stopped at/near the end. Do not clear
+    // a paused mid-track item, because the DJ may simply be cueing or pausing.
+    $finished = false;
+    if ($sameDevice && !$sameTrack && $currentId !== '') $finished = true;
+    if ($sameDevice && $sameTrack && !$isPlaying && $nearEnd) $finished = true;
+
+    // Some Spotify Connect devices report no active playback after a track ends. Treat
+    // that as finished only when this deck had been started from the mixer and we no
+    // longer have a current Spotify item to compare against.
+    if ($activeDeviceId === '' && $currentId === '' && !$isPlaying) $finished = true;
+
+    if ($finished) {
+        mx_set('spotify_mixer_loaded_' . $deck, '');
+        return [];
+    }
+    return $loaded;
+}
+
 function mx_state() {
     $playlist = mx_json('spotify_mixer_playlist', []);
     $loadedA = mx_json('spotify_mixer_loaded_a', []);
@@ -243,6 +285,11 @@ function mx_state() {
     $activeDeviceId = (string)($playback['device']['id'] ?? '');
     $isPlaying = !empty($playback['is_playing']);
     $item = $playback['item'] ?? [];
+
+    // Keep deck cards tidy after a played track has finished. This runs during normal
+    // mixer polling, so the UI updates without the DJ having to press Clear.
+    $loadedA = mx_auto_unload_finished_deck('a', $loadedA, $deviceA, $playback);
+    $loadedB = mx_auto_unload_finished_deck('b', $loadedB, $deviceB, $playback);
     $artists = [];
     foreach (($item['artists'] ?? []) as $artist) if (!empty($artist['name'])) $artists[] = $artist['name'];
     $images = $item['album']['images'] ?? [];
