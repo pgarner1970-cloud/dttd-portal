@@ -10,7 +10,19 @@ if ($return === '' || strpos($return, 'http') === 0 || strpos($return, '//') !==
 }
 
 try {
-    if (function_exists('dttd_spotify_queue_controls_enabled') && !dttd_spotify_queue_controls_enabled()) {
+    // Use the DB setting directly here as a hard safety gate.
+    // This prevents queueing even if older helper code is still cached or partially uploaded.
+    $queue_controls_enabled = false;
+    try {
+        $stmt = db()->prepare("SELECT setting_value FROM app_settings WHERE setting_key = 'spotify_queue_enabled' LIMIT 1");
+        $stmt->execute();
+        $setting = trim((string)($stmt->fetchColumn() ?: '0'));
+        $queue_controls_enabled = in_array(strtolower($setting), ['1', 'true', 'yes', 'on'], true);
+    } catch (Throwable $settingError) {
+        $queue_controls_enabled = false;
+    }
+
+    if (!$queue_controls_enabled) {
         throw new RuntimeException('Spotify queue controls are disabled in DJ Settings.');
     }
 

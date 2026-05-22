@@ -1,7 +1,22 @@
 <?php
 require_once __DIR__ . '/_auth.php';
 require_once dirname(__DIR__) . '/includes/spotify.php';
-$spotify_queue_available = function_exists('dttd_spotify_queue_available') ? dttd_spotify_queue_available() : (function_exists('dttd_spotify_queue_connected') && dttd_spotify_queue_connected());
+
+// Strictly control whether the DJ queue button is shown from app_settings.spotify_queue_enabled.
+// Spotify search can remain enabled while queue controls stay hidden.
+$spotify_queue_enabled_for_buttons = false;
+try {
+    $stmt = db()->prepare("SELECT setting_value FROM app_settings WHERE setting_key = 'spotify_queue_enabled' LIMIT 1");
+    $stmt->execute();
+    $setting = trim((string)($stmt->fetchColumn() ?: '0'));
+    $spotify_queue_enabled_for_buttons = in_array(strtolower($setting), ['1', 'true', 'yes', 'on'], true);
+} catch (Throwable $e) {
+    $spotify_queue_enabled_for_buttons = false;
+}
+
+$spotify_queue_available = $spotify_queue_enabled_for_buttons
+    && function_exists('dttd_spotify_queue_connected')
+    && dttd_spotify_queue_connected();
 $spotify_flash = $_SESSION['spotify_flash'] ?? '';
 unset($_SESSION['spotify_flash']);
 
