@@ -13,7 +13,7 @@
     deviceA: $('#deviceA'), deviceB: $('#deviceB'),
     deckADevice: $('#deckADevice'), deckBDevice: $('#deckBDevice'),
     deckAState: $('#deckAState'), deckBState: $('#deckBState'),
-    loadedA: $('#loadedA'), loadedB: $('#loadedB'),
+    loadedA: $('#loadedA'), loadedB: $('#loadedB'), deckANote: $('#deckANote'), deckBNote: $('#deckBNote'),
     spotifyStatus: $('#spotifyStatus'),
     search: $('#spotifySearch'), searchResults: $('#searchResults'), searchStatus: $('#searchStatus'),
     publicRequests: $('#publicRequests'), djPlaylist: $('#djPlaylist'),
@@ -151,15 +151,30 @@
     const prog = deckProgress(track, deck);
     const remainingLabel = prog.durationMs ? (prog.sameTrack ? `-${duration(prog.remainingMs)}` : duration(prog.durationMs)) : '';
     const elapsedLabel = prog.sameTrack ? duration(prog.progressMs) : '0:00';
-    const hasRequestNote = track?.source === 'request' && ((track.guest_name || '').trim() !== '' || (track.message || '').trim() !== '');
-    const requestNote = hasRequestNote
-      ? `<div class="loaded-request-note"><strong>${esc(track.guest_name || 'Guest')}</strong>${track.message ? `<span>${esc(track.message)}</span>` : ''}</div>`
-      : '';
     return `<div class="loaded-track"><img src="${esc(image(track.image))}" alt=""><div><div class="track-title">${esc(track.title)}</div><div class="track-artist">${esc(track.artist)}</div></div></div>
       <div class="track-progress-meta"><span>${prog.sameTrack ? elapsedLabel : 'Ready'}</span><span>${remainingLabel}</span></div>
       <div class="now-bar ${prog.sameTrack ? 'active' : ''}"><span style="width:${prog.sameTrack ? prog.pct : 0}%"></span></div>
-      ${prog.sameTrack ? `<div class="track-time-left">${duration(prog.remainingMs)} remaining</div>` : (prog.durationMs ? `<div class="track-time-left muted">Track length ${duration(prog.durationMs)}</div>` : '')}
-      ${requestNote}`;
+      ${prog.sameTrack ? `<div class="track-time-left">${duration(prog.remainingMs)} remaining</div>` : (prog.durationMs ? `<div class="track-time-left muted">Track length ${duration(prog.durationMs)}</div>` : '')}`;
+  }
+  function requestInitial(name){
+    const s = String(name || 'G').trim();
+    return (s ? s[0] : 'G').toUpperCase();
+  }
+  function renderDeckRequestNote(el, track){
+    if(!el) return;
+    const guest = String(track?.guest_name || '').trim();
+    const msg = String(track?.message || '').trim();
+    if(!(track?.source === 'request') || (!guest && !msg)){
+      el.classList.remove('visible');
+      el.innerHTML = '';
+      return;
+    }
+    el.innerHTML = `<div class="loaded-request-avatar">${esc(requestInitial(guest))}</div>
+      <div class="loaded-request-copy">
+        <div class="loaded-request-name">${esc(guest || 'Guest')}</div>
+        <div class="loaded-request-message${msg ? '' : ' muted'}">${msg ? esc(msg) : 'No dedication/message'}</div>
+      </div>`;
+    el.classList.add('visible');
   }
   function renderDecks(){
     const aPlaying = deckIsPlaying('a');
@@ -169,6 +184,8 @@
     setDeckState(els.deckAState, aPlaying, aLoaded); setDeckState(els.deckBState, bPlaying, bLoaded);
     if(els.loadedA) els.loadedA.innerHTML = trackBlock(state?.player_a?.loaded, 'a');
     if(els.loadedB) els.loadedB.innerHTML = trackBlock(state?.player_b?.loaded, 'b');
+    renderDeckRequestNote(els.deckANote, state?.player_a?.loaded);
+    renderDeckRequestNote(els.deckBNote, state?.player_b?.loaded);
     document.querySelectorAll('[data-deck-action="play"][data-deck="a"]').forEach(b => b.disabled = !(state?.player_a?.loaded?.id) || !state?.device_a);
     document.querySelectorAll('[data-deck-action="play"][data-deck="b"]').forEach(b => b.disabled = !(state?.player_b?.loaded?.id) || !state?.device_b);
     document.querySelectorAll('[data-deck-action="pause"][data-deck="a"]').forEach(b => b.disabled = !state?.device_a);
