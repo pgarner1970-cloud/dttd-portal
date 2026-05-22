@@ -2,6 +2,7 @@
 session_start();
 
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/admin-paths.php';
 
 if (!defined('ADMIN_PASSWORD')) {
     define('ADMIN_PASSWORD', 'changeme');
@@ -18,56 +19,37 @@ if (empty($_SESSION['dttd_admin'])) {
     exit;
 }
 
-function admin_is_dj_subdomain() {
-    $host = strtolower($_SERVER['HTTP_HOST'] ?? '');
-    return str_starts_with($host, 'dj.');
-}
-
-function admin_url($path = '') {
-    $path = ltrim((string)$path, '/');
-
-    // The DJ subdomain document root is already /admin, so links must be root-relative there.
-    // If the admin is ever accessed through the main domain, keep /admin/ in the URL.
-    if (admin_is_dj_subdomain()) {
-        return '/' . $path;
-    }
-
-    return '/admin/' . $path;
-}
-
 function admin_current_page() {
-    $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
-    $script = ltrim($script, '/');
+    return basename($_SERVER['SCRIPT_NAME']);
+}
 
-    if (str_starts_with($script, 'admin/')) {
-        $script = substr($script, 6);
+function admin_current_path() {
+    $script = $_SERVER['SCRIPT_NAME'] ?? '';
+    $script = str_replace('\\', '/', $script);
+
+    if (($pos = strpos($script, '/admin/')) !== false) {
+        return substr($script, $pos + 7);
     }
 
-    return $script ?: 'index.php';
+    return ltrim($script, '/');
 }
 
 function admin_nav_active($page) {
-    $script = admin_current_page();
-    $base = basename($script);
+    $path = admin_current_path();
+    $script = basename($path);
+
+    if (strpos($path, 'spotify/') === 0 && $page === 'settings') {
+        return 'active';
+    }
 
     $map = [
         'requests' => ['requests.php', 'index.php', 'request-debug.php'],
         'events' => ['events.php', 'event-edit.php', 'event-qr.php'],
         'venues' => ['venues.php', 'venue-edit.php'],
-        'settings' => ['settings.php', 'spotify/index.php', 'spotify/connect.php', 'spotify/callback.php'],
+        'settings' => ['settings.php'],
     ];
 
-    foreach ($map[$page] ?? [] as $candidate) {
-        if ($script === $candidate || $base === $candidate) {
-            // Prevent /spotify/index.php from incorrectly lighting up Requests.
-            if ($page === 'requests' && $script !== 'index.php' && $base === 'index.php') {
-                continue;
-            }
-            return 'active';
-        }
-    }
-
-    return '';
+    return in_array($script, $map[$page] ?? [], true) ? 'active' : '';
 }
 
 
@@ -198,7 +180,7 @@ function admin_header($title = 'DJ Portal') {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= h($title) ?></title>
-<link rel="stylesheet" href="https://dancethruthedecades.co.uk/assets/admin-touch.css?v=spotify-settings-ui-20260522">
+<link rel="stylesheet" href="https://dancethruthedecades.co.uk/assets/admin-touch.css">
 </head>
 <body class="admin-body">
 <header class="touch-topbar">
@@ -237,14 +219,14 @@ function admin_header($title = 'DJ Portal') {
   <div class="topbar-right">
     <div class="touch-top-actions">
       <nav class="header-admin-nav" aria-label="Admin navigation">
-        <a class="header-admin-nav-btn <?= admin_nav_active('requests') ?>" href="<?= h(admin_url('requests.php')) ?>">Requests</a>
-        <a class="header-admin-nav-btn <?= admin_nav_active('events') ?>" href="<?= h(admin_url('events.php')) ?>">Events</a>
-        <a class="header-admin-nav-btn <?= admin_nav_active('venues') ?>" href="<?= h(admin_url('venues.php')) ?>">Venues</a>
-        <a class="header-admin-nav-btn <?= admin_nav_active('settings') ?>" href="<?= h(admin_url('settings.php')) ?>">Settings</a>
+        <a class="header-admin-nav-btn <?= admin_nav_active('requests') ?>" href="<?= h(admin_url('requests.php')) ?>" title="Requests" aria-label="Requests"><span class="admin-nav-icon">💿</span><span class="admin-nav-label">Requests</span></a>
+        <a class="header-admin-nav-btn <?= admin_nav_active('events') ?>" href="<?= h(admin_url('events.php')) ?>" title="Events" aria-label="Events"><span class="admin-nav-icon">📅</span><span class="admin-nav-label">Events</span></a>
+        <a class="header-admin-nav-btn <?= admin_nav_active('venues') ?>" href="<?= h(admin_url('venues.php')) ?>" title="Venues" aria-label="Venues"><span class="admin-nav-icon">🏛</span><span class="admin-nav-label">Venues</span></a>
+        <a class="header-admin-nav-btn <?= admin_nav_active('settings') ?>" href="<?= h(admin_url('settings.php')) ?>" title="Settings" aria-label="Settings"><span class="admin-nav-icon">⚙</span><span class="admin-nav-label">Settings</span></a>
       </nav>
 
-      <a class="touch-icon-btn" href="https://dancethruthedecades.co.uk/" title="Public site">⌂</a>
-      <a class="touch-icon-btn" href="<?= h(admin_url('logout.php')) ?>" title="Logout">⏻</a>
+      <a class="touch-icon-btn" href="https://dancethruthedecades.co.uk/" title="Public site" aria-label="Public site">⌂</a>
+      <a class="touch-icon-btn" href="<?= h(admin_url('logout.php')) ?>" title="Logout" aria-label="Logout">⏻</a>
     </div>
   </div>
 </header>
@@ -288,7 +270,7 @@ function admin_footer() {
 <?php if (basename($_SERVER['SCRIPT_NAME']) === 'requests.php'): ?>
 <script src="https://dancethruthedecades.co.uk/assets/request-update-check.js?v=62"></script>
 <?php endif; ?>
-<script src="https://dancethruthedecades.co.uk/assets/header-timers.js?v=97"></script>
+<script src="https://dancethruthedecades.co.uk/assets/header-timers.js?v=101"></script>
 <script src="https://dancethruthedecades.co.uk/assets/event-qr.js?v=106"></script>
 <script src="https://dancethruthedecades.co.uk/assets/venue-select.js?v=115"></script>
 </body>

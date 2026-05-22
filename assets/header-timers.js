@@ -82,7 +82,8 @@
 
     async function loadTargets(){
       try {
-        const response = await fetch('/admin/header-timers.php?_=' + Date.now(), {
+        const timerEndpoint = window.location.hostname.indexOf('dj.') === 0 ? '/header-timers.php' : '/admin/header-timers.php';
+        const response = await fetch(timerEndpoint + '?_=' + Date.now(), {
           cache: 'no-store',
           credentials: 'same-origin'
         });
