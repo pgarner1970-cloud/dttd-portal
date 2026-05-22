@@ -75,7 +75,15 @@ try {
         mx_redirect_back();
     }
 
-    $stmt = db()->prepare("SELECT id, guest_name, song_title, artist, message, dedication, created_at, spotify_track_id, spotify_track_url, spotify_album_image FROM song_requests WHERE $where ORDER BY created_at ASC, id ASC");
+    $select = ['id', 'guest_name', 'song_title', 'artist', 'created_at', 'spotify_track_id'];
+    foreach (['spotify_track_url', 'spotify_album_image', 'message', 'dedication'] as $optionalColumn) {
+        if (mx_has_column_local('song_requests', $optionalColumn)) {
+            $select[] = $optionalColumn;
+        }
+    }
+
+    $selectSql = implode(', ', array_map(function($c) { return '`' . $c . '`'; }, $select));
+    $stmt = db()->prepare("SELECT {$selectSql} FROM song_requests WHERE $where ORDER BY created_at ASC, id ASC");
     $stmt->execute($params);
     $rows = $stmt->fetchAll();
 
