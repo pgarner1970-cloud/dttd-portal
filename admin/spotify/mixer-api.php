@@ -115,13 +115,47 @@ function mx_spotify_put($url, $body = '') {
         'Accept: application/json',
     ], $body);
 }
+function mx_transfer_playback_to_device($device_id, $play = false) {
+    $device_id = trim((string)$device_id);
+    if ($device_id === '') throw new RuntimeException('No Spotify device selected for this player.');
+    mx_spotify_put('https://api.spotify.com/v1/me/player', json_encode([
+        'device_ids' => [$device_id],
+        'play' => (bool)$play,
+    ]));
+}
+
 function mx_play_track($device_id, $track_id) {
     $device_id = trim((string)$device_id);
     $track_id = trim((string)$track_id);
     if ($device_id === '') throw new RuntimeException('No Spotify device selected for this player.');
     if ($track_id === '') throw new RuntimeException('No track loaded on this player.');
     $uri = strpos($track_id, 'spotify:track:') === 0 ? $track_id : 'spotify:track:' . $track_id;
+
+    // Some Spotify Connect devices accept a track load but do not begin playback unless
+    // playback is first transferred to that device. Transfer first, then send play.
+    try {
+        mx_transfer_playback_to_device($device_id, false);
+        usleep(350000);
+    } catch (Throwable $ignored) {
+        // If transfer fails because the device is already active, still try the direct play below.
+    }
+
     mx_spotify_put('https://api.spotify.com/v1/me/player/play?device_id=' . rawurlencode($device_id), json_encode(['uris' => [$uri]]));
+
+    // Give Spotify Connect a moment, then retry once if the target device is not reporting playback yet.
+    usleep(450000);
+    try {
+        $pb = mx_playback();
+        $activeDevice = (string)($pb['device']['id'] ?? '');
+        $isPlaying = !empty($pb['is_playing']);
+        $currentId = (string)($pb['item']['id'] ?? '');
+        $wantedId = str_replace('spotify:track:', '', $uri);
+        if ($activeDevice !== $device_id || !$isPlaying || ($currentId !== '' && $wantedId !== '' && $currentId !== $wantedId)) {
+            mx_transfer_playback_to_device($device_id, true);
+            usleep(300000);
+            mx_spotify_put('https://api.spotify.com/v1/me/player/play?device_id=' . rawurlencode($device_id), json_encode(['uris' => [$uri]]));
+        }
+    } catch (Throwable $ignored) {}
 }
 function mx_pause($device_id) {
     $device_id = trim((string)$device_id);
