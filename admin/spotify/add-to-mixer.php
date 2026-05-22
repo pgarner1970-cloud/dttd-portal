@@ -75,7 +75,14 @@ try {
         mx_redirect_back();
     }
 
-    $stmt = db()->prepare("SELECT id, guest_name, song_title, artist, message, dedication, created_at, spotify_track_id, spotify_track_url, spotify_album_image FROM song_requests WHERE $where ORDER BY created_at ASC, id ASC");
+    $select = ['id', 'guest_name', 'song_title', 'artist', 'created_at', 'spotify_track_id'];
+    foreach (['spotify_track_url', 'spotify_album_image', 'message', 'dedication'] as $optionalColumn) {
+        if (mx_has_column_local('song_requests', $optionalColumn)) {
+            $select[] = $optionalColumn;
+        }
+    }
+
+    $stmt = db()->prepare('SELECT ' . implode(', ', array_map(function($c) { return '`' . $c . '`'; }, $select)) . " FROM song_requests WHERE $where ORDER BY created_at ASC, id ASC");
     $stmt->execute($params);
     $rows = $stmt->fetchAll();
 
@@ -88,7 +95,13 @@ try {
     $messages = [];
     foreach ($rows as $r) {
         $name = trim((string)($r['guest_name'] ?? 'Guest')) ?: 'Guest';
-        $msg = trim((string)($r['message'] ?? ($r['dedication'] ?? '')));
+        $msg = '';
+        if (array_key_exists('message', $r)) {
+            $msg = trim((string)$r['message']);
+        }
+        if ($msg === '' && array_key_exists('dedication', $r)) {
+            $msg = trim((string)$r['dedication']);
+        }
         if ($msg !== '') $messages[] = $name . ': ' . $msg;
     }
 
