@@ -365,6 +365,33 @@ function mx_track_ids_match($a, $b) {
     $b = str_replace('spotify:track:', '', $b);
     return $a === $b;
 }
+
+function mx_remove_loaded_track_from_playlist($track) {
+    if (!is_array($track) || empty($track['id'])) return;
+    $playlist = mx_json('spotify_mixer_playlist', []);
+    $playlist = array_values(array_filter((array)$playlist, function($p) use ($track) {
+        if (!empty($track['request_id']) && !empty($p['request_id'])) return (int)$p['request_id'] !== (int)$track['request_id'];
+        return (string)($p['id'] ?? '') !== (string)($track['id'] ?? '');
+    }));
+    mx_save_playlist($playlist);
+}
+
+function mx_start_loaded_deck_after_handover($deck, &$loaded, $device_id) {
+    $deck = $deck === 'b' ? 'b' : 'a';
+    if (!is_array($loaded) || empty($loaded['id']) || trim((string)$device_id) === '') return false;
+    $position = !empty($loaded['played_on_deck']) ? mx_loaded_position_fallback($loaded) : null;
+    mx_play_track($device_id, $loaded['id'], $position);
+    $loaded['played_on_deck'] = true;
+    $loaded['position_base_ms'] = $position !== null ? max(0, (int)$position) : 0;
+    $loaded['position_updated_at'] = time();
+    $loaded['paused_position_ms'] = null;
+    $loaded['resume_locked'] = false;
+    mx_store_loaded_track($deck, $loaded);
+    if (!empty($loaded['request_id'])) mx_mark_request_played((int)$loaded['request_id']);
+    mx_remove_loaded_track_from_playlist($loaded);
+    return true;
+}
+
 function mx_auto_unload_finished_deck($deck, $loaded, $device_id, $playback) {
     $deck = $deck === 'b' ? 'b' : 'a';
     if (!is_array($loaded) || empty($loaded['id']) || empty($loaded['played_on_deck'])) return $loaded;
@@ -421,8 +448,30 @@ function mx_state() {
 
     // Keep deck cards tidy after a played track has finished. This runs during normal
     // mixer polling, so the UI updates without the DJ having to press Clear.
+    $beforeUnloadA = $loadedA;
+    $beforeUnloadB = $loadedB;
     $loadedA = mx_auto_unload_finished_deck('a', $loadedA, $deviceA, $playback);
     $loadedB = mx_auto_unload_finished_deck('b', $loadedB, $deviceB, $playback);
+    $aFinished = !empty($beforeUnloadA['id']) && empty($loadedA['id']);
+    $bFinished = !empty($beforeUnloadB['id']) && empty($loadedB['id']);
+
+    // If one deck naturally finishes, automatically hand over to the opposite loaded deck.
+    // This gives the DJ a simple A/B chain: A ends -> B starts, B ends -> A starts.
+    if ($aFinished && !$bFinished && !empty($loadedB['id']) && $deviceB !== '') {
+        try {
+            mx_start_loaded_deck_after_handover('b', $loadedB, $deviceB);
+            $playback = mx_playback();
+        } catch (Throwable $ignoredAutoStartB) {}
+    } elseif ($bFinished && !$aFinished && !empty($loadedA['id']) && $deviceA !== '') {
+        try {
+            mx_start_loaded_deck_after_handover('a', $loadedA, $deviceA);
+            $playback = mx_playback();
+        } catch (Throwable $ignoredAutoStartA) {}
+    }
+
+    $activeDeviceId = (string)($playback['device']['id'] ?? '');
+    $isPlaying = !empty($playback['is_playing']);
+    $item = $playback['item'] ?? [];
     $artists = [];
     foreach (($item['artists'] ?? []) as $artist) if (!empty($artist['name'])) $artists[] = $artist['name'];
     $images = $item['album']['images'] ?? [];
