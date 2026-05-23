@@ -21,6 +21,10 @@ document.head.appendChild(overviewStyle);
   let searchTimer = null;
   let pollTimer = null;
   let busy = false;
+  let activeSource = 'search';
+  let playlistsLoaded = false;
+  let activePlaylistId = '';
+  let activePlaylistName = '';
 
   const $ = (sel) => document.querySelector(sel);
   const els = {
@@ -33,6 +37,8 @@ document.head.appendChild(overviewStyle);
     search: $('#spotifySearch'), searchResults: $('#searchResults'), searchStatus: $('#searchStatus'),
     publicRequests: $('#publicRequests'), djPlaylist: $('#djPlaylist'),
     requestCount: $('#requestCount'), playlistCount: $('#playlistCount'),
+    sourceTabs: document.querySelectorAll('[data-source-tab]'), sourcePanels: document.querySelectorAll('[data-source-panel]'),
+    spotifyPlaylists: $('#spotifyPlaylists'), spotifyPlaylistTracks: $('#spotifyPlaylistTracks'), spotifyPlaylistStatus: $('#spotifyPlaylistStatus'), historyList: $('#historyList'), refreshPlaylists: $('#refreshPlaylists'),
     choiceModal: $('#mixerChoiceModal'), choiceImage: $('#choiceImage'), choiceTitle: $('#choiceTitle'), choiceArtist: $('#choiceArtist'), choiceActions: $('#choiceActions'), choiceWarning: $('#choiceWarning'), choiceCancel: $('#choiceCancel')
   };
 
@@ -161,7 +167,7 @@ document.head.appendChild(overviewStyle);
     }
     closeChoice();
     doAction(params);
-    if(src === 'track') clearSearchUi();
+    if(src === 'track' && activeSource === 'search') clearSearchUi();
   }
 
   function renderDevices(){
@@ -305,7 +311,7 @@ document.head.appendChild(overviewStyle);
         </div>
       </div>`).join('');
   }
-  function render(){ renderDevices(); renderPlaylist(); renderRequests(); renderDecks(); }
+  function render(){ renderDevices(); renderPlaylist(); renderRequests(); renderDecks(); if(activeSource === 'history') renderHistory(); }
   async function refresh(silent=true){
     try{ const data = await apiGet({action:'state'}); if(data.ok){ state = data.state; render(); } else { if(data.state){state=data.state; render();} if(!silent) toast(data.error || 'Update failed', false); } }
     catch(e){ if(!silent) toast('Mixer update failed', false); }
@@ -330,6 +336,74 @@ document.head.appendChild(overviewStyle);
         <button class="mixer-btn green" data-select-track='${esc(JSON.stringify(t))}'>Choose</button>
       </div>`).join('');
   }
+  function setSourceTab(name){
+    activeSource = name || 'search';
+    els.sourceTabs.forEach(t => t.classList.toggle('active', t.dataset.sourceTab === activeSource));
+    els.sourcePanels.forEach(p => p.classList.toggle('active', p.dataset.sourcePanel === activeSource));
+    if(activeSource === 'playlists' && !playlistsLoaded) loadSpotifyPlaylists();
+    if(activeSource === 'history') renderHistory();
+  }
+  function renderHistory(){
+    if(!els.historyList) return;
+    const list = state?.history || [];
+    if(!list.length){ els.historyList.innerHTML = '<div class="empty">No played tracks in history yet.</div>'; return; }
+    els.historyList.innerHTML = list.map(t => `
+      <div class="history-row">
+        <img src="${esc(image(t.image))}" alt="">
+        <div>
+          <strong>${esc(t.title)}</strong><br>
+          <span class="mini muted">${esc(t.artist)}${duration(t.duration_ms) ? ' • ' + duration(t.duration_ms) : ''}</span>
+          <div class="history-meta">${t.played_at ? esc(String(t.played_at).slice(11,16)) : ''}${t.history_deck ? ' • played on ' + esc(t.history_deck) : ''}</div>
+        </div>
+        <div class="row-actions">
+          <button class="mixer-btn green" data-select-track='${esc(JSON.stringify(t))}'>Choose</button>
+        </div>
+      </div>`).join('');
+  }
+  function renderSpotifyPlaylists(playlists){
+    if(!els.spotifyPlaylists) return;
+    if(!playlists.length){ els.spotifyPlaylists.innerHTML = '<div class="empty">No Spotify playlists found for this account.</div>'; return; }
+    els.spotifyPlaylists.innerHTML = playlists.map(p => `
+      <div class="spotify-playlist-row">
+        <img src="${esc(image(p.image))}" alt="">
+        <div>
+          <strong>${esc(p.name)}</strong><br>
+          <span class="mini muted">${Number(p.tracks_total || 0)} tracks${p.owner ? ' • ' + esc(p.owner) : ''}</span>
+        </div>
+        <div class="row-actions"><button class="mixer-btn blue" data-open-spotify-playlist="${esc(p.id)}" data-playlist-name="${esc(p.name)}">Open</button></div>
+      </div>`).join('');
+  }
+  function renderSpotifyPlaylistTracks(tracks){
+    if(!els.spotifyPlaylistTracks) return;
+    const heading = activePlaylistName ? `<div class="tiny-label" style="margin-top:10px">${esc(activePlaylistName)} tracks</div>` : '';
+    if(!tracks.length){ els.spotifyPlaylistTracks.innerHTML = heading + '<div class="empty">No playable tracks found in this playlist.</div>'; return; }
+    els.spotifyPlaylistTracks.innerHTML = heading + tracks.map(t => `
+      <div class="result-row">
+        <img src="${esc(image(t.image))}" alt="">
+        <div><div class="result-title">${esc(t.title)}</div><div class="mini muted">${esc(t.artist)}${t.album ? ' • ' + esc(t.album) : ''}</div></div>
+        <button class="mixer-btn green" data-select-track='${esc(JSON.stringify(t))}'>Choose</button>
+      </div>`).join('');
+  }
+  async function loadSpotifyPlaylists(force=false){
+    if(!force && playlistsLoaded) return;
+    if(els.spotifyPlaylistStatus) els.spotifyPlaylistStatus.innerHTML = '<span class="spinner"></span> Loading Spotify playlists…';
+    if(els.spotifyPlaylistTracks) els.spotifyPlaylistTracks.innerHTML = '';
+    try{
+      const data = await apiGet({action:'spotify_playlists'});
+      if(data.ok){ playlistsLoaded = true; if(els.spotifyPlaylistStatus) els.spotifyPlaylistStatus.textContent = ''; renderSpotifyPlaylists(data.playlists || []); }
+      else { if(els.spotifyPlaylistStatus) els.spotifyPlaylistStatus.textContent = data.error || 'Could not load playlists.'; }
+    } catch(e){ if(els.spotifyPlaylistStatus) els.spotifyPlaylistStatus.textContent = 'Could not load playlists.'; }
+  }
+  async function loadSpotifyPlaylistTracks(id, name){
+    activePlaylistId = id || ''; activePlaylistName = name || 'Spotify playlist';
+    if(els.spotifyPlaylistStatus) els.spotifyPlaylistStatus.innerHTML = '<span class="spinner"></span> Loading playlist tracks…';
+    try{
+      const data = await apiGet({action:'spotify_playlist_tracks', playlist_id:id});
+      if(data.ok){ if(els.spotifyPlaylistStatus) els.spotifyPlaylistStatus.textContent = ''; renderSpotifyPlaylistTracks(data.tracks || []); }
+      else { if(els.spotifyPlaylistStatus) els.spotifyPlaylistStatus.textContent = data.error || 'Could not load playlist tracks.'; }
+    } catch(e){ if(els.spotifyPlaylistStatus) els.spotifyPlaylistStatus.textContent = 'Could not load playlist tracks.'; }
+  }
+
   async function search(q){
     if(!q || q.trim().length < 2){ els.searchResults.innerHTML=''; els.searchStatus.textContent=''; return; }
     els.searchStatus.innerHTML = '<span class="spinner"></span> Searching…';
@@ -337,6 +411,10 @@ document.head.appendChild(overviewStyle);
     catch(e){ els.searchStatus.textContent = 'Search failed'; }
   }
   app.addEventListener('click', (e)=>{
+    const sourceTab = e.target.closest('[data-source-tab]');
+    if(sourceTab){ setSourceTab(sourceTab.dataset.sourceTab || 'search'); return; }
+    const openSpotifyPlaylist = e.target.closest('[data-open-spotify-playlist]');
+    if(openSpotifyPlaylist){ loadSpotifyPlaylistTracks(openSpotifyPlaylist.dataset.openSpotifyPlaylist, openSpotifyPlaylist.dataset.playlistName || 'Spotify playlist'); return; }
     const save = e.target.closest('[data-save-devices]');
     if(save){ doAction({action:'assign_devices', device_a:els.deviceA.value, device_b:els.deviceB.value}); return; }
     const deckAction = e.target.closest('[data-deck-action]');
@@ -375,6 +453,7 @@ document.head.appendChild(overviewStyle);
   }
   const clearSearch = $('#clearSearch'); if(clearSearch) clearSearch.addEventListener('click', ()=>{ els.search.value=''; els.search.focus(); els.searchResults.innerHTML=''; els.searchStatus.textContent=''; });
   const refreshNow = $('#refreshNow'); if(refreshNow) refreshNow.addEventListener('click', ()=>refresh(false));
+  if(els.refreshPlaylists) els.refreshPlaylists.addEventListener('click', ()=>{ playlistsLoaded = false; loadSpotifyPlaylists(true); });
   refresh(false);
   pollTimer = setInterval(()=>refresh(true), 3000);
 })();

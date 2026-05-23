@@ -10,7 +10,10 @@ admin_header('Spotify Mixer - DJ Portal');
 .deck-status-wrap{display:flex;align-items:center;gap:9px}.deck-vu{display:none;align-items:flex-end;gap:3px;height:22px;min-width:34px}.deck-vu span{display:block;width:4px;border-radius:999px;background:linear-gradient(180deg,#58ff99,#24a7ff);box-shadow:0 0 10px rgba(88,255,153,.45);animation:deckvu .72s ease-in-out infinite}.mixer-panel-a .deck-vu span{background:linear-gradient(180deg,#ffe066,#ff9f1a);box-shadow:0 0 10px rgba(255,159,26,.5)}.deck-vu span:nth-child(2){animation-delay:.12s}.deck-vu span:nth-child(3){animation-delay:.24s}.deck-vu span:nth-child(4){animation-delay:.36s}.deck-vu span:nth-child(5){animation-delay:.18s}.mixer-panel.deck-playing .deck-vu{display:flex}.mixer-panel.device-missing{border-color:rgba(255,70,85,.9);box-shadow:0 0 0 1px rgba(255,70,85,.35),0 0 28px rgba(255,70,85,.28)}.mixer-btn.device-alert{border-color:#ff4655!important;color:#fff!important;background:rgba(255,70,85,.2)!important;animation:devicealert 1s ease-in-out infinite}.mixer-btn.device-alert::before{content:'⚠';font-size:14px}.deck-device.device-alert-text{color:#ff9aa2;font-weight:950}@keyframes deckvu{0%,100%{height:5px;opacity:.55}45%{height:21px;opacity:1}}@keyframes devicealert{0%,100%{box-shadow:0 0 0 0 rgba(255,70,85,.2);filter:none}50%{box-shadow:0 0 0 4px rgba(255,70,85,.22),0 0 22px rgba(255,70,85,.7);filter:brightness(1.35)}}
 
 /* Real transport controls */
-.deck-actions{display:block;margin-top:14px}.transport-controls{display:grid;grid-template-columns:1fr 1fr 1.35fr 1fr 1fr;gap:8px;align-items:stretch;margin-top:14px}.transport-btn{min-height:72px;border-radius:14px;flex-direction:column;gap:5px;font-size:18px;line-height:1.05}.transport-btn small{display:block;font-size:10px;letter-spacing:.035em;text-transform:uppercase;color:#c8d7e8}.transport-play{width:96px;height:96px;min-height:96px;border-radius:999px;justify-self:center;font-size:32px;letter-spacing:0;padding:0;gap:7px;display:inline-flex;align-items:center;justify-content:center}.transport-play .transport-play-icon{font-size:34px;line-height:1}.transport-play .transport-pause-icon{display:inline-flex;gap:5px;align-items:center}.transport-play .transport-pause-icon i{display:block;width:6px;height:28px;border-radius:3px;background:currentColor}.transport-play.transport-ready{border-color:#ffb11a;color:#fff;background:radial-gradient(circle,rgba(255,177,26,.28),rgba(255,177,26,.08));box-shadow:0 0 0 0 rgba(255,177,26,.26),0 0 26px rgba(255,177,26,.25);animation:transportReady 1.05s ease-in-out infinite}.transport-play.transport-playing{border-color:#16c874;color:#fff;background:radial-gradient(circle,rgba(22,200,116,.28),rgba(22,200,116,.08));box-shadow:0 0 0 3px rgba(22,200,116,.14),0 0 28px rgba(22,200,116,.38)}.transport-under{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.transport-eject{min-height:52px}.transport-swap{min-height:52px;border-color:#ff9e16;color:#ffc455;background:rgba(255,158,22,.11)}@keyframes transportReady{0%,100%{box-shadow:0 0 0 0 rgba(255,177,26,.2),0 0 16px rgba(255,177,26,.3);filter:brightness(.95)}50%{box-shadow:0 0 0 5px rgba(255,177,26,.22),0 0 34px rgba(255,177,26,.72);filter:brightness(1.2)}}@media(max-width:700px){.transport-controls{grid-template-columns:repeat(5,minmax(54px,1fr));gap:6px}.transport-btn{min-height:62px;font-size:15px}.transport-play{width:78px;height:78px;min-height:78px;font-size:27px}.transport-under{grid-template-columns:1fr}.transport-btn small{font-size:9px}}
+.deck-actions{display:block;margin-top:14px}.transport-controls{display:grid;grid-template-columns:1fr 1fr 1.35fr 1fr 1fr;gap:8px;align-items:stretch;margin-top:14px}.transport-btn{min-height:72px;border-radius:14px;flex-direction:column;gap:5px;font-size:18px;line-height:1.05}.transport-btn small{display:block;font-size:10px;letter-spacing:.035em;text-transform:uppercase;color:#c8d7e8}.transport-play{width:96px;height:96px;min-height:96px;border-radius:999px;justify-self:center;font-size:32px;letter-spacing:-6px;padding-right:12px}.transport-play.transport-ready{border-color:#ffb11a;color:#fff;background:radial-gradient(circle,rgba(255,177,26,.28),rgba(255,177,26,.08));box-shadow:0 0 0 0 rgba(255,177,26,.26),0 0 26px rgba(255,177,26,.25);animation:transportReady 1.05s ease-in-out infinite}.transport-play.transport-playing{border-color:#16c874;color:#fff;background:radial-gradient(circle,rgba(22,200,116,.28),rgba(22,200,116,.08));box-shadow:0 0 0 3px rgba(22,200,116,.14),0 0 28px rgba(22,200,116,.38)}.transport-under{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.transport-eject{min-height:52px}.transport-swap{min-height:52px;border-color:#ff9e16;color:#ffc455;background:rgba(255,158,22,.11)}@keyframes transportReady{0%,100%{box-shadow:0 0 0 0 rgba(255,177,26,.2),0 0 16px rgba(255,177,26,.3);filter:brightness(.95)}50%{box-shadow:0 0 0 5px rgba(255,177,26,.22),0 0 34px rgba(255,177,26,.72);filter:brightness(1.2)}}@media(max-width:700px){.transport-controls{grid-template-columns:repeat(5,minmax(54px,1fr));gap:6px}.transport-btn{min-height:62px;font-size:15px}.transport-play{width:78px;height:78px;min-height:78px;font-size:27px}.transport-under{grid-template-columns:1fr}.transport-btn small{font-size:9px}}
+
+
+.source-tabs{display:flex;gap:8px;align-items:center;margin-bottom:10px}.source-tab{border:1px solid rgba(96,145,205,.35);background:rgba(16,28,44,.92);color:#cfe4ff;border-radius:11px;padding:9px 11px;font-weight:1000;cursor:pointer}.source-tab.active{border-color:#3498ff;color:#fff;background:rgba(52,152,255,.17);box-shadow:0 0 18px rgba(52,152,255,.16)}.source-panel{display:none}.source-panel.active{display:block}.spotify-playlist-row,.history-row{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:9px;border-radius:13px;border:1px solid rgba(96,145,205,.2);background:rgba(255,255,255,.027);margin-top:7px}.spotify-playlist-row img,.history-row img{width:44px;height:44px;border-radius:9px;object-fit:cover}.source-list{margin-top:8px}.history-meta{color:#9fc2e9;font-size:12px;margin-top:3px;font-weight:800}.source-tools{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px}.source-tools .mixer-btn{min-height:36px;padding:7px 10px;font-size:12px}@media(max-width:700px){.source-tabs{flex-wrap:wrap}.spotify-playlist-row,.history-row{grid-template-columns:44px 1fr}.spotify-playlist-row .row-actions,.history-row .row-actions{grid-column:1/-1;justify-content:flex-start}}
 
 </style>
 <main class="spotify-mixer-app" data-api="<?= h(admin_url('spotify/mixer-api.php')) ?>">
@@ -47,7 +50,7 @@ admin_header('Spotify Mixer - DJ Portal');
           <div class="transport-controls">
             <button class="mixer-btn dark transport-btn" data-deck-action="seek_start" data-deck="a" title="Go to start">|◀<small>To start</small></button>
             <button class="mixer-btn dark transport-btn" data-deck-action="seek_back" data-deck="a" title="Rewind 30 seconds">◀◀ 30<small>-30 sec</small></button>
-            <button class="mixer-btn transport-play" data-deck-action="play_toggle" data-deck="a" title="Play / Pause"><span class="transport-play-icon">▶</span><span class="transport-pause-icon" aria-hidden="true"><i></i><i></i></span></button>
+            <button class="mixer-btn transport-play" data-deck-action="play_toggle" data-deck="a" title="Play / Pause">▶❚❚</button>
             <button class="mixer-btn dark transport-btn" data-deck-action="seek_forward" data-deck="a" title="Forward 30 seconds">30 ▶▶<small>+30 sec</small></button>
             <button class="mixer-btn dark transport-btn" data-deck-action="seek_end" data-deck="a" title="Go to end">▶|<small>To end</small></button>
           </div>
@@ -62,11 +65,28 @@ admin_header('Spotify Mixer - DJ Portal');
 
     <section class="mixer-panel mixer-centre">
       <div class="panel-body">
-        <div class="search-box">
-          <div class="tiny-label">Search Spotify</div>
-          <div class="search-row"><input id="spotifySearch" class="search-input" placeholder="Start typing a track, artist or album…" autocomplete="off"><button class="mixer-btn dark" id="clearSearch">Clear</button></div>
-          <div id="searchStatus" class="mini muted" style="margin-top:8px"></div>
-          <div class="search-results" id="searchResults"></div>
+        <div class="search-box source-box">
+          <div class="source-tabs" role="tablist" aria-label="Track source">
+            <button class="source-tab active" type="button" data-source-tab="search">Search Spotify</button>
+            <button class="source-tab" type="button" data-source-tab="playlists">Spotify Playlists</button>
+            <button class="source-tab" type="button" data-source-tab="history">History</button>
+          </div>
+          <div class="source-panel active" id="sourcePanelSearch" data-source-panel="search">
+            <div class="tiny-label">Search Spotify</div>
+            <div class="search-row"><input id="spotifySearch" class="search-input" placeholder="Start typing a track, artist or album…" autocomplete="off"><button class="mixer-btn dark" id="clearSearch">Clear</button></div>
+            <div id="searchStatus" class="mini muted" style="margin-top:8px"></div>
+            <div class="search-results" id="searchResults"></div>
+          </div>
+          <div class="source-panel" id="sourcePanelPlaylists" data-source-panel="playlists">
+            <div class="source-tools"><div><div class="tiny-label">Spotify playlists</div><div class="mini muted">Pick a playlist, then choose tracks to add or load.</div></div><button class="mixer-btn blue" id="refreshPlaylists" type="button">Refresh</button></div>
+            <div id="spotifyPlaylistStatus" class="mini muted"></div>
+            <div id="spotifyPlaylists" class="source-list"></div>
+            <div id="spotifyPlaylistTracks" class="source-list"></div>
+          </div>
+          <div class="source-panel" id="sourcePanelHistory" data-source-panel="history">
+            <div class="source-tools"><div><div class="tiny-label">Playback history</div><div class="mini muted">Tracks played during this mixer session/event.</div></div></div>
+            <div id="historyList" class="source-list"></div>
+          </div>
         </div>
 
         <section class="dj-section">
@@ -94,7 +114,7 @@ admin_header('Spotify Mixer - DJ Portal');
           <div class="transport-controls">
             <button class="mixer-btn dark transport-btn" data-deck-action="seek_start" data-deck="b" title="Go to start">|◀<small>To start</small></button>
             <button class="mixer-btn dark transport-btn" data-deck-action="seek_back" data-deck="b" title="Rewind 30 seconds">◀◀ 30<small>-30 sec</small></button>
-            <button class="mixer-btn transport-play" data-deck-action="play_toggle" data-deck="b" title="Play / Pause"><span class="transport-play-icon">▶</span><span class="transport-pause-icon" aria-hidden="true"><i></i><i></i></span></button>
+            <button class="mixer-btn transport-play" data-deck-action="play_toggle" data-deck="b" title="Play / Pause">▶❚❚</button>
             <button class="mixer-btn dark transport-btn" data-deck-action="seek_forward" data-deck="b" title="Forward 30 seconds">30 ▶▶<small>+30 sec</small></button>
             <button class="mixer-btn dark transport-btn" data-deck-action="seek_end" data-deck="b" title="Go to end">▶|<small>To end</small></button>
           </div>
@@ -109,5 +129,5 @@ admin_header('Spotify Mixer - DJ Portal');
   </div>
   <div class="mixer-footer"><div><strong>Spotify status:</strong> <span id="spotifyStatus">Checking…</span></div><div class="mini muted">Device status is polled; Spotify can lag briefly, so active players remain protected.</div></div>
 </main>
-<script src="<?= h(admin_url('assets/spotify-mixer.js')) ?>?v=20260523-end-unload-playpause-v1"></script>
+<script src="<?= h(admin_url('assets/spotify-mixer.js')) ?>?v=20260523-source-tabs-v1"></script>
 <?php admin_footer(); ?>

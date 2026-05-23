@@ -203,7 +203,7 @@ function dttd_spotify_authorize_url() {
         'client_id' => $credentials['client_id'],
         'response_type' => 'code',
         'redirect_uri' => dttd_spotify_redirect_uri(),
-        'scope' => 'user-read-playback-state user-read-currently-playing user-modify-playback-state',
+        'scope' => 'user-read-playback-state user-read-currently-playing user-modify-playback-state playlist-read-private playlist-read-collaborative',
         'state' => $state,
         'show_dialog' => 'true',
     ];
