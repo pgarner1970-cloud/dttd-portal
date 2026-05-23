@@ -10,6 +10,7 @@ $connected = dttd_spotify_queue_connected();
 $devices = [];
 $playback = null;
 $error = '';
+$diag = null;
 
 if ($connected) {
     try {
@@ -18,6 +19,7 @@ if ($connected) {
     } catch (Throwable $e) {
         $error = $e->getMessage();
     }
+    try { $diag = dttd_spotify_playlist_diagnostics(); } catch (Throwable $e) { $diag = ['diagnostic_error' => $e->getMessage()]; }
 }
 ?>
 <main class="touch-wrap">
@@ -70,6 +72,40 @@ if ($connected) {
         <?php endif; ?>
       </div>
     </div>
+
+    <div class="setting-card" style="margin-top:18px;">
+      <h2>Spotify diagnostics</h2>
+      <?php if (!$connected): ?>
+        <p>Connect Spotify first to run playlist diagnostics.</p>
+      <?php else: ?>
+        <?php
+          $requested = $diag['requested_scope'] ?? (function_exists('dttd_spotify_requested_scope') ? dttd_spotify_requested_scope() : '');
+          $granted = $diag['granted_scope'] ?? dttd_spotify_setting('spotify_granted_scope', '');
+          $me = $diag['me'] ?? null;
+          $pls = $diag['playlists'] ?? null;
+          $tracks = $diag['playlist_tracks'] ?? null;
+          $first = $diag['first_playlist'] ?? null;
+          $playlistCount = is_array($pls) ? count($pls['json']['items'] ?? []) : 0;
+          $trackCount = is_array($tracks) ? count($tracks['json']['items'] ?? []) : 0;
+        ?>
+        <p><strong>Requested scopes:</strong><br><code><?= h($requested) ?></code></p>
+        <p><strong>Last granted scopes:</strong><br><code><?= h($granted !== '' ? $granted : 'Not stored yet — reconnect once after this patch') ?></code></p>
+        <p><strong>Profile endpoint:</strong> <?= !empty($me['ok']) ? 'OK' : h(dttd_spotify_debug_error_text($me)) ?></p>
+        <p><strong>Playlist list endpoint:</strong> <?= !empty($pls['ok']) ? 'OK — ' . (int)$playlistCount . ' playlists returned in test' : h(dttd_spotify_debug_error_text($pls)) ?></p>
+        <?php if ($first): ?>
+          <p><strong>Track endpoint test playlist:</strong> <?= h($first['name']) ?> <small>(Spotify reports <?= (int)$first['reported_total'] ?> tracks)</small></p>
+          <p><strong>Playlist tracks endpoint:</strong> <?= !empty($tracks['ok']) ? 'OK — ' . (int)$trackCount . ' track rows returned in test' : h(dttd_spotify_debug_error_text($tracks)) ?></p>
+          <?php if (!empty($tracks['ok']) && $trackCount === 0): ?>
+            <p class="touch-subtitle">Spotify returned zero usable track rows for this playlist. Try a different playlist with normal Spotify tracks, not local files.</p>
+          <?php endif; ?>
+        <?php else: ?>
+          <p><strong>Playlist tracks endpoint:</strong> Not checked because no playlist ID was returned.</p>
+        <?php endif; ?>
+        <?php if (!empty($diag['diagnostic_error'])): ?><p class="notice error"><?= h($diag['diagnostic_error']) ?></p><?php endif; ?>
+        <p class="touch-subtitle">Use this section to confirm whether the portal token has playlist scopes and whether Spotify is allowing playlist track reads.</p>
+      <?php endif; ?>
+    </div>
+
   </section>
 </main>
 

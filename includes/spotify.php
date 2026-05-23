@@ -188,23 +188,6 @@ function dttd_spotify_update_setting($key, $value) {
     $stmt->execute([$key, (string)$value]);
 }
 
-function dttd_spotify_required_scopes() {
-    return [
-        'user-read-playback-state',
-        'user-read-currently-playing',
-        'user-modify-playback-state',
-        'playlist-read-private',
-        'playlist-read-collaborative',
-    ];
-}
-
-function dttd_spotify_clear_user_tokens() {
-    dttd_spotify_update_setting('spotify_access_token', '');
-    dttd_spotify_update_setting('spotify_refresh_token', '');
-    dttd_spotify_update_setting('spotify_token_expires_at', '0');
-    dttd_spotify_update_setting('spotify_granted_scope', '');
-}
-
 function dttd_spotify_redirect_uri() {
     return 'https://dj.dancethruthedecades.co.uk/spotify/callback.php';
 }
@@ -220,7 +203,7 @@ function dttd_spotify_authorize_url() {
         'client_id' => $credentials['client_id'],
         'response_type' => 'code',
         'redirect_uri' => dttd_spotify_redirect_uri(),
-        'scope' => implode(' ', dttd_spotify_required_scopes()),
+        'scope' => 'user-read-playback-state user-read-currently-playing user-modify-playback-state playlist-read-private playlist-read-collaborative',
         'state' => $state,
         'show_dialog' => 'true',
     ];
@@ -253,10 +236,11 @@ function dttd_spotify_save_user_token(array $data) {
         dttd_spotify_update_setting('spotify_refresh_token', $data['refresh_token']);
     }
     dttd_spotify_update_setting('spotify_token_expires_at', (string)(time() + (int)($data['expires_in'] ?? 3600)));
+    if (isset($data['scope'])) {
+        dttd_spotify_update_setting('spotify_granted_scope', (string)$data['scope']);
+    }
     dttd_spotify_update_setting('spotify_queue_enabled', '1');
-    dttd_spotify_update_setting('spotify_granted_scope', (string)($data['scope'] ?? implode(' ', dttd_spotify_required_scopes())));
 }
-
 
 function dttd_spotify_refresh_user_token() {
     $refresh = dttd_spotify_setting('spotify_refresh_token', '');
@@ -359,4 +343,86 @@ function dttd_spotify_current_playback() {
         'Authorization: Bearer ' . $token,
         'Accept: application/json',
     ]);
+}
+
+
+function dttd_spotify_requested_scope() {
+    return 'user-read-playback-state user-read-currently-playing user-modify-playback-state playlist-read-private playlist-read-collaborative';
+}
+
+function dttd_spotify_http_get_debug($url, array $headers) {
+    if (!function_exists('curl_init')) {
+        return ['ok' => false, 'status' => 0, 'error' => 'PHP cURL is not available.', 'body' => '', 'json' => null];
+    }
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_HTTPGET => true,
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 15,
+    ]);
+    $response = curl_exec($ch);
+    $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $error = curl_error($ch);
+    curl_close($ch);
+    $body = $response === false ? '' : (string)$response;
+    $json = $body !== '' ? json_decode($body, true) : null;
+    return [
+        'ok' => ($response !== false && $status >= 200 && $status < 300),
+        'status' => $status,
+        'error' => $error,
+        'body' => $body,
+        'json' => is_array($json) ? $json : null,
+    ];
+}
+
+function dttd_spotify_user_get_debug($url) {
+    $token = dttd_spotify_user_access_token();
+    return dttd_spotify_http_get_debug($url, [
+        'Authorization: Bearer ' . $token,
+        'Accept: application/json',
+    ]);
+}
+
+function dttd_spotify_playlist_diagnostics() {
+    $diag = [
+        'requested_scope' => dttd_spotify_requested_scope(),
+        'granted_scope' => dttd_spotify_setting('spotify_granted_scope', ''),
+        'connected' => dttd_spotify_queue_connected(),
+        'me' => null,
+        'playlists' => null,
+        'playlist_tracks' => null,
+        'first_playlist' => null,
+    ];
+    if (!$diag['connected']) {
+        return $diag;
+    }
+    $diag['me'] = dttd_spotify_user_get_debug('https://api.spotify.com/v1/me');
+    $diag['playlists'] = dttd_spotify_user_get_debug('https://api.spotify.com/v1/me/playlists?limit=5');
+    $items = $diag['playlists']['json']['items'] ?? [];
+    if (!empty($items[0]['id'])) {
+        $diag['first_playlist'] = [
+            'id' => (string)$items[0]['id'],
+            'name' => (string)($items[0]['name'] ?? 'Unnamed playlist'),
+            'reported_total' => (int)($items[0]['tracks']['total'] ?? 0),
+        ];
+        $url = 'https://api.spotify.com/v1/playlists/' . rawurlencode((string)$items[0]['id']) . '/tracks?limit=5&fields=items(track(id,name,type,is_local,artists(name),album(name,images),external_urls,duration_ms)),total,next';
+        $diag['playlist_tracks'] = dttd_spotify_user_get_debug($url);
+    }
+    return $diag;
+}
+
+function dttd_spotify_debug_error_text($debug) {
+    if (!is_array($debug)) return 'Not checked.';
+    if (!empty($debug['ok'])) return 'OK';
+    $json = $debug['json'] ?? null;
+    if (is_array($json) && isset($json['error'])) {
+        if (is_array($json['error'])) {
+            return trim((string)($json['error']['status'] ?? '') . ' ' . (string)($json['error']['message'] ?? ''));
+        }
+        return (string)$json['error'];
+    }
+    $body = trim((string)($debug['body'] ?? ''));
+    if ($body !== '') return mb_substr($body, 0, 240);
+    return (string)($debug['error'] ?? 'Unknown Spotify API error.');
 }
