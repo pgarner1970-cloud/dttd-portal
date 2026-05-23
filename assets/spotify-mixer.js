@@ -25,6 +25,7 @@ document.head.appendChild(overviewStyle);
   let playlistsLoaded = false;
   let activePlaylistId = '';
   let activePlaylistName = '';
+  let currentSpotifyPlaylists = [];
 
   const $ = (sel) => document.querySelector(sel);
   const els = {
@@ -362,25 +363,31 @@ document.head.appendChild(overviewStyle);
   }
   function renderSpotifyPlaylists(playlists){
     if(!els.spotifyPlaylists) return;
-    if(!playlists.length){ els.spotifyPlaylists.innerHTML = '<div class="empty">No Spotify playlists found for this account.</div>'; return; }
-    els.spotifyPlaylists.innerHTML = playlists.map(p => `
+    currentSpotifyPlaylists = playlists || [];
+    if(els.spotifyPlaylistTracks) els.spotifyPlaylistTracks.innerHTML = '';
+    if(!currentSpotifyPlaylists.length){ els.spotifyPlaylists.innerHTML = '<div class="empty">No Spotify playlists found for this account.</div>'; return; }
+    els.spotifyPlaylists.innerHTML = currentSpotifyPlaylists.map(p => {
+      const count = (p.tracks_total === null || p.tracks_total === undefined) ? 'Open to view tracks' : `${Number(p.tracks_total || 0)} tracks`;
+      return `
       <div class="spotify-playlist-row">
         <img src="${esc(image(p.image))}" alt="">
         <div>
           <strong>${esc(p.name)}</strong><br>
-          <span class="mini muted">${Number(p.tracks_total || 0)} tracks${p.owner ? ' • ' + esc(p.owner) : ''}</span>
+          <span class="mini muted">${esc(count)}${p.owner ? ' • ' + esc(p.owner) : ''}</span>
         </div>
         <div class="row-actions"><button class="mixer-btn blue" data-open-spotify-playlist="${esc(p.id)}" data-playlist-name="${esc(p.name)}">Open</button></div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
   function renderSpotifyPlaylistTracks(tracks){
     if(!els.spotifyPlaylistTracks) return;
-    const heading = activePlaylistName ? `<div class="tiny-label" style="margin-top:10px">${esc(activePlaylistName)} tracks</div>` : '';
+    const heading = activePlaylistName ? `<div class="source-drill-head"><button class="mixer-btn dark" type="button" data-back-spotify-playlists>← Playlists</button><div><div class="tiny-label">${esc(activePlaylistName)}</div><div class="mini muted">${Number((tracks || []).length)} playable tracks loaded from Spotify</div></div></div>` : '';
+    if(els.spotifyPlaylists) els.spotifyPlaylists.innerHTML = '';
     if(!tracks.length){ els.spotifyPlaylistTracks.innerHTML = heading + '<div class="empty">No playable tracks found in this playlist.</div>'; return; }
     els.spotifyPlaylistTracks.innerHTML = heading + tracks.map(t => `
       <div class="result-row">
         <img src="${esc(image(t.image))}" alt="">
-        <div><div class="result-title">${esc(t.title)}</div><div class="mini muted">${esc(t.artist)}${t.album ? ' • ' + esc(t.album) : ''}</div></div>
+        <div><div class="result-title">${esc(t.title)}</div><div class="mini muted">${esc(t.artist)}${t.album ? ' • ' + esc(t.album) : ''}${duration(t.duration_ms) ? ' • ' + duration(t.duration_ms) : ''}</div></div>
         <button class="mixer-btn green" data-select-track='${esc(JSON.stringify(t))}'>Choose</button>
       </div>`).join('');
   }
@@ -415,6 +422,7 @@ document.head.appendChild(overviewStyle);
     if(sourceTab){ setSourceTab(sourceTab.dataset.sourceTab || 'search'); return; }
     const openSpotifyPlaylist = e.target.closest('[data-open-spotify-playlist]');
     if(openSpotifyPlaylist){ loadSpotifyPlaylistTracks(openSpotifyPlaylist.dataset.openSpotifyPlaylist, openSpotifyPlaylist.dataset.playlistName || 'Spotify playlist'); return; }
+    if(e.target.closest('[data-back-spotify-playlists]')){ activePlaylistId = ''; activePlaylistName = ''; if(els.spotifyPlaylistTracks) els.spotifyPlaylistTracks.innerHTML = ''; renderSpotifyPlaylists(currentSpotifyPlaylists); return; }
     const save = e.target.closest('[data-save-devices]');
     if(save){ doAction({action:'assign_devices', device_a:els.deviceA.value, device_b:els.deviceB.value}); return; }
     const deckAction = e.target.closest('[data-deck-action]');
