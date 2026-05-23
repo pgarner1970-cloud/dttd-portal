@@ -8,8 +8,8 @@
     const isRequestsPage = !!window.DTTD_IS_REQUESTS_PAGE;
     const pingUrl = window.DTTD_REQUEST_PING_URL || 'request-ping.php';
     const requestsUrl = window.DTTD_REQUESTS_URL || 'requests.php';
-    const storeKey = 'dttd_request_seen_fingerprint_v1';
-    const alertedKey = 'dttd_request_alert_fingerprint_v1';
+    const storeKey = 'dttd_request_seen_actionable_id_v1';
+    const alertedKey = 'dttd_request_alert_actionable_id_v1';
 
     function injectStyles(){
       if (document.getElementById('dttd-request-alert-styles')) return;
@@ -71,9 +71,13 @@
       }
     }
 
-    function markSeen(fingerprint){
-      if (!fingerprint) return;
-      localStorage.setItem(storeKey, fingerprint);
+    function newestActionableId(data){
+      return Math.max(0, Number(data && data.actionable_newest_id ? data.actionable_newest_id : 0));
+    }
+
+    function markSeen(data){
+      const newestId = newestActionableId(data);
+      localStorage.setItem(storeKey, String(newestId));
       localStorage.removeItem(alertedKey);
       setAlert(false);
     }
@@ -144,7 +148,7 @@
         if (!data || !data.fingerprint) return;
 
         if (isRequestsPage) {
-          markSeen(data.fingerprint);
+          markSeen(data);
           if (!hasBannerUpdate && loadedCounts) {
             const server = data.status_counts || {};
             const serverTotal = Number(data.total_requests || 0);
@@ -161,15 +165,17 @@
         }
 
         const seen = localStorage.getItem(storeKey);
-        if (!seen) {
-          localStorage.setItem(storeKey, data.fingerprint);
+        if (seen === null) {
+          localStorage.setItem(storeKey, String(newestActionableId(data)));
           setAlert(false);
           return;
         }
 
-        const changed = seen !== data.fingerprint;
+        const seenId = Math.max(0, Number(seen || 0));
+        const currentNewestId = newestActionableId(data);
+        const changed = currentNewestId > seenId;
         setAlert(changed, data);
-        if (changed) localStorage.setItem(alertedKey, data.fingerprint);
+        if (changed) localStorage.setItem(alertedKey, String(currentNewestId));
       } catch (error) {
         console.error('Queue update check failed', error);
       }

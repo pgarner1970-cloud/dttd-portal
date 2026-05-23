@@ -40,10 +40,15 @@ try {
     ");
     $status_stmt->execute([$event_id]);
 
-    foreach ($status_stmt->fetchAll() as $row) {
+    foreach ($status_stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
         $status = (string)($row['request_status'] ?? 'pending');
         $status_counts[$status] = (int)($row['request_total'] ?? 0);
     }
+
+    $columns_stmt = db()->query("SHOW COLUMNS FROM song_requests");
+    $columns = array_map('strtolower', array_column($columns_stmt->fetchAll(PDO::FETCH_ASSOC), 'Field'));
+    $has_message = in_array('message', $columns, true);
+    $has_dedication = in_array('dedication', $columns, true);
 
     $fingerprint_rows_stmt = db()->prepare("
         SELECT *
@@ -53,24 +58,46 @@ try {
     ");
     $fingerprint_rows_stmt->execute([$event_id]);
     $fingerprint_parts = [];
+    $actionable_parts = [];
+    $actionable_newest_id = 0;
+    $actionable_count = 0;
 
     foreach ($fingerprint_rows_stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-        $fingerprint_parts[] = implode('|', [
+        $status = strtolower((string)($row['status'] ?? 'pending'));
+        $message = '';
+        if ($has_message && array_key_exists('message', $row)) {
+            $message = (string)$row['message'];
+        } elseif ($has_dedication && array_key_exists('dedication', $row)) {
+            $message = (string)$row['dedication'];
+        }
+
+        $part = implode('|', [
             (string)($row['id'] ?? ''),
             (string)($row['request_group_id'] ?? ''),
-            strtolower((string)($row['status'] ?? 'pending')),
+            $status,
             (string)($row['song_title'] ?? ''),
             (string)($row['artist'] ?? ''),
-            (string)($row['message'] ?? ''),
+            $message,
             (string)($row['spotify_track_id'] ?? ''),
             (string)($row['spotify_queue_status'] ?? ''),
             (string)($row['spotify_queued_at'] ?? ''),
             (string)($row['created_at'] ?? ''),
             (string)($row['updated_at'] ?? ''),
         ]);
+        $fingerprint_parts[] = $part;
+
+        // Alerts outside the Requests page should only be driven by requests that still need DJ review.
+        // Status changes such as pending -> played should not create a new alert.
+        if (in_array($status, ['pending', 'maybe'], true)) {
+            $actionable_count++;
+            $id = (int)($row['id'] ?? 0);
+            $actionable_newest_id = max($actionable_newest_id, $id);
+            $actionable_parts[] = $part;
+        }
     }
 
     $fingerprint = sha1(implode("\n", $fingerprint_parts));
+    $actionable_fingerprint = sha1(implode("\n", $actionable_parts));
 
     echo json_encode([
         'ok' => true,
@@ -78,6 +105,9 @@ try {
         'total_requests' => $total,
         'status_counts' => $status_counts,
         'fingerprint' => $fingerprint,
+        'actionable_fingerprint' => $actionable_fingerprint,
+        'actionable_count' => $actionable_count,
+        'actionable_newest_id' => $actionable_newest_id,
         'checked_at' => date('H:i:s')
     ]);
 } catch (Throwable $e) {
