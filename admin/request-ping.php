@@ -86,9 +86,13 @@ try {
         ]);
         $fingerprint_parts[] = $part;
 
-        // Alerts outside the Requests page should only be driven by requests that still need DJ review.
-        // Status changes such as pending -> played should not create a new alert.
-        if (in_array($status, ['pending', 'maybe'], true)) {
+        // Alerts outside the Requests page should only be driven by requests that still
+        // need DJ review on the main Requests page. Once a request has been sent to
+        // the mixer/playlist/loaded deck, later status changes such as played should
+        // not create a fresh NEW alert.
+        $queue_status = strtolower(trim((string)($row['spotify_queue_status'] ?? '')));
+        $already_handled_by_mixer = in_array($queue_status, ['mixer_request', 'dj_playlist', 'loaded_a', 'loaded_b', 'played', 'queued', 'spotify_queue'], true);
+        if (in_array($status, ['pending', 'maybe'], true) && !$already_handled_by_mixer) {
             $actionable_count++;
             $id = (int)($row['id'] ?? 0);
             $actionable_newest_id = max($actionable_newest_id, $id);
