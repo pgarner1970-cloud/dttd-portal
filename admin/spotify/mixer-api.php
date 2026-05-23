@@ -157,7 +157,7 @@ function mx_wait_for_active_device($device_id, $timeout_ms = 1800) {
     } while (microtime(true) < $deadline);
     return false;
 }
-function mx_play_track($device_id, $track_id) {
+function mx_play_track($device_id, $track_id, $position_ms = null) {
     $device_id = trim((string)$device_id);
     $track_id = trim((string)$track_id);
     if ($device_id === '') throw new RuntimeException('No Spotify device selected for this player.');
@@ -165,6 +165,7 @@ function mx_play_track($device_id, $track_id) {
     $uri = strpos($track_id, 'spotify:track:') === 0 ? $track_id : 'spotify:track:' . $track_id;
     $wantedId = str_replace('spotify:track:', '', $uri);
     $playUrl = 'https://api.spotify.com/v1/me/player/play?device_id=' . rawurlencode($device_id);
+    $position = is_numeric($position_ms) ? max(0, (int)$position_ms) : null;
 
     // Spotify Connect can briefly restore the account-wide active track on slower tablet clients
     // during handover. Stage the handover before sending the explicit track play command.
@@ -179,7 +180,16 @@ function mx_play_track($device_id, $track_id) {
         usleep(250000);
     }
 
-    mx_spotify_put($playUrl, json_encode(['uris' => [$uri]]));
+    $payload = ['uris' => [$uri]];
+    if ($position !== null) $payload['position_ms'] = $position;
+    mx_spotify_put($playUrl, json_encode($payload));
+
+    // Some Android/tablet clients ignore position_ms during Connect handover. Follow with an
+    // explicit seek to make pause/resume consistent across Lenovo-style devices.
+    if ($position !== null && $position > 0) {
+        usleep(250000);
+        try { mx_seek($device_id, $position); } catch (Throwable $ignoredSeek) {}
+    }
 
     // Verify and enforce the intended track after Connect has had time to settle.
     usleep(900000);
@@ -188,13 +198,61 @@ function mx_play_track($device_id, $track_id) {
         $activeDevice = (string)($pb['device']['id'] ?? '');
         $isPlaying = !empty($pb['is_playing']);
         $currentId = (string)($pb['item']['id'] ?? '');
-        if ($activeDevice !== $device_id || !$isPlaying || ($currentId !== '' && $wantedId !== '' && $currentId !== $wantedId)) {
+        $progress = isset($pb['progress_ms']) ? (int)$pb['progress_ms'] : null;
+        $resumeDrifted = ($position !== null && $position > 0 && $progress !== null && $progress < max(0, $position - 2500));
+        if ($activeDevice !== $device_id || !$isPlaying || ($currentId !== '' && $wantedId !== '' && $currentId !== $wantedId) || $resumeDrifted) {
             mx_transfer_playback_to_device($device_id, false);
             mx_wait_for_active_device($device_id, 1200);
             usleep(200000);
-            mx_spotify_put($playUrl, json_encode(['uris' => [$uri]]));
+            mx_spotify_put($playUrl, json_encode($payload));
+            if ($position !== null && $position > 0) {
+                usleep(250000);
+                try { mx_seek($device_id, $position); } catch (Throwable $ignoredSeek2) {}
+            }
         }
     } catch (Throwable $ignored) {}
+}
+function mx_seek($device_id, $position_ms) {
+    $device_id = trim((string)$device_id);
+    $position_ms = max(0, (int)$position_ms);
+    if ($device_id === '') throw new RuntimeException('No Spotify device selected for this player.');
+    mx_spotify_put('https://api.spotify.com/v1/me/player/seek?device_id=' . rawurlencode($device_id) . '&position_ms=' . $position_ms, '');
+}
+function mx_save_resume_position($deck, $device_id, $track) {
+    $deck = $deck === 'b' ? 'b' : 'a';
+    $device_id = trim((string)$device_id);
+    $track_id = (string)($track['id'] ?? '');
+    if ($device_id === '' || $track_id === '') {
+        mx_set('spotify_mixer_resume_' . $deck, '');
+        return;
+    }
+    $position = null;
+    try {
+        $pb = mx_playback();
+        $activeDevice = (string)($pb['device']['id'] ?? '');
+        $currentId = (string)($pb['item']['id'] ?? '');
+        if ($activeDevice === $device_id && $currentId === $track_id && isset($pb['progress_ms'])) {
+            // Step back slightly so resumed audio does not clip the beat/word after a pause.
+            $position = max(0, (int)$pb['progress_ms'] - 500);
+        }
+    } catch (Throwable $ignored) {}
+    if ($position === null) {
+        mx_set('spotify_mixer_resume_' . $deck, '');
+        return;
+    }
+    mx_set('spotify_mixer_resume_' . $deck, json_encode([
+        'track_id' => $track_id,
+        'position_ms' => $position,
+        'saved_at' => time(),
+    ]));
+}
+function mx_resume_position_for_track($deck, $track_id) {
+    $deck = $deck === 'b' ? 'b' : 'a';
+    $resume = mx_json('spotify_mixer_resume_' . $deck, []);
+    if (!is_array($resume) || (string)($resume['track_id'] ?? '') !== (string)$track_id) return null;
+    // Do not reuse stale resume points from an earlier test/session.
+    if (!empty($resume['saved_at']) && (time() - (int)$resume['saved_at']) > 7200) return null;
+    return isset($resume['position_ms']) ? max(0, (int)$resume['position_ms']) : null;
 }
 function mx_pause($device_id) {
     $device_id = trim((string)$device_id);
@@ -526,7 +584,9 @@ try {
         $deck = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
         $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
         $track = mx_json('spotify_mixer_loaded_' . $deck, []);
-        mx_play_track($device, $track['id'] ?? '');
+        $resumePosition = mx_resume_position_for_track($deck, $track['id'] ?? '');
+        mx_play_track($device, $track['id'] ?? '', $resumePosition);
+        mx_set('spotify_mixer_resume_' . $deck, '');
         if (is_array($track) && !empty($track['id'])) {
             $track['played_on_deck'] = true;
             mx_set('spotify_mixer_loaded_' . $deck, json_encode(mx_clean_track($track)));
@@ -544,6 +604,8 @@ try {
     if ($action === 'pause') {
         $deck = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
         $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
+        $track = mx_json('spotify_mixer_loaded_' . $deck, []);
+        mx_save_resume_position($deck, $device, $track);
         mx_pause($device);
         mx_json_out(['ok' => true, 'message' => 'Pause command sent to Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
     }
