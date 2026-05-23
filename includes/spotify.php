@@ -368,17 +368,24 @@ function dttd_spotify_http_get_debug($url, array $headers) {
         CURLOPT_HTTPHEADER => $headers,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 15,
+        CURLOPT_HEADER => true,
     ]);
     $response = curl_exec($ch);
     $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $headerSize = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+    $effectiveUrl = (string)curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
     $error = curl_error($ch);
     curl_close($ch);
-    $body = $response === false ? '' : (string)$response;
+    $raw = $response === false ? '' : (string)$response;
+    $responseHeaders = $raw !== '' && $headerSize > 0 ? substr($raw, 0, $headerSize) : '';
+    $body = $raw !== '' && $headerSize > 0 ? substr($raw, $headerSize) : $raw;
     $json = $body !== '' ? json_decode($body, true) : null;
     return [
         'ok' => ($response !== false && $status >= 200 && $status < 300),
         'status' => $status,
         'error' => $error,
+        'url' => $effectiveUrl !== '' ? $effectiveUrl : $url,
+        'headers' => $responseHeaders,
         'body' => $body,
         'json' => is_array($json) ? $json : null,
     ];
@@ -400,6 +407,8 @@ function dttd_spotify_playlist_diagnostics() {
         'me' => null,
         'playlists' => null,
         'playlist_tracks' => null,
+        'playlist_tracks_direct' => null,
+        'playlist_tracks_no_market' => null,
         'playlist_object_tracks' => null,
         'first_playlist' => null,
     ];
@@ -409,13 +418,19 @@ function dttd_spotify_playlist_diagnostics() {
     $diag['me'] = dttd_spotify_user_get_debug('https://api.spotify.com/v1/me');
     $diag['playlists'] = dttd_spotify_user_get_debug('https://api.spotify.com/v1/me/playlists?limit=5');
     $items = $diag['playlists']['json']['items'] ?? [];
-    if (!empty($items[0]['id'])) {
-        $id = (string)$items[0]['id'];
-        $tracksHref = (string)($items[0]['tracks']['href'] ?? '');
+    $chosen = null;
+    foreach ($items as $candidate) {
+        if (!empty($candidate['id']) && (int)($candidate['tracks']['total'] ?? 0) > 0) { $chosen = $candidate; break; }
+    }
+    if ($chosen === null && !empty($items[0]['id'])) { $chosen = $items[0]; }
+    if (!empty($chosen['id'])) {
+        $id = (string)$chosen['id'];
+        $tracksHref = (string)($chosen['tracks']['href'] ?? '');
         $diag['first_playlist'] = [
             'id' => $id,
-            'name' => (string)($items[0]['name'] ?? 'Unnamed playlist'),
-            'reported_total' => (int)($items[0]['tracks']['total'] ?? 0),
+            'name' => (string)($chosen['name'] ?? 'Unnamed playlist'),
+            'owner' => (string)($chosen['owner']['display_name'] ?? ($chosen['owner']['id'] ?? '')),
+            'reported_total' => (int)($chosen['tracks']['total'] ?? 0),
             'tracks_href' => $tracksHref,
         ];
         if ($tracksHref !== '') {
@@ -423,7 +438,9 @@ function dttd_spotify_playlist_diagnostics() {
         } else {
             $diag['playlist_tracks'] = dttd_spotify_user_get_debug('https://api.spotify.com/v1/playlists/' . rawurlencode($id) . '/tracks?limit=5&market=from_token');
         }
-        $diag['playlist_object_tracks'] = dttd_spotify_user_get_debug('https://api.spotify.com/v1/playlists/' . rawurlencode($id) . '?market=from_token&fields=tracks(items(track(id,name,type,is_local,artists(name),album(name,images),external_urls,duration_ms)),next,total)');
+        $diag['playlist_tracks_direct'] = dttd_spotify_user_get_debug('https://api.spotify.com/v1/playlists/' . rawurlencode($id) . '/tracks?limit=5&market=from_token');
+        $diag['playlist_tracks_no_market'] = dttd_spotify_user_get_debug('https://api.spotify.com/v1/playlists/' . rawurlencode($id) . '/tracks?limit=5');
+        $diag['playlist_object_tracks'] = dttd_spotify_user_get_debug('https://api.spotify.com/v1/playlists/' . rawurlencode($id) . '?market=from_token&fields=id,name,owner(id,display_name),tracks(total,href,items(track(id,name,type,is_local,artists(name),album(name,images),external_urls,duration_ms)),next)');
     }
     return $diag;
 }
