@@ -90,6 +90,9 @@ if ($connected) {
           $clientObject = $diag['client_playlist_object'] ?? null;
           $clientTracks = $diag['client_playlist_tracks'] ?? null;
           $tokenDiag = $diag['token'] ?? [];
+          $publicPlaylist = $diag['public_playlist'] ?? null;
+          $publicPlaylistObject = $diag['public_playlist_object'] ?? null;
+          $publicPlaylistTracks = $diag['public_playlist_tracks'] ?? null;
           $profile = is_array($me) ? ($me['json'] ?? []) : [];
           $first = $diag['first_playlist'] ?? null;
           $playlistCount = is_array($pls) ? count($pls['json']['items'] ?? []) : 0;
@@ -97,6 +100,7 @@ if ($connected) {
           $directTrackCount = is_array($tracksDirect) ? count($tracksDirect['json']['items'] ?? []) : 0;
           $noMarketTrackCount = is_array($tracksNoMarket) ? count($tracksNoMarket['json']['items'] ?? []) : 0;
           $objectTrackCount = is_array($objectTracks) ? count($objectTracks['json']['tracks']['items'] ?? []) : 0;
+          $publicTrackCount = is_array($publicPlaylistTracks) ? count($publicPlaylistTracks['json']['items'] ?? []) : 0;
           $debugUrl = function($debug) { return is_array($debug) && !empty($debug['url']) ? '<br><small>URL: <code>' . h($debug['url']) . '</code></small>' : ''; };
           $debugBody = function($debug) {
               if (!is_array($debug)) return '';
@@ -133,6 +137,11 @@ if ($connected) {
           <p><strong>Playlist object fallback:</strong> <?= !empty($objectTracks['ok']) ? 'OK — ' . (int)$objectTrackCount . ' embedded track rows returned in test' : h(dttd_spotify_debug_error_text($objectTracks)) ?><?= $debugUrl($objectTracks) ?><?= $debugBody($objectTracks) ?></p>
           <p><strong>Client-credentials comparison — playlist object:</strong> <?= !empty($clientObject['ok']) ? 'OK' : h(dttd_spotify_debug_error_text($clientObject)) ?><?= $debugUrl($clientObject) ?><?= $debugBody($clientObject) ?></p>
           <p><strong>Client-credentials comparison — playlist tracks:</strong> <?= !empty($clientTracks['ok']) ? 'OK' : h(dttd_spotify_debug_error_text($clientTracks)) ?><?= $debugUrl($clientTracks) ?><?= $debugBody($clientTracks) ?></p>
+          <?php if ($publicPlaylist): ?>
+            <p><strong>Public Spotify playlist test:</strong> <?= h($publicPlaylist['name'] ?? 'Public Spotify playlist') ?></p>
+            <p><strong>Public playlist object:</strong> <?= !empty($publicPlaylistObject['ok']) ? 'OK' : h(dttd_spotify_debug_error_text($publicPlaylistObject)) ?><?= $debugUrl($publicPlaylistObject) ?><?= $debugBody($publicPlaylistObject) ?></p>
+            <p><strong>Public playlist tracks endpoint:</strong> <?= !empty($publicPlaylistTracks['ok']) ? 'OK — ' . (int)$publicTrackCount . ' track rows returned in test' : h(dttd_spotify_debug_error_text($publicPlaylistTracks)) ?><?= $debugUrl($publicPlaylistTracks) ?><?= $debugBody($publicPlaylistTracks) ?></p>
+          <?php endif; ?>
           <?php if (!empty($tracks['ok']) && $trackCount === 0): ?>
             <p class="touch-subtitle">Spotify returned zero usable track rows for this playlist. Try a different playlist with normal Spotify tracks, not local files.</p>
           <?php endif; ?>

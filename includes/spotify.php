@@ -457,6 +457,9 @@ function dttd_spotify_playlist_diagnostics() {
         'token' => dttd_spotify_token_diagnostics(),
         'client_playlist_object' => null,
         'client_playlist_tracks' => null,
+        'public_playlist' => null,
+        'public_playlist_tracks' => null,
+        'public_playlist_object' => null,
     ];
     if (!$diag['connected']) {
         return $diag;
@@ -493,6 +496,17 @@ function dttd_spotify_playlist_diagnostics() {
         $diag['client_playlist_object'] = dttd_spotify_client_get_debug('https://api.spotify.com/v1/playlists/' . rawurlencode($id) . '?fields=id,name,owner(id,display_name),tracks(total,href)');
         $diag['client_playlist_tracks'] = dttd_spotify_client_get_debug('https://api.spotify.com/v1/playlists/' . rawurlencode($id) . '/tracks?limit=5');
     }
+
+    // Known Spotify-owned public playlist test. This isolates whether /playlists/{id}/tracks
+    // is globally blocked for this app/token, or only failing for the DJ account's own playlists.
+    // Today's Top Hits: https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M
+    $publicId = '37i9dQZF1DXcBWIGoYBM5M';
+    $diag['public_playlist'] = [
+        'id' => $publicId,
+        'name' => "Spotify public test playlist — Today's Top Hits",
+    ];
+    $diag['public_playlist_object'] = dttd_spotify_user_get_debug('https://api.spotify.com/v1/playlists/' . rawurlencode($publicId) . '?market=from_token&fields=id,name,owner(id,display_name),tracks(total,href)');
+    $diag['public_playlist_tracks'] = dttd_spotify_user_get_debug('https://api.spotify.com/v1/playlists/' . rawurlencode($publicId) . '/tracks?limit=5&market=from_token');
     return $diag;
 }
 
