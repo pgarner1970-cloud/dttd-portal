@@ -324,6 +324,30 @@ function mx_resume_position_for_track($deck, $track_id) {
     if (!empty($resume['saved_at']) && (time() - (int)$resume['saved_at']) > 7200) return null;
     return isset($resume['position_ms']) ? max(0, (int)$resume['position_ms']) : null;
 }
+
+function mx_live_or_stored_position_for_deck($deck, $device_id, $track, $playback = null, $rewind_ms = 0) {
+    $device_id = trim((string)$device_id);
+    $track_id = (string)($track['id'] ?? '');
+    $rewind_ms = max(0, (int)$rewind_ms);
+    if ($device_id !== '' && $track_id !== '') {
+        try {
+            if ($playback === null) $playback = mx_playback();
+            $activeDevice = (string)($playback['device']['id'] ?? '');
+            $currentId = (string)($playback['item']['id'] ?? '');
+            if ($activeDevice === $device_id && mx_track_ids_match($currentId, $track_id) && isset($playback['progress_ms'])) {
+                return max(0, (int)$playback['progress_ms'] - $rewind_ms);
+            }
+        } catch (Throwable $ignored) {}
+    }
+    $resume = mx_resume_position_for_track($deck, $track_id);
+    if ($resume !== null) return max(0, (int)$resume - $rewind_ms);
+    $estimated = mx_estimated_loaded_position($track);
+    if ($estimated !== null) return max(0, (int)$estimated - $rewind_ms);
+    $fallback = mx_loaded_position_fallback($track);
+    if ($fallback !== null) return max(0, (int)$fallback - $rewind_ms);
+    return 0;
+}
+
 function mx_pause($device_id) {
     $device_id = trim((string)$device_id);
     if ($device_id === '') throw new RuntimeException('No Spotify device selected for this player.');
@@ -799,17 +823,45 @@ try {
         $track = mx_json('spotify_mixer_loaded_' . $source, []);
         if (empty($track['id'])) throw new RuntimeException('No track loaded on Player ' . strtoupper($source) . '.');
         if (!$targetDevice) throw new RuntimeException('Player ' . strtoupper($target) . ' has no assigned Spotify device.');
-        $pos = mx_resume_position_for_track($source, $track['id'] ?? '');
-        if ($pos === null) $pos = mx_loaded_position_fallback($track);
-        if ($pos === null) $pos = 0;
+
+        // Emergency swap must continue the live track, not simply load it on the other deck.
+        // Capture the freshest live progress from the source device, with a tiny rewind to
+        // avoid clipping the beat/word during the Spotify Connect handover.
+        $pb = mx_playback();
+        $pos = mx_live_or_stored_position_for_deck($source, $sourceDevice, $track, $pb, 750);
+
         $track['played_on_deck'] = true;
         $track['position_base_ms'] = $pos;
         $track['position_updated_at'] = time();
+        $track['paused_position_ms'] = null;
+        $track['resume_locked'] = false;
+        $track['end_seen_ms'] = $pos;
+        $track['end_armed_at'] = time();
         mx_store_loaded_track($target, $track);
+
+        // Do not send a separate pause to the source after starting the target. On some
+        // Spotify Connect clients that pause can land after the transfer and pause the
+        // destination device. The transfer/play call itself moves playback away from source.
         mx_play_track($targetDevice, $track['id'] ?? '', $pos);
-        if ($sourceDevice) { try { mx_pause($sourceDevice); } catch (Throwable $ignored) {} }
+
+        // Give slow Connect clients a second nudge to make sure the destination is playing
+        // from the intended position rather than sitting in a loaded/paused state.
+        usleep(300000);
+        try {
+            $verify = mx_playback();
+            $active = (string)($verify['device']['id'] ?? '');
+            $current = (string)($verify['item']['id'] ?? '');
+            $playing = !empty($verify['is_playing']);
+            $progress = isset($verify['progress_ms']) ? (int)$verify['progress_ms'] : null;
+            $drifted = $progress !== null && $progress < max(0, $pos - 2500);
+            if ($active !== (string)$targetDevice || !mx_track_ids_match($current, $track['id'] ?? '') || !$playing || $drifted) {
+                mx_play_track($targetDevice, $track['id'] ?? '', $pos);
+            }
+        } catch (Throwable $ignoredVerify) {}
+
         mx_set('spotify_mixer_loaded_' . $source, '');
         mx_set('spotify_mixer_resume_' . $source, '');
+        mx_set('spotify_mixer_resume_' . $target, '');
         mx_json_out(['ok' => true, 'message' => 'Emergency transfer sent from Player ' . strtoupper($source) . ' to Player ' . strtoupper($target) . '.', 'state' => mx_state()]);
     }
 
