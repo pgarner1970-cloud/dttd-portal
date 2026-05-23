@@ -236,6 +236,18 @@ function mx_loaded_position_fallback($track) {
     if (isset($track['position_base_ms']) && $track['position_base_ms'] !== null) return max(0, (int)$track['position_base_ms']);
     return null;
 }
+
+function mx_estimated_loaded_position($loaded) {
+    if (!is_array($loaded) || empty($loaded['id'])) return null;
+    if (isset($loaded['paused_position_ms']) && $loaded['paused_position_ms'] !== null) return max(0, (int)$loaded['paused_position_ms']);
+    if (!isset($loaded['position_base_ms']) || $loaded['position_base_ms'] === null) return null;
+    $base = max(0, (int)$loaded['position_base_ms']);
+    $updated = isset($loaded['position_updated_at']) ? (int)$loaded['position_updated_at'] : 0;
+    if ($updated > 0 && empty($loaded['resume_locked'])) {
+        $base += max(0, time() - $updated) * 1000;
+    }
+    return $base;
+}
 function mx_sync_loaded_position_from_playback($deck, $loaded, $device_id, $playback = null) {
     $deck = $deck === 'b' ? 'b' : 'a';
     if (!is_array($loaded) || empty($loaded['id'])) return $loaded;
@@ -405,6 +417,8 @@ function mx_auto_unload_finished_deck($deck, $loaded, $device_id, $playback) {
     $sameDevice = trim((string)$device_id) !== '' && $activeDeviceId === (string)$device_id;
     $sameTrack = mx_track_ids_match($currentId, $loaded['id']);
     $nearEnd = $durationMs && $progressMs !== null && $progressMs >= max(0, $durationMs - 5000);
+    $estimatedMs = mx_estimated_loaded_position($loaded);
+    $estimatedEnded = $durationMs && $estimatedMs !== null && $estimatedMs >= max(0, $durationMs - 2500);
 
     // Once a mixer-loaded track has actually been played, clear the deck when Spotify
     // has naturally moved past it or reports it stopped at/near the end. Do not clear
@@ -412,11 +426,16 @@ function mx_auto_unload_finished_deck($deck, $loaded, $device_id, $playback) {
     $finished = false;
     if ($sameDevice && !$sameTrack && $currentId !== '') $finished = true;
     if ($sameDevice && $sameTrack && !$isPlaying && $nearEnd) $finished = true;
+    if ($sameTrack && $nearEnd && !$isPlaying) $finished = true;
+
+    // Fallback: the mixer keeps its own progress clock while a deck is playing. This
+    // catches Spotify Connect devices that stop reporting cleanly right at track end.
+    if ($estimatedEnded && empty($loaded['resume_locked'])) $finished = true;
 
     // Some Spotify Connect devices report no active playback after a track ends. Treat
     // that as finished only when this deck had been started from the mixer and we no
     // longer have a current Spotify item to compare against.
-    if ($activeDeviceId === '' && $currentId === '' && !$isPlaying) $finished = true;
+    if ($activeDeviceId === '' && $currentId === '' && !$isPlaying && empty($loaded['resume_locked'])) $finished = true;
 
     if ($finished) {
         mx_set('spotify_mixer_loaded_' . $deck, '');
@@ -586,6 +605,15 @@ try {
         if ($action === 'play_track_direct') {
             $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
             mx_play_track($device, $track['id'] ?? '');
+            $playedTrack = mx_json('spotify_mixer_loaded_' . $deck, []);
+            if (is_array($playedTrack) && !empty($playedTrack['id'])) {
+                $playedTrack['played_on_deck'] = true;
+                $playedTrack['position_base_ms'] = 0;
+                $playedTrack['position_updated_at'] = time();
+                $playedTrack['paused_position_ms'] = null;
+                $playedTrack['resume_locked'] = false;
+                mx_store_loaded_track($deck, $playedTrack);
+            }
             mx_json_out(['ok' => true, 'message' => 'Track loaded and played on Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
         }
         mx_json_out(['ok' => true, 'message' => 'Track loaded to Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
