@@ -92,29 +92,7 @@ function dttd_spotify_http_get($url, array $headers) {
     curl_close($ch);
 
     if ($response === false || $status < 200 || $status >= 300) {
-        $detail = '';
-        $decoded = is_string($response) ? json_decode($response, true) : null;
-        if (is_array($decoded)) {
-            if (!empty($decoded['error']['message'])) {
-                $detail = (string)$decoded['error']['message'];
-            } elseif (!empty($decoded['error_description'])) {
-                $detail = (string)$decoded['error_description'];
-            } elseif (!empty($decoded['error'])) {
-                $detail = is_string($decoded['error']) ? $decoded['error'] : json_encode($decoded['error']);
-            }
-        }
-        $message = 'Spotify API request failed';
-        if ($status) {
-            $message .= ' (HTTP ' . $status . ')';
-        }
-        if ($detail !== '') {
-            $message .= ': ' . $detail;
-        } elseif ($error) {
-            $message .= ': ' . $error;
-        } else {
-            $message .= '.';
-        }
-        throw new RuntimeException($message);
+        throw new RuntimeException('Spotify search failed' . ($error ? ': ' . $error : '.'));
     }
 
     return json_decode($response, true) ?: [];
@@ -210,6 +188,23 @@ function dttd_spotify_update_setting($key, $value) {
     $stmt->execute([$key, (string)$value]);
 }
 
+function dttd_spotify_required_scopes() {
+    return [
+        'user-read-playback-state',
+        'user-read-currently-playing',
+        'user-modify-playback-state',
+        'playlist-read-private',
+        'playlist-read-collaborative',
+    ];
+}
+
+function dttd_spotify_clear_user_tokens() {
+    dttd_spotify_update_setting('spotify_access_token', '');
+    dttd_spotify_update_setting('spotify_refresh_token', '');
+    dttd_spotify_update_setting('spotify_token_expires_at', '0');
+    dttd_spotify_update_setting('spotify_granted_scope', '');
+}
+
 function dttd_spotify_redirect_uri() {
     return 'https://dj.dancethruthedecades.co.uk/spotify/callback.php';
 }
@@ -225,7 +220,7 @@ function dttd_spotify_authorize_url() {
         'client_id' => $credentials['client_id'],
         'response_type' => 'code',
         'redirect_uri' => dttd_spotify_redirect_uri(),
-        'scope' => 'user-read-playback-state user-read-currently-playing user-modify-playback-state playlist-read-private playlist-read-collaborative',
+        'scope' => implode(' ', dttd_spotify_required_scopes()),
         'state' => $state,
         'show_dialog' => 'true',
     ];
@@ -259,7 +254,9 @@ function dttd_spotify_save_user_token(array $data) {
     }
     dttd_spotify_update_setting('spotify_token_expires_at', (string)(time() + (int)($data['expires_in'] ?? 3600)));
     dttd_spotify_update_setting('spotify_queue_enabled', '1');
+    dttd_spotify_update_setting('spotify_granted_scope', (string)($data['scope'] ?? implode(' ', dttd_spotify_required_scopes())));
 }
+
 
 function dttd_spotify_refresh_user_token() {
     $refresh = dttd_spotify_setting('spotify_refresh_token', '');

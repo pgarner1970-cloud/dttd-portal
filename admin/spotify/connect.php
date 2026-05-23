@@ -8,5 +8,8 @@ if (!dttd_spotify_config_loaded()) {
     exit;
 }
 
+// Force a clean OAuth grant. This avoids Spotify reusing an old refresh token
+// that was created before playlist-read scopes were added.
+dttd_spotify_clear_user_tokens();
 header('Location: ' . dttd_spotify_authorize_url());
 exit;
