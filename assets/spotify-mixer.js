@@ -28,7 +28,7 @@
     toast: $('#mixerToast'),
     deviceA: $('#deviceA'), deviceB: $('#deviceB'),
     deckADevice: $('#deckADevice'), deckBDevice: $('#deckBDevice'),
-    deckAState: $('#deckAState'), deckBState: $('#deckBState'),
+    deckAState: $('#deckAState'), deckBState: $('#deckBState'), deckAVu: $('#deckAVu'), deckBVu: $('#deckBVu'),
     loadedA: $('#loadedA'), loadedB: $('#loadedB'), deckANote: $('#deckANote'), deckBNote: $('#deckBNote'),
     spotifyStatus: $('#spotifyStatus'),
     search: $('#spotifySearch'), searchResults: $('#searchResults'), searchStatus: $('#searchStatus'),
@@ -69,6 +69,25 @@
     return await res.json();
   }
   function image(src){ return src || 'https://dancethruthedecades.co.uk/assets/glitter-ball-clean.png'; }
+
+  function deviceIsOnline(id){
+    if(!id) return false;
+    return (state?.devices || []).some(d => String(d.id) === String(id));
+  }
+  function setDeckPlayingVisual(deck, playing){
+    const panel = document.querySelector('.mixer-panel-' + deck);
+    if(panel) panel.classList.toggle('deck-playing', !!playing);
+  }
+  function setDeviceAlert(deck, missing){
+    const panel = document.querySelector('.mixer-panel-' + deck);
+    if(panel) panel.classList.toggle('device-missing', !!missing);
+    const deviceEl = deck === 'a' ? els.deckADevice : els.deckBDevice;
+    if(deviceEl) deviceEl.classList.toggle('device-alert-text', !!missing);
+    document.querySelectorAll('[data-save-deck="' + deck + '"]').forEach(btn => {
+      btn.classList.toggle('device-alert', !!missing);
+      btn.title = missing ? 'Assigned Spotify device is offline - choose an available device and save' : 'Save Spotify device assignment';
+    });
+  }
   function deviceName(id){
     const d = (state?.devices || []).find(x => x.id === id);
     return d ? d.name : (id ? 'Selected device' : 'Not assigned');
@@ -151,8 +170,12 @@
     const opts = ['<option value="">Choose device…</option>'].concat(devices.map(d => `<option value="${esc(d.id)}">${esc(d.name)}${d.is_active ? ' — active' : ''}</option>`)).join('');
     if(els.deviceA){ const v = els.deviceA.value || state.device_a || ''; els.deviceA.innerHTML = opts; els.deviceA.value = v; }
     if(els.deviceB){ const v = els.deviceB.value || state.device_b || ''; els.deviceB.innerHTML = opts; els.deviceB.value = v; }
-    if(els.deckADevice) els.deckADevice.textContent = deviceName(state.device_a);
-    if(els.deckBDevice) els.deckBDevice.textContent = deviceName(state.device_b);
+    const missingA = !!state?.device_a && !deviceIsOnline(state.device_a);
+    const missingB = !!state?.device_b && !deviceIsOnline(state.device_b);
+    if(els.deckADevice) els.deckADevice.textContent = missingA ? 'Assigned device offline' : deviceName(state.device_a);
+    if(els.deckBDevice) els.deckBDevice.textContent = missingB ? 'Assigned device offline' : deviceName(state.device_b);
+    setDeviceAlert('a', missingA);
+    setDeviceAlert('b', missingB);
   }
   function setDeckState(el, playing, loaded){
     if(!el) return;
@@ -198,6 +221,7 @@
     const aLoaded = deckHasLoaded('a');
     const bLoaded = deckHasLoaded('b');
     setDeckState(els.deckAState, aPlaying, aLoaded); setDeckState(els.deckBState, bPlaying, bLoaded);
+    setDeckPlayingVisual('a', aPlaying); setDeckPlayingVisual('b', bPlaying);
     if(els.loadedA) els.loadedA.innerHTML = trackBlock(state?.player_a?.loaded, 'a');
     if(els.loadedB) els.loadedB.innerHTML = trackBlock(state?.player_b?.loaded, 'b');
     renderDeckRequestNote(els.deckANote, state?.player_a?.loaded);
