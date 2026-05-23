@@ -49,10 +49,6 @@ admin_header('Spotify Mixer - DJ Portal');
     </section>
 
     <section class="mixer-panel mixer-centre">
-      <div class="panel-head">
-        <div><h2>Search, Requests & DJ Playlist</h2><div class="deck-device">Adding a track clears search results and returns focus to the search box.</div></div>
-        <button class="mixer-btn dark" id="refreshNow">↻ Refresh</button>
-      </div>
       <div class="panel-body">
         <div class="search-box">
           <div class="tiny-label">Search Spotify</div>
