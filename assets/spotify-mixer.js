@@ -145,7 +145,7 @@ document.head.appendChild(overviewStyle);
     const bBlocked = !deckCanLoad('b');
     let html = '';
     html += choiceButton('+ Add to DJ playlist', 'green full', 'playlist');
-    html += crateSaveControls();
+    if(source !== 'crate') html += crateSaveControls();
     html += choiceButton('Load to A', 'orange', 'load_a', aBlocked);
     html += choiceButton('Load to B', 'blue', 'load_b', bBlocked);
     html += choiceButton('▶ Play on A now', 'green', 'play_a', aBlocked);
@@ -400,7 +400,7 @@ document.head.appendChild(overviewStyle);
         <img src="${esc(image(t.image))}" alt="">
         <div><div class="result-title">${esc(t.title)}</div><div class="mini muted">${esc(t.artist)}${t.album ? ' • ' + esc(t.album) : ''}</div></div>
         <div class="row-actions">
-          <button class="mixer-btn green" data-select-track='${esc(JSON.stringify(t))}'>Choose</button>
+          <button class="mixer-btn green" data-select-crate-track='${esc(JSON.stringify(t))}'>Choose</button>
           <button class="mixer-btn red" data-remove-crate-track="${esc(t.id)}">×</button>
         </div>
       </div>`).join('');
@@ -451,6 +451,11 @@ document.head.appendChild(overviewStyle);
     const choiceBtn = e.target.closest('[data-choice-action]');
     if(choiceBtn){ choiceAction(choiceBtn.dataset.choiceAction); return; }
     if(e.target.closest('#choiceCancel') || (e.target === els.choiceModal)){ closeChoice(); return; }
+    const selectCrateTrack = e.target.closest('[data-select-crate-track]');
+    if(selectCrateTrack){
+      try{ openChoice(JSON.parse(selectCrateTrack.dataset.selectCrateTrack), 'crate'); }catch(err){ toast('Could not read crate track selection', false); }
+      return;
+    }
     const selectTrack = e.target.closest('[data-select-track]');
     if(selectTrack){
       try{ openChoice(JSON.parse(selectTrack.dataset.selectTrack), 'track'); }catch(err){ toast('Could not read track selection', false); }
