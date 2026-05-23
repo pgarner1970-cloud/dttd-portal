@@ -47,8 +47,20 @@ function mx_track_from_spotify_item($item, $source = 'spotify_playlist') {
         'source' => $source,
     ]);
 }
+function mx_spotify_playlist_error(Throwable $e) {
+    $msg = $e->getMessage();
+    if (stripos($msg, 'HTTP 401') !== false || stripos($msg, 'HTTP 403') !== false || stripos($msg, 'scope') !== false || stripos($msg, 'permissions') !== false) {
+        return 'Spotify playlist access is not authorised yet. Open Spotify Tools and Connect / Reconnect Spotify so the account grants playlist-read permission.';
+    }
+    return 'Could not load Spotify playlists: ' . $msg;
+}
+
 function mx_spotify_playlists() {
-    $data = mx_spotify_user_get('https://api.spotify.com/v1/me/playlists?limit=40');
+    try {
+        $data = mx_spotify_user_get('https://api.spotify.com/v1/me/playlists?limit=40');
+    } catch (Throwable $e) {
+        throw new RuntimeException(mx_spotify_playlist_error($e));
+    }
     $out = [];
     foreach (($data['items'] ?? []) as $p) {
         $images = $p['images'] ?? [];
@@ -69,7 +81,11 @@ function mx_spotify_playlist_tracks($playlist_id) {
     $playlist_id = trim((string)$playlist_id);
     if ($playlist_id === '') throw new RuntimeException('No Spotify playlist selected.');
     $url = 'https://api.spotify.com/v1/playlists/' . rawurlencode($playlist_id) . '/tracks?limit=50&fields=items(track(id,name,artists(name),album(name,images),external_urls,duration_ms))';
-    $data = mx_spotify_user_get($url);
+    try {
+        $data = mx_spotify_user_get($url);
+    } catch (Throwable $e) {
+        throw new RuntimeException(mx_spotify_playlist_error($e));
+    }
     $out = [];
     foreach (($data['items'] ?? []) as $row) {
         $track = $row['track'] ?? null;

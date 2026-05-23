@@ -92,7 +92,29 @@ function dttd_spotify_http_get($url, array $headers) {
     curl_close($ch);
 
     if ($response === false || $status < 200 || $status >= 300) {
-        throw new RuntimeException('Spotify search failed' . ($error ? ': ' . $error : '.'));
+        $detail = '';
+        $decoded = is_string($response) ? json_decode($response, true) : null;
+        if (is_array($decoded)) {
+            if (!empty($decoded['error']['message'])) {
+                $detail = (string)$decoded['error']['message'];
+            } elseif (!empty($decoded['error_description'])) {
+                $detail = (string)$decoded['error_description'];
+            } elseif (!empty($decoded['error'])) {
+                $detail = is_string($decoded['error']) ? $decoded['error'] : json_encode($decoded['error']);
+            }
+        }
+        $message = 'Spotify API request failed';
+        if ($status) {
+            $message .= ' (HTTP ' . $status . ')';
+        }
+        if ($detail !== '') {
+            $message .= ': ' . $detail;
+        } elseif ($error) {
+            $message .= ': ' . $error;
+        } else {
+            $message .= '.';
+        }
+        throw new RuntimeException($message);
     }
 
     return json_decode($response, true) ?: [];
