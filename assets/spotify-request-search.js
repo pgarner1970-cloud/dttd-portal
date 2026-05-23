@@ -105,7 +105,13 @@
             results.hidden = true;
             return;
           }
-          setStatus(data.tracks && data.tracks.length ? 'Select a Spotify match, or keep typing for manual entry.' : 'No Spotify matches found. Manual entry still works.');
+          if (data.message) {
+            setStatus(data.message);
+          } else if (data.source === 'cache' && data.tracks && data.tracks.length) {
+            setStatus('Showing cached Spotify matches. Select one, or keep typing for manual entry.');
+          } else {
+            setStatus(data.tracks && data.tracks.length ? 'Select a Spotify match, or keep typing for manual entry.' : 'No Spotify matches found. Manual entry still works.');
+          }
           renderTracks(data.tracks || []);
         })
         .catch(function (err) {
@@ -121,7 +127,7 @@
       });
     }
 
-    const delayedSearch = debounce(search, 350);
+    const delayedSearch = debounce(search, 650);
     titleInput.addEventListener('input', delayedSearch);
     artistInput.addEventListener('input', delayedSearch);
   }
