@@ -47,12 +47,75 @@ function dttd_spotify_config_loaded() {
         && $credentials['client_secret'] !== '';
 }
 
+
+function dttd_spotify_rate_file() {
+    return sys_get_temp_dir() . '/dttd_spotify_rate_limit.json';
+}
+
+function dttd_spotify_rate_state() {
+    $file = dttd_spotify_rate_file();
+    if (!is_file($file)) {
+        return [];
+    }
+    $state = json_decode((string)file_get_contents($file), true);
+    return is_array($state) ? $state : [];
+}
+
+function dttd_spotify_rate_set($retry_after, $url = '') {
+    $retry_after = max(1, min(120, (int)$retry_after));
+    @file_put_contents(dttd_spotify_rate_file(), json_encode([
+        'until' => time() + $retry_after,
+        'retry_after' => $retry_after,
+        'url' => (string)$url,
+        'set_at' => time(),
+    ]));
+}
+
+function dttd_spotify_rate_clear_if_expired() {
+    $state = dttd_spotify_rate_state();
+    if (!empty($state['until']) && (int)$state['until'] <= time()) {
+        @unlink(dttd_spotify_rate_file());
+    }
+}
+
+function dttd_spotify_rate_guard() {
+    dttd_spotify_rate_clear_if_expired();
+    $state = dttd_spotify_rate_state();
+    $until = (int)($state['until'] ?? 0);
+    if ($until > time()) {
+        $wait = $until - time();
+        throw new RuntimeException('Spotify cooling down after rate limit. Try again in ' . $wait . 's.');
+    }
+}
+
+function dttd_spotify_response_header_lines($ch) {
+    $headers = [];
+    curl_setopt($ch, CURLOPT_HEADERFUNCTION, function($curl, $line) use (&$headers) {
+        $trim = trim($line);
+        if ($trim !== '' && strpos($trim, ':') !== false) {
+            [$name, $value] = explode(':', $trim, 2);
+            $headers[strtolower(trim($name))] = trim($value);
+        }
+        return strlen($line);
+    });
+    return $headers;
+}
+
 function dttd_spotify_http_post($url, array $headers, $body) {
     if (!function_exists('curl_init')) {
         throw new RuntimeException('PHP cURL is not available.');
     }
 
     $ch = curl_init($url);
+    $responseHeaders = [];
+    curl_setopt($ch, CURLOPT_HEADERFUNCTION, function($curl, $line) use (&$responseHeaders) {
+        $trim = trim($line);
+        if ($trim !== '' && strpos($trim, ':') !== false) {
+            [$name, $value] = explode(':', $trim, 2);
+            $responseHeaders[strtolower(trim($name))] = trim($value);
+        }
+        return strlen($line);
+    });
     curl_setopt_array($ch, [
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => $body,
@@ -74,11 +137,21 @@ function dttd_spotify_http_post($url, array $headers, $body) {
 }
 
 function dttd_spotify_http_get($url, array $headers) {
+    dttd_spotify_rate_guard();
     if (!function_exists('curl_init')) {
         throw new RuntimeException('PHP cURL is not available.');
     }
 
     $ch = curl_init($url);
+    $responseHeaders = [];
+    curl_setopt($ch, CURLOPT_HEADERFUNCTION, function($curl, $line) use (&$responseHeaders) {
+        $trim = trim($line);
+        if ($trim !== '' && strpos($trim, ':') !== false) {
+            [$name, $value] = explode(':', $trim, 2);
+            $responseHeaders[strtolower(trim($name))] = trim($value);
+        }
+        return strlen($line);
+    });
     curl_setopt_array($ch, [
         CURLOPT_HTTPGET => true,
         CURLOPT_HTTPHEADER => $headers,
@@ -90,6 +163,12 @@ function dttd_spotify_http_get($url, array $headers) {
     $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
     $error = curl_error($ch);
     curl_close($ch);
+
+    if ($status === 429) {
+        $retryAfter = (int)($responseHeaders['retry-after'] ?? 15);
+        dttd_spotify_rate_set($retryAfter, $url);
+        throw new RuntimeException('Spotify cooling down after rate limit. Try again in ' . max(1, $retryAfter) . 's.');
+    }
 
     if ($response === false || $status < 200 || $status >= 300) {
         $detail = 'Spotify API request failed';

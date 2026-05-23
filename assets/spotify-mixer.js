@@ -477,12 +477,12 @@ document.head.appendChild(overviewStyle);
     }
   });
   if(els.search){
-    els.search.addEventListener('input', ()=>{ clearTimeout(searchTimer); searchTimer = setTimeout(()=>search(els.search.value), 320); });
+    els.search.addEventListener('input', ()=>{ clearTimeout(searchTimer); searchTimer = setTimeout(()=>search(els.search.value), 450); });
   }
   const clearSearch = $('#clearSearch'); if(clearSearch) clearSearch.addEventListener('click', ()=>{ els.search.value=''; els.search.focus(); els.searchResults.innerHTML=''; els.searchStatus.textContent=''; });
   const refreshNow = $('#refreshNow'); if(refreshNow) refreshNow.addEventListener('click', ()=>refresh(false));
   if(els.refreshCrates) els.refreshCrates.addEventListener('click', ()=>{ cratesLoaded = false; loadDjCrates(true); });
   if(els.createCrate) els.createCrate.addEventListener('click', async ()=>{ const name = els.newCrateName ? els.newCrateName.value : ''; await doAction({action:'create_crate', name}); if(els.newCrateName) els.newCrateName.value=''; cratesLoaded=false; loadDjCrates(true); });
   refresh(false);
-  pollTimer = setInterval(()=>refresh(true), 3000);
+  pollTimer = setInterval(()=>refresh(true), 5000);
 })();
