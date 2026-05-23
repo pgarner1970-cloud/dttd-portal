@@ -237,7 +237,7 @@ function admin_header($title = 'DJ Portal') {
             <span class="admin-nav-text">Live Mixer</span>
           </a>
         <?php endif; ?>
-        <a class="header-admin-nav-btn <?= admin_nav_active('requests') ?>" href="<?= h(admin_url('requests.php')) ?>" title="Requests" aria-label="Requests">
+        <a id="adminRequestsNavBtn" class="header-admin-nav-btn <?= admin_nav_active('requests') ?>" href="<?= h(admin_url('requests.php')) ?>" title="Requests" aria-label="Requests">
           <span class="admin-nav-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" focusable="false"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 2a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm0 4a3 3 0 1 0 .01 0H12Zm0 2a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z"/></svg>
           </span>
@@ -305,9 +305,12 @@ function admin_footer() {
 </script>
 
 
-<?php if (basename($_SERVER['SCRIPT_NAME']) === 'requests.php'): ?>
-<script src="https://dancethruthedecades.co.uk/assets/request-update-check.js?v=62"></script>
-<?php endif; ?>
+<script>
+window.DTTD_REQUEST_PING_URL = "<?= h(admin_url('request-ping.php')) ?>";
+window.DTTD_REQUESTS_URL = "<?= h(admin_url('requests.php')) ?>";
+window.DTTD_IS_REQUESTS_PAGE = <?= basename($_SERVER['SCRIPT_NAME']) === 'requests.php' ? 'true' : 'false' ?>;
+</script>
+<script src="https://dancethruthedecades.co.uk/assets/request-update-check.js?v=20260523-request-alerts"></script>
 <script src="https://dancethruthedecades.co.uk/assets/header-timers.js?v=97"></script>
 <script src="https://dancethruthedecades.co.uk/assets/event-qr.js?v=106"></script>
 <script src="https://dancethruthedecades.co.uk/assets/venue-select.js?v=115"></script>
