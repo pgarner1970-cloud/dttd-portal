@@ -192,6 +192,14 @@ function dttd_spotify_redirect_uri() {
     return 'https://dj.dancethruthedecades.co.uk/spotify/callback.php';
 }
 
+
+function dttd_spotify_clear_user_tokens() {
+    dttd_spotify_update_setting('spotify_access_token', '');
+    dttd_spotify_update_setting('spotify_refresh_token', '');
+    dttd_spotify_update_setting('spotify_token_expires_at', '0');
+    dttd_spotify_update_setting('spotify_granted_scope', '');
+}
+
 function dttd_spotify_authorize_url() {
     if (session_status() !== PHP_SESSION_ACTIVE) {
         session_start();
