@@ -92,7 +92,12 @@ function dttd_spotify_http_get($url, array $headers) {
     curl_close($ch);
 
     if ($response === false || $status < 200 || $status >= 300) {
-        throw new RuntimeException('Spotify search failed' . ($error ? ': ' . $error : '.'));
+        $detail = 'Spotify API request failed';
+        if ($status > 0) { $detail .= ' (HTTP ' . $status . ')'; }
+        if ($error) { $detail .= ': ' . $error; }
+        $body = trim((string)$response);
+        if ($body !== '') { $detail .= ' — ' . mb_substr($body, 0, 300); }
+        throw new RuntimeException($detail);
     }
 
     return json_decode($response, true) ?: [];
@@ -211,7 +216,7 @@ function dttd_spotify_authorize_url() {
         'client_id' => $credentials['client_id'],
         'response_type' => 'code',
         'redirect_uri' => dttd_spotify_redirect_uri(),
-        'scope' => 'user-read-playback-state user-read-currently-playing user-modify-playback-state playlist-read-private playlist-read-collaborative',
+        'scope' => 'user-read-playback-state user-read-currently-playing user-modify-playback-state playlist-read-private playlist-read-collaborative user-read-email',
         'state' => $state,
         'show_dialog' => 'true',
     ];
@@ -355,7 +360,7 @@ function dttd_spotify_current_playback() {
 
 
 function dttd_spotify_requested_scope() {
-    return 'user-read-playback-state user-read-currently-playing user-modify-playback-state playlist-read-private playlist-read-collaborative';
+    return 'user-read-playback-state user-read-currently-playing user-modify-playback-state playlist-read-private playlist-read-collaborative user-read-email';
 }
 
 function dttd_spotify_http_get_debug($url, array $headers) {
@@ -399,6 +404,44 @@ function dttd_spotify_user_get_debug($url) {
     ]);
 }
 
+
+function dttd_spotify_client_get_debug($url) {
+    try {
+        $token = dttd_spotify_access_token();
+    } catch (Throwable $e) {
+        return ['ok' => false, 'status' => 0, 'error' => 'Client credentials token failed: ' . $e->getMessage(), 'body' => '', 'json' => null, 'token_source' => 'client_credentials'];
+    }
+    $debug = dttd_spotify_http_get_debug($url, [
+        'Authorization: Bearer ' . $token,
+        'Accept: application/json',
+    ]);
+    $debug['token_source'] = 'client_credentials';
+    return $debug;
+}
+
+function dttd_spotify_token_diagnostics() {
+    $access = dttd_spotify_setting('spotify_access_token', '');
+    $refresh = dttd_spotify_setting('spotify_refresh_token', '');
+    $expires = (int)dttd_spotify_setting('spotify_token_expires_at', '0');
+    $granted = dttd_spotify_setting('spotify_granted_scope', '');
+    $requested = dttd_spotify_requested_scope();
+    $missing = [];
+    foreach (preg_split('/\s+/', trim($requested)) as $scope) {
+        if ($scope !== '' && !preg_match('/(^|\s)' . preg_quote($scope, '/') . '(\s|$)/', $granted)) {
+            $missing[] = $scope;
+        }
+    }
+    return [
+        'user_access_token_present' => $access !== '',
+        'user_access_token_prefix' => $access !== '' ? substr($access, 0, 8) . '…' : '',
+        'user_access_token_length' => strlen($access),
+        'refresh_token_present' => $refresh !== '',
+        'expires_at' => $expires,
+        'expires_in_seconds' => $expires > 0 ? ($expires - time()) : null,
+        'missing_requested_scopes' => $missing,
+    ];
+}
+
 function dttd_spotify_playlist_diagnostics() {
     $diag = [
         'requested_scope' => dttd_spotify_requested_scope(),
@@ -411,6 +454,9 @@ function dttd_spotify_playlist_diagnostics() {
         'playlist_tracks_no_market' => null,
         'playlist_object_tracks' => null,
         'first_playlist' => null,
+        'token' => dttd_spotify_token_diagnostics(),
+        'client_playlist_object' => null,
+        'client_playlist_tracks' => null,
     ];
     if (!$diag['connected']) {
         return $diag;
@@ -441,6 +487,11 @@ function dttd_spotify_playlist_diagnostics() {
         $diag['playlist_tracks_direct'] = dttd_spotify_user_get_debug('https://api.spotify.com/v1/playlists/' . rawurlencode($id) . '/tracks?limit=5&market=from_token');
         $diag['playlist_tracks_no_market'] = dttd_spotify_user_get_debug('https://api.spotify.com/v1/playlists/' . rawurlencode($id) . '/tracks?limit=5');
         $diag['playlist_object_tracks'] = dttd_spotify_user_get_debug('https://api.spotify.com/v1/playlists/' . rawurlencode($id) . '?market=from_token&fields=id,name,owner(id,display_name),tracks(total,href,items(track(id,name,type,is_local,artists(name),album(name,images),external_urls,duration_ms)),next)');
+        // Compare the same playlist using an app/client-credentials token. This helps prove whether
+        // the failing request is genuinely using the DJ user's OAuth token or accidentally falling
+        // back to an app-only token.
+        $diag['client_playlist_object'] = dttd_spotify_client_get_debug('https://api.spotify.com/v1/playlists/' . rawurlencode($id) . '?fields=id,name,owner(id,display_name),tracks(total,href)');
+        $diag['client_playlist_tracks'] = dttd_spotify_client_get_debug('https://api.spotify.com/v1/playlists/' . rawurlencode($id) . '/tracks?limit=5');
     }
     return $diag;
 }

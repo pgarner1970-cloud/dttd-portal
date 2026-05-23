@@ -87,6 +87,10 @@ if ($connected) {
           $tracksDirect = $diag['playlist_tracks_direct'] ?? null;
           $tracksNoMarket = $diag['playlist_tracks_no_market'] ?? null;
           $objectTracks = $diag['playlist_object_tracks'] ?? null;
+          $clientObject = $diag['client_playlist_object'] ?? null;
+          $clientTracks = $diag['client_playlist_tracks'] ?? null;
+          $tokenDiag = $diag['token'] ?? [];
+          $profile = is_array($me) ? ($me['json'] ?? []) : [];
           $first = $diag['first_playlist'] ?? null;
           $playlistCount = is_array($pls) ? count($pls['json']['items'] ?? []) : 0;
           $trackCount = is_array($tracks) ? count($tracks['json']['items'] ?? []) : 0;
@@ -104,6 +108,22 @@ if ($connected) {
         <p><strong>Requested scopes:</strong><br><code><?= h($requested) ?></code></p>
         <p><strong>Last granted scopes:</strong><br><code><?= h($granted !== '' ? $granted : 'Not stored yet — reconnect once after this patch') ?></code></p>
         <p><strong>Profile endpoint:</strong> <?= !empty($me['ok']) ? 'OK' : h(dttd_spotify_debug_error_text($me)) ?></p>
+        <?php if (!empty($me['ok'])): ?>
+          <p><strong>Connected Spotify user:</strong><br>
+            Name: <code><?= h($profile['display_name'] ?? '') ?></code><br>
+            User ID: <code><?= h($profile['id'] ?? '') ?></code><br>
+            Email: <code><?= h($profile['email'] ?? 'Not returned — reconnect once after this patch to grant user-read-email') ?></code><br>
+            Country/Product: <code><?= h(($profile['country'] ?? '') . ' / ' . ($profile['product'] ?? '')) ?></code>
+          </p>
+        <?php endif; ?>
+        <p><strong>User OAuth token diagnostic:</strong><br>
+          Access token present: <code><?= !empty($tokenDiag['user_access_token_present']) ? 'yes' : 'no' ?></code>,
+          prefix: <code><?= h($tokenDiag['user_access_token_prefix'] ?? '') ?></code>,
+          length: <code><?= (int)($tokenDiag['user_access_token_length'] ?? 0) ?></code>,
+          refresh token present: <code><?= !empty($tokenDiag['refresh_token_present']) ? 'yes' : 'no' ?></code>,
+          expires in: <code><?= h((string)($tokenDiag['expires_in_seconds'] ?? 'unknown')) ?>s</code><br>
+          Missing requested scopes: <code><?= h(!empty($tokenDiag['missing_requested_scopes']) ? implode(' ', $tokenDiag['missing_requested_scopes']) : 'none') ?></code>
+        </p>
         <p><strong>Playlist list endpoint:</strong> <?= !empty($pls['ok']) ? 'OK — ' . (int)$playlistCount . ' playlists returned in test' : h(dttd_spotify_debug_error_text($pls)) ?></p>
         <?php if ($first): ?>
           <p><strong>Track endpoint test playlist:</strong> <?= h($first['name']) ?> <small>(owner: <?= h($first['owner'] ?? '') ?>, Spotify reports <?= (int)$first['reported_total'] ?> tracks)</small></p>
@@ -111,6 +131,8 @@ if ($connected) {
           <p><strong>Playlist tracks direct endpoint:</strong> <?= !empty($tracksDirect['ok']) ? 'OK — ' . (int)$directTrackCount . ' track rows returned in test' : h(dttd_spotify_debug_error_text($tracksDirect)) ?><?= $debugUrl($tracksDirect) ?><?= $debugBody($tracksDirect) ?></p>
           <p><strong>Playlist tracks direct/no-market endpoint:</strong> <?= !empty($tracksNoMarket['ok']) ? 'OK — ' . (int)$noMarketTrackCount . ' track rows returned in test' : h(dttd_spotify_debug_error_text($tracksNoMarket)) ?><?= $debugUrl($tracksNoMarket) ?><?= $debugBody($tracksNoMarket) ?></p>
           <p><strong>Playlist object fallback:</strong> <?= !empty($objectTracks['ok']) ? 'OK — ' . (int)$objectTrackCount . ' embedded track rows returned in test' : h(dttd_spotify_debug_error_text($objectTracks)) ?><?= $debugUrl($objectTracks) ?><?= $debugBody($objectTracks) ?></p>
+          <p><strong>Client-credentials comparison — playlist object:</strong> <?= !empty($clientObject['ok']) ? 'OK' : h(dttd_spotify_debug_error_text($clientObject)) ?><?= $debugUrl($clientObject) ?><?= $debugBody($clientObject) ?></p>
+          <p><strong>Client-credentials comparison — playlist tracks:</strong> <?= !empty($clientTracks['ok']) ? 'OK' : h(dttd_spotify_debug_error_text($clientTracks)) ?><?= $debugUrl($clientTracks) ?><?= $debugBody($clientTracks) ?></p>
           <?php if (!empty($tracks['ok']) && $trackCount === 0): ?>
             <p class="touch-subtitle">Spotify returned zero usable track rows for this playlist. Try a different playlist with normal Spotify tracks, not local files.</p>
           <?php endif; ?>
@@ -118,7 +140,7 @@ if ($connected) {
           <p><strong>Playlist tracks endpoint:</strong> Not checked because no playlist ID was returned.</p>
         <?php endif; ?>
         <?php if (!empty($diag['diagnostic_error'])): ?><p class="notice error"><?= h($diag['diagnostic_error']) ?></p><?php endif; ?>
-        <p class="touch-subtitle">Use this section to confirm whether the portal token has playlist scopes and whether Spotify is allowing playlist track reads.</p>
+        <p class="touch-subtitle">Use this section to confirm the connected Spotify account email, granted scopes, whether playlist track reads use the user OAuth token correctly, and whether Spotify is blocking only app-token requests or user-token requests too.</p>
       <?php endif; ?>
     </div>
 

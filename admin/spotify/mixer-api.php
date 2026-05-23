@@ -49,8 +49,14 @@ function mx_track_from_spotify_item($item, $source = 'spotify_playlist') {
 }
 function mx_spotify_playlist_error(Throwable $e) {
     $msg = $e->getMessage();
-    if (stripos($msg, 'HTTP 401') !== false || stripos($msg, 'HTTP 403') !== false || stripos($msg, 'scope') !== false || stripos($msg, 'permissions') !== false) {
-        return 'Spotify playlist access is not authorised yet. Open Spotify Tools and Connect / Reconnect Spotify so the account grants playlist-read permission.';
+    if (stripos($msg, 'HTTP 401') !== false) {
+        return 'Spotify playlist access is not authorised. Open Spotify Tools and reconnect Spotify.';
+    }
+    if (stripos($msg, 'HTTP 403') !== false) {
+        return 'Spotify returned 403 Forbidden for playlist tracks. Open Spotify Tools and check the connected user email, token diagnostic and client-credentials comparison.';
+    }
+    if (stripos($msg, 'scope') !== false || stripos($msg, 'permissions') !== false) {
+        return 'Spotify playlist permission is missing. Open Spotify Tools and reconnect Spotify.';
     }
     return 'Could not load Spotify playlists: ' . $msg;
 }
