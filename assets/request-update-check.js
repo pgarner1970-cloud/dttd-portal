@@ -8,8 +8,8 @@
     const isRequestsPage = !!window.DTTD_IS_REQUESTS_PAGE;
     const pingUrl = window.DTTD_REQUEST_PING_URL || 'request-ping.php';
     const requestsUrl = window.DTTD_REQUESTS_URL || 'requests.php';
-    const storeKey = 'dttd_request_seen_actionable_id_v1';
-    const alertedKey = 'dttd_request_alert_actionable_id_v1';
+    const storeKey = 'dttd_actionable_request_seen_fingerprint_v2';
+    const alertedKey = 'dttd_actionable_request_alert_fingerprint_v2';
 
     function injectStyles(){
       if (document.getElementById('dttd-request-alert-styles')) return;
@@ -64,20 +64,16 @@
       const badge = ensureMixerBadge();
       if (badge) {
         badge.classList.toggle('visible', !!on);
-        if (on && data && data.status_counts) {
-          const pending = Number(data.status_counts.pending || 0);
-          badge.textContent = pending ? 'NEW REQUESTS • ' + pending + ' pending' : 'NEW REQUESTS';
+        if (on && data) {
+          const actionable = Number(data.actionable_count || 0);
+          badge.textContent = actionable ? 'NEW REQUESTS • ' + actionable + ' pending' : 'NEW REQUESTS';
         }
       }
     }
 
-    function newestActionableId(data){
-      return Math.max(0, Number(data && data.actionable_newest_id ? data.actionable_newest_id : 0));
-    }
-
-    function markSeen(data){
-      const newestId = newestActionableId(data);
-      localStorage.setItem(storeKey, String(newestId));
+    function markSeen(fingerprint){
+      if (!fingerprint) return;
+      localStorage.setItem(storeKey, fingerprint);
       localStorage.removeItem(alertedKey);
       setAlert(false);
     }
@@ -145,37 +141,37 @@
       if (document.hidden) return;
       try {
         const data = await fetchPing();
-        if (!data || !data.fingerprint) return;
+        const actionableFingerprint = data.actionable_fingerprint || '';
+        const actionableCount = Number(data.actionable_count || 0);
+        if (!actionableFingerprint) return;
 
         if (isRequestsPage) {
-          markSeen(data);
-          if (!hasBannerUpdate && loadedCounts) {
-            const server = data.status_counts || {};
-            const serverTotal = Number(data.total_requests || 0);
-            const changed = serverTotal !== loadedCounts.total || ['pending','maybe','played','duplicate','rejected'].some(k => Number(server[k] || 0) !== Number(loadedCounts[k] || 0));
-            if (changed) {
-              hasBannerUpdate = true;
-              const parts = [];
-              ['pending','maybe','played'].forEach(function(k){ if (Number(server[k] || 0) !== Number(loadedCounts[k] || 0)) parts.push(Number(server[k] || 0) + ' ' + k); });
-              if (bannerText) bannerText.textContent = 'The request queue changed at ' + (data.checked_at || 'now') + (parts.length ? '. Now: ' + parts.join(', ') + '.' : '.');
-              if (banner) banner.hidden = false;
-            }
+          const seen = localStorage.getItem(storeKey);
+          if (!seen) {
+            markSeen(actionableFingerprint);
+            return;
           }
+          const changed = seen !== actionableFingerprint && actionableCount > 0;
+          if (changed && !hasBannerUpdate) {
+            hasBannerUpdate = true;
+            if (bannerText) bannerText.textContent = 'New requests needing DJ review arrived at ' + (data.checked_at || 'now') + '. Now: ' + actionableCount + ' pending.';
+            if (banner) banner.hidden = false;
+          }
+          if (actionableCount === 0) markSeen(actionableFingerprint);
           return;
         }
 
         const seen = localStorage.getItem(storeKey);
-        if (seen === null) {
-          localStorage.setItem(storeKey, String(newestActionableId(data)));
+        if (!seen) {
+          localStorage.setItem(storeKey, actionableFingerprint);
           setAlert(false);
           return;
         }
 
-        const seenId = Math.max(0, Number(seen || 0));
-        const currentNewestId = newestActionableId(data);
-        const changed = currentNewestId > seenId;
+        const changed = seen !== actionableFingerprint && actionableCount > 0;
         setAlert(changed, data);
-        if (changed) localStorage.setItem(alertedKey, String(currentNewestId));
+        if (changed) localStorage.setItem(alertedKey, actionableFingerprint);
+        if (!changed && actionableCount === 0) markSeen(actionableFingerprint);
       } catch (error) {
         console.error('Queue update check failed', error);
       }

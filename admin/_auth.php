@@ -310,7 +310,7 @@ window.DTTD_REQUEST_PING_URL = "<?= h(admin_url('request-ping.php')) ?>";
 window.DTTD_REQUESTS_URL = "<?= h(admin_url('requests.php')) ?>";
 window.DTTD_IS_REQUESTS_PAGE = <?= basename($_SERVER['SCRIPT_NAME']) === 'requests.php' ? 'true' : 'false' ?>;
 </script>
-<script src="https://dancethruthedecades.co.uk/assets/request-update-check.js?v=20260523-new-only-request-alerts"></script>
+<script src="https://dancethruthedecades.co.uk/assets/request-update-check.js?v=20260523-actionable-alerts"></script>
 <script src="https://dancethruthedecades.co.uk/assets/header-timers.js?v=97"></script>
 <script src="https://dancethruthedecades.co.uk/assets/event-qr.js?v=106"></script>
 <script src="https://dancethruthedecades.co.uk/assets/venue-select.js?v=115"></script>
