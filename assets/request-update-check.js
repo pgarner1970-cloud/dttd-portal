@@ -9,6 +9,7 @@
     const pingUrl = window.DTTD_REQUEST_PING_URL || 'request-ping.php';
     const requestsUrl = window.DTTD_REQUESTS_URL || 'requests.php';
     const storeKey = 'dttd_actionable_request_seen_fingerprint_v2';
+    const newestKey = 'dttd_actionable_request_seen_newest_id_v3';
     const alertedKey = 'dttd_actionable_request_alert_fingerprint_v2';
 
     function injectStyles(){
@@ -71,11 +72,16 @@
       }
     }
 
-    function markSeen(fingerprint){
-      if (!fingerprint) return;
-      localStorage.setItem(storeKey, fingerprint);
+    function markSeen(fingerprint, newestId){
+      if (fingerprint) localStorage.setItem(storeKey, fingerprint);
+      if (Number.isFinite(Number(newestId))) localStorage.setItem(newestKey, String(Number(newestId)));
       localStorage.removeItem(alertedKey);
       setAlert(false);
+    }
+
+    function seenNewestId(){
+      const value = Number(localStorage.getItem(newestKey) || 0);
+      return Number.isFinite(value) ? value : 0;
     }
 
     async function fetchPing(){
@@ -143,35 +149,35 @@
         const data = await fetchPing();
         const actionableFingerprint = data.actionable_fingerprint || '';
         const actionableCount = Number(data.actionable_count || 0);
+        const actionableNewestId = Number(data.actionable_newest_id || 0);
         if (!actionableFingerprint) return;
 
         if (isRequestsPage) {
           const seen = localStorage.getItem(storeKey);
           if (!seen) {
-            markSeen(actionableFingerprint);
+            markSeen(actionableFingerprint, actionableNewestId);
             return;
           }
-          const changed = seen !== actionableFingerprint && actionableCount > 0;
+          const changed = actionableCount > 0 && actionableNewestId > seenNewestId();
           if (changed && !hasBannerUpdate) {
             hasBannerUpdate = true;
             if (bannerText) bannerText.textContent = 'New requests needing DJ review arrived at ' + (data.checked_at || 'now') + '. Now: ' + actionableCount + ' pending.';
             if (banner) banner.hidden = false;
           }
-          if (actionableCount === 0) markSeen(actionableFingerprint);
+          if (actionableCount === 0) markSeen(actionableFingerprint, actionableNewestId);
           return;
         }
 
         const seen = localStorage.getItem(storeKey);
         if (!seen) {
-          localStorage.setItem(storeKey, actionableFingerprint);
-          setAlert(false);
+          markSeen(actionableFingerprint, actionableNewestId);
           return;
         }
 
-        const changed = seen !== actionableFingerprint && actionableCount > 0;
+        const changed = actionableCount > 0 && actionableNewestId > seenNewestId();
         setAlert(changed, data);
         if (changed) localStorage.setItem(alertedKey, actionableFingerprint);
-        if (!changed && actionableCount === 0) markSeen(actionableFingerprint);
+        if (!changed && actionableCount === 0) markSeen(actionableFingerprint, actionableNewestId);
       } catch (error) {
         console.error('Queue update check failed', error);
       }
