@@ -40,6 +40,10 @@ function mx_clean_track($track) {
         'message' => (string)($track['message'] ?? ''),
         'added_at' => (string)($track['added_at'] ?? date('Y-m-d H:i:s')),
         'played_on_deck' => !empty($track['played_on_deck']),
+        'position_base_ms' => isset($track['position_base_ms']) ? max(0, (int)$track['position_base_ms']) : null,
+        'position_updated_at' => isset($track['position_updated_at']) ? (int)$track['position_updated_at'] : null,
+        'paused_position_ms' => isset($track['paused_position_ms']) ? max(0, (int)$track['paused_position_ms']) : null,
+        'resume_locked' => !empty($track['resume_locked']),
     ];
 }
 function mx_request_select_columns($extra = []) {
@@ -218,6 +222,39 @@ function mx_seek($device_id, $position_ms) {
     if ($device_id === '') throw new RuntimeException('No Spotify device selected for this player.');
     mx_spotify_put('https://api.spotify.com/v1/me/player/seek?device_id=' . rawurlencode($device_id) . '&position_ms=' . $position_ms, '');
 }
+function mx_store_loaded_track($deck, $track) {
+    $deck = $deck === 'b' ? 'b' : 'a';
+    if (!is_array($track) || empty($track['id'])) {
+        mx_set('spotify_mixer_loaded_' . $deck, '');
+        return;
+    }
+    mx_set('spotify_mixer_loaded_' . $deck, json_encode(mx_clean_track($track)));
+}
+function mx_loaded_position_fallback($track) {
+    if (!is_array($track)) return null;
+    if (isset($track['paused_position_ms']) && $track['paused_position_ms'] !== null) return max(0, (int)$track['paused_position_ms']);
+    if (isset($track['position_base_ms']) && $track['position_base_ms'] !== null) return max(0, (int)$track['position_base_ms']);
+    return null;
+}
+function mx_sync_loaded_position_from_playback($deck, $loaded, $device_id, $playback = null) {
+    $deck = $deck === 'b' ? 'b' : 'a';
+    if (!is_array($loaded) || empty($loaded['id'])) return $loaded;
+    if ($playback === null) $playback = mx_playback();
+    $activeDevice = (string)($playback['device']['id'] ?? '');
+    $currentId = (string)($playback['item']['id'] ?? '');
+    $sameDevice = trim((string)$device_id) !== '' && $activeDevice === (string)$device_id;
+    $sameTrack = mx_track_ids_match($currentId, $loaded['id']);
+    if ($sameDevice && $sameTrack && isset($playback['progress_ms'])) {
+        $loaded['position_base_ms'] = max(0, (int)$playback['progress_ms']);
+        $loaded['position_updated_at'] = time();
+        if (!empty($playback['is_playing'])) {
+            $loaded['paused_position_ms'] = null;
+            $loaded['resume_locked'] = false;
+        }
+        mx_store_loaded_track($deck, $loaded);
+    }
+    return $loaded;
+}
 function mx_save_resume_position($deck, $device_id, $track) {
     $deck = $deck === 'b' ? 'b' : 'a';
     $device_id = trim((string)$device_id);
@@ -231,15 +268,29 @@ function mx_save_resume_position($deck, $device_id, $track) {
         $pb = mx_playback();
         $activeDevice = (string)($pb['device']['id'] ?? '');
         $currentId = (string)($pb['item']['id'] ?? '');
-        if ($activeDevice === $device_id && $currentId === $track_id && isset($pb['progress_ms'])) {
-            // Step back slightly so resumed audio does not clip the beat/word after a pause.
+        if ($activeDevice === $device_id && mx_track_ids_match($currentId, $track_id) && isset($pb['progress_ms'])) {
             $position = max(0, (int)$pb['progress_ms'] - 500);
         }
     } catch (Throwable $ignored) {}
+
+    // Lenovo/Android tablets can lose paused context after another deck takes over.
+    // If Spotify does not return a reliable live progress value, fall back to the
+    // last progress the mixer stored during polling/playback.
+    if ($position === null) {
+        $fallback = mx_loaded_position_fallback($track);
+        if ($fallback !== null) $position = max(0, (int)$fallback - 500);
+    }
     if ($position === null) {
         mx_set('spotify_mixer_resume_' . $deck, '');
         return;
     }
+
+    $track['paused_position_ms'] = $position;
+    $track['position_base_ms'] = $position;
+    $track['position_updated_at'] = time();
+    $track['resume_locked'] = true;
+    mx_store_loaded_track($deck, $track);
+
     mx_set('spotify_mixer_resume_' . $deck, json_encode([
         'track_id' => $track_id,
         'position_ms' => $position,
@@ -363,6 +414,11 @@ function mx_state() {
     $isPlaying = !empty($playback['is_playing']);
     $item = $playback['item'] ?? [];
 
+    // Keep our own progress memory while a deck is active. Some Spotify Connect
+    // tablets lose paused position after another device/deck takes over.
+    $loadedA = mx_sync_loaded_position_from_playback('a', $loadedA, $deviceA, $playback);
+    $loadedB = mx_sync_loaded_position_from_playback('b', $loadedB, $deviceB, $playback);
+
     // Keep deck cards tidy after a played track has finished. This runs during normal
     // mixer polling, so the UI updates without the DJ having to press Clear.
     $loadedA = mx_auto_unload_finished_deck('a', $loadedA, $deviceA, $playback);
@@ -410,7 +466,11 @@ function mx_load_track_to_deck($track, $deck, $playback = null, &$playlist = nul
         mx_save_playlist($playlist);
     }
     $clean['played_on_deck'] = false;
-    mx_set('spotify_mixer_loaded_' . $deck, json_encode($clean));
+    $clean['position_base_ms'] = 0;
+    $clean['position_updated_at'] = null;
+    $clean['paused_position_ms'] = null;
+    $clean['resume_locked'] = false;
+    mx_store_loaded_track($deck, $clean);
     return $deck;
 }
 
@@ -585,11 +645,16 @@ try {
         $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
         $track = mx_json('spotify_mixer_loaded_' . $deck, []);
         $resumePosition = mx_resume_position_for_track($deck, $track['id'] ?? '');
+        if ($resumePosition === null) $resumePosition = mx_loaded_position_fallback($track);
         mx_play_track($device, $track['id'] ?? '', $resumePosition);
         mx_set('spotify_mixer_resume_' . $deck, '');
         if (is_array($track) && !empty($track['id'])) {
             $track['played_on_deck'] = true;
-            mx_set('spotify_mixer_loaded_' . $deck, json_encode(mx_clean_track($track)));
+            $track['position_base_ms'] = $resumePosition !== null ? max(0, (int)$resumePosition) : 0;
+            $track['position_updated_at'] = time();
+            $track['paused_position_ms'] = null;
+            $track['resume_locked'] = false;
+            mx_store_loaded_track($deck, $track);
         }
         if (!empty($track['request_id'])) mx_mark_request_played((int)$track['request_id']);
         // Remove the item from the DJ playlist once sent to play.
