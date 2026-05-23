@@ -26,6 +26,7 @@ document.head.appendChild(overviewStyle);
   let activeCrateId = '';
   let activeCrateName = '';
   let activeCrateTracks = [];
+  let availableCrates = [];
 
   const $ = (sel) => document.querySelector(sel);
   const els = {
@@ -124,6 +125,15 @@ document.head.appendChild(overviewStyle);
   function choiceButton(label, cls, action, disabled=false){
     return `<button class="mixer-btn ${cls}${disabled ? ' choice-disabled' : ''}" data-choice-action="${esc(action)}" ${disabled ? 'disabled' : ''}>${label}</button>`;
   }
+  function crateSaveControls(){
+    const crates = availableCrates.length ? availableCrates : (state?.crates || []);
+    if(!crates.length){
+      return choiceButton('+ Save to DJ crate', 'blue full', 'crate', true);
+    }
+    const selected = activeCrateId || String(crates[0].id || '');
+    const opts = crates.map(c => `<option value="${esc(c.id)}" ${String(c.id) === String(selected) ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+    return `<div class="choice-crate-save full"><label for="choiceCrateSelect">Save to crate</label><div class="choice-crate-row"><select id="choiceCrateSelect" class="mixer-select">${opts}</select><button class="mixer-btn blue" data-choice-action="crate">+ Save</button></div></div>`;
+  }
   function openChoice(item, source){
     if(!els.choiceModal || !item) return;
     const title = item.title || item.song_title || 'Selected track';
@@ -135,7 +145,7 @@ document.head.appendChild(overviewStyle);
     const bBlocked = !deckCanLoad('b');
     let html = '';
     html += choiceButton('+ Add to DJ playlist', 'green full', 'playlist');
-    html += choiceButton(activeCrateId ? '+ Save to ' + activeCrateName : '+ Save to DJ crate', 'blue full', 'crate', !activeCrateId);
+    html += crateSaveControls();
     html += choiceButton('Load to A', 'orange', 'load_a', aBlocked);
     html += choiceButton('Load to B', 'blue', 'load_b', bBlocked);
     html += choiceButton('▶ Play on A now', 'green', 'play_a', aBlocked);
@@ -164,7 +174,11 @@ document.head.appendChild(overviewStyle);
     } else {
       const trackJson = JSON.stringify(item);
       if(action === 'playlist') Object.assign(params, {action:'add_track', track_json:trackJson});
-      if(action === 'crate') Object.assign(params, {action:'add_crate_track', crate_id:activeCrateId, track_json:trackJson});
+      if(action === 'crate') {
+        const select = document.getElementById('choiceCrateSelect');
+        const crateId = select ? select.value : activeCrateId;
+        Object.assign(params, {action:'add_crate_track', crate_id:crateId, track_json:trackJson});
+      }
       if(action === 'load_a' || action === 'load_b') Object.assign(params, {action:'load_track_direct', track_json:trackJson, deck:action.slice(-1)});
       if(action === 'play_a' || action === 'play_b') Object.assign(params, {action:'play_track_direct', track_json:trackJson, deck:action.slice(-1)});
     }
@@ -314,7 +328,7 @@ document.head.appendChild(overviewStyle);
         </div>
       </div>`).join('');
   }
-  function render(){ renderDevices(); renderPlaylist(); renderRequests(); renderDecks(); if(activeSource === 'crates') renderDjCrates(state?.crates || []); if(activeSource === 'history') renderHistory(); }
+  function render(){ if(state?.crates) availableCrates = state.crates; renderDevices(); renderPlaylist(); renderRequests(); renderDecks(); if(activeSource === 'crates') renderDjCrates(availableCrates.length ? availableCrates : (state?.crates || [])); if(activeSource === 'history') renderHistory(); }
   async function refresh(silent=true){
     try{ const data = await apiGet({action:'state'}); if(data.ok){ state = data.state; render(); } else { if(data.state){state=data.state; render();} if(!silent) toast(data.error || 'Update failed', false); } }
     catch(e){ if(!silent) toast('Mixer update failed', false); }
@@ -396,7 +410,7 @@ document.head.appendChild(overviewStyle);
     if(els.djCrateStatus) els.djCrateStatus.innerHTML = '<span class="spinner"></span> Loading DJ crates…';
     try{
       const data = await apiGet({action:'crates'});
-      if(data.ok){ cratesLoaded = true; if(els.djCrateStatus) els.djCrateStatus.textContent = ''; renderDjCrates(data.crates || []); }
+      if(data.ok){ cratesLoaded = true; availableCrates = data.crates || []; if(!activeCrateId && availableCrates.length){ activeCrateId = String(availableCrates[0].id || ''); activeCrateName = String(availableCrates[0].name || 'DJ crate'); } if(els.djCrateStatus) els.djCrateStatus.textContent = ''; renderDjCrates(availableCrates); }
       else { if(els.djCrateStatus) els.djCrateStatus.textContent = data.error || 'Could not load DJ crates.'; }
     } catch(e){ if(els.djCrateStatus) els.djCrateStatus.textContent = 'Could not load DJ crates.'; }
   }
@@ -405,7 +419,7 @@ document.head.appendChild(overviewStyle);
     if(els.djCrateStatus) els.djCrateStatus.innerHTML = '<span class="spinner"></span> Loading crate tracks…';
     try{
       const data = await apiGet({action:'crate_tracks', crate_id:id});
-      if(data.ok){ if(els.djCrateStatus) els.djCrateStatus.textContent = ''; renderDjCrates(state?.crates || []); renderDjCrateTracks(data.tracks || []); }
+      if(data.ok){ if(els.djCrateStatus) els.djCrateStatus.textContent = ''; renderDjCrates(availableCrates.length ? availableCrates : (state?.crates || [])); renderDjCrateTracks(data.tracks || []); }
       else { if(els.djCrateStatus) els.djCrateStatus.textContent = data.error || 'Could not load crate tracks.'; }
     } catch(e){ if(els.djCrateStatus) els.djCrateStatus.textContent = 'Could not load crate tracks.'; }
   }
