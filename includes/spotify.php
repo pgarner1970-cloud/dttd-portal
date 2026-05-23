@@ -392,6 +392,7 @@ function dttd_spotify_playlist_diagnostics() {
         'me' => null,
         'playlists' => null,
         'playlist_tracks' => null,
+        'playlist_object_tracks' => null,
         'first_playlist' => null,
     ];
     if (!$diag['connected']) {
@@ -401,13 +402,20 @@ function dttd_spotify_playlist_diagnostics() {
     $diag['playlists'] = dttd_spotify_user_get_debug('https://api.spotify.com/v1/me/playlists?limit=5');
     $items = $diag['playlists']['json']['items'] ?? [];
     if (!empty($items[0]['id'])) {
+        $id = (string)$items[0]['id'];
+        $tracksHref = (string)($items[0]['tracks']['href'] ?? '');
         $diag['first_playlist'] = [
-            'id' => (string)$items[0]['id'],
+            'id' => $id,
             'name' => (string)($items[0]['name'] ?? 'Unnamed playlist'),
             'reported_total' => (int)($items[0]['tracks']['total'] ?? 0),
+            'tracks_href' => $tracksHref,
         ];
-        $url = 'https://api.spotify.com/v1/playlists/' . rawurlencode((string)$items[0]['id']) . '/tracks?limit=5&fields=items(track(id,name,type,is_local,artists(name),album(name,images),external_urls,duration_ms)),total,next';
-        $diag['playlist_tracks'] = dttd_spotify_user_get_debug($url);
+        if ($tracksHref !== '') {
+            $diag['playlist_tracks'] = dttd_spotify_user_get_debug($tracksHref . (strpos($tracksHref, '?') === false ? '?' : '&') . 'limit=5&market=from_token');
+        } else {
+            $diag['playlist_tracks'] = dttd_spotify_user_get_debug('https://api.spotify.com/v1/playlists/' . rawurlencode($id) . '/tracks?limit=5&market=from_token');
+        }
+        $diag['playlist_object_tracks'] = dttd_spotify_user_get_debug('https://api.spotify.com/v1/playlists/' . rawurlencode($id) . '?market=from_token&fields=tracks(items(track(id,name,type,is_local,artists(name),album(name,images),external_urls,duration_ms)),next,total)');
     }
     return $diag;
 }

@@ -47,8 +47,20 @@ function mx_track_from_spotify_item($item, $source = 'spotify_playlist') {
         'source' => $source,
     ]);
 }
+function mx_spotify_playlist_error(Throwable $e) {
+    $msg = $e->getMessage();
+    if (stripos($msg, 'HTTP 401') !== false || stripos($msg, 'HTTP 403') !== false || stripos($msg, 'scope') !== false || stripos($msg, 'permissions') !== false) {
+        return 'Spotify playlist access is not authorised yet. Open Spotify Tools and Connect / Reconnect Spotify so the account grants playlist-read permission.';
+    }
+    return 'Could not load Spotify playlists: ' . $msg;
+}
+
 function mx_spotify_playlists() {
-    $data = mx_spotify_user_get('https://api.spotify.com/v1/me/playlists?limit=40');
+    try {
+        $data = mx_spotify_user_get('https://api.spotify.com/v1/me/playlists?limit=40');
+    } catch (Throwable $e) {
+        throw new RuntimeException(mx_spotify_playlist_error($e));
+    }
     $out = [];
     foreach (($data['items'] ?? []) as $p) {
         $images = $p['images'] ?? [];
@@ -60,36 +72,86 @@ function mx_spotify_playlists() {
             'description' => strip_tags((string)($p['description'] ?? '')),
             'image' => $image,
             'tracks_total' => (int)($p['tracks']['total'] ?? 0),
+            'tracks_href' => (string)($p['tracks']['href'] ?? ''),
             'owner' => (string)($p['owner']['display_name'] ?? ''),
         ];
     }
     return $out;
 }
+
+function mx_spotify_append_params($url, array $params) {
+    $sep = (strpos($url, '?') === false) ? '?' : '&';
+    return $url . $sep . http_build_query($params);
+}
+
+function mx_spotify_track_rows_from_response($data) {
+    if (isset($data['tracks']) && is_array($data['tracks'])) {
+        return $data['tracks'];
+    }
+    return $data;
+}
+
+function mx_spotify_playlist_candidate_urls($playlist_id) {
+    $playlist_id = trim((string)$playlist_id);
+    $urls = [];
+
+    // Prefer Spotify's own tracks.href from /me/playlists where available.
+    try {
+        $lists = mx_spotify_user_get('https://api.spotify.com/v1/me/playlists?limit=50');
+        foreach (($lists['items'] ?? []) as $p) {
+            if ((string)($p['id'] ?? '') === $playlist_id && !empty($p['tracks']['href'])) {
+                $urls[] = mx_spotify_append_params((string)$p['tracks']['href'], [
+                    'limit' => 50,
+                    'market' => 'from_token',
+                ]);
+                break;
+            }
+        }
+    } catch (Throwable $ignored) {}
+
+    // Normal Get Playlist Items endpoint.
+    $urls[] = 'https://api.spotify.com/v1/playlists/' . rawurlencode($playlist_id) . '/tracks?' . http_build_query([
+        'limit' => 50,
+        'market' => 'from_token',
+    ]);
+
+    // Fallback: fetch the playlist object and read embedded tracks.
+    $urls[] = 'https://api.spotify.com/v1/playlists/' . rawurlencode($playlist_id) . '?' . http_build_query([
+        'market' => 'from_token',
+        'fields' => 'tracks(items(track(id,name,type,is_local,artists(name),album(name,images),external_urls,duration_ms)),next,total)',
+    ]);
+
+    return array_values(array_unique($urls));
+}
+
 function mx_spotify_playlist_tracks($playlist_id) {
     $playlist_id = trim((string)$playlist_id);
     if ($playlist_id === '') throw new RuntimeException('No Spotify playlist selected.');
 
-    $out = [];
-    $offset = 0;
-    $limit = 50;
-    $safe = 0;
-    do {
-        $url = 'https://api.spotify.com/v1/playlists/' . rawurlencode($playlist_id) . '/tracks?limit=' . $limit . '&offset=' . $offset . '&fields=items(track(id,name,artists(name),album(name,images),external_urls,duration_ms,type,is_local)),total,next';
-        $data = mx_spotify_user_get($url);
-        foreach (($data['items'] ?? []) as $row) {
-            $track = $row['track'] ?? null;
-            if (!is_array($track) || empty($track['id'])) continue;
-            if (($track['type'] ?? 'track') !== 'track') continue;
-            if (!empty($track['is_local'])) continue;
-            $out[] = mx_track_output(mx_track_from_spotify_item($track, 'spotify_playlist'));
+    $lastError = null;
+    foreach (mx_spotify_playlist_candidate_urls($playlist_id) as $url) {
+        try {
+            $data = mx_spotify_user_get($url);
+            $rows = mx_spotify_track_rows_from_response($data);
+            $out = [];
+            foreach (($rows['items'] ?? []) as $row) {
+                $track = $row['track'] ?? null;
+                if (!is_array($track) || empty($track['id'])) continue;
+                if (!empty($track['is_local'])) continue;
+                $out[] = mx_track_output(mx_track_from_spotify_item($track, 'spotify_playlist'));
+            }
+            return $out;
+        } catch (Throwable $e) {
+            $lastError = $e;
+            // Try the next Spotify endpoint shape before giving up.
+            continue;
         }
-        $offset += $limit;
-        $total = (int)($data['total'] ?? 0);
-        $hasMore = !empty($data['next']) || ($total > 0 && $offset < $total);
-        $safe++;
-    } while ($hasMore && $safe < 20);
+    }
 
-    return $out;
+    if ($lastError) {
+        throw new RuntimeException(mx_spotify_playlist_error($lastError));
+    }
+    return [];
 }
 function mx_history() {
     $history = mx_json('spotify_mixer_history', []);

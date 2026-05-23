@@ -84,9 +84,11 @@ if ($connected) {
           $me = $diag['me'] ?? null;
           $pls = $diag['playlists'] ?? null;
           $tracks = $diag['playlist_tracks'] ?? null;
+          $objectTracks = $diag['playlist_object_tracks'] ?? null;
           $first = $diag['first_playlist'] ?? null;
           $playlistCount = is_array($pls) ? count($pls['json']['items'] ?? []) : 0;
           $trackCount = is_array($tracks) ? count($tracks['json']['items'] ?? []) : 0;
+          $objectTrackCount = is_array($objectTracks) ? count($objectTracks['json']['tracks']['items'] ?? []) : 0;
         ?>
         <p><strong>Requested scopes:</strong><br><code><?= h($requested) ?></code></p>
         <p><strong>Last granted scopes:</strong><br><code><?= h($granted !== '' ? $granted : 'Not stored yet — reconnect once after this patch') ?></code></p>
@@ -95,6 +97,7 @@ if ($connected) {
         <?php if ($first): ?>
           <p><strong>Track endpoint test playlist:</strong> <?= h($first['name']) ?> <small>(Spotify reports <?= (int)$first['reported_total'] ?> tracks)</small></p>
           <p><strong>Playlist tracks endpoint:</strong> <?= !empty($tracks['ok']) ? 'OK — ' . (int)$trackCount . ' track rows returned in test' : h(dttd_spotify_debug_error_text($tracks)) ?></p>
+          <p><strong>Playlist object fallback:</strong> <?= !empty($objectTracks['ok']) ? 'OK — ' . (int)$objectTrackCount . ' embedded track rows returned in test' : h(dttd_spotify_debug_error_text($objectTracks)) ?></p>
           <?php if (!empty($tracks['ok']) && $trackCount === 0): ?>
             <p class="touch-subtitle">Spotify returned zero usable track rows for this playlist. Try a different playlist with normal Spotify tracks, not local files.</p>
           <?php endif; ?>
