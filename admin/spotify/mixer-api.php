@@ -383,6 +383,41 @@ function mx_play_track($device_id, $track_id, $position_ms = null) {
         }
     } catch (Throwable $ignored) {}
 }
+
+function mx_confirm_track_playing_on_device($device_id, $track_id, $position_ms = null, $max_attempts = 4) {
+    $device_id = trim((string)$device_id);
+    $track_id = trim((string)$track_id);
+    if ($device_id === '' || $track_id === '') return false;
+    $wantedId = mx_extract_spotify_id($track_id);
+    $position = $position_ms !== null ? max(0, (int)$position_ms) : null;
+
+    for ($attempt = 0; $attempt < max(1, (int)$max_attempts); $attempt++) {
+        usleep($attempt === 0 ? 250000 : 550000);
+        $pb = mx_playback();
+        $activeDevice = (string)($pb['device']['id'] ?? '');
+        $currentId = (string)($pb['item']['id'] ?? '');
+        $isPlaying = !empty($pb['is_playing']);
+        $sameTrack = ($wantedId === '' || $currentId === '' || mx_track_ids_match($currentId, $wantedId));
+
+        if ($activeDevice === $device_id && $isPlaying && $sameTrack) return true;
+
+        // Spotify Connect can briefly accept the transfer but leave the destination paused.
+        // Re-assert the explicit track+position play command rather than relying on resume.
+        try {
+            mx_transfer_playback_to_device($device_id, false);
+            usleep(200000);
+            $payload = ['uris' => ['spotify:track:' . $wantedId]];
+            if ($position !== null) $payload['position_ms'] = $position;
+            mx_spotify_put('https://api.spotify.com/v1/me/player/play?device_id=' . rawurlencode($device_id), json_encode($payload));
+            if ($position !== null) {
+                usleep(200000);
+                try { mx_seek($device_id, $position); } catch (Throwable $ignoredSeek) {}
+            }
+        } catch (Throwable $ignoredRetry) {}
+    }
+    return false;
+}
+
 function mx_seek($device_id, $position_ms) {
     $device_id = trim((string)$device_id);
     $position_ms = max(0, (int)$position_ms);
@@ -1010,17 +1045,41 @@ try {
         $track = mx_json('spotify_mixer_loaded_' . $source, []);
         if (empty($track['id'])) throw new RuntimeException('No track loaded on Player ' . strtoupper($source) . '.');
         if (!$targetDevice) throw new RuntimeException('Player ' . strtoupper($target) . ' has no assigned Spotify device.');
-        $pos = mx_resume_position_for_track($source, $track['id'] ?? '');
+
+        // Capture the most accurate live position possible before moving devices.
+        // Prefer Spotify's live progress if the source deck is the current active device.
+        $pos = null;
+        try {
+            $pb = mx_playback();
+            $activeDevice = (string)($pb['device']['id'] ?? '');
+            $currentId = (string)($pb['item']['id'] ?? '');
+            if ($sourceDevice && $activeDevice === $sourceDevice && mx_track_ids_match($currentId, $track['id'] ?? '') && isset($pb['progress_ms'])) {
+                $pos = max(0, (int)$pb['progress_ms'] + 350);
+            }
+        } catch (Throwable $ignoredProgress) {}
+        if ($pos === null) $pos = mx_resume_position_for_track($source, $track['id'] ?? '');
         if ($pos === null) $pos = mx_loaded_position_fallback($track);
         if ($pos === null) $pos = 0;
+
         $track['played_on_deck'] = true;
         $track['position_base_ms'] = $pos;
         $track['position_updated_at'] = time();
+        $track['paused_position_ms'] = null;
+        $track['resume_locked'] = false;
+        $track['end_seen_ms'] = $pos;
+        $track['end_armed_at'] = time();
         mx_store_loaded_track($target, $track);
+
+        // Do not pause the source device after transfer. Spotify Connect treats playback
+        // as account-wide, and a late pause aimed at the old device can pause the new deck.
         mx_play_track($targetDevice, $track['id'] ?? '', $pos);
-        if ($sourceDevice) { try { mx_pause($sourceDevice); } catch (Throwable $ignored) {} }
         mx_set('spotify_mixer_loaded_' . $source, '');
         mx_set('spotify_mixer_resume_' . $source, '');
+
+        // Re-assert play on the destination after cleanup, because slower Connect clients
+        // sometimes accept the handover but settle into paused state.
+        mx_confirm_track_playing_on_device($targetDevice, $track['id'] ?? '', $pos, 4);
+
         mx_json_out(['ok' => true, 'message' => 'Emergency transfer sent from Player ' . strtoupper($source) . ' to Player ' . strtoupper($target) . '.', 'state' => mx_state()]);
     }
 
