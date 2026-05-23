@@ -141,6 +141,41 @@ function mx_spotify_put($url, $body = '') {
         'Accept: application/json',
     ], $body);
 }
+
+function mx_spotify_get($url) {
+    $token = dttd_spotify_user_access_token();
+    return dttd_spotify_http_get($url, [
+        'Authorization: Bearer ' . $token,
+        'Accept: application/json',
+    ]);
+}
+
+function mx_hydrate_track_metadata($track) {
+    $track = mx_clean_track($track);
+    if (empty($track['id'])) return $track;
+    if (!empty($track['duration_ms']) && !empty($track['title']) && !empty($track['artist'])) return $track;
+    try {
+        $id = str_replace('spotify:track:', '', (string)$track['id']);
+        $data = mx_spotify_get('https://api.spotify.com/v1/tracks/' . rawurlencode($id));
+        if (is_array($data) && !empty($data['id'])) {
+            if (empty($track['title'])) $track['title'] = (string)($data['name'] ?? '');
+            if (empty($track['artist'])) {
+                $artists = [];
+                foreach (($data['artists'] ?? []) as $artist) if (!empty($artist['name'])) $artists[] = $artist['name'];
+                $track['artist'] = implode(', ', $artists);
+            }
+            if (empty($track['album'])) $track['album'] = (string)($data['album']['name'] ?? '');
+            if (empty($track['image'])) {
+                $images = $data['album']['images'] ?? [];
+                if ($images) { $last = end($images); $track['image'] = (string)($last['url'] ?? ($images[0]['url'] ?? '')); }
+            }
+            if (empty($track['url'])) $track['url'] = (string)($data['external_urls']['spotify'] ?? '');
+            if (empty($track['duration_ms']) && !empty($data['duration_ms'])) $track['duration_ms'] = (int)$data['duration_ms'];
+        }
+    } catch (Throwable $ignored) {}
+    return mx_clean_track($track);
+}
+
 function mx_transfer_playback_to_device($device_id, $play = false) {
     $device_id = trim((string)$device_id);
     if ($device_id === '') throw new RuntimeException('No Spotify device selected for this player.');
@@ -259,6 +294,18 @@ function mx_sync_loaded_position_from_playback($deck, $loaded, $device_id, $play
     $sameDevice = trim((string)$device_id) !== '' && $activeDevice === (string)$device_id;
     $sameTrack = mx_track_ids_match($currentId, $loaded['id']);
     if ($sameDevice && $sameTrack && isset($playback['progress_ms'])) {
+        if (!empty($playback['item']['duration_ms'])) $loaded['duration_ms'] = (int)$playback['item']['duration_ms'];
+        if (empty($loaded['title']) && !empty($playback['item']['name'])) $loaded['title'] = (string)$playback['item']['name'];
+        if (empty($loaded['artist']) && !empty($playback['item']['artists'])) {
+            $artists = [];
+            foreach (($playback['item']['artists'] ?? []) as $artist) if (!empty($artist['name'])) $artists[] = $artist['name'];
+            $loaded['artist'] = implode(', ', $artists);
+        }
+        if (empty($loaded['image']) && !empty($playback['item']['album']['images'])) {
+            $images = $playback['item']['album']['images'];
+            $last = end($images);
+            $loaded['image'] = (string)($last['url'] ?? ($images[0]['url'] ?? ''));
+        }
         $loaded['position_base_ms'] = max(0, (int)$playback['progress_ms']);
         $loaded['position_updated_at'] = time();
         if (!empty($playback['is_playing'])) {
@@ -466,7 +513,8 @@ function mx_auto_unload_finished_deck($deck, $loaded, $device_id, $playback) {
 
     // Fallback: the mixer keeps its own progress clock while a deck is playing. This
     // catches Spotify Connect devices that stop reporting cleanly right at track end.
-    if ($armed && $estimatedEnded && empty($loaded['resume_locked'])) $finished = true;
+    $otherDeckActive = $activeDeviceId !== '' && trim((string)$device_id) !== '' && $activeDeviceId !== (string)$device_id;
+    if ($armed && $estimatedEnded && empty($loaded['resume_locked']) && !$otherDeckActive) $finished = true;
 
     // If Spotify has moved on to another track on the same device, only treat that as
     // finished when we had already seen the loaded track near its end. A mid-track
@@ -477,6 +525,11 @@ function mx_auto_unload_finished_deck($deck, $loaded, $device_id, $playback) {
     // that as finished only when this deck had been started from the mixer and our own
     // progress estimate says it reached the end.
     if ($armed && $activeDeviceId === '' && $currentId === '' && !$isPlaying && $estimatedEnded && empty($loaded['resume_locked'])) $finished = true;
+
+    // Spotify can stop returning useful playback data at the exact end of a track. If
+    // this deck's own clock has reached the end and no other deck has taken over, unload
+    // even when Spotify never reports a clean final paused state.
+    if ($armed && !$otherDeckActive && $durationMs && $estimatedMs !== null && $estimatedMs >= max(0, $durationMs - 1000) && empty($loaded['resume_locked'])) $finished = true;
 
     if ($finished) {
         mx_set('spotify_mixer_loaded_' . $deck, '');
@@ -568,7 +621,7 @@ function mx_load_track_to_deck($track, $deck, $playback = null, &$playlist = nul
     $device = $deck === 'b' ? $deviceB : $deviceA;
     if (!$device) throw new RuntimeException('Player ' . strtoupper($deck) . ' has no assigned Spotify device.');
     if (mx_device_playing($device, $playback)) throw new RuntimeException('Player ' . strtoupper($deck) . ' is currently playing. Loading is blocked.');
-    $clean = mx_clean_track($track);
+    $clean = mx_hydrate_track_metadata($track);
     if (is_array($playlist)) {
         mx_return_loaded_if_unplayed($deck, $playlist, $clean);
         if ($removeFromPlaylist) $playlist = mx_remove_track_from_playlist($playlist, $clean);
