@@ -144,36 +144,55 @@ function mx_transfer_playback_to_device($device_id, $play = false) {
     ]));
 }
 
+function mx_wait_for_active_device($device_id, $timeout_ms = 1800) {
+    $device_id = trim((string)$device_id);
+    if ($device_id === '') return false;
+    $deadline = microtime(true) + (max(250, (int)$timeout_ms) / 1000);
+    do {
+        try {
+            $pb = mx_playback();
+            if ((string)($pb['device']['id'] ?? '') === $device_id) return true;
+        } catch (Throwable $ignored) {}
+        usleep(180000);
+    } while (microtime(true) < $deadline);
+    return false;
+}
 function mx_play_track($device_id, $track_id) {
     $device_id = trim((string)$device_id);
     $track_id = trim((string)$track_id);
     if ($device_id === '') throw new RuntimeException('No Spotify device selected for this player.');
     if ($track_id === '') throw new RuntimeException('No track loaded on this player.');
     $uri = strpos($track_id, 'spotify:track:') === 0 ? $track_id : 'spotify:track:' . $track_id;
+    $wantedId = str_replace('spotify:track:', '', $uri);
+    $playUrl = 'https://api.spotify.com/v1/me/player/play?device_id=' . rawurlencode($device_id);
 
-    // Some Spotify Connect devices accept a track load but do not begin playback unless
-    // playback is first transferred to that device. Transfer first, then send play.
+    // Spotify Connect can briefly restore the account-wide active track on slower tablet clients
+    // during handover. Stage the handover before sending the explicit track play command.
     try {
         mx_transfer_playback_to_device($device_id, false);
-        usleep(350000);
+        mx_wait_for_active_device($device_id, 1800);
+        // A quiet pause after transfer helps stop flaky clients from audibly resuming the old context.
+        try { mx_pause($device_id); } catch (Throwable $ignoredPause) {}
+        usleep(250000);
     } catch (Throwable $ignored) {
         // If transfer fails because the device is already active, still try the direct play below.
+        usleep(250000);
     }
 
-    mx_spotify_put('https://api.spotify.com/v1/me/player/play?device_id=' . rawurlencode($device_id), json_encode(['uris' => [$uri]]));
+    mx_spotify_put($playUrl, json_encode(['uris' => [$uri]]));
 
-    // Give Spotify Connect a moment, then retry once if the target device is not reporting playback yet.
-    usleep(450000);
+    // Verify and enforce the intended track after Connect has had time to settle.
+    usleep(900000);
     try {
         $pb = mx_playback();
         $activeDevice = (string)($pb['device']['id'] ?? '');
         $isPlaying = !empty($pb['is_playing']);
         $currentId = (string)($pb['item']['id'] ?? '');
-        $wantedId = str_replace('spotify:track:', '', $uri);
         if ($activeDevice !== $device_id || !$isPlaying || ($currentId !== '' && $wantedId !== '' && $currentId !== $wantedId)) {
-            mx_transfer_playback_to_device($device_id, true);
-            usleep(300000);
-            mx_spotify_put('https://api.spotify.com/v1/me/player/play?device_id=' . rawurlencode($device_id), json_encode(['uris' => [$uri]]));
+            mx_transfer_playback_to_device($device_id, false);
+            mx_wait_for_active_device($device_id, 1200);
+            usleep(200000);
+            mx_spotify_put($playUrl, json_encode(['uris' => [$uri]]));
         }
     } catch (Throwable $ignored) {}
 }
