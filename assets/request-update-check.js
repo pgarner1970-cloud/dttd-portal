@@ -136,6 +136,8 @@
     let banner = null;
     let bannerText = null;
     let hasBannerUpdate = false;
+    let requestsPageBaselineSet = false;
+    let requestsPageBaselineNewestId = 0;
 
     if (isRequestsPage) {
       loadedCounts = readVisibleCounts();
@@ -153,18 +155,32 @@
         if (!actionableFingerprint) return;
 
         if (isRequestsPage) {
-          const seen = localStorage.getItem(storeKey);
-          if (!seen) {
+          // Opening or refreshing the Requests page means the DJ has now seen the
+          // currently listed actionable requests. Set a page-local baseline on the
+          // first successful ping, then only show the blue refresh banner for
+          // requests that arrive after this page load.
+          if (!requestsPageBaselineSet) {
+            requestsPageBaselineSet = true;
+            requestsPageBaselineNewestId = actionableNewestId;
             markSeen(actionableFingerprint, actionableNewestId);
+            if (banner) banner.hidden = true;
+            hasBannerUpdate = false;
             return;
           }
-          const changed = actionableCount > 0 && actionableNewestId > seenNewestId();
+
+          const changed = actionableCount > 0 && actionableNewestId > requestsPageBaselineNewestId;
           if (changed && !hasBannerUpdate) {
             hasBannerUpdate = true;
             if (bannerText) bannerText.textContent = 'New requests needing DJ review arrived at ' + (data.checked_at || 'now') + '. Now: ' + actionableCount + ' pending.';
             if (banner) banner.hidden = false;
           }
-          if (actionableCount === 0) markSeen(actionableFingerprint, actionableNewestId);
+
+          if (actionableCount === 0) {
+            requestsPageBaselineNewestId = 0;
+            markSeen(actionableFingerprint, actionableNewestId);
+            if (banner) banner.hidden = true;
+            hasBannerUpdate = false;
+          }
           return;
         }
 
