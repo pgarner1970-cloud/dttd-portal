@@ -1,8 +1,7 @@
-(()=>{
-  // Keep DJ Playlist/Public Request rows compact: truncate request notes in overview lists only.
+// Keep DJ Playlist/Public Request rows compact: truncate request notes in overview lists only.
   // Loaded deck request notes remain full length.
-  const overviewStyle = document.createElement('style');
-  overviewStyle.textContent = `
+const overviewStyle = document.createElement('style');
+overviewStyle.textContent = `
     .playlist-note, .request-message {
       display: block;
       max-width: 100%;
@@ -13,7 +12,7 @@
     .playlist-note strong { white-space: nowrap; }
     .playlist-row > div, .request-row > div { min-width: 0; }
   `;
-  document.head.appendChild(overviewStyle);
+document.head.appendChild(overviewStyle);
 (function(){
   const app = document.querySelector('.spotify-mixer-app');
   if(!app) return;
@@ -226,12 +225,25 @@
     if(els.loadedB) els.loadedB.innerHTML = trackBlock(state?.player_b?.loaded, 'b');
     renderDeckRequestNote(els.deckANote, state?.player_a?.loaded);
     renderDeckRequestNote(els.deckBNote, state?.player_b?.loaded);
-    document.querySelectorAll('[data-deck-action="play"][data-deck="a"]').forEach(b => b.disabled = !(state?.player_a?.loaded?.id) || !state?.device_a);
-    document.querySelectorAll('[data-deck-action="play"][data-deck="b"]').forEach(b => b.disabled = !(state?.player_b?.loaded?.id) || !state?.device_b);
-    document.querySelectorAll('[data-deck-action="pause"][data-deck="a"]').forEach(b => b.disabled = !state?.device_a);
-    document.querySelectorAll('[data-deck-action="pause"][data-deck="b"]').forEach(b => b.disabled = !state?.device_b);
-    document.querySelectorAll('[data-deck-action="clear_loaded"][data-deck="a"]').forEach(b => b.disabled = aPlaying);
-    document.querySelectorAll('[data-deck-action="clear_loaded"][data-deck="b"]').forEach(b => b.disabled = bPlaying);
+    ['a','b'].forEach(deck => {
+      const playing = deck === 'a' ? aPlaying : bPlaying;
+      const loaded = deck === 'a' ? aLoaded : bLoaded;
+      const device = deck === 'a' ? state?.device_a : state?.device_b;
+      const otherDeck = deck === 'a' ? 'b' : 'a';
+      const otherDevice = otherDeck === 'a' ? state?.device_a : state?.device_b;
+      document.querySelectorAll(`[data-deck-action="play_toggle"][data-deck="${deck}"]`).forEach(b => {
+        b.disabled = !loaded || !device;
+        b.classList.toggle('transport-playing', !!playing);
+        b.classList.toggle('transport-ready', !!loaded && !playing);
+        b.title = playing ? 'Pause Player ' + deck.toUpperCase() : 'Play / resume Player ' + deck.toUpperCase();
+      });
+      ["seek_start","seek_back","seek_forward","seek_end"].forEach(act => document.querySelectorAll(`[data-deck-action="${act}"][data-deck="${deck}"]`).forEach(b => b.disabled = !loaded || !device));
+      document.querySelectorAll(`[data-deck-action="clear_loaded"][data-deck="${deck}"]`).forEach(b => b.disabled = playing || !loaded);
+      document.querySelectorAll(`[data-deck-action="emergency_swap"][data-deck="${deck}"]`).forEach(b => {
+        b.disabled = !loaded || !device || !otherDevice;
+        b.title = 'Emergency transfer Player ' + deck.toUpperCase() + ' to Player ' + otherDeck.toUpperCase();
+      });
+    });
     document.querySelectorAll('[data-load-a]').forEach(b => {
       // A loaded-but-standby deck is safe to replace. Only block if actively playing or no device is assigned.
       b.disabled = aPlaying || !state?.device_a;
@@ -329,7 +341,12 @@
     if(save){ doAction({action:'assign_devices', device_a:els.deviceA.value, device_b:els.deviceB.value}); return; }
     const deckAction = e.target.closest('[data-deck-action]');
     if(deckAction){
-      if(deckAction.disabled || deckAction.getAttribute('aria-disabled') === 'true') return; doAction({action:deckAction.dataset.deckAction, deck:deckAction.dataset.deck}); return; }
+      if(deckAction.disabled || deckAction.getAttribute('aria-disabled') === 'true') return;
+      const actionMap = {seek_back:'seek_relative', seek_forward:'seek_relative'};
+      const params = {action: actionMap[deckAction.dataset.deckAction] || deckAction.dataset.deckAction, deck: deckAction.dataset.deck};
+      if(deckAction.dataset.deckAction === 'seek_back') params.delta_ms = -30000;
+      if(deckAction.dataset.deckAction === 'seek_forward') params.delta_ms = 30000;
+      doAction(params); return; }
     const choiceBtn = e.target.closest('[data-choice-action]');
     if(choiceBtn){ choiceAction(choiceBtn.dataset.choiceAction); return; }
     if(e.target.closest('#choiceCancel') || (e.target === els.choiceModal)){ closeChoice(); return; }
@@ -360,5 +377,4 @@
   const refreshNow = $('#refreshNow'); if(refreshNow) refreshNow.addEventListener('click', ()=>refresh(false));
   refresh(false);
   pollTimer = setInterval(()=>refresh(true), 3000);
-})();
 })();

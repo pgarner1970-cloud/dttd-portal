@@ -736,6 +736,83 @@ try {
         mx_json_out(['ok' => true, 'state' => mx_state()]);
     }
 
+    if ($action === 'play_toggle') {
+        $deck = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
+        $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
+        $track = mx_json('spotify_mixer_loaded_' . $deck, []);
+        $pb = mx_playback();
+        if (mx_device_playing($device, $pb)) {
+            mx_save_resume_position($deck, $device, $track);
+            mx_pause($device);
+            mx_json_out(['ok' => true, 'message' => 'Paused Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
+        }
+        $resumePosition = mx_resume_position_for_track($deck, $track['id'] ?? '');
+        if ($resumePosition === null) $resumePosition = mx_loaded_position_fallback($track);
+        mx_play_track($device, $track['id'] ?? '', $resumePosition);
+        mx_set('spotify_mixer_resume_' . $deck, '');
+        if (is_array($track) && !empty($track['id'])) {
+            $track['played_on_deck'] = true;
+            $track['position_base_ms'] = $resumePosition !== null ? max(0, (int)$resumePosition) : 0;
+            $track['position_updated_at'] = time();
+            $track['paused_position_ms'] = null;
+            $track['resume_locked'] = false;
+            $track['end_seen_ms'] = $resumePosition !== null ? max(0, (int)$resumePosition) : 0;
+            $track['end_armed_at'] = time();
+            mx_store_loaded_track($deck, $track);
+        }
+        if (!empty($track['request_id'])) mx_mark_request_played((int)$track['request_id']);
+        $playlist = array_values(array_filter($playlist, function($p) use ($track) {
+            if (!empty($track['request_id']) && !empty($p['request_id'])) return (int)$p['request_id'] !== (int)$track['request_id'];
+            return (string)($p['id'] ?? '') !== (string)($track['id'] ?? '');
+        }));
+        mx_save_playlist($playlist);
+        mx_json_out(['ok' => true, 'message' => 'Play command sent to Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
+    }
+
+    if ($action === 'seek_relative' || $action === 'seek_start' || $action === 'seek_end') {
+        $deck = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
+        $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
+        $track = mx_json('spotify_mixer_loaded_' . $deck, []);
+        if (empty($track['id'])) throw new RuntimeException('No track loaded on Player ' . strtoupper($deck) . '.');
+        $pb = mx_playback();
+        $current = mx_resume_position_for_track($deck, $track['id'] ?? '');
+        if ($current === null) $current = mx_loaded_position_fallback($track);
+        if ($current === null) $current = 0;
+        $duration = isset($track['duration_ms']) ? (int)$track['duration_ms'] : (int)($pb['item']['duration_ms'] ?? 0);
+        if ($action === 'seek_start') $target = 0;
+        elseif ($action === 'seek_end') $target = max(0, $duration - 2500);
+        else $target = max(0, $current + (int)($_POST['delta_ms'] ?? 0));
+        if ($duration > 0) $target = min($target, max(0, $duration - 1000));
+        mx_seek($device, $target);
+        $track['position_base_ms'] = $target;
+        $track['position_updated_at'] = time();
+        $track['paused_position_ms'] = $target;
+        mx_store_loaded_track($deck, $track);
+        mx_json_out(['ok' => true, 'message' => 'Seek command sent to Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
+    }
+
+    if ($action === 'emergency_swap') {
+        $source = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
+        $target = $source === 'a' ? 'b' : 'a';
+        $sourceDevice = $source === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
+        $targetDevice = $target === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
+        $track = mx_json('spotify_mixer_loaded_' . $source, []);
+        if (empty($track['id'])) throw new RuntimeException('No track loaded on Player ' . strtoupper($source) . '.');
+        if (!$targetDevice) throw new RuntimeException('Player ' . strtoupper($target) . ' has no assigned Spotify device.');
+        $pos = mx_resume_position_for_track($source, $track['id'] ?? '');
+        if ($pos === null) $pos = mx_loaded_position_fallback($track);
+        if ($pos === null) $pos = 0;
+        $track['played_on_deck'] = true;
+        $track['position_base_ms'] = $pos;
+        $track['position_updated_at'] = time();
+        mx_store_loaded_track($target, $track);
+        mx_play_track($targetDevice, $track['id'] ?? '', $pos);
+        if ($sourceDevice) { try { mx_pause($sourceDevice); } catch (Throwable $ignored) {} }
+        mx_set('spotify_mixer_loaded_' . $source, '');
+        mx_set('spotify_mixer_resume_' . $source, '');
+        mx_json_out(['ok' => true, 'message' => 'Emergency transfer sent from Player ' . strtoupper($source) . ' to Player ' . strtoupper($target) . '.', 'state' => mx_state()]);
+    }
+
     if ($action === 'play') {
         $deck = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
         $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
