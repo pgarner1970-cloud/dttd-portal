@@ -47,26 +47,8 @@ function mx_track_from_spotify_item($item, $source = 'spotify_playlist') {
         'source' => $source,
     ]);
 }
-function mx_spotify_playlist_error(Throwable $e) {
-    $msg = $e->getMessage();
-    if (stripos($msg, 'HTTP 401') !== false) {
-        return 'Spotify playlist access is not authorised. Open Spotify Tools and reconnect Spotify.';
-    }
-    if (stripos($msg, 'HTTP 403') !== false) {
-        return 'Spotify returned 403 Forbidden for playlist tracks. Open Spotify Tools and check the connected user email, token diagnostic and client-credentials comparison.';
-    }
-    if (stripos($msg, 'scope') !== false || stripos($msg, 'permissions') !== false) {
-        return 'Spotify playlist permission is missing. Open Spotify Tools and reconnect Spotify.';
-    }
-    return 'Could not load Spotify playlists: ' . $msg;
-}
-
 function mx_spotify_playlists() {
-    try {
-        $data = mx_spotify_user_get('https://api.spotify.com/v1/me/playlists?limit=40');
-    } catch (Throwable $e) {
-        throw new RuntimeException(mx_spotify_playlist_error($e));
-    }
+    $data = mx_spotify_user_get('https://api.spotify.com/v1/me/playlists?limit=40');
     $out = [];
     foreach (($data['items'] ?? []) as $p) {
         $images = $p['images'] ?? [];
@@ -78,91 +60,114 @@ function mx_spotify_playlists() {
             'description' => strip_tags((string)($p['description'] ?? '')),
             'image' => $image,
             'tracks_total' => (int)($p['tracks']['total'] ?? 0),
-            'tracks_href' => (string)($p['tracks']['href'] ?? ''),
             'owner' => (string)($p['owner']['display_name'] ?? ''),
         ];
     }
     return $out;
 }
-
-function mx_spotify_append_params($url, array $params) {
-    $sep = (strpos($url, '?') === false) ? '?' : '&';
-    return $url . $sep . http_build_query($params);
-}
-
-function mx_spotify_track_rows_from_response($data) {
-    if (isset($data['tracks']) && is_array($data['tracks'])) {
-        return $data['tracks'];
-    }
-    return $data;
-}
-
-function mx_spotify_playlist_candidate_urls($playlist_id) {
-    $playlist_id = trim((string)$playlist_id);
-    $urls = [];
-
-    // Prefer Spotify's own tracks.href from /me/playlists where available.
-    try {
-        $lists = mx_spotify_user_get('https://api.spotify.com/v1/me/playlists?limit=50');
-        foreach (($lists['items'] ?? []) as $p) {
-            if ((string)($p['id'] ?? '') === $playlist_id && !empty($p['tracks']['href'])) {
-                $urls[] = mx_spotify_append_params((string)$p['tracks']['href'], [
-                    'limit' => 50,
-                    'market' => 'from_token',
-                ]);
-                break;
-            }
-        }
-    } catch (Throwable $ignored) {}
-
-    // Normal Get Playlist Items endpoint.
-    $urls[] = 'https://api.spotify.com/v1/playlists/' . rawurlencode($playlist_id) . '/tracks?' . http_build_query([
-        'limit' => 50,
-        'market' => 'from_token',
-    ]);
-
-    // Fallback: fetch the playlist object and read embedded tracks.
-    $urls[] = 'https://api.spotify.com/v1/playlists/' . rawurlencode($playlist_id) . '?' . http_build_query([
-        'market' => 'from_token',
-        'fields' => 'tracks(items(track(id,name,type,is_local,artists(name),album(name,images),external_urls,duration_ms)),next,total)',
-    ]);
-
-    return array_values(array_unique($urls));
-}
-
 function mx_spotify_playlist_tracks($playlist_id) {
     $playlist_id = trim((string)$playlist_id);
     if ($playlist_id === '') throw new RuntimeException('No Spotify playlist selected.');
-
-    $lastError = null;
-    foreach (mx_spotify_playlist_candidate_urls($playlist_id) as $url) {
-        try {
-            $data = mx_spotify_user_get($url);
-            $rows = mx_spotify_track_rows_from_response($data);
-            $out = [];
-            foreach (($rows['items'] ?? []) as $row) {
-                $track = $row['track'] ?? null;
-                if (!is_array($track) || empty($track['id'])) continue;
-                if (!empty($track['is_local'])) continue;
-                $out[] = mx_track_output(mx_track_from_spotify_item($track, 'spotify_playlist'));
-            }
-            return $out;
-        } catch (Throwable $e) {
-            $lastError = $e;
-            // Try the next Spotify endpoint shape before giving up.
-            continue;
-        }
+    $url = 'https://api.spotify.com/v1/playlists/' . rawurlencode($playlist_id) . '/tracks?limit=50&fields=items(track(id,name,artists(name),album(name,images),external_urls,duration_ms))';
+    $data = mx_spotify_user_get($url);
+    $out = [];
+    foreach (($data['items'] ?? []) as $row) {
+        $track = $row['track'] ?? null;
+        if (!is_array($track) || empty($track['id'])) continue;
+        $out[] = mx_track_output(mx_track_from_spotify_item($track, 'spotify_playlist'));
     }
-
-    if ($lastError) {
-        throw new RuntimeException(mx_spotify_playlist_error($lastError));
-    }
-    return [];
+    return $out;
 }
 function mx_history() {
     $history = mx_json('spotify_mixer_history', []);
     return array_values(array_map('mx_track_output', array_slice((array)$history, 0, 80)));
 }
+
+function mx_crates() {
+    $crates = mx_json('spotify_mixer_crates', []);
+    if (!$crates) {
+        $crates = [
+            ['id' => 'crate_80s', 'name' => '80s', 'tracks' => []],
+            ['id' => 'crate_90s', 'name' => '90s', 'tracks' => []],
+            ['id' => 'crate_floorfillers', 'name' => 'Floorfillers', 'tracks' => []],
+        ];
+        mx_save_crates($crates);
+    }
+    return array_values(array_map('mx_normalise_crate', (array)$crates));
+}
+function mx_normalise_crate($crate) {
+    $id = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)($crate['id'] ?? ''));
+    if ($id === '') $id = 'crate_' . bin2hex(random_bytes(4));
+    $name = trim((string)($crate['name'] ?? 'DJ Crate'));
+    $tracks = [];
+    foreach ((array)($crate['tracks'] ?? []) as $track) {
+        $clean = mx_clean_track($track);
+        if ($clean['id'] !== '') $tracks[] = $clean;
+        if (count($tracks) >= 200) break;
+    }
+    return ['id' => $id, 'name' => $name !== '' ? $name : 'DJ Crate', 'tracks' => $tracks];
+}
+function mx_save_crates($crates) {
+    mx_set('spotify_mixer_crates', json_encode(array_values(array_map('mx_normalise_crate', (array)$crates))));
+}
+function mx_find_crate_index($crates, $crate_id) {
+    foreach ((array)$crates as $idx => $crate) {
+        if ((string)($crate['id'] ?? '') === (string)$crate_id) return $idx;
+    }
+    return -1;
+}
+function mx_crate_summaries() {
+    return array_map(function($crate) {
+        return [
+            'id' => $crate['id'],
+            'name' => $crate['name'],
+            'track_count' => count($crate['tracks'] ?? []),
+        ];
+    }, mx_crates());
+}
+function mx_crate_tracks($crate_id) {
+    $crates = mx_crates();
+    $idx = mx_find_crate_index($crates, $crate_id);
+    if ($idx < 0) throw new RuntimeException('DJ crate not found.');
+    return array_values(array_map('mx_track_output', (array)$crates[$idx]['tracks']));
+}
+function mx_create_crate($name) {
+    $name = trim((string)$name);
+    if ($name === '') throw new RuntimeException('Enter a crate name first.');
+    $crates = mx_crates();
+    $id = 'crate_' . preg_replace('/[^a-z0-9]+/', '_', strtolower($name)) . '_' . substr(bin2hex(random_bytes(3)), 0, 6);
+    array_unshift($crates, ['id' => $id, 'name' => $name, 'tracks' => []]);
+    mx_save_crates($crates);
+    return $id;
+}
+function mx_delete_crate($crate_id) {
+    $crates = mx_crates();
+    $crates = array_values(array_filter($crates, function($c) use ($crate_id) { return (string)$c['id'] !== (string)$crate_id; }));
+    mx_save_crates($crates);
+}
+function mx_add_track_to_crate($crate_id, $track) {
+    $crates = mx_crates();
+    $idx = mx_find_crate_index($crates, $crate_id);
+    if ($idx < 0) throw new RuntimeException('Choose a DJ crate first.');
+    $clean = mx_clean_track($track);
+    if ($clean['id'] === '') throw new RuntimeException('Track is missing a Spotify ID.');
+    $tracks = array_values(array_filter((array)$crates[$idx]['tracks'], function($t) use ($clean) {
+        return (string)($t['id'] ?? '') !== $clean['id'];
+    }));
+    $clean['source'] = 'dj_crate';
+    $clean['added_at'] = date('Y-m-d H:i:s');
+    array_unshift($tracks, $clean);
+    $crates[$idx]['tracks'] = array_slice($tracks, 0, 200);
+    mx_save_crates($crates);
+}
+function mx_remove_track_from_crate($crate_id, $track_id) {
+    $crates = mx_crates();
+    $idx = mx_find_crate_index($crates, $crate_id);
+    if ($idx < 0) throw new RuntimeException('DJ crate not found.');
+    $crates[$idx]['tracks'] = array_values(array_filter((array)$crates[$idx]['tracks'], function($t) use ($track_id) { return (string)($t['id'] ?? '') !== (string)$track_id; }));
+    mx_save_crates($crates);
+}
+
 function mx_add_history($deck, $track) {
     if (!is_array($track) || empty($track['id'])) return;
     $item = mx_clean_track($track);
@@ -695,6 +700,7 @@ function mx_state() {
         'playlist' => array_values(array_map('mx_track_output', $playlist)),
         'requests' => mx_requests($playlist),
         'history' => mx_history(),
+        'crates' => mx_crate_summaries(),
     ];
 }
 function mx_deck_has_loaded($deck) {
@@ -770,6 +776,37 @@ try {
         mx_json_out(['ok' => true, 'tracks' => array_values(array_map('mx_track_output', $tracks))]);
     }
 
+
+    if ($action === 'crates') {
+        mx_json_out(['ok' => true, 'crates' => mx_crate_summaries()]);
+    }
+    if ($action === 'crate_tracks') {
+        $crateId = (string)($_GET['crate_id'] ?? $_POST['crate_id'] ?? '');
+        mx_json_out(['ok' => true, 'tracks' => mx_crate_tracks($crateId)]);
+    }
+    if ($action === 'create_crate') {
+        $name = (string)($_POST['name'] ?? '');
+        $crateId = mx_create_crate($name);
+        mx_json_out(['ok' => true, 'message' => 'DJ crate created.', 'crate_id' => $crateId, 'state' => mx_state()]);
+    }
+    if ($action === 'delete_crate') {
+        $crateId = (string)($_POST['crate_id'] ?? '');
+        mx_delete_crate($crateId);
+        mx_json_out(['ok' => true, 'message' => 'DJ crate deleted.', 'state' => mx_state()]);
+    }
+    if ($action === 'add_crate_track') {
+        $crateId = (string)($_POST['crate_id'] ?? '');
+        $track = json_decode((string)($_POST['track_json'] ?? ''), true);
+        if (!is_array($track)) throw new RuntimeException('Invalid track data.');
+        mx_add_track_to_crate($crateId, $track);
+        mx_json_out(['ok' => true, 'message' => 'Track saved to DJ crate.', 'state' => mx_state()]);
+    }
+    if ($action === 'remove_crate_track') {
+        $crateId = (string)($_POST['crate_id'] ?? '');
+        $trackId = (string)($_POST['track_id'] ?? '');
+        mx_remove_track_from_crate($crateId, $trackId);
+        mx_json_out(['ok' => true, 'message' => 'Track removed from DJ crate.', 'state' => mx_state()]);
+    }
     if ($action === 'spotify_playlists') {
         mx_json_out(['ok' => true, 'playlists' => mx_spotify_playlists()]);
     }

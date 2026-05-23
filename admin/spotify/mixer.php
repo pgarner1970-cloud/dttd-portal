@@ -13,7 +13,7 @@ admin_header('Spotify Mixer - DJ Portal');
 .deck-actions{display:block;margin-top:14px}.transport-controls{display:grid;grid-template-columns:1fr 1fr 1.35fr 1fr 1fr;gap:8px;align-items:stretch;margin-top:14px}.transport-btn{min-height:72px;border-radius:14px;flex-direction:column;gap:5px;font-size:18px;line-height:1.05}.transport-btn small{display:block;font-size:10px;letter-spacing:.035em;text-transform:uppercase;color:#c8d7e8}.transport-play{width:96px;height:96px;min-height:96px;border-radius:999px;justify-self:center;font-size:32px;letter-spacing:-6px;padding-right:12px}.transport-play.transport-ready{border-color:#ffb11a;color:#fff;background:radial-gradient(circle,rgba(255,177,26,.28),rgba(255,177,26,.08));box-shadow:0 0 0 0 rgba(255,177,26,.26),0 0 26px rgba(255,177,26,.25);animation:transportReady 1.05s ease-in-out infinite}.transport-play.transport-playing{border-color:#16c874;color:#fff;background:radial-gradient(circle,rgba(22,200,116,.28),rgba(22,200,116,.08));box-shadow:0 0 0 3px rgba(22,200,116,.14),0 0 28px rgba(22,200,116,.38)}.transport-under{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.transport-eject{min-height:52px}.transport-swap{min-height:52px;border-color:#ff9e16;color:#ffc455;background:rgba(255,158,22,.11)}@keyframes transportReady{0%,100%{box-shadow:0 0 0 0 rgba(255,177,26,.2),0 0 16px rgba(255,177,26,.3);filter:brightness(.95)}50%{box-shadow:0 0 0 5px rgba(255,177,26,.22),0 0 34px rgba(255,177,26,.72);filter:brightness(1.2)}}@media(max-width:700px){.transport-controls{grid-template-columns:repeat(5,minmax(54px,1fr));gap:6px}.transport-btn{min-height:62px;font-size:15px}.transport-play{width:78px;height:78px;min-height:78px;font-size:27px}.transport-under{grid-template-columns:1fr}.transport-btn small{font-size:9px}}
 
 
-.source-tabs{display:flex;gap:8px;align-items:center;margin-bottom:10px}.source-tab{border:1px solid rgba(96,145,205,.35);background:rgba(16,28,44,.92);color:#cfe4ff;border-radius:11px;padding:9px 11px;font-weight:1000;cursor:pointer}.source-tab.active{border-color:#3498ff;color:#fff;background:rgba(52,152,255,.17);box-shadow:0 0 18px rgba(52,152,255,.16)}.source-panel{display:none}.source-panel.active{display:block}.spotify-playlist-row,.history-row{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:9px;border-radius:13px;border:1px solid rgba(96,145,205,.2);background:rgba(255,255,255,.027);margin-top:7px}.spotify-playlist-row img,.history-row img{width:44px;height:44px;border-radius:9px;object-fit:cover}.source-list{margin-top:8px}.history-meta{color:#9fc2e9;font-size:12px;margin-top:3px;font-weight:800}.source-tools{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px}.source-tools .mixer-btn{min-height:36px;padding:7px 10px;font-size:12px}.source-tool-buttons{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.source-drill-head{display:flex;align-items:center;gap:10px;margin:8px 0 10px}@media(max-width:700px){.source-tabs{flex-wrap:wrap}.spotify-playlist-row,.history-row{grid-template-columns:44px 1fr}.spotify-playlist-row .row-actions,.history-row .row-actions{grid-column:1/-1;justify-content:flex-start}}
+.source-tabs{display:flex;gap:8px;align-items:center;margin-bottom:10px}.source-tab{border:1px solid rgba(96,145,205,.35);background:rgba(16,28,44,.92);color:#cfe4ff;border-radius:11px;padding:9px 11px;font-weight:1000;cursor:pointer}.source-tab.active{border-color:#3498ff;color:#fff;background:rgba(52,152,255,.17);box-shadow:0 0 18px rgba(52,152,255,.16)}.source-panel{display:none}.source-panel.active{display:block}.spotify-playlist-row,.history-row{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:9px;border-radius:13px;border:1px solid rgba(96,145,205,.2);background:rgba(255,255,255,.027);margin-top:7px}.spotify-playlist-row img,.history-row img{width:44px;height:44px;border-radius:9px;object-fit:cover}.source-list{margin-top:8px}.history-meta{color:#9fc2e9;font-size:12px;margin-top:3px;font-weight:800}.source-tools{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px}.source-tools .mixer-btn{min-height:36px;padding:7px 10px;font-size:12px}.crate-create-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin:8px 0 10px}.crate-icon{width:44px;height:44px;border-radius:9px;display:grid;place-items:center;background:rgba(52,152,255,.15);border:1px solid rgba(52,152,255,.28);font-size:21px;color:#bfe1ff}.active-crate{border-color:rgba(255,193,7,.55)!important;box-shadow:0 0 16px rgba(255,193,7,.12)}@media(max-width:700px){.source-tabs{flex-wrap:wrap}.spotify-playlist-row,.history-row{grid-template-columns:44px 1fr}.spotify-playlist-row .row-actions,.history-row .row-actions{grid-column:1/-1;justify-content:flex-start}}
 
 </style>
 <main class="spotify-mixer-app" data-api="<?= h(admin_url('spotify/mixer-api.php')) ?>">
@@ -68,7 +68,7 @@ admin_header('Spotify Mixer - DJ Portal');
         <div class="search-box source-box">
           <div class="source-tabs" role="tablist" aria-label="Track source">
             <button class="source-tab active" type="button" data-source-tab="search">Search Spotify</button>
-            <button class="source-tab" type="button" data-source-tab="playlists">Spotify Playlists</button>
+            <button class="source-tab" type="button" data-source-tab="crates">DJ Crates</button>
             <button class="source-tab" type="button" data-source-tab="history">History</button>
           </div>
           <div class="source-panel active" id="sourcePanelSearch" data-source-panel="search">
@@ -77,11 +77,12 @@ admin_header('Spotify Mixer - DJ Portal');
             <div id="searchStatus" class="mini muted" style="margin-top:8px"></div>
             <div class="search-results" id="searchResults"></div>
           </div>
-          <div class="source-panel" id="sourcePanelPlaylists" data-source-panel="playlists">
-            <div class="source-tools"><div><div class="tiny-label">Spotify playlists</div><div class="mini muted">Pick a playlist, then choose tracks to add or load.</div></div><div class="source-tool-buttons"><a class="mixer-btn orange" href="<?= h(admin_url('spotify/connect.php')) ?>">Reconnect Spotify</a><button class="mixer-btn blue" id="refreshPlaylists" type="button">Refresh</button></div></div>
-            <div id="spotifyPlaylistStatus" class="mini muted"></div>
-            <div id="spotifyPlaylists" class="source-list"></div>
-            <div id="spotifyPlaylistTracks" class="source-list"></div>
+          <div class="source-panel" id="sourcePanelCrates" data-source-panel="crates">
+            <div class="source-tools"><div><div class="tiny-label">DJ crates</div><div class="mini muted">Internal saved track lists. Search Spotify once, save tracks here, then reuse them all night.</div></div><button class="mixer-btn blue" id="refreshCrates" type="button">Refresh</button></div>
+            <div class="crate-create-row"><input id="newCrateName" class="search-input" placeholder="New crate name, e.g. 80s, Floorfillers…"><button class="mixer-btn green" id="createCrate" type="button">Create</button></div>
+            <div id="djCrateStatus" class="mini muted"></div>
+            <div id="djCrates" class="source-list"></div>
+            <div id="djCrateTracks" class="source-list"></div>
           </div>
           <div class="source-panel" id="sourcePanelHistory" data-source-panel="history">
             <div class="source-tools"><div><div class="tiny-label">Playback history</div><div class="mini muted">Tracks played during this mixer session/event.</div></div></div>
@@ -129,5 +130,5 @@ admin_header('Spotify Mixer - DJ Portal');
   </div>
   <div class="mixer-footer"><div><strong>Spotify status:</strong> <span id="spotifyStatus">Checking…</span></div><div class="mini muted">Device status is polled; Spotify can lag briefly, so active players remain protected.</div></div>
 </main>
-<script src="<?= h(admin_url('assets/spotify-mixer.js')) ?>?v=20260523-playlist-drilldown-v1"></script>
+<script src="<?= h(admin_url('assets/spotify-mixer.js')) ?>?v=20260523-dj-crates-v1"></script>
 <?php admin_footer(); ?>

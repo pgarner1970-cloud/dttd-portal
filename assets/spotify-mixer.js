@@ -22,10 +22,10 @@ document.head.appendChild(overviewStyle);
   let pollTimer = null;
   let busy = false;
   let activeSource = 'search';
-  let playlistsLoaded = false;
-  let activePlaylistId = '';
-  let activePlaylistName = '';
-  let currentSpotifyPlaylists = [];
+  let cratesLoaded = false;
+  let activeCrateId = '';
+  let activeCrateName = '';
+  let activeCrateTracks = [];
 
   const $ = (sel) => document.querySelector(sel);
   const els = {
@@ -39,7 +39,7 @@ document.head.appendChild(overviewStyle);
     publicRequests: $('#publicRequests'), djPlaylist: $('#djPlaylist'),
     requestCount: $('#requestCount'), playlistCount: $('#playlistCount'),
     sourceTabs: document.querySelectorAll('[data-source-tab]'), sourcePanels: document.querySelectorAll('[data-source-panel]'),
-    spotifyPlaylists: $('#spotifyPlaylists'), spotifyPlaylistTracks: $('#spotifyPlaylistTracks'), spotifyPlaylistStatus: $('#spotifyPlaylistStatus'), historyList: $('#historyList'), refreshPlaylists: $('#refreshPlaylists'),
+    djCrates: $('#djCrates'), djCrateTracks: $('#djCrateTracks'), djCrateStatus: $('#djCrateStatus'), refreshCrates: $('#refreshCrates'), newCrateName: $('#newCrateName'), createCrate: $('#createCrate'), historyList: $('#historyList'),
     choiceModal: $('#mixerChoiceModal'), choiceImage: $('#choiceImage'), choiceTitle: $('#choiceTitle'), choiceArtist: $('#choiceArtist'), choiceActions: $('#choiceActions'), choiceWarning: $('#choiceWarning'), choiceCancel: $('#choiceCancel')
   };
 
@@ -135,6 +135,7 @@ document.head.appendChild(overviewStyle);
     const bBlocked = !deckCanLoad('b');
     let html = '';
     html += choiceButton('+ Add to DJ playlist', 'green full', 'playlist');
+    html += choiceButton(activeCrateId ? '+ Save to ' + activeCrateName : '+ Save to DJ crate', 'blue full', 'crate', !activeCrateId);
     html += choiceButton('Load to A', 'orange', 'load_a', aBlocked);
     html += choiceButton('Load to B', 'blue', 'load_b', bBlocked);
     html += choiceButton('▶ Play on A now', 'green', 'play_a', aBlocked);
@@ -163,6 +164,7 @@ document.head.appendChild(overviewStyle);
     } else {
       const trackJson = JSON.stringify(item);
       if(action === 'playlist') Object.assign(params, {action:'add_track', track_json:trackJson});
+      if(action === 'crate') Object.assign(params, {action:'add_crate_track', crate_id:activeCrateId, track_json:trackJson});
       if(action === 'load_a' || action === 'load_b') Object.assign(params, {action:'load_track_direct', track_json:trackJson, deck:action.slice(-1)});
       if(action === 'play_a' || action === 'play_b') Object.assign(params, {action:'play_track_direct', track_json:trackJson, deck:action.slice(-1)});
     }
@@ -312,7 +314,7 @@ document.head.appendChild(overviewStyle);
         </div>
       </div>`).join('');
   }
-  function render(){ renderDevices(); renderPlaylist(); renderRequests(); renderDecks(); if(activeSource === 'history') renderHistory(); }
+  function render(){ renderDevices(); renderPlaylist(); renderRequests(); renderDecks(); if(activeSource === 'crates') renderDjCrates(state?.crates || []); if(activeSource === 'history') renderHistory(); }
   async function refresh(silent=true){
     try{ const data = await apiGet({action:'state'}); if(data.ok){ state = data.state; render(); } else { if(data.state){state=data.state; render();} if(!silent) toast(data.error || 'Update failed', false); } }
     catch(e){ if(!silent) toast('Mixer update failed', false); }
@@ -341,7 +343,7 @@ document.head.appendChild(overviewStyle);
     activeSource = name || 'search';
     els.sourceTabs.forEach(t => t.classList.toggle('active', t.dataset.sourceTab === activeSource));
     els.sourcePanels.forEach(p => p.classList.toggle('active', p.dataset.sourcePanel === activeSource));
-    if(activeSource === 'playlists' && !playlistsLoaded) loadSpotifyPlaylists();
+    if(activeSource === 'crates' && !cratesLoaded) loadDjCrates();
     if(activeSource === 'history') renderHistory();
   }
   function renderHistory(){
@@ -361,55 +363,53 @@ document.head.appendChild(overviewStyle);
         </div>
       </div>`).join('');
   }
-  function renderSpotifyPlaylists(playlists){
-    if(!els.spotifyPlaylists) return;
-    currentSpotifyPlaylists = playlists || [];
-    if(els.spotifyPlaylistTracks) els.spotifyPlaylistTracks.innerHTML = '';
-    if(!currentSpotifyPlaylists.length){ els.spotifyPlaylists.innerHTML = '<div class="empty">No Spotify playlists found for this account.</div>'; return; }
-    els.spotifyPlaylists.innerHTML = currentSpotifyPlaylists.map(p => {
-      const count = (p.tracks_total === null || p.tracks_total === undefined) ? 'Open to view tracks' : `${Number(p.tracks_total || 0)} tracks`;
-      return `
-      <div class="spotify-playlist-row">
-        <img src="${esc(image(p.image))}" alt="">
+  function renderDjCrates(crates){
+    if(!els.djCrates) return;
+    if(!crates.length){ els.djCrates.innerHTML = '<div class="empty">No DJ crates yet. Create one above, then save tracks from search or history.</div>'; return; }
+    els.djCrates.innerHTML = crates.map(c => `
+      <div class="spotify-playlist-row${String(c.id) === String(activeCrateId) ? ' active-crate' : ''}">
+        <div class="crate-icon">♫</div>
         <div>
-          <strong>${esc(p.name)}</strong><br>
-          <span class="mini muted">${esc(count)}${p.owner ? ' • ' + esc(p.owner) : ''}</span>
+          <strong>${esc(c.name)}</strong><br>
+          <span class="mini muted">${Number(c.track_count || 0)} saved tracks${String(c.id) === String(activeCrateId) ? ' • selected' : ''}</span>
         </div>
-        <div class="row-actions"><button class="mixer-btn blue" data-open-spotify-playlist="${esc(p.id)}" data-playlist-name="${esc(p.name)}">Open</button></div>
-      </div>`;
-    }).join('');
-  }
-  function renderSpotifyPlaylistTracks(tracks){
-    if(!els.spotifyPlaylistTracks) return;
-    const heading = activePlaylistName ? `<div class="source-drill-head"><button class="mixer-btn dark" type="button" data-back-spotify-playlists>← Playlists</button><div><div class="tiny-label">${esc(activePlaylistName)}</div><div class="mini muted">${Number((tracks || []).length)} playable tracks loaded from Spotify</div></div></div>` : '';
-    if(els.spotifyPlaylists) els.spotifyPlaylists.innerHTML = '';
-    if(!tracks.length){ els.spotifyPlaylistTracks.innerHTML = heading + '<div class="empty">No playable tracks found in this playlist.</div>'; return; }
-    els.spotifyPlaylistTracks.innerHTML = heading + tracks.map(t => `
-      <div class="result-row">
-        <img src="${esc(image(t.image))}" alt="">
-        <div><div class="result-title">${esc(t.title)}</div><div class="mini muted">${esc(t.artist)}${t.album ? ' • ' + esc(t.album) : ''}${duration(t.duration_ms) ? ' • ' + duration(t.duration_ms) : ''}</div></div>
-        <button class="mixer-btn green" data-select-track='${esc(JSON.stringify(t))}'>Choose</button>
+        <div class="row-actions"><button class="mixer-btn blue" data-open-dj-crate="${esc(c.id)}" data-crate-name="${esc(c.name)}">Open</button></div>
       </div>`).join('');
   }
-  async function loadSpotifyPlaylists(force=false){
-    if(!force && playlistsLoaded) return;
-    if(els.spotifyPlaylistStatus) els.spotifyPlaylistStatus.innerHTML = '<span class="spinner"></span> Loading Spotify playlists…';
-    if(els.spotifyPlaylistTracks) els.spotifyPlaylistTracks.innerHTML = '';
-    try{
-      const data = await apiGet({action:'spotify_playlists'});
-      if(data.ok){ playlistsLoaded = true; if(els.spotifyPlaylistStatus) els.spotifyPlaylistStatus.textContent = ''; renderSpotifyPlaylists(data.playlists || []); }
-      else { if(els.spotifyPlaylistStatus) els.spotifyPlaylistStatus.textContent = data.error || 'Could not load playlists.'; }
-    } catch(e){ if(els.spotifyPlaylistStatus) els.spotifyPlaylistStatus.textContent = 'Could not load playlists.'; }
+  function renderDjCrateTracks(tracks){
+    if(!els.djCrateTracks) return;
+    activeCrateTracks = tracks || [];
+    const heading = activeCrateName ? `<div class="tiny-label" style="margin-top:10px">${esc(activeCrateName)} tracks</div><div class="mini muted">New search/history selections will be saved into this crate.</div>` : '';
+    if(!tracks.length){ els.djCrateTracks.innerHTML = heading + '<div class="empty">This crate is empty. Search Spotify, choose a track, then press Save to DJ crate.</div>'; return; }
+    els.djCrateTracks.innerHTML = heading + tracks.map(t => `
+      <div class="result-row">
+        <img src="${esc(image(t.image))}" alt="">
+        <div><div class="result-title">${esc(t.title)}</div><div class="mini muted">${esc(t.artist)}${t.album ? ' • ' + esc(t.album) : ''}</div></div>
+        <div class="row-actions">
+          <button class="mixer-btn green" data-select-track='${esc(JSON.stringify(t))}'>Choose</button>
+          <button class="mixer-btn red" data-remove-crate-track="${esc(t.id)}">×</button>
+        </div>
+      </div>`).join('');
   }
-  async function loadSpotifyPlaylistTracks(id, name){
-    activePlaylistId = id || ''; activePlaylistName = name || 'Spotify playlist';
-    if(els.spotifyPlaylistStatus) els.spotifyPlaylistStatus.innerHTML = '<span class="spinner"></span> Loading playlist tracks…';
+  async function loadDjCrates(force=false){
+    if(!force && cratesLoaded) return;
+    if(els.djCrateStatus) els.djCrateStatus.innerHTML = '<span class="spinner"></span> Loading DJ crates…';
     try{
-      const data = await apiGet({action:'spotify_playlist_tracks', playlist_id:id});
-      if(data.ok){ if(els.spotifyPlaylistStatus) els.spotifyPlaylistStatus.textContent = ''; renderSpotifyPlaylistTracks(data.tracks || []); }
-      else { if(els.spotifyPlaylistStatus) els.spotifyPlaylistStatus.textContent = data.error || 'Could not load playlist tracks.'; }
-    } catch(e){ if(els.spotifyPlaylistStatus) els.spotifyPlaylistStatus.textContent = 'Could not load playlist tracks.'; }
+      const data = await apiGet({action:'crates'});
+      if(data.ok){ cratesLoaded = true; if(els.djCrateStatus) els.djCrateStatus.textContent = ''; renderDjCrates(data.crates || []); }
+      else { if(els.djCrateStatus) els.djCrateStatus.textContent = data.error || 'Could not load DJ crates.'; }
+    } catch(e){ if(els.djCrateStatus) els.djCrateStatus.textContent = 'Could not load DJ crates.'; }
   }
+  async function loadDjCrateTracks(id, name){
+    activeCrateId = id || ''; activeCrateName = name || 'DJ crate';
+    if(els.djCrateStatus) els.djCrateStatus.innerHTML = '<span class="spinner"></span> Loading crate tracks…';
+    try{
+      const data = await apiGet({action:'crate_tracks', crate_id:id});
+      if(data.ok){ if(els.djCrateStatus) els.djCrateStatus.textContent = ''; renderDjCrates(state?.crates || []); renderDjCrateTracks(data.tracks || []); }
+      else { if(els.djCrateStatus) els.djCrateStatus.textContent = data.error || 'Could not load crate tracks.'; }
+    } catch(e){ if(els.djCrateStatus) els.djCrateStatus.textContent = 'Could not load crate tracks.'; }
+  }
+
 
   async function search(q){
     if(!q || q.trim().length < 2){ els.searchResults.innerHTML=''; els.searchStatus.textContent=''; return; }
@@ -420,9 +420,10 @@ document.head.appendChild(overviewStyle);
   app.addEventListener('click', (e)=>{
     const sourceTab = e.target.closest('[data-source-tab]');
     if(sourceTab){ setSourceTab(sourceTab.dataset.sourceTab || 'search'); return; }
-    const openSpotifyPlaylist = e.target.closest('[data-open-spotify-playlist]');
-    if(openSpotifyPlaylist){ loadSpotifyPlaylistTracks(openSpotifyPlaylist.dataset.openSpotifyPlaylist, openSpotifyPlaylist.dataset.playlistName || 'Spotify playlist'); return; }
-    if(e.target.closest('[data-back-spotify-playlists]')){ activePlaylistId = ''; activePlaylistName = ''; if(els.spotifyPlaylistTracks) els.spotifyPlaylistTracks.innerHTML = ''; renderSpotifyPlaylists(currentSpotifyPlaylists); return; }
+    const openDjCrate = e.target.closest('[data-open-dj-crate]');
+    if(openDjCrate){ loadDjCrateTracks(openDjCrate.dataset.openDjCrate, openDjCrate.dataset.crateName || 'DJ crate'); return; }
+    const removeCrateTrack = e.target.closest('[data-remove-crate-track]');
+    if(removeCrateTrack){ if(activeCrateId) doAction({action:'remove_crate_track', crate_id:activeCrateId, track_id:removeCrateTrack.dataset.removeCrateTrack}); setTimeout(()=>loadDjCrateTracks(activeCrateId, activeCrateName), 350); return; }
     const save = e.target.closest('[data-save-devices]');
     if(save){ doAction({action:'assign_devices', device_a:els.deviceA.value, device_b:els.deviceB.value}); return; }
     const deckAction = e.target.closest('[data-deck-action]');
@@ -461,7 +462,8 @@ document.head.appendChild(overviewStyle);
   }
   const clearSearch = $('#clearSearch'); if(clearSearch) clearSearch.addEventListener('click', ()=>{ els.search.value=''; els.search.focus(); els.searchResults.innerHTML=''; els.searchStatus.textContent=''; });
   const refreshNow = $('#refreshNow'); if(refreshNow) refreshNow.addEventListener('click', ()=>refresh(false));
-  if(els.refreshPlaylists) els.refreshPlaylists.addEventListener('click', ()=>{ playlistsLoaded = false; loadSpotifyPlaylists(true); });
+  if(els.refreshCrates) els.refreshCrates.addEventListener('click', ()=>{ cratesLoaded = false; loadDjCrates(true); });
+  if(els.createCrate) els.createCrate.addEventListener('click', async ()=>{ const name = els.newCrateName ? els.newCrateName.value : ''; await doAction({action:'create_crate', name}); if(els.newCrateName) els.newCrateName.value=''; cratesLoaded=false; loadDjCrates(true); });
   refresh(false);
   pollTimer = setInterval(()=>refresh(true), 3000);
 })();
