@@ -22,8 +22,16 @@ if (!in_array($spotify_queue_mode, ['standard', 'mixer'], true)) {
 $spotify_queue_available = $spotify_queue_enabled_for_buttons
     && function_exists('dttd_spotify_queue_connected')
     && dttd_spotify_queue_connected();
+
+// Standard Spotify queue mode sends directly to Spotify, so it must only be
+// available when the DJ Spotify account is connected.
 $spotify_queue_standard_mode = $spotify_queue_available && $spotify_queue_mode === 'standard';
-$spotify_queue_mixer_mode = $spotify_queue_available && $spotify_queue_mode === 'mixer';
+
+// Mixer mode only moves the request into the local mixer/public-requests feed.
+// It does not need a live Spotify token at this point, because playback happens
+// later from the Mixer page. Keep the + Mixer button visible even if Spotify
+// reconnect/diagnostics are in progress.
+$spotify_queue_mixer_mode = $spotify_queue_enabled_for_buttons && $spotify_queue_mode === 'mixer';
 $spotify_flash = $_SESSION['spotify_flash'] ?? '';
 unset($_SESSION['spotify_flash']);
 
