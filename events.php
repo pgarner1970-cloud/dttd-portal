@@ -227,7 +227,7 @@ try {
               $title = $event['event_name'] ?? $event['name'] ?? 'Dance Thru The Decades Event';
               $venue = $event['venue_name'] ?? $event['venue'] ?? '';
               $imageUrl = public_event_image_url($event['event_image'] ?? '');
-              $detailsLink = '/events/' . rawurlencode(public_event_slug($event));
+              $detailsLink = '/event/' . rawurlencode(public_event_slug($event));
               $status = public_event_status($event);
               $ticketUrl = trim((string)($event['ticketing_url'] ?? $event['tickets_url'] ?? $event['venue_ticket_url'] ?? ''));
             ?>
