@@ -212,7 +212,7 @@ if ($event) {
     $postcode = $event['postcode'] ?? $event['venue_postcode'] ?? '';
     $venueFacebook = $event['venue_facebook_url'] ?? $event['facebook_url'] ?? '';
     $venueWebsite = $event['venue_website_url'] ?? $event['website_url'] ?? '';
-    $ticketUrl = $event['ticketing_url'] ?? $event['tickets_url'] ?? $event['venue_ticket_url'] ?? '';
+    $ticketUrl = trim((string)($event['ticketing_url'] ?? $event['tickets_url'] ?? $event['venue_ticket_url'] ?? ''));
     $imageUrl = public_event_image_url($event['event_image'] ?? '');
     $description = public_event_description($event);
     $status = public_event_status($event);

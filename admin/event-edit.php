@@ -263,6 +263,7 @@ $event = [
     'venue_website_url' => '',
     'venue_instagram_url' => '',
     'venue_ticket_url' => '',
+    'ticketing_url' => '',
     'venue_social_label' => '',
     'event_type' => 'public',
     'notes' => '',
@@ -323,7 +324,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $venue_website_url = trim((string)($_POST['venue_website_url'] ?? ''));
     $venue_instagram_url = trim((string)($_POST['venue_instagram_url'] ?? ''));
     $venue_ticket_url = trim((string)($_POST['venue_ticket_url'] ?? ''));
+    $ticketing_url = trim((string)($_POST['ticketing_url'] ?? ''));
     $venue_social_label = trim((string)($_POST['venue_social_label'] ?? ''));
+
+    // If an event-specific ticket link is not supplied, fall back to the venue default.
+    if ($ticketing_url === '' && $venue_ticket_url !== '') {
+        $ticketing_url = $venue_ticket_url;
+    }
     $event_type = trim((string)($_POST['event_type'] ?? 'public'));
     $notes = trim((string)($_POST['notes'] ?? ''));
     $event_date = trim((string)($_POST['event_date'] ?? ''));
@@ -366,6 +373,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'venue_website_url' => $venue_website_url,
             'venue_instagram_url' => $venue_instagram_url,
             'venue_ticket_url' => $venue_ticket_url,
+            'ticketing_url' => $ticketing_url,
             'venue_social_label' => $venue_social_label,
             'event_type' => $event_type,
             'notes' => $notes,
@@ -516,6 +524,12 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
             </select>
           </label>
 
+          <label>
+            <span>Event ticketing URL</span>
+            <input type="url" name="ticketing_url" id="ticketing_url_input" value="<?= h($event['ticketing_url'] ?? '') ?>" placeholder="https://tickets.example.com/this-event">
+            <small>Shown on the public events list and event details page. Leave blank to use the venue default ticket URL.</small>
+          </label>
+
           <label class="event-notes-field">
             <span>Notes</span>
             <textarea name="notes" placeholder="Internal event notes"><?= h($event['notes'] ?? '') ?></textarea>
@@ -634,9 +648,9 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
 
           
           <label>
-            <span>Ticketing URL</span>
+            <span>Venue default ticketing URL</span>
             <input type="url" name="venue_ticket_url" id="venue_ticket_url_input" value="<?= h($event['venue_ticket_url'] ?? '') ?>" placeholder="https://tickets.example.com/...">
-            <small>Optional link for tickets, booking pages or external event listings.</small>
+            <small>Saved against the venue and used as a fallback for events without their own ticket link.</small>
           </label>
 
           <label>

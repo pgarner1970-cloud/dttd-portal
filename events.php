@@ -229,6 +229,7 @@ try {
               $imageUrl = public_event_image_url($event['event_image'] ?? '');
               $detailsLink = '/events/' . rawurlencode(public_event_slug($event));
               $status = public_event_status($event);
+              $ticketUrl = trim((string)($event['ticketing_url'] ?? $event['tickets_url'] ?? $event['venue_ticket_url'] ?? ''));
             ?>
 
             <article class="public-event-card <?= $status === 'cancelled' ? 'is-cancelled' : '' ?>">
@@ -260,6 +261,9 @@ try {
 
                 <div class="public-event-actions public-event-actions-compact">
                   <a class="public-neon-btn" href="<?= public_h($detailsLink) ?>">Event Details</a>
+                  <?php if ($status !== 'cancelled' && $ticketUrl): ?>
+                    <a class="public-neon-btn subtle" href="<?= public_h($ticketUrl) ?>" target="_blank" rel="noopener">Tickets</a>
+                  <?php endif; ?>
                 </div>
               </div>
             </article>

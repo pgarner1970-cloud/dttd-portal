@@ -19,6 +19,7 @@
       venueWebsite: document.getElementById('venue_website_url_input'),
       venueInstagram: document.getElementById('venue_instagram_url_input'),
       venueTicket: document.getElementById('venue_ticket_url_input'),
+      eventTicket: document.getElementById('ticketing_url_input'),
       venueSocialLabel: document.getElementById('venue_social_label_input')
     };
 
@@ -43,6 +44,9 @@
       setField('venueWebsite', option.dataset.venueWebsite);
       setField('venueInstagram', option.dataset.venueInstagram);
       setField('venueTicket', option.dataset.venueTicket);
+      if (fields.eventTicket && !fields.eventTicket.value) {
+        setField('eventTicket', option.dataset.venueTicket);
+      }
       setField('venueSocialLabel', option.dataset.venueSocialLabel);
     });
   });
