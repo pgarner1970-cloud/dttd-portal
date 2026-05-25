@@ -15,6 +15,9 @@ $header_show_request_timer = app_setting('header_show_request_timer', '1') === '
 $spotify_enabled = app_setting('spotify_enabled', '0') === '1';
 $spotify_client_id = app_setting('spotify_client_id', '');
 $spotify_secret_saved = trim((string)app_setting('spotify_client_secret', '')) !== '';
+$spotify_public_enabled = app_setting('spotify_public_enabled', '0') === '1';
+$spotify_public_client_id = app_setting('spotify_public_client_id', '');
+$spotify_public_secret_saved = trim((string)app_setting('spotify_public_client_secret', '')) !== '';
 $spotify_connected = trim((string)app_setting('spotify_refresh_token', '')) !== '';
 $spotify_queue_enabled = app_setting('spotify_queue_enabled', '0') === '1';
 $spotify_queue_mode = app_setting('spotify_queue_mode', 'standard');
@@ -36,6 +39,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $new_spotify_client_id = trim((string)($_POST['spotify_client_id'] ?? ''));
         $new_spotify_client_secret = trim((string)($_POST['spotify_client_secret'] ?? ''));
         $new_spotify_enabled = !empty($_POST['spotify_enabled']);
+        $new_spotify_public_enabled = !empty($_POST['spotify_public_enabled']);
+        $new_spotify_public_client_id = trim((string)($_POST['spotify_public_client_id'] ?? ''));
+        $new_spotify_public_client_secret = trim((string)($_POST['spotify_public_client_secret'] ?? ''));
         $new_spotify_queue_enabled = !empty($_POST['spotify_queue_enabled']);
         $new_spotify_queue_mode = $_POST['spotify_queue_mode'] ?? 'standard';
         if (!in_array($new_spotify_queue_mode, ['standard', 'mixer'], true)) {
@@ -46,11 +52,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ok = save_app_setting('header_show_request_timer', !empty($_POST['header_show_request_timer']) ? '1' : '0') && $ok;
         $ok = save_app_setting('spotify_enabled', $new_spotify_enabled ? '1' : '0') && $ok;
         $ok = save_app_setting('spotify_client_id', $new_spotify_client_id) && $ok;
+        $ok = save_app_setting('spotify_public_enabled', $new_spotify_public_enabled ? '1' : '0') && $ok;
+        $ok = save_app_setting('spotify_public_client_id', $new_spotify_public_client_id) && $ok;
         $ok = save_app_setting('spotify_queue_enabled', ($new_spotify_enabled && $new_spotify_queue_enabled) ? '1' : '0') && $ok;
         $ok = save_app_setting('spotify_queue_mode', $new_spotify_queue_mode) && $ok;
 
         if ($new_spotify_client_secret !== '') {
             $ok = save_app_setting('spotify_client_secret', $new_spotify_client_secret) && $ok;
+        }
+        if ($new_spotify_public_client_secret !== '') {
+            $ok = save_app_setting('spotify_public_client_secret', $new_spotify_public_client_secret) && $ok;
         }
 
         if ($ok) {
@@ -60,6 +71,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $spotify_enabled = $new_spotify_enabled;
             $spotify_client_id = $new_spotify_client_id;
             $spotify_secret_saved = $new_spotify_client_secret !== '' || $spotify_secret_saved;
+            $spotify_public_enabled = $new_spotify_public_enabled;
+            $spotify_public_client_id = $new_spotify_public_client_id;
+            $spotify_public_secret_saved = $new_spotify_public_client_secret !== '' || $spotify_public_secret_saved;
             $spotify_queue_enabled = $new_spotify_enabled && $new_spotify_queue_enabled;
             $spotify_queue_mode = $new_spotify_queue_mode;
             $saved = true;
@@ -156,7 +170,7 @@ admin_header('Settings - DJ Portal');
         <section class="settings-section spotify-settings-section">
           <div class="settings-section-header">
             <h2>Spotify Integration</h2>
-            <p>Optional Spotify tools for track search, artwork, duplicate matching and sending requests to the DJ Spotify queue.</p>
+            <p>Optional Spotify tools for DJ playback plus a separate public-search profile to reduce API pressure during live events.</p>
           </div>
 
           <div class="spotify-settings-body">
@@ -179,6 +193,42 @@ admin_header('Settings - DJ Portal');
                 <label for="spotify_client_secret">Spotify Client Secret</label>
                 <input id="spotify_client_secret" class="spotify-settings-input" type="password" name="spotify_client_secret" value="" autocomplete="new-password" placeholder="<?= $spotify_secret_saved ? '•••••••• saved — leave blank to keep' : 'Paste Client Secret' ?>">
                 <small><?= $spotify_secret_saved ? 'A secret is already saved. Enter a new one only if you want to replace it.' : 'Secret is not saved yet.' ?></small>
+              </div>
+            </div>
+
+            <div class="spotify-status-card">
+              <div>
+                <strong>Primary Spotify profile</strong>
+                <small>Used for DJ console playback, devices, pause/play/seek, mixer handover and queue control.</small>
+              </div>
+            </div>
+
+            <label class="settings-toggle-card spotify-main-toggle">
+              <input type="checkbox" name="spotify_public_enabled" value="1" <?= $spotify_public_enabled ? 'checked' : '' ?>>
+              <span>
+                <strong>Enable secondary public-search Spotify app</strong>
+                <small>Public request searches use this second app first. If it is not configured, public searches fall back to the primary app and then cached/manual requests.</small>
+              </span>
+            </label>
+
+            <div class="spotify-settings-grid">
+              <div class="spotify-field-card">
+                <label for="spotify_public_client_id">Public Search Spotify Client ID</label>
+                <input id="spotify_public_client_id" class="spotify-settings-input" type="text" name="spotify_public_client_id" value="<?= h($spotify_public_client_id) ?>" autocomplete="off" placeholder="Paste second app Client ID">
+                <small>Use a separate Spotify developer app for public request searching where possible.</small>
+              </div>
+
+              <div class="spotify-field-card">
+                <label for="spotify_public_client_secret">Public Search Spotify Client Secret</label>
+                <input id="spotify_public_client_secret" class="spotify-settings-input" type="password" name="spotify_public_client_secret" value="" autocomplete="new-password" placeholder="<?= $spotify_public_secret_saved ? '•••••••• saved — leave blank to keep' : 'Paste second app Client Secret' ?>">
+                <small><?= $spotify_public_secret_saved ? 'A public-search secret is already saved. Enter a new one only if you want to replace it.' : 'Public-search secret is not saved yet.' ?></small>
+              </div>
+            </div>
+
+            <div class="spotify-status-card">
+              <div>
+                <strong>Public search fallback order</strong>
+                <small>Local cache first → secondary public-search app → primary DJ app → manual text request.</small>
               </div>
             </div>
 

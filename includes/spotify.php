@@ -33,18 +33,43 @@ function dttd_spotify_enabled() {
 }
 
 function dttd_spotify_credentials() {
+    return dttd_spotify_profile_credentials('primary');
+}
+
+function dttd_spotify_profile_credentials($profile = 'primary') {
+    $profile = $profile === 'public' ? 'public' : 'primary';
+    if ($profile === 'public') {
+        return [
+            'client_id' => dttd_spotify_setting('spotify_public_client_id', ''),
+            'client_secret' => dttd_spotify_setting('spotify_public_client_secret', ''),
+        ];
+    }
     return [
         'client_id' => dttd_spotify_setting('spotify_client_id', ''),
         'client_secret' => dttd_spotify_setting('spotify_client_secret', ''),
     ];
 }
 
-function dttd_spotify_config_loaded() {
-    $credentials = dttd_spotify_credentials();
+function dttd_spotify_public_enabled() {
+    $enabled = strtolower((string)dttd_spotify_setting('spotify_public_enabled', '0'));
+    return in_array($enabled, ['1', 'true', 'yes', 'on'], true);
+}
 
+function dttd_spotify_profile_config_loaded($profile = 'primary') {
+    $profile = $profile === 'public' ? 'public' : 'primary';
+    $credentials = dttd_spotify_profile_credentials($profile);
+    if ($profile === 'public') {
+        return dttd_spotify_public_enabled()
+            && $credentials['client_id'] !== ''
+            && $credentials['client_secret'] !== '';
+    }
     return dttd_spotify_enabled()
         && $credentials['client_id'] !== ''
         && $credentials['client_secret'] !== '';
+}
+
+function dttd_spotify_config_loaded() {
+    return dttd_spotify_profile_config_loaded('primary');
 }
 
 
@@ -182,13 +207,14 @@ function dttd_spotify_http_get($url, array $headers) {
     return json_decode($response, true) ?: [];
 }
 
-function dttd_spotify_access_token() {
-    if (!dttd_spotify_config_loaded()) {
-        throw new RuntimeException('Spotify API is not configured.');
+function dttd_spotify_access_token_for_profile($profile = 'primary') {
+    $profile = $profile === 'public' ? 'public' : 'primary';
+    if (!dttd_spotify_profile_config_loaded($profile)) {
+        throw new RuntimeException($profile === 'public' ? 'Spotify public search profile is not configured.' : 'Spotify API is not configured.');
     }
 
-    $credentials = dttd_spotify_credentials();
-    $cache_file = sys_get_temp_dir() . '/dttd_spotify_client_token_' . md5($credentials['client_id']) . '.json';
+    $credentials = dttd_spotify_profile_credentials($profile);
+    $cache_file = sys_get_temp_dir() . '/dttd_spotify_client_token_' . $profile . '_' . md5($credentials['client_id']) . '.json';
 
     if (is_file($cache_file)) {
         $cached = json_decode((string)file_get_contents($cache_file), true);
@@ -220,14 +246,18 @@ function dttd_spotify_access_token() {
     return $data['access_token'];
 }
 
-function dttd_spotify_search_tracks($query, $limit = 8) {
+function dttd_spotify_access_token() {
+    return dttd_spotify_access_token_for_profile('primary');
+}
+
+function dttd_spotify_search_tracks_with_profile($query, $limit = 8, $profile = 'primary') {
     $query = trim((string)$query);
     if ($query === '' || strlen($query) < 2) {
         return [];
     }
 
     $limit = max(1, min(10, (int)$limit));
-    $token = dttd_spotify_access_token();
+    $token = dttd_spotify_access_token_for_profile($profile);
     $url = 'https://api.spotify.com/v1/search?type=track&limit=' . $limit . '&q=' . rawurlencode($query);
 
     $data = dttd_spotify_http_get($url, [
@@ -261,10 +291,30 @@ function dttd_spotify_search_tracks($query, $limit = 8) {
             'image' => $image,
             'url' => $item['external_urls']['spotify'] ?? '',
             'duration_ms' => $item['duration_ms'] ?? null,
+            'popularity' => $item['popularity'] ?? null,
+            'source_profile' => $profile,
         ];
     }
 
     return $tracks;
+}
+
+function dttd_spotify_search_tracks($query, $limit = 8) {
+    return dttd_spotify_search_tracks_with_profile($query, $limit, 'primary');
+}
+
+function dttd_spotify_search_tracks_for_public($query, $limit = 8) {
+    // Public request searching uses the secondary/public search Spotify app first.
+    // If that is not configured, it falls back to the primary DJ app so the site
+    // continues working during the transition to dual-account operation.
+    if (dttd_spotify_profile_config_loaded('public')) {
+        return dttd_spotify_search_tracks_with_profile($query, $limit, 'public');
+    }
+    return dttd_spotify_search_tracks_with_profile($query, $limit, 'primary');
+}
+
+function dttd_spotify_public_search_profile_name() {
+    return dttd_spotify_profile_config_loaded('public') ? 'secondary_public' : 'primary_fallback';
 }
 
 function dttd_spotify_update_setting($key, $value) {

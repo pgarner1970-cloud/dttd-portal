@@ -155,11 +155,14 @@ try {
 
     $cached = dttd_public_search_cache($q, 8);
 
-    if (!dttd_spotify_config_loaded()) {
+    $spotifyAvailable = dttd_spotify_profile_config_loaded('public') || dttd_spotify_profile_config_loaded('primary');
+
+    if (!$spotifyAvailable) {
         echo json_encode([
             'ok' => true,
             'configured' => false,
             'source' => 'cache',
+            'profile' => 'none',
             'message' => $cached ? 'Showing cached results. Spotify API is not configured.' : 'Spotify API is not configured yet. Manual entry still works.',
             'tracks' => $cached,
         ], JSON_UNESCAPED_SLASHES);
@@ -180,13 +183,15 @@ try {
     }
 
     try {
-        $spotify = dttd_spotify_search_tracks($q, 8);
+        $profileName = dttd_spotify_public_search_profile_name();
+        $spotify = dttd_spotify_search_tracks_for_public($q, 8);
         dttd_public_cache_store_tracks($spotify);
         $tracks = dttd_public_merge_tracks($spotify, $cached, 8);
         echo json_encode([
             'ok' => true,
             'configured' => true,
             'source' => 'spotify',
+            'profile' => $profileName,
             'cached' => false,
             'tracks' => $tracks,
         ], JSON_UNESCAPED_SLASHES);
@@ -196,6 +201,7 @@ try {
             'ok' => true,
             'configured' => true,
             'source' => 'cache',
+            'profile' => dttd_spotify_public_search_profile_name(),
             'rate_limited' => true,
             'message' => $cached ? 'Spotify is cooling down. Showing cached matches.' : 'Spotify search is cooling down. You can still submit a manual request.',
             'tracks' => $cached,
