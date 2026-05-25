@@ -37,6 +37,50 @@ function event_column_exists($column) {
     return $cache[$column];
 }
 
+
+function event_slugify($value) {
+    $value = strtolower(trim((string)$value));
+    $value = preg_replace('/[^a-z0-9]+/i', '-', $value);
+    $value = trim($value, '-');
+    return $value ?: 'event';
+}
+
+function event_default_public_slug($event_name, $venue_name, $event_date) {
+    $parts = [
+        trim((string)$event_name),
+        trim((string)$venue_name),
+    ];
+
+    if (trim((string)$event_date) !== '') {
+        $parts[] = trim((string)$event_date);
+    }
+
+    return event_slugify(implode(' ', array_filter($parts)));
+}
+
+function event_unique_public_slug($base_slug, $current_id = 0) {
+    $base_slug = event_slugify($base_slug);
+
+    if (!event_column_exists('public_slug')) {
+        return $base_slug;
+    }
+
+    $slug = $base_slug;
+    $suffix = 2;
+
+    while (true) {
+        $stmt = db()->prepare("SELECT id FROM events WHERE public_slug = ? AND id <> ? LIMIT 1");
+        $stmt->execute([$slug, (int)$current_id]);
+
+        if (!$stmt->fetch()) {
+            return $slug;
+        }
+
+        $slug = $base_slug . '-' . $suffix;
+        $suffix++;
+    }
+}
+
 function event_upload_image() {
     if (!isset($_FILES['event_image_upload']) || !is_array($_FILES['event_image_upload'])) {
         return null;
@@ -343,6 +387,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $queue_visibility = trim((string)($_POST['queue_visibility'] ?? 'public'));
     $status = trim((string)($_POST['status'] ?? 'scheduled'));
     $public_slug = trim((string)($_POST['public_slug'] ?? ''));
+    if ($public_slug === '') {
+        $public_slug = event_default_public_slug($event_name, $venue_name, $event_date);
+    }
+    $public_slug = event_unique_public_slug($public_slug, $id);
 
     if ($event_name === '' || $venue_name === '' || $event_date === '' || $start_time === '') {
         $error = 'Please complete the required event fields.';
@@ -769,8 +817,8 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
 
           <label>
             <span>Public URL slug</span>
-            <input name="public_slug" value="<?= h($event['public_slug'] ?? '') ?>" placeholder="heart-and-soul-may-2026">
-            <small>Optional. Leave blank to auto-generate from event name, venue and date.</small>
+            <input name="public_slug" value="<?= h($event['public_slug'] ?? '') ?>" placeholder="Auto-generated if left blank">
+            <small>Leave blank to auto-generate a unique slug from event name, venue and date. If the same event name is reused, a suffix such as -2 is added automatically.</small>
           </label>
 
           <label>
