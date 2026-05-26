@@ -37,50 +37,6 @@ function event_column_exists($column) {
     return $cache[$column];
 }
 
-
-function event_slugify($value) {
-    $value = strtolower(trim((string)$value));
-    $value = preg_replace('/[^a-z0-9]+/i', '-', $value);
-    $value = trim($value, '-');
-    return $value ?: 'event';
-}
-
-function event_default_public_slug($event_name, $venue_name, $event_date) {
-    $parts = [
-        trim((string)$event_name),
-        trim((string)$venue_name),
-    ];
-
-    if (trim((string)$event_date) !== '') {
-        $parts[] = trim((string)$event_date);
-    }
-
-    return event_slugify(implode(' ', array_filter($parts)));
-}
-
-function event_unique_public_slug($base_slug, $current_id = 0) {
-    $base_slug = event_slugify($base_slug);
-
-    if (!event_column_exists('public_slug')) {
-        return $base_slug;
-    }
-
-    $slug = $base_slug;
-    $suffix = 2;
-
-    while (true) {
-        $stmt = db()->prepare("SELECT id FROM events WHERE public_slug = ? AND id <> ? LIMIT 1");
-        $stmt->execute([$slug, (int)$current_id]);
-
-        if (!$stmt->fetch()) {
-            return $slug;
-        }
-
-        $slug = $base_slug . '-' . $suffix;
-        $suffix++;
-    }
-}
-
 function event_upload_image() {
     if (!isset($_FILES['event_image_upload']) || !is_array($_FILES['event_image_upload'])) {
         return null;
@@ -307,7 +263,6 @@ $event = [
     'venue_website_url' => '',
     'venue_instagram_url' => '',
     'venue_ticket_url' => '',
-    'ticketing_url' => '',
     'venue_social_label' => '',
     'event_type' => 'public',
     'notes' => '',
@@ -368,13 +323,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $venue_website_url = trim((string)($_POST['venue_website_url'] ?? ''));
     $venue_instagram_url = trim((string)($_POST['venue_instagram_url'] ?? ''));
     $venue_ticket_url = trim((string)($_POST['venue_ticket_url'] ?? ''));
-    $ticketing_url = trim((string)($_POST['ticketing_url'] ?? ''));
     $venue_social_label = trim((string)($_POST['venue_social_label'] ?? ''));
-
-    // If an event-specific ticket link is not supplied, fall back to the venue default.
-    if ($ticketing_url === '' && $venue_ticket_url !== '') {
-        $ticketing_url = $venue_ticket_url;
-    }
     $event_type = trim((string)($_POST['event_type'] ?? 'public'));
     $notes = trim((string)($_POST['notes'] ?? ''));
     $event_date = trim((string)($_POST['event_date'] ?? ''));
@@ -387,10 +336,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $queue_visibility = trim((string)($_POST['queue_visibility'] ?? 'public'));
     $status = trim((string)($_POST['status'] ?? 'scheduled'));
     $public_slug = trim((string)($_POST['public_slug'] ?? ''));
-    if ($public_slug === '') {
-        $public_slug = event_default_public_slug($event_name, $venue_name, $event_date);
-    }
-    $public_slug = event_unique_public_slug($public_slug, $id);
 
     if ($event_name === '' || $venue_name === '' || $event_date === '' || $start_time === '') {
         $error = 'Please complete the required event fields.';
@@ -421,7 +366,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'venue_website_url' => $venue_website_url,
             'venue_instagram_url' => $venue_instagram_url,
             'venue_ticket_url' => $venue_ticket_url,
-            'ticketing_url' => $ticketing_url,
             'venue_social_label' => $venue_social_label,
             'event_type' => $event_type,
             'notes' => $notes,
@@ -572,15 +516,9 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
             </select>
           </label>
 
-          <label>
-            <span>Event ticketing URL</span>
-            <input type="url" name="ticketing_url" id="ticketing_url_input" value="<?= h($event['ticketing_url'] ?? '') ?>" placeholder="https://tickets.example.com/this-event">
-            <small>Shown on the public events list and event details page. Leave blank to use the venue default ticket URL.</small>
-          </label>
-
           <label class="event-notes-field">
-            <span>Notes</span>
-            <textarea name="notes" placeholder="Internal event notes"><?= h($event['notes'] ?? '') ?></textarea>
+            <span>Public event description</span>
+            <textarea name="notes" placeholder="Describe the event for the public event detail page"><?= h($event['notes'] ?? '') ?></textarea>
           </label>
         </div>
       </section>
@@ -696,9 +634,9 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
 
           
           <label>
-            <span>Venue default ticketing URL</span>
+            <span>Ticketing URL</span>
             <input type="url" name="venue_ticket_url" id="venue_ticket_url_input" value="<?= h($event['venue_ticket_url'] ?? '') ?>" placeholder="https://tickets.example.com/...">
-            <small>Saved against the venue and used as a fallback for events without their own ticket link.</small>
+            <small>Optional link for tickets, booking pages or external event listings.</small>
           </label>
 
           <label>
@@ -817,8 +755,8 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
 
           <label>
             <span>Public URL slug</span>
-            <input name="public_slug" value="<?= h($event['public_slug'] ?? '') ?>" placeholder="Auto-generated if left blank">
-            <small>Leave blank to auto-generate a unique slug from event name, venue and date. If the same event name is reused, a suffix such as -2 is added automatically.</small>
+            <input name="public_slug" value="<?= h($event['public_slug'] ?? '') ?>" placeholder="heart-and-soul-may-2026">
+            <small>Optional. Leave blank to auto-generate from event name, venue and date.</small>
           </label>
 
           <label>
