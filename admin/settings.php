@@ -22,37 +22,88 @@ if (!in_array($spotify_queue_mode, ['standard', 'mixer'], true)) {
     $spotify_queue_mode = 'standard';
 }
 
-$spotify_account_plan = app_setting('spotify_account_plan', 'standard');
-if (!in_array($spotify_account_plan, ['standard', 'duo'], true)) {
-    $spotify_account_plan = 'standard';
+function dttd_default_spotify_profiles() {
+    return [
+        1 => ['id' => null, 'label' => 'Account 1', 'account_email' => '', 'use_for_deck_a' => 1, 'use_for_deck_b' => 0, 'use_for_public_search' => 0, 'enabled' => 1],
+        2 => ['id' => null, 'label' => 'Account 2', 'account_email' => '', 'use_for_deck_a' => 0, 'use_for_deck_b' => 1, 'use_for_public_search' => 0, 'enabled' => 1],
+        3 => ['id' => null, 'label' => 'Account 3', 'account_email' => '', 'use_for_deck_a' => 0, 'use_for_deck_b' => 0, 'use_for_public_search' => 1, 'enabled' => 0],
+    ];
 }
 
-$spotify_primary_label = app_setting('spotify_primary_label', 'Primary DJ Account');
-$spotify_primary_email = app_setting('spotify_primary_email', '');
-$spotify_deck_a_profile = app_setting('spotify_deck_a_profile', 'primary');
-$spotify_deck_b_profile = app_setting('spotify_deck_b_profile', $spotify_account_plan === 'duo' ? 'duo_second' : 'primary');
-if (!in_array($spotify_deck_a_profile, ['primary', 'duo_second'], true)) {
-    $spotify_deck_a_profile = 'primary';
-}
-if (!in_array($spotify_deck_b_profile, ['primary', 'duo_second'], true)) {
-    $spotify_deck_b_profile = $spotify_account_plan === 'duo' ? 'duo_second' : 'primary';
+function dttd_load_spotify_profiles() {
+    $profiles = dttd_default_spotify_profiles();
+
+    try {
+        $stmt = db()->query("SELECT * FROM spotify_profiles ORDER BY id ASC LIMIT 3");
+        $rows = $stmt->fetchAll();
+        $slot = 1;
+        foreach ($rows as $row) {
+            if ($slot > 3) {
+                break;
+            }
+            $profiles[$slot] = array_merge($profiles[$slot], [
+                'id' => $row['id'] ?? null,
+                'label' => $row['label'] ?? $profiles[$slot]['label'],
+                'account_email' => $row['account_email'] ?? '',
+                'use_for_deck_a' => (int)($row['use_for_deck_a'] ?? 0),
+                'use_for_deck_b' => (int)($row['use_for_deck_b'] ?? 0),
+                'use_for_public_search' => (int)($row['use_for_public_search'] ?? 0),
+                'enabled' => (int)($row['enabled'] ?? 1),
+            ]);
+            $slot++;
+        }
+    } catch (Throwable $e) {
+        // Table may not exist yet. The page should still render so SQL can be applied separately.
+    }
+
+    return $profiles;
 }
 
-$duo_spotify_profile = dttd_spotify_profile_by_role('duo_second', true);
-$duo_spotify_enabled = $duo_spotify_profile ? ((int)($duo_spotify_profile['enabled'] ?? 0) === 1) : false;
-$duo_spotify_label = $duo_spotify_profile['label'] ?? 'Duo Account 2';
-$duo_spotify_email = $duo_spotify_profile['account_email'] ?? '';
+function dttd_save_spotify_profiles(array $postedProfiles) {
+    try {
+        $existing = db()->query("SELECT id FROM spotify_profiles ORDER BY id ASC LIMIT 3")->fetchAll();
+        $existingIds = [];
+        foreach ($existing as $row) {
+            if (!empty($row['id'])) {
+                $existingIds[] = (int)$row['id'];
+            }
+        }
 
-$public_search_source = app_setting('spotify_public_search_source', 'primary');
-if (!in_array($public_search_source, ['primary', 'duo_second', 'public_search'], true)) {
-    $public_search_source = 'primary';
+        for ($slot = 1; $slot <= 3; $slot++) {
+            $posted = $postedProfiles[$slot] ?? [];
+            $label = trim((string)($posted['label'] ?? ('Account ' . $slot)));
+            $email = trim((string)($posted['account_email'] ?? ''));
+            $enabled = !empty($posted['enabled']) ? 1 : 0;
+            $deckA = !empty($posted['use_for_deck_a']) ? 1 : 0;
+            $deckB = !empty($posted['use_for_deck_b']) ? 1 : 0;
+            $publicSearch = !empty($posted['use_for_public_search']) ? 1 : 0;
+
+            if ($slot === 1) {
+                $enabled = 1;
+            }
+
+            if ($label === '') {
+                $label = 'Account ' . $slot;
+            }
+
+            $id = $existingIds[$slot - 1] ?? null;
+
+            if ($id) {
+                $stmt = db()->prepare("UPDATE spotify_profiles SET label = ?, account_email = ?, enabled = ?, use_for_deck_a = ?, use_for_deck_b = ?, use_for_public_search = ? WHERE id = ?");
+                $stmt->execute([$label, $email, $enabled, $deckA, $deckB, $publicSearch, $id]);
+            } else {
+                $stmt = db()->prepare("INSERT INTO spotify_profiles (label, account_email, role, enabled, use_for_deck_a, use_for_deck_b, use_for_public_search) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $role = $publicSearch && !$deckA && !$deckB ? 'public_search' : 'playback';
+                $stmt->execute([$label, $email, $role, $enabled, $deckA, $deckB, $publicSearch]);
+            }
+        }
+        return true;
+    } catch (Throwable $e) {
+        return false;
+    }
 }
 
-$public_spotify_profile = dttd_spotify_profile_by_role('public_search', true);
-$public_spotify_enabled = $public_spotify_profile ? ((int)($public_spotify_profile['enabled'] ?? 0) === 1) : false;
-$public_spotify_label = $public_spotify_profile['label'] ?? 'Public Search';
-$public_spotify_client_id = $public_spotify_profile['client_id'] ?? '';
-$public_spotify_secret_saved = $public_spotify_profile && trim((string)($public_spotify_profile['client_secret'] ?? '')) !== '';
+$spotify_profiles = dttd_load_spotify_profiles();
 
 $saved = false;
 $error = '';
@@ -67,35 +118,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ok = save_app_setting('requests_layout', $selected) && $ok;
         $new_spotify_client_id = trim((string)($_POST['spotify_client_id'] ?? ''));
         $new_spotify_client_secret = trim((string)($_POST['spotify_client_secret'] ?? ''));
-        $new_spotify_account_plan = $_POST['spotify_account_plan'] ?? 'standard';
-        if (!in_array($new_spotify_account_plan, ['standard', 'duo'], true)) {
-            $new_spotify_account_plan = 'standard';
-        }
-        $new_spotify_primary_label = trim((string)($_POST['spotify_primary_label'] ?? 'Primary DJ Account'));
-        $new_spotify_primary_email = trim((string)($_POST['spotify_primary_email'] ?? ''));
-        $new_duo_spotify_enabled = !empty($_POST['duo_spotify_enabled']);
-        $new_duo_spotify_label = trim((string)($_POST['duo_spotify_label'] ?? 'Duo Account 2'));
-        $new_duo_spotify_email = trim((string)($_POST['duo_spotify_email'] ?? ''));
-        $new_spotify_deck_a_profile = $_POST['spotify_deck_a_profile'] ?? 'primary';
-        $new_spotify_deck_b_profile = $_POST['spotify_deck_b_profile'] ?? ($new_spotify_account_plan === 'duo' ? 'duo_second' : 'primary');
-        if (!in_array($new_spotify_deck_a_profile, ['primary', 'duo_second'], true)) {
-            $new_spotify_deck_a_profile = 'primary';
-        }
-        if (!in_array($new_spotify_deck_b_profile, ['primary', 'duo_second'], true)) {
-            $new_spotify_deck_b_profile = $new_spotify_account_plan === 'duo' ? 'duo_second' : 'primary';
-        }
-        if ($new_spotify_account_plan === 'standard') {
-            $new_spotify_deck_a_profile = 'primary';
-            $new_spotify_deck_b_profile = 'primary';
-        }
-        $new_public_search_source = $_POST['spotify_public_search_source'] ?? 'primary';
-        if (!in_array($new_public_search_source, ['primary', 'duo_second', 'public_search'], true)) {
-            $new_public_search_source = 'primary';
-        }
-        $new_public_spotify_enabled = !empty($_POST['public_spotify_enabled']);
-        $new_public_spotify_label = trim((string)($_POST['public_spotify_label'] ?? 'Public Search'));
-        $new_public_spotify_client_id = trim((string)($_POST['public_spotify_client_id'] ?? ''));
-        $new_public_spotify_client_secret = trim((string)($_POST['public_spotify_client_secret'] ?? ''));
         $new_spotify_enabled = !empty($_POST['spotify_enabled']);
         $new_spotify_queue_enabled = !empty($_POST['spotify_queue_enabled']);
         $new_spotify_queue_mode = $_POST['spotify_queue_mode'] ?? 'standard';
@@ -109,31 +131,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ok = save_app_setting('spotify_client_id', $new_spotify_client_id) && $ok;
         $ok = save_app_setting('spotify_queue_enabled', ($new_spotify_enabled && $new_spotify_queue_enabled) ? '1' : '0') && $ok;
         $ok = save_app_setting('spotify_queue_mode', $new_spotify_queue_mode) && $ok;
-        $ok = save_app_setting('spotify_account_plan', $new_spotify_account_plan) && $ok;
-        $ok = save_app_setting('spotify_primary_label', $new_spotify_primary_label ?: 'Primary DJ Account') && $ok;
-        $ok = save_app_setting('spotify_primary_email', $new_spotify_primary_email) && $ok;
-        $ok = save_app_setting('spotify_deck_a_profile', $new_spotify_deck_a_profile) && $ok;
-        $ok = save_app_setting('spotify_deck_b_profile', $new_spotify_deck_b_profile) && $ok;
-        $ok = save_app_setting('spotify_public_search_source', $new_public_search_source) && $ok;
 
         if ($new_spotify_client_secret !== '') {
             $ok = save_app_setting('spotify_client_secret', $new_spotify_client_secret) && $ok;
         }
 
-        $duoProfileOkToSave = $new_duo_spotify_enabled || $new_duo_spotify_label !== '' || $new_duo_spotify_email !== '';
-        if ($duoProfileOkToSave) {
-            $ok = dttd_spotify_save_profile_credentials('duo_second', $new_duo_spotify_label ?: 'Duo Account 2', '', null, $new_duo_spotify_enabled) && $ok;
-            try {
-                $stmt = db()->prepare("UPDATE spotify_profiles SET account_email=? WHERE role='duo_second' ORDER BY id ASC LIMIT 1");
-                $ok = $stmt->execute([$new_duo_spotify_email]) && $ok;
-            } catch (Throwable $e) {
-                // Older spotify_profiles tables may not have account_email yet; account labels still save.
-            }
-        }
-
-        if ($new_public_spotify_client_id !== '' || $new_public_spotify_client_secret !== '' || $new_public_spotify_enabled) {
-            $secretToSave = $new_public_spotify_client_secret !== '' ? $new_public_spotify_client_secret : null;
-            $ok = dttd_spotify_save_profile_credentials('public_search', $new_public_spotify_label, $new_public_spotify_client_id, $secretToSave, $new_public_spotify_enabled) && $ok;
+        if (!empty($_POST['spotify_profiles']) && is_array($_POST['spotify_profiles'])) {
+            $ok = dttd_save_spotify_profiles($_POST['spotify_profiles']) && $ok;
         }
 
         if ($ok) {
@@ -145,22 +149,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $spotify_secret_saved = $new_spotify_client_secret !== '' || $spotify_secret_saved;
             $spotify_queue_enabled = $new_spotify_enabled && $new_spotify_queue_enabled;
             $spotify_queue_mode = $new_spotify_queue_mode;
-            $spotify_account_plan = $new_spotify_account_plan;
-            $spotify_primary_label = $new_spotify_primary_label ?: 'Primary DJ Account';
-            $spotify_primary_email = $new_spotify_primary_email;
-            $duo_spotify_enabled = $new_duo_spotify_enabled;
-            $duo_spotify_label = $new_duo_spotify_label ?: 'Duo Account 2';
-            $duo_spotify_email = $new_duo_spotify_email;
-            $spotify_deck_a_profile = $new_spotify_deck_a_profile;
-            $spotify_deck_b_profile = $new_spotify_deck_b_profile;
-            $public_search_source = $new_public_search_source;
-            $public_spotify_enabled = $new_public_spotify_enabled;
-            $public_spotify_label = $new_public_spotify_label;
-            $public_spotify_client_id = $new_public_spotify_client_id;
-            $public_spotify_secret_saved = $new_public_spotify_client_secret !== '' || $public_spotify_secret_saved;
+            $spotify_profiles = dttd_load_spotify_profiles();
             $saved = true;
         } else {
-            $error = 'Settings could not be saved. Please check the app_settings table exists.';
+            $error = 'Settings could not be saved. Please check the app_settings and spotify_profiles tables exist.';
         }
     }
 }
@@ -252,7 +244,7 @@ admin_header('Settings - DJ Portal');
         <section class="settings-section spotify-settings-section">
           <div class="settings-section-header">
             <h2>Spotify Integration</h2>
-            <p>Optional Spotify tools for track search, artwork, duplicate matching and sending requests to the DJ Spotify queue.</p>
+            <p>Turn Spotify features on/off, set the developer app details, then assign connected Spotify accounts to Deck A, Deck B and Public Search.</p>
           </div>
 
           <div class="spotify-settings-body">
@@ -268,7 +260,7 @@ admin_header('Settings - DJ Portal');
               <div class="spotify-field-card">
                 <label for="spotify_client_id">Spotify Client ID</label>
                 <input id="spotify_client_id" class="spotify-settings-input" type="text" name="spotify_client_id" value="<?= h($spotify_client_id) ?>" autocomplete="off" placeholder="Paste Client ID">
-                <small>Public app identifier from your Spotify Developer app.</small>
+                <small>Developer app Client ID.</small>
               </div>
 
               <div class="spotify-field-card">
@@ -282,162 +274,93 @@ admin_header('Settings - DJ Portal');
               <input type="checkbox" name="spotify_queue_enabled" value="1" <?= $spotify_queue_enabled ? 'checked' : '' ?>>
               <span>
                 <strong>Enable Spotify queue controls</strong>
-                <small>Enables DJ-only Spotify queue actions. Choose Standard mode for the device picker, or Full DJ Mixer mode for the mixer workflow.</small>
+                <small>Choose Standard Queue for basic queueing or Full DJ Mixer for deck-based control.</small>
               </span>
             </label>
 
             <div class="spotify-settings-grid spotify-mode-grid">
               <label class="spotify-field-card spotify-mode-card <?= $spotify_queue_mode === 'standard' ? 'selected' : '' ?>">
                 <input type="radio" name="spotify_queue_mode" value="standard" <?= $spotify_queue_mode === 'standard' ? 'checked' : '' ?>>
-                <strong>Standard queue mode</strong>
-                <small>Request Queue → choose Spotify device → add track to that device queue.</small>
+                <strong>Standard Queue</strong>
+                <small>One Spotify account/device flow. Starting playback on one device may stop the other because it is the same account.</small>
               </label>
 
               <label class="spotify-field-card spotify-mode-card <?= $spotify_queue_mode === 'mixer' ? 'selected' : '' ?>">
                 <input type="radio" name="spotify_queue_mode" value="mixer" <?= $spotify_queue_mode === 'mixer' ? 'checked' : '' ?>>
-                <strong>Full DJ Mixer mode</strong>
-                <small>Request Queue → send to Live Mixer DJ Playlist. The mixer controls loading/playing on A or B.</small>
+                <strong>Full DJ Mixer</strong>
+                <small>Use the mixer workflow. Duo-style independent decks are enabled by assigning different accounts to Deck A and Deck B.</small>
               </label>
             </div>
 
-            <div class="spotify-account-planner">
-              <div class="settings-section-header compact">
-                <h3>DJ playback account mode</h3>
-                <p>Standard keeps the current single-account behaviour. Duo prepares the mixer for one Spotify account per deck so A and B can play at the same time through the external DJ mixer.</p>
-              </div>
+            <div class="settings-section-header" style="margin-top:1rem;">
+              <h2>Spotify Accounts</h2>
+              <p>Duo means two separate Spotify logins. Assign Account 1/2/3 to Deck A, Deck B or Public Search as needed.</p>
+            </div>
 
-              <div class="spotify-settings-grid spotify-mode-grid">
-                <label class="spotify-field-card spotify-mode-card <?= $spotify_account_plan === 'standard' ? 'selected' : '' ?>">
-                  <input type="radio" name="spotify_account_plan" value="standard" <?= $spotify_account_plan === 'standard' ? 'checked' : '' ?>>
-                  <strong>Standard Spotify</strong>
-                  <small>One Spotify account controls playback. Starting one deck will stop the other, matching the existing logic.</small>
-                </label>
-
-                <label class="spotify-field-card spotify-mode-card <?= $spotify_account_plan === 'duo' ? 'selected' : '' ?>">
-                  <input type="radio" name="spotify_account_plan" value="duo" <?= $spotify_account_plan === 'duo' ? 'checked' : '' ?>>
-                  <strong>Spotify Duo / dual account</strong>
-                  <small>Deck A and Deck B can be assigned to different Spotify accounts for simultaneous playback.</small>
-                </label>
-              </div>
-
-              <div class="spotify-account-grid">
-                <div class="spotify-account-card primary">
+            <div class="spotify-account-grid">
+              <?php foreach ($spotify_profiles as $slot => $profile): ?>
+                <div class="spotify-field-card spotify-account-card">
                   <div class="spotify-account-card-head">
-                    <span class="spotify-account-badge">Account 1</span>
-                    <strong>Primary DJ playback account</strong>
+                    <strong>Spotify Account <?= (int)$slot ?></strong>
+                    <?php if ($slot === 3): ?><small>Optional</small><?php endif; ?>
                   </div>
-                  <div class="spotify-settings-grid">
-                    <div class="spotify-field-card">
-                      <label for="spotify_primary_label">Display label</label>
-                      <input id="spotify_primary_label" class="spotify-settings-input" type="text" name="spotify_primary_label" value="<?= h($spotify_primary_label) ?>" autocomplete="off" placeholder="Primary DJ Account">
-                      <small>Shown in settings and future deck/device diagnostics.</small>
-                    </div>
-                    <div class="spotify-field-card">
-                      <label for="spotify_primary_email">Spotify login email / note</label>
-                      <input id="spotify_primary_email" class="spotify-settings-input" type="text" name="spotify_primary_email" value="<?= h($spotify_primary_email) ?>" autocomplete="off" placeholder="name@example.com">
-                      <small>For operator reference only. OAuth tokens are still managed through Spotify Tools.</small>
-                    </div>
-                  </div>
-                </div>
 
-                <div class="spotify-account-card secondary">
-                  <div class="spotify-account-card-head">
-                    <span class="spotify-account-badge amber">Account 2</span>
-                    <strong>Optional Duo deck account</strong>
-                  </div>
-                  <label class="settings-toggle-card spotify-main-toggle compact-toggle">
-                    <input type="checkbox" name="duo_spotify_enabled" value="1" <?= $duo_spotify_enabled ? 'checked' : '' ?>>
-                    <span>
-                      <strong>Enable second playback account</strong>
-                      <small>Use when running Spotify Duo/two Spotify accounts for independent Deck A and Deck B playback.</small>
-                    </span>
-                  </label>
-                  <div class="spotify-settings-grid">
-                    <div class="spotify-field-card">
-                      <label for="duo_spotify_label">Display label</label>
-                      <input id="duo_spotify_label" class="spotify-settings-input" type="text" name="duo_spotify_label" value="<?= h($duo_spotify_label) ?>" autocomplete="off" placeholder="Duo Account 2">
-                    </div>
-                    <div class="spotify-field-card">
-                      <label for="duo_spotify_email">Spotify login email / note</label>
-                      <input id="duo_spotify_email" class="spotify-settings-input" type="text" name="duo_spotify_email" value="<?= h($duo_spotify_email) ?>" autocomplete="off" placeholder="duo-account@example.com">
-                      <small>Add this email as a user in the same Spotify Developer playback app.</small>
-                    </div>
+                  <label>Display label</label>
+                  <input class="spotify-settings-input" type="text" name="spotify_profiles[<?= (int)$slot ?>][label]" value="<?= h($profile['label']) ?>" placeholder="Account <?= (int)$slot ?>">
+
+                  <label>Spotify email / note</label>
+                  <input class="spotify-settings-input" type="text" name="spotify_profiles[<?= (int)$slot ?>][account_email]" value="<?= h($profile['account_email']) ?>" placeholder="name@example.com">
+
+                  <div class="settings-toggle-grid spotify-role-grid">
+                    <label class="settings-toggle-card compact-role-toggle">
+                      <input type="checkbox" name="spotify_profiles[<?= (int)$slot ?>][enabled]" value="1" <?= !empty($profile['enabled']) ? 'checked' : '' ?> <?= $slot === 1 ? 'disabled' : '' ?>>
+                      <span><strong>Enabled</strong></span>
+                    </label>
+                    <?php if ($slot === 1): ?>
+                      <input type="hidden" name="spotify_profiles[1][enabled]" value="1">
+                    <?php endif; ?>
+
+                    <label class="settings-toggle-card compact-role-toggle">
+                      <input type="checkbox" name="spotify_profiles[<?= (int)$slot ?>][use_for_deck_a]" value="1" <?= !empty($profile['use_for_deck_a']) ? 'checked' : '' ?>>
+                      <span><strong>Deck A</strong></span>
+                    </label>
+
+                    <label class="settings-toggle-card compact-role-toggle">
+                      <input type="checkbox" name="spotify_profiles[<?= (int)$slot ?>][use_for_deck_b]" value="1" <?= !empty($profile['use_for_deck_b']) ? 'checked' : '' ?>>
+                      <span><strong>Deck B</strong></span>
+                    </label>
+
+                    <label class="settings-toggle-card compact-role-toggle">
+                      <input type="checkbox" name="spotify_profiles[<?= (int)$slot ?>][use_for_public_search]" value="1" <?= !empty($profile['use_for_public_search']) ? 'checked' : '' ?>>
+                      <span><strong>Public Search</strong></span>
+                    </label>
                   </div>
                 </div>
-              </div>
-
-              <div class="spotify-deck-map-card">
-                <div class="settings-section-header compact">
-                  <h3>Deck account allocation</h3>
-                  <p>In Standard mode both decks stay on Account 1. In Duo mode, the usual setup is Deck A → Account 1 and Deck B → Account 2.</p>
-                </div>
-                <div class="spotify-deck-map-grid">
-                  <div class="spotify-deck-map">
-                    <strong>Player A</strong>
-                    <label><input type="radio" name="spotify_deck_a_profile" value="primary" <?= $spotify_deck_a_profile === 'primary' ? 'checked' : '' ?>> Account 1</label>
-                    <label><input type="radio" name="spotify_deck_a_profile" value="duo_second" <?= $spotify_deck_a_profile === 'duo_second' ? 'checked' : '' ?>> Account 2</label>
-                  </div>
-                  <div class="spotify-deck-map">
-                    <strong>Player B</strong>
-                    <label><input type="radio" name="spotify_deck_b_profile" value="primary" <?= $spotify_deck_b_profile === 'primary' ? 'checked' : '' ?>> Account 1</label>
-                    <label><input type="radio" name="spotify_deck_b_profile" value="duo_second" <?= $spotify_deck_b_profile === 'duo_second' ? 'checked' : '' ?>> Account 2</label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="spotify-settings-grid">
-              <div class="spotify-field-card">
-                <label for="spotify_public_search_source">Public request search source</label>
-                <select id="spotify_public_search_source" class="spotify-settings-input" name="spotify_public_search_source">
-                  <option value="primary" <?= $public_search_source === 'primary' ? 'selected' : '' ?>>Account 1 / Primary playback app</option>
-                  <option value="duo_second" <?= $public_search_source === 'duo_second' ? 'selected' : '' ?>>Account 2 / Duo account</option>
-                  <option value="public_search" <?= $public_search_source === 'public_search' ? 'selected' : '' ?>>Dedicated public-search app</option>
-                </select>
-                <small>Public search should normally use cache first, then the selected search profile, then fall back safely.</small>
-              </div>
-            </div>
-
-            <div class="spotify-settings-grid">
-              <div class="spotify-field-card">
-                <label for="public_spotify_label">Public search profile label</label>
-                <input id="public_spotify_label" class="spotify-settings-input" type="text" name="public_spotify_label" value="<?= h($public_spotify_label) ?>" autocomplete="off" placeholder="Public Search">
-                <small>Used by the public request site for Spotify search only.</small>
-              </div>
-
-              <label class="spotify-field-card spotify-mode-card <?= $public_spotify_enabled ? 'selected' : '' ?>">
-                <input type="checkbox" name="public_spotify_enabled" value="1" <?= $public_spotify_enabled ? 'checked' : '' ?>>
-                <strong>Use secondary Spotify app for public search</strong>
-                <small>If enabled and configured, public requests search with this app first. If unavailable, search falls back to the primary DJ Spotify app, then cache/text-only.</small>
-              </label>
-            </div>
-
-            <div class="spotify-settings-grid">
-              <div class="spotify-field-card">
-                <label for="public_spotify_client_id">Public Search Spotify Client ID</label>
-                <input id="public_spotify_client_id" class="spotify-settings-input" type="text" name="public_spotify_client_id" value="<?= h($public_spotify_client_id) ?>" autocomplete="off" placeholder="Secondary app Client ID">
-                <small>Use a separate Spotify Developer app to keep public search traffic away from DJ playback/control.</small>
-              </div>
-
-              <div class="spotify-field-card">
-                <label for="public_spotify_client_secret">Public Search Spotify Client Secret</label>
-                <input id="public_spotify_client_secret" class="spotify-settings-input" type="password" name="public_spotify_client_secret" value="" autocomplete="new-password" placeholder="<?= $public_spotify_secret_saved ? '•••••••• saved — leave blank to keep' : 'Secondary app Client Secret' ?>">
-                <small><?= $public_spotify_secret_saved ? 'A public-search secret is already saved. Enter a new one only if replacing it.' : 'Secret is not saved yet.' ?></small>
-              </div>
+              <?php endforeach; ?>
             </div>
 
             <div class="spotify-status-card">
               <div>
-                <strong>Connected Spotify account</strong>
+                <strong>Spotify Tools</strong>
                 <span class="spotify-status-pill <?= $spotify_connected ? 'connected' : 'not-connected' ?>">
-                  <?= $spotify_connected ? 'Connected' : 'Not connected' ?>
+                  <?= $spotify_connected ? 'Primary connected' : 'Primary not connected' ?>
                 </span>
-                <small>Use the Spotify Tools page to connect or reconnect the DJ Spotify account for playback and queue control.</small>
+                <small>Use Spotify Tools to connect/reconnect accounts and run diagnostics.</small>
               </div>
               <a class="touch-btn green" href="spotify/">Spotify Tools</a>
             </div>
           </div>
         </section>
+
+        <style>
+          .spotify-account-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;}
+          .spotify-account-card{display:flex;flex-direction:column;gap:.55rem;}
+          .spotify-account-card-head{display:flex;align-items:center;justify-content:space-between;gap:.75rem;}
+          .spotify-role-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem;margin-top:.35rem;}
+          .compact-role-toggle{padding:.65rem .7rem;min-height:auto;}
+          .compact-role-toggle span strong{font-size:.9rem;}
+          @media(max-width:1100px){.spotify-account-grid{grid-template-columns:1fr;}}
+        </style>
 
         <div class="settings-actions">
           <button class="touch-btn blue" type="submit">Save Settings</button>
