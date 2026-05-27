@@ -141,6 +141,64 @@ function dttd_spotify_fetch_me_from_token($accessToken) {
     }
 }
 
+
+function dttd_spotify_clear_duplicate_connected_accounts($currentProfileId, $currentSlot, $spotifyUserId, $connectedText) {
+    $currentProfileId = (int)$currentProfileId;
+    $currentSlot = (int)$currentSlot;
+    $spotifyUserId = trim((string)$spotifyUserId);
+    $connectedText = trim((string)$connectedText);
+    if ($currentProfileId <= 0 || ($spotifyUserId === '' && $connectedText === '')) {
+        return [];
+    }
+
+    $matches = [];
+    try {
+        if ($spotifyUserId !== '' && dttd_spotify_profile_has_column('spotify_user_id')) {
+            $stmt = db()->prepare('SELECT id, profile_slot, label FROM spotify_profiles WHERE id <> ? AND spotify_user_id = ?');
+            $stmt->execute([$currentProfileId, $spotifyUserId]);
+            $matches = $stmt->fetchAll();
+        }
+        if (!$matches && $connectedText !== '' && dttd_spotify_profile_has_column('account_email')) {
+            $stmt = db()->prepare('SELECT id, profile_slot, label FROM spotify_profiles WHERE id <> ? AND account_email = ? AND COALESCE(refresh_token, \'\') <> \'\'');
+            $stmt->execute([$currentProfileId, $connectedText]);
+            $matches = $stmt->fetchAll();
+        }
+    } catch (Throwable $e) {
+        error_log('Spotify duplicate account lookup failed: ' . $e->getMessage());
+        return [];
+    }
+
+    $cleared = [];
+    foreach ($matches as $match) {
+        $duplicateId = (int)($match['id'] ?? 0);
+        if ($duplicateId <= 0) {
+            continue;
+        }
+        $slot = isset($match['profile_slot']) ? (int)$match['profile_slot'] : 0;
+        $updates = [
+            'access_token' => null,
+            'refresh_token' => null,
+            'granted_scopes' => null,
+            'expires_at' => null,
+            'account_email' => '',
+            'enabled' => 0,
+            'use_for_deck_a' => 0,
+            'use_for_deck_b' => 0,
+            'use_for_public_search' => 0,
+        ];
+        if (dttd_spotify_profile_has_column('spotify_user_id')) {
+            $updates['spotify_user_id'] = '';
+        }
+        if (dttd_spotify_profile_has_column('spotify_display_name')) {
+            $updates['spotify_display_name'] = '';
+        }
+        dttd_spotify_profile_update($duplicateId, $updates);
+        $cleared[] = $slot > 0 ? $slot : $duplicateId;
+    }
+
+    return $cleared;
+}
+
 function dttd_spotify_save_token_to_profile_slot($slot, array $token) {
     $slot = dttd_spotify_normalise_profile_slot($slot);
     if ($slot === 0) {
@@ -174,6 +232,11 @@ function dttd_spotify_save_token_to_profile_slot($slot, array $token) {
     }
     dttd_spotify_profile_update($profileId, $updates);
 
+    // A Spotify login can only occupy one portal account slot. If the same
+    // Spotify user is connected into a new slot, clear older duplicate slots so
+    // Duo setup cannot accidentally show Account 1 and Account 2 as the same login.
+    $clearedDuplicateSlots = dttd_spotify_clear_duplicate_connected_accounts($profileId, $slot, $userId, $connectedText);
+
     // Account 1 remains synced to legacy app_settings until the mixer is fully
     // Duo-aware. This keeps current playback/search features working.
     if ($slot === 1) {
@@ -183,6 +246,7 @@ function dttd_spotify_save_token_to_profile_slot($slot, array $token) {
     return [
         'profile_id' => $profileId,
         'connected_text' => $connectedText,
+        'cleared_duplicate_slots' => $clearedDuplicateSlots,
     ];
 }
 
@@ -269,7 +333,11 @@ function dttd_spotify_finish_account_oauth() {
 
     if ($slot >= 1 && $slot <= 3) {
         $saved = dttd_spotify_save_token_to_profile_slot($slot, $token);
-        $_SESSION['settings_flash'] = 'Spotify Account ' . $slot . ' connected: ' . $saved['connected_text'] . '.';
+        $msg = 'Spotify Account ' . $slot . ' connected: ' . $saved['connected_text'] . '.';
+        if (!empty($saved['cleared_duplicate_slots'])) {
+            $msg .= ' Duplicate login removed from Account ' . implode(', Account ', array_map('intval', $saved['cleared_duplicate_slots'])) . '.';
+        }
+        $_SESSION['settings_flash'] = $msg;
         $_SESSION['spotify_flash'] = $_SESSION['settings_flash'];
         return [
             'slot' => $slot,
