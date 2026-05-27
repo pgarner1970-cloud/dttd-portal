@@ -197,9 +197,22 @@ function dttd_save_spotify_profiles(array $postedProfiles, &$debugError = null) 
                     }
                 }
                 if ($sets) {
-                    $values[] = $id;
+                    // Update the selected row first.
+                    $valuesById = $values;
+                    $valuesById[] = $id;
                     $stmt = db()->prepare('UPDATE spotify_profiles SET ' . implode(', ', $sets) . ' WHERE id = ?');
-                    $stmt->execute($values);
+                    $stmt->execute($valuesById);
+
+                    // If older duplicate rows exist for the same Account 1/2/3 slot, update those too.
+                    // Previous OAuth patches could leave more than one row with the same profile_slot; the
+                    // settings page may then display a different duplicate row after refresh, making it look
+                    // as though checkboxes were not saved.
+                    if (dttd_settings_table_has_column('spotify_profiles', 'profile_slot')) {
+                        $valuesBySlot = $values;
+                        $valuesBySlot[] = $slot;
+                        $stmt = db()->prepare('UPDATE spotify_profiles SET ' . implode(', ', $sets) . ' WHERE profile_slot = ?');
+                        $stmt->execute($valuesBySlot);
+                    }
                 }
             } else {
                 $cols = [];
@@ -459,24 +472,28 @@ admin_header('Settings - DJ Portal');
 
                   <div class="settings-toggle-grid spotify-role-grid">
                     <label class="settings-toggle-card compact-role-toggle">
+                      <input type="hidden" name="spotify_profiles[<?= (int)$slot ?>][enabled]" value="0">
                       <input type="checkbox" name="spotify_profiles[<?= (int)$slot ?>][enabled]" value="1" <?= !empty($profile['enabled']) ? 'checked' : '' ?> <?= $slot === 1 ? 'disabled' : '' ?>>
                       <span><strong>Enabled</strong></span>
                     </label>
                     <?php if ($slot === 1): ?>
-                      <input type="hidden" name="spotify_profiles[1][enabled]" value="1">
+                      
                     <?php endif; ?>
 
                     <label class="settings-toggle-card compact-role-toggle">
+                      <input type="hidden" name="spotify_profiles[<?= (int)$slot ?>][use_for_deck_a]" value="0">
                       <input type="checkbox" name="spotify_profiles[<?= (int)$slot ?>][use_for_deck_a]" value="1" <?= !empty($profile['use_for_deck_a']) ? 'checked' : '' ?>>
                       <span><strong>Deck A</strong></span>
                     </label>
 
                     <label class="settings-toggle-card compact-role-toggle">
+                      <input type="hidden" name="spotify_profiles[<?= (int)$slot ?>][use_for_deck_b]" value="0">
                       <input type="checkbox" name="spotify_profiles[<?= (int)$slot ?>][use_for_deck_b]" value="1" <?= !empty($profile['use_for_deck_b']) ? 'checked' : '' ?>>
                       <span><strong>Deck B</strong></span>
                     </label>
 
                     <label class="settings-toggle-card compact-role-toggle">
+                      <input type="hidden" name="spotify_profiles[<?= (int)$slot ?>][use_for_public_search]" value="0">
                       <input type="checkbox" name="spotify_profiles[<?= (int)$slot ?>][use_for_public_search]" value="1" <?= !empty($profile['use_for_public_search']) ? 'checked' : '' ?>>
                       <span><strong>Public Search</strong></span>
                     </label>
