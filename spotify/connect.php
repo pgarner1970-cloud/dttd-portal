@@ -1,7 +1,8 @@
 <?php
-require_once __DIR__ . '/../_auth.php';
-require_once __DIR__ . '/../../includes/spotify.php';
-require_once __DIR__ . '/../../includes/spotify-account-oauth.php';
+// Public URL wrapper used when the DJ subdomain resolves /spotify directly.
+require_once __DIR__ . '/../admin/_auth.php';
+require_once __DIR__ . '/../includes/spotify.php';
+require_once __DIR__ . '/../includes/spotify-account-oauth.php';
 
 try {
     $slot = isset($_GET['profile_slot']) ? (int)$_GET['profile_slot'] : 0;
@@ -9,13 +10,11 @@ try {
         header('Location: ' . dttd_spotify_start_account_oauth($slot));
         exit;
     }
-
-    // Legacy/default connect button behaviour.
     header('Location: ' . dttd_spotify_authorize_url());
     exit;
 } catch (Throwable $e) {
     $_SESSION['settings_flash'] = 'Spotify connection could not start: ' . $e->getMessage();
     $_SESSION['spotify_flash'] = $_SESSION['settings_flash'];
-    header('Location: ../settings.php#spotify-accounts');
+    header('Location: /settings.php#spotify-accounts');
     exit;
 }
