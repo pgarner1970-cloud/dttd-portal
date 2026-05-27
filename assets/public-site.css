@@ -3914,3 +3914,206 @@ a:hover .venue-facebook-icon{
   .public-carousel-prev{ left:4px; }
   .public-carousel-next{ right:4px; }
 }
+
+/* v169 event hub public request board and photo placeholders */
+.public-requests-card{
+  align-self:start;
+}
+
+.public-card-summary{
+  margin:.2rem 0 1rem;
+  color:#f3e8ff;
+  font-weight:750;
+}
+
+.public-request-board-list{
+  list-style:none;
+  margin:0;
+  padding:0;
+  display:grid;
+  gap:12px;
+}
+
+.public-request-board-list li{
+  display:block;
+  padding:13px 14px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.12);
+  background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
+}
+
+.public-request-row-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.public-request-row-head strong{
+  min-width:0;
+  font-size:1rem;
+  line-height:1.2;
+  overflow-wrap:anywhere;
+}
+
+.public-request-status{
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:5px 9px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.08);
+  color:#fff;
+  font-size:.72rem;
+  font-weight:950;
+  white-space:nowrap;
+}
+
+.public-request-status.waiting{
+  border-color:rgba(255,213,74,.38);
+  background:rgba(255,213,74,.12);
+  color:#fff4bd;
+}
+
+.public-request-status.queued{
+  border-color:rgba(56,189,248,.38);
+  background:rgba(56,189,248,.13);
+  color:#d8f3ff;
+}
+
+.public-request-status.played{
+  border-color:rgba(34,197,94,.38);
+  background:rgba(34,197,94,.13);
+  color:#dcfce7;
+}
+
+.public-request-status.review,
+.public-request-status.duplicate{
+  border-color:rgba(216,180,254,.36);
+  background:rgba(216,180,254,.12);
+  color:#f3e8ff;
+}
+
+.public-request-artist{
+  display:block;
+  margin-top:4px;
+  color:#f3e8ff;
+  font-weight:750;
+  overflow-wrap:anywhere;
+}
+
+.public-request-board-list small{
+  display:block;
+  margin-top:6px;
+  color:#d8c4ea;
+  font-weight:700;
+}
+
+.public-request-dedication{
+  margin:9px 0 0;
+  padding:9px 10px;
+  border-radius:12px;
+  border:1px solid rgba(255,79,216,.20);
+  background:rgba(255,79,216,.07);
+  color:#fff;
+  line-height:1.35;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+
+.public-request-expand-list[open] .public-request-dedication{
+  display:block;
+  overflow:visible;
+}
+
+.public-request-board-list-extra{
+  margin-top:12px;
+}
+
+.public-inline-action{
+  margin-top:8px;
+}
+
+.public-placeholder-carousel .public-photo-carousel-track{
+  padding-bottom:10px;
+}
+
+.public-photo-placeholder-slide{
+  display:grid;
+  align-content:center;
+  gap:10px;
+  padding:32px;
+  min-height:300px;
+  background:
+    radial-gradient(circle at 18% 15%, rgba(255,213,74,.20), transparent 10rem),
+    radial-gradient(circle at 85% 20%, rgba(255,79,216,.28), transparent 12rem),
+    linear-gradient(135deg, rgba(255,79,216,.12), rgba(124,58,237,.15));
+  color:#fff;
+  text-decoration:none;
+}
+
+.public-photo-placeholder-slide::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:repeating-conic-gradient(from 0deg at 50% 50%, rgba(255,255,255,.055) 0deg 5deg, transparent 5deg 12deg);
+  opacity:.24;
+  pointer-events:none;
+}
+
+.public-photo-placeholder-slide > *{
+  position:relative;
+  z-index:1;
+}
+
+.public-placeholder-icon{
+  width:68px;
+  height:68px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  border:1px solid rgba(255,79,216,.42);
+  background:rgba(255,79,216,.14);
+  color:#ffd54a;
+  font-size:2rem;
+  box-shadow:0 0 28px rgba(255,79,216,.22);
+}
+
+.public-photo-placeholder-slide strong{
+  max-width:520px;
+  font-size:clamp(1.5rem, 3vw, 2.3rem);
+  line-height:1.04;
+  letter-spacing:-.04em;
+}
+
+.public-photo-placeholder-slide em{
+  max-width:520px;
+  color:#f3e8ff;
+  font-style:normal;
+  font-size:1.03rem;
+  line-height:1.45;
+}
+
+.public-carousel-empty-actions{
+  margin-top:12px;
+}
+
+@media(max-width:760px){
+  .public-request-row-head{
+    flex-direction:column;
+    gap:7px;
+  }
+
+  .public-request-status{
+    align-self:flex-start;
+  }
+
+  .public-photo-placeholder-slide{
+    min-height:250px;
+    padding:24px;
+  }
+}

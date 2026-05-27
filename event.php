@@ -179,6 +179,95 @@ function public_pending_request_count($event_id) {
 }
 
 
+
+function public_event_request_board($event_id, $limit = 40) {
+    if (!dttd_table_exists('song_requests')) {
+        return [];
+    }
+
+    $limit = max(1, min(80, (int)$limit));
+    $select = ['id', 'song_title', 'artist', 'guest_name', 'status', 'created_at'];
+    foreach (['dedication', 'message', 'spotify_queue_status', 'spotify_queued_at', 'updated_at'] as $column) {
+        if (dttd_table_column_exists('song_requests', $column)) {
+            $select[] = $column;
+        }
+    }
+
+    $selectSql = implode(', ', array_map(function($column) {
+        return '`' . str_replace('`', '', $column) . '`';
+    }, array_unique($select)));
+
+    try {
+        $stmt = db()->prepare("
+            SELECT $selectSql
+            FROM song_requests
+            WHERE event_id = ?
+              AND LOWER(COALESCE(status, 'pending')) NOT IN ('rejected', 'removed', 'hidden')
+            ORDER BY
+              CASE
+                WHEN LOWER(COALESCE(status, 'pending')) IN ('pending','maybe','duplicate') THEN 0
+                WHEN LOWER(COALESCE(status, 'pending')) = 'played' THEN 2
+                ELSE 1
+              END ASC,
+              created_at DESC,
+              id DESC
+            LIMIT " . $limit . "
+        ");
+        $stmt->execute([(int)$event_id]);
+        return $stmt->fetchAll();
+    } catch (Throwable $e) {
+        return [];
+    }
+}
+
+function public_request_status_label($request) {
+    $status = strtolower((string)($request['status'] ?? 'pending'));
+    $spotifyStatus = strtolower((string)($request['spotify_queue_status'] ?? ''));
+    $queuedAt = trim((string)($request['spotify_queued_at'] ?? ''));
+
+    if ($status === 'played') {
+        return 'Played';
+    }
+
+    if ($spotifyStatus !== '' || $queuedAt !== '') {
+        return 'In DJ queue';
+    }
+
+    if ($status === 'maybe') {
+        return 'Under review';
+    }
+
+    if ($status === 'duplicate') {
+        return 'Already requested';
+    }
+
+    return 'Waiting';
+}
+
+function public_request_status_class($label) {
+    $key = strtolower((string)$label);
+    if (str_contains($key, 'played')) return 'played';
+    if (str_contains($key, 'queue')) return 'queued';
+    if (str_contains($key, 'review')) return 'review';
+    if (str_contains($key, 'already')) return 'duplicate';
+    return 'waiting';
+}
+
+function public_request_dedication($request) {
+    foreach (['dedication', 'message'] as $field) {
+        if (!empty($request[$field])) {
+            return trim((string)$request[$field]);
+        }
+    }
+
+    return '';
+}
+
+function public_request_guest_name($request) {
+    $name = trim((string)($request['guest_name'] ?? ''));
+    return $name !== '' ? $name : 'Guest';
+}
+
 function public_event_photo_table_ready() {
     return dttd_table_exists('event_photo_uploads')
         && dttd_table_column_exists('event_photo_uploads', 'event_id')
@@ -290,6 +379,7 @@ if ($event) {
     $mapExternalUrl = $mapQuery ? 'https://www.google.com/maps/search/?api=1&query=' . urlencode($mapQuery) : '';
     $playedRequests = $hasEventAccess ? public_recent_played_requests((int)$event['id'], 25) : [];
     $pendingCount = $hasEventAccess ? public_pending_request_count((int)$event['id']) : 0;
+    $publicRequests = $hasEventAccess ? public_event_request_board((int)$event['id'], 40) : [];
     $eventPhotos = $hasEventAccess ? public_event_approved_photos((int)$event['id'], 12) : [];
 }
 ?>
@@ -300,7 +390,7 @@ if ($event) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : ($notFound ? 'Event Not Found' : 'Join Event') ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event portal.' ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=168">
+  <link rel="stylesheet" href="/assets/public-site.css?v=169">
 </head>
 <body class="homepage-option-one public-event-detail-page public-event-portal-page">
   <main class="home-option-one">
@@ -405,10 +495,57 @@ if ($event) {
           </article>
 
           <div class="public-event-live-grid">
-            <article class="public-feature-card public-live-card">
+            <article class="public-feature-card public-live-card public-requests-card">
               <span class="public-feature-kicker">Queue</span>
               <h2>Requests tonight</h2>
-              <p><?= $pendingCount > 0 ? public_h($pendingCount . ' request' . ($pendingCount === 1 ? '' : 's') . ' waiting for the DJ.') : 'Requests you send will appear in the DJ queue.' ?></p>
+              <?php if (!empty($publicRequests)): ?>
+                <?php $visibleRequests = array_slice($publicRequests, 0, 5); $hiddenRequests = array_slice($publicRequests, 5); ?>
+                <?php if ($pendingCount > 0): ?>
+                  <p class="public-card-summary"><?= public_h($pendingCount . ' request' . ($pendingCount === 1 ? '' : 's') . ' waiting for the DJ.') ?></p>
+                <?php else: ?>
+                  <p class="public-card-summary">Requests from tonight are shown below.</p>
+                <?php endif; ?>
+                <ul class="public-request-board-list">
+                  <?php foreach ($visibleRequests as $request): ?>
+                    <?php $requestStatus = public_request_status_label($request); $dedicationText = public_request_dedication($request); ?>
+                    <li>
+                      <div class="public-request-row-head">
+                        <strong><?= public_h($request['song_title'] ?? '') ?></strong>
+                        <span class="public-request-status <?= public_h(public_request_status_class($requestStatus)) ?>"><?= public_h($requestStatus) ?></span>
+                      </div>
+                      <span class="public-request-artist"><?= public_h($request['artist'] ?? '') ?></span>
+                      <small>Requested by <?= public_h(public_request_guest_name($request)) ?></small>
+                      <?php if ($dedicationText !== ''): ?>
+                        <p class="public-request-dedication">“<?= public_h($dedicationText) ?>”</p>
+                      <?php endif; ?>
+                    </li>
+                  <?php endforeach; ?>
+                </ul>
+                <?php if ($hiddenRequests): ?>
+                  <details class="public-expand-list public-request-expand-list">
+                    <summary>View all requests</summary>
+                    <ul class="public-request-board-list public-request-board-list-extra">
+                      <?php foreach ($hiddenRequests as $request): ?>
+                        <?php $requestStatus = public_request_status_label($request); $dedicationText = public_request_dedication($request); ?>
+                        <li>
+                          <div class="public-request-row-head">
+                            <strong><?= public_h($request['song_title'] ?? '') ?></strong>
+                            <span class="public-request-status <?= public_h(public_request_status_class($requestStatus)) ?>"><?= public_h($requestStatus) ?></span>
+                          </div>
+                          <span class="public-request-artist"><?= public_h($request['artist'] ?? '') ?></span>
+                          <small>Requested by <?= public_h(public_request_guest_name($request)) ?></small>
+                          <?php if ($dedicationText !== ''): ?>
+                            <p class="public-request-dedication">“<?= public_h($dedicationText) ?>”</p>
+                          <?php endif; ?>
+                        </li>
+                      <?php endforeach; ?>
+                    </ul>
+                  </details>
+                <?php endif; ?>
+              <?php else: ?>
+                <p>No public requests yet. Be the first to request a track for tonight.</p>
+                <a class="public-neon-btn subtle public-inline-action" href="/request.php">Request a Song</a>
+              <?php endif; ?>
             </article>
 
             <article class="public-feature-card public-live-card public-played-card">
@@ -462,7 +599,28 @@ if ($event) {
                 <button class="public-carousel-btn public-carousel-next" type="button" aria-label="Next photo">›</button>
               </div>
             <?php else: ?>
-              <div class="public-carousel-empty">
+              <div class="public-photo-carousel public-placeholder-carousel" data-public-carousel>
+                <button class="public-carousel-btn public-carousel-prev" type="button" aria-label="Previous photo placeholder">‹</button>
+                <div class="public-photo-carousel-track">
+                  <div class="public-photo-carousel-slide public-photo-placeholder-slide">
+                    <span class="public-placeholder-icon">📸</span>
+                    <strong>Photos from tonight will appear here</strong>
+                    <em>Once approved, guest uploads become part of the event memories.</em>
+                  </div>
+                  <div class="public-photo-carousel-slide public-photo-placeholder-slide">
+                    <span class="public-placeholder-icon">✨</span>
+                    <strong>Share your best dancefloor moment</strong>
+                    <em>Upload photos from your phone and we will check them before they go live.</em>
+                  </div>
+                  <div class="public-photo-carousel-slide public-photo-placeholder-slide">
+                    <span class="public-placeholder-icon">🎶</span>
+                    <strong>Keep the memories together</strong>
+                    <em>Approved photos will build into tonight’s gallery.</em>
+                  </div>
+                </div>
+                <button class="public-carousel-btn public-carousel-next" type="button" aria-label="Next photo placeholder">›</button>
+              </div>
+              <div class="public-carousel-empty public-carousel-empty-actions">
                 <strong>No approved photos yet.</strong>
                 <span>Be the first to upload a memory from tonight. Photos appear here once approved.</span>
                 <a class="public-neon-btn" href="/gallery.php">Upload Photos</a>
