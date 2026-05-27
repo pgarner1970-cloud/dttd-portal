@@ -153,7 +153,7 @@ function dttd_spotify_profile_id_is_valid($id) {
     }
 }
 
-function dttd_save_spotify_profiles(array $postedProfiles, &$debugError = null) {
+function dttd_save_spotify_profiles(array $postedProfiles, &$debugError = null, array $roleAssignments = []) {
     try {
         // Ensure Account 1/2/3 role assignments are saved by slot, not by fragile row order.
         // This lets the checkboxes work even after OAuth has inserted/updated rows.
@@ -162,11 +162,18 @@ function dttd_save_spotify_profiles(array $postedProfiles, &$debugError = null) 
             $label = trim((string)($posted['label'] ?? ('Account ' . $slot)));
             $email = trim((string)($posted['account_email'] ?? ''));
             $enabled = !empty($posted['enabled']) ? 1 : 0;
-            $deckA = !empty($posted['use_for_deck_a']) ? 1 : 0;
-            $deckB = !empty($posted['use_for_deck_b']) ? 1 : 0;
-            $publicSearch = !empty($posted['use_for_public_search']) ? 1 : 0;
 
-            if ($slot === 1) {
+            // Role assignment is exclusive per role: one account for Deck A, one for Deck B,
+            // and one for Public Search. A single account may still hold multiple roles.
+            $deckASlot = isset($roleAssignments['deck_a']) ? (int)$roleAssignments['deck_a'] : 0;
+            $deckBSlot = isset($roleAssignments['deck_b']) ? (int)$roleAssignments['deck_b'] : 0;
+            $publicSearchSlot = isset($roleAssignments['public_search']) ? (int)$roleAssignments['public_search'] : 0;
+
+            $deckA = $deckASlot > 0 ? ($slot === $deckASlot ? 1 : 0) : (!empty($posted['use_for_deck_a']) ? 1 : 0);
+            $deckB = $deckBSlot > 0 ? ($slot === $deckBSlot ? 1 : 0) : (!empty($posted['use_for_deck_b']) ? 1 : 0);
+            $publicSearch = $publicSearchSlot > 0 ? ($slot === $publicSearchSlot ? 1 : 0) : (!empty($posted['use_for_public_search']) ? 1 : 0);
+
+            if ($slot === 1 || $deckA || $deckB || $publicSearch) {
                 $enabled = 1;
             }
             if ($label === '') {
@@ -197,22 +204,9 @@ function dttd_save_spotify_profiles(array $postedProfiles, &$debugError = null) 
                     }
                 }
                 if ($sets) {
-                    // Update the selected row first.
-                    $valuesById = $values;
-                    $valuesById[] = $id;
+                    $values[] = $id;
                     $stmt = db()->prepare('UPDATE spotify_profiles SET ' . implode(', ', $sets) . ' WHERE id = ?');
-                    $stmt->execute($valuesById);
-
-                    // If older duplicate rows exist for the same Account 1/2/3 slot, update those too.
-                    // Previous OAuth patches could leave more than one row with the same profile_slot; the
-                    // settings page may then display a different duplicate row after refresh, making it look
-                    // as though checkboxes were not saved.
-                    if (dttd_settings_table_has_column('spotify_profiles', 'profile_slot')) {
-                        $valuesBySlot = $values;
-                        $valuesBySlot[] = $slot;
-                        $stmt = db()->prepare('UPDATE spotify_profiles SET ' . implode(', ', $sets) . ' WHERE profile_slot = ?');
-                        $stmt->execute($valuesBySlot);
-                    }
+                    $stmt->execute($values);
                 }
             } else {
                 $cols = [];
@@ -241,6 +235,19 @@ function dttd_save_spotify_profiles(array $postedProfiles, &$debugError = null) 
 }
 
 $spotify_profiles = dttd_load_spotify_profiles();
+
+function dttd_selected_spotify_role_slot(array $profiles, $field, $fallbackSlot) {
+    foreach ($profiles as $slot => $profile) {
+        if (!empty($profile[$field])) {
+            return (int)$slot;
+        }
+    }
+    return (int)$fallbackSlot;
+}
+
+$spotify_role_deck_a_slot = dttd_selected_spotify_role_slot($spotify_profiles, 'use_for_deck_a', 1);
+$spotify_role_deck_b_slot = dttd_selected_spotify_role_slot($spotify_profiles, 'use_for_deck_b', 2);
+$spotify_role_public_search_slot = dttd_selected_spotify_role_slot($spotify_profiles, 'use_for_public_search', 3);
 
 $saved = false;
 $error = '';
@@ -275,7 +282,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!empty($_POST['spotify_profiles']) && is_array($_POST['spotify_profiles'])) {
             $profileSaveError = '';
-            $ok = dttd_save_spotify_profiles($_POST['spotify_profiles'], $profileSaveError) && $ok;
+            $roleAssignments = [
+                'deck_a' => isset($_POST['spotify_role_deck_a']) ? (int)$_POST['spotify_role_deck_a'] : 0,
+                'deck_b' => isset($_POST['spotify_role_deck_b']) ? (int)$_POST['spotify_role_deck_b'] : 0,
+                'public_search' => isset($_POST['spotify_role_public_search']) ? (int)$_POST['spotify_role_public_search'] : 0,
+            ];
+            $ok = dttd_save_spotify_profiles($_POST['spotify_profiles'], $profileSaveError, $roleAssignments) && $ok;
             if ($profileSaveError !== '') {
                 $settings_debug_error = $profileSaveError;
             }
@@ -441,7 +453,7 @@ admin_header('Settings - DJ Portal');
 
             <div id="spotify-accounts" class="settings-section-header" style="margin-top:1rem;">
               <h2>Spotify Accounts</h2>
-              <p>Duo means two separate Spotify logins. Assign Account 1/2/3 to Deck A, Deck B or Public Search as needed.</p>
+              <p>Choose exactly one account for Deck A, one for Deck B and one for Public Search. The same account can be used for more than one role.</p>
             </div>
 
             <div class="spotify-account-grid">
@@ -472,30 +484,26 @@ admin_header('Settings - DJ Portal');
 
                   <div class="settings-toggle-grid spotify-role-grid">
                     <label class="settings-toggle-card compact-role-toggle">
-                      <input type="hidden" name="spotify_profiles[<?= (int)$slot ?>][enabled]" value="0">
                       <input type="checkbox" name="spotify_profiles[<?= (int)$slot ?>][enabled]" value="1" <?= !empty($profile['enabled']) ? 'checked' : '' ?> <?= $slot === 1 ? 'disabled' : '' ?>>
                       <span><strong>Enabled</strong></span>
                     </label>
                     <?php if ($slot === 1): ?>
-                      
+                      <input type="hidden" name="spotify_profiles[1][enabled]" value="1">
                     <?php endif; ?>
 
                     <label class="settings-toggle-card compact-role-toggle">
-                      <input type="hidden" name="spotify_profiles[<?= (int)$slot ?>][use_for_deck_a]" value="0">
-                      <input type="checkbox" name="spotify_profiles[<?= (int)$slot ?>][use_for_deck_a]" value="1" <?= !empty($profile['use_for_deck_a']) ? 'checked' : '' ?>>
-                      <span><strong>Deck A</strong></span>
+                      <input type="radio" name="spotify_role_deck_a" value="<?= (int)$slot ?>" <?= (int)$spotify_role_deck_a_slot === (int)$slot ? 'checked' : '' ?>>
+                      <span><strong>Deck A</strong><small>Only one account can control Deck A.</small></span>
                     </label>
 
                     <label class="settings-toggle-card compact-role-toggle">
-                      <input type="hidden" name="spotify_profiles[<?= (int)$slot ?>][use_for_deck_b]" value="0">
-                      <input type="checkbox" name="spotify_profiles[<?= (int)$slot ?>][use_for_deck_b]" value="1" <?= !empty($profile['use_for_deck_b']) ? 'checked' : '' ?>>
-                      <span><strong>Deck B</strong></span>
+                      <input type="radio" name="spotify_role_deck_b" value="<?= (int)$slot ?>" <?= (int)$spotify_role_deck_b_slot === (int)$slot ? 'checked' : '' ?>>
+                      <span><strong>Deck B</strong><small>Only one account can control Deck B.</small></span>
                     </label>
 
                     <label class="settings-toggle-card compact-role-toggle">
-                      <input type="hidden" name="spotify_profiles[<?= (int)$slot ?>][use_for_public_search]" value="0">
-                      <input type="checkbox" name="spotify_profiles[<?= (int)$slot ?>][use_for_public_search]" value="1" <?= !empty($profile['use_for_public_search']) ? 'checked' : '' ?>>
-                      <span><strong>Public Search</strong></span>
+                      <input type="radio" name="spotify_role_public_search" value="<?= (int)$slot ?>" <?= (int)$spotify_role_public_search_slot === (int)$slot ? 'checked' : '' ?>>
+                      <span><strong>Public Search</strong><small>Only one account can provide public search.</small></span>
                     </label>
                   </div>
                 </div>
