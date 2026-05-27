@@ -149,7 +149,7 @@ function public_recent_played_requests($event_id, $limit = 25) {
 
     $limit = max(1, min(50, (int)$limit));
     $select = ['id', 'song_title', 'artist', 'created_at'];
-    foreach (['spotify_track_url', 'spotify_track_id', 'updated_at', 'request_group_id', 'guest_name', 'dedication', 'message'] as $column) {
+    foreach (['spotify_track_url', 'spotify_track_id', 'spotify_album_image', 'updated_at', 'request_group_id', 'guest_name', 'dedication', 'message'] as $column) {
         if (dttd_table_column_exists('song_requests', $column)) {
             $select[] = $column;
         }
@@ -198,7 +198,7 @@ function public_event_request_board($event_id, $limit = 40) {
 
     $limit = max(1, min(80, (int)$limit));
     $select = ['id', 'song_title', 'artist', 'guest_name', 'status', 'created_at'];
-    foreach (['dedication', 'message', 'spotify_queue_status', 'spotify_queued_at', 'updated_at', 'reject_reason', 'request_group_id'] as $column) {
+    foreach (['dedication', 'message', 'spotify_queue_status', 'spotify_queued_at', 'updated_at', 'reject_reason', 'request_group_id', 'spotify_track_id', 'spotify_track_url', 'spotify_album_image'] as $column) {
         if (dttd_table_column_exists('song_requests', $column)) {
             $select[] = $column;
         }
@@ -215,12 +215,7 @@ function public_event_request_board($event_id, $limit = 40) {
             WHERE event_id = ?
               AND LOWER(COALESCE(status, 'pending')) NOT IN ('removed', 'hidden')
             ORDER BY
-              CASE
-                WHEN LOWER(COALESCE(status, 'pending')) IN ('pending','maybe','duplicate') THEN 0
-                WHEN LOWER(COALESCE(status, 'pending')) = 'rejected' THEN 1
-                WHEN LOWER(COALESCE(status, 'pending')) = 'played' THEN 2
-                ELSE 3
-              END ASC,
+              COALESCE(updated_at, created_at) DESC,
               created_at DESC,
               id DESC
             LIMIT " . $limit . "
@@ -258,12 +253,20 @@ function public_group_request_board_rows($requests) {
         }
         $groups[$key]['rows'][] = $request;
         $groups[$key]['request_count']++;
+
+        foreach (['spotify_album_image', 'spotify_track_url', 'spotify_track_id'] as $publicTrackField) {
+            if (empty($groups[$key][$publicTrackField]) && !empty($request[$publicTrackField])) {
+                $groups[$key][$publicTrackField] = $request[$publicTrackField];
+            }
+        }
     }
 
     $result = [];
     foreach ($order as $key) {
         $result[] = $groups[$key];
     }
+
+    usort($result, 'public_request_board_compare');
 
     return $result;
 }
@@ -290,6 +293,9 @@ function public_group_played_tracks($requests) {
         if (empty($groups[$key]['spotify_track_id']) && !empty($request['spotify_track_id'])) {
             $groups[$key]['spotify_track_id'] = $request['spotify_track_id'];
         }
+        if (empty($groups[$key]['spotify_album_image']) && !empty($request['spotify_album_image'])) {
+            $groups[$key]['spotify_album_image'] = $request['spotify_album_image'];
+        }
     }
 
     $result = [];
@@ -298,6 +304,114 @@ function public_group_played_tracks($requests) {
     }
 
     return $result;
+}
+
+
+function public_request_board_sort_rank($request) {
+    $label = public_request_status_label($request);
+    $order = [
+        'In DJ queue' => 0,
+        'Waiting' => 1,
+        'Under review' => 2,
+        'Already requested' => 3,
+        'Played' => 4,
+        'Unable to play' => 5,
+    ];
+
+    return $order[$label] ?? 9;
+}
+
+function public_request_board_sort_time($request) {
+    $best = 0;
+    foreach (public_group_rows($request) as $row) {
+        foreach (['spotify_queued_at', 'updated_at', 'created_at'] as $field) {
+            if (!empty($row[$field])) {
+                $ts = strtotime((string)$row[$field]);
+                if ($ts && $ts > $best) {
+                    $best = $ts;
+                }
+            }
+        }
+    }
+
+    return $best;
+}
+
+function public_request_board_compare($a, $b) {
+    $rankA = public_request_board_sort_rank($a);
+    $rankB = public_request_board_sort_rank($b);
+
+    if ($rankA !== $rankB) {
+        return $rankA <=> $rankB;
+    }
+
+    $timeA = public_request_board_sort_time($a);
+    $timeB = public_request_board_sort_time($b);
+
+    if ($timeA !== $timeB) {
+        return $timeB <=> $timeA;
+    }
+
+    return ((int)($b['id'] ?? 0)) <=> ((int)($a['id'] ?? 0));
+}
+
+function public_track_artwork_url($track) {
+    foreach (['spotify_album_image', 'album_image', 'artwork_url', 'image'] as $field) {
+        $value = trim((string)($track[$field] ?? ''));
+        if ($value !== '') {
+            if (preg_match('~^https?://~i', $value)) {
+                return $value;
+            }
+            return '/' . ltrim($value, '/');
+        }
+    }
+
+    $trackId = trim((string)($track['spotify_track_id'] ?? ''));
+    if ($trackId !== '' && dttd_table_exists('spotify_track_cache') && dttd_table_column_exists('spotify_track_cache', 'artwork_url')) {
+        try {
+            $spotifyUriColumn = dttd_table_column_exists('spotify_track_cache', 'spotify_uri') ? 'spotify_uri' : '';
+            if ($spotifyUriColumn !== '') {
+                static $artworkCache = [];
+                if (array_key_exists($trackId, $artworkCache)) {
+                    return $artworkCache[$trackId];
+                }
+                $stmt = db()->prepare("SELECT artwork_url FROM spotify_track_cache WHERE spotify_uri IN (?, ?) OR spotify_uri LIKE ? ORDER BY last_requested_at DESC LIMIT 1");
+                $stmt->execute([$trackId, 'spotify:track:' . $trackId, '%' . $trackId]);
+                $cached = trim((string)$stmt->fetchColumn());
+                $artworkCache[$trackId] = $cached;
+                return $cached;
+            }
+        } catch (Throwable $e) {
+            return '';
+        }
+    }
+
+    return '';
+}
+
+function public_track_artwork_alt($track) {
+    $title = trim((string)($track['song_title'] ?? 'track'));
+    $artist = trim((string)($track['artist'] ?? ''));
+    if ($artist !== '') {
+        return $title . ' by ' . $artist . ' artwork';
+    }
+    return $title . ' artwork';
+}
+
+function public_render_track_artwork($track, $className = '') {
+    $artwork = public_track_artwork_url($track);
+    $class = trim('public-track-artwork ' . $className);
+    if ($artwork !== '') {
+        ?>
+        <span class="<?= public_h($class) ?> has-artwork">
+          <img src="<?= public_h($artwork) ?>" alt="<?= public_h(public_track_artwork_alt($track)) ?>" loading="lazy" onerror="this.closest('.public-track-artwork').classList.remove('has-artwork'); this.remove();">
+        </span>
+        <?php
+        return;
+    }
+    ?>
+    <span class="<?= public_h($class) ?> public-track-artwork-placeholder" aria-hidden="true">♫</span>
+    <?php
 }
 
 function public_group_rows($request) {
@@ -501,30 +615,35 @@ function public_render_request_board_item($request) {
     }
     ?>
     <li class="public-request-board-item<?= public_h($groupClass) ?>">
-      <div class="public-request-row-head">
-        <strong><?= public_h($request['song_title'] ?? '') ?></strong>
-        <span class="public-request-status <?= public_h(public_request_status_class($requestStatus)) ?>"><?= public_h($requestStatus) ?></span>
-      </div>
-      <span class="public-request-artist"><?= public_h($request['artist'] ?? '') ?></span>
+      <div class="public-request-card-shell">
+        <?php public_render_track_artwork($request, 'public-request-artwork'); ?>
+        <div class="public-request-card-main">
+          <div class="public-request-row-head">
+            <strong><?= public_h($request['song_title'] ?? '') ?></strong>
+            <span class="public-request-status <?= public_h(public_request_status_class($requestStatus)) ?>"><?= public_h($requestStatus) ?></span>
+          </div>
+          <span class="public-request-artist"><?= public_h($request['artist'] ?? '') ?></span>
 
-      <?php if (!$isUnable): ?>
-        <div class="public-request-member-list<?= $requestCount > 1 ? ' has-multiple' : '' ?>">
-          <?php foreach ($dedicationRows as $memberRequest): ?>
-            <?php $memberDedication = public_request_dedication($memberRequest); ?>
-            <div class="public-request-member">
-              <small>Requested by <?= public_h(public_request_guest_name($memberRequest)) ?></small>
-              <?php if ($memberDedication !== ''): ?>
-                <p class="public-request-dedication">“<?= public_h($memberDedication) ?>”</p>
-              <?php endif; ?>
+          <?php if (!$isUnable): ?>
+            <div class="public-request-member-list<?= $requestCount > 1 ? ' has-multiple' : '' ?>">
+              <?php foreach ($dedicationRows as $memberRequest): ?>
+                <?php $memberDedication = public_request_dedication($memberRequest); ?>
+                <div class="public-request-member">
+                  <small>Requested by <?= public_h(public_request_guest_name($memberRequest)) ?></small>
+                  <?php if ($memberDedication !== ''): ?>
+                    <p class="public-request-dedication">“<?= public_h($memberDedication) ?>”</p>
+                  <?php endif; ?>
+                </div>
+              <?php endforeach; ?>
             </div>
-          <?php endforeach; ?>
-        </div>
-      <?php endif; ?>
+          <?php endif; ?>
 
-      <?php $rejectReasonText = public_request_reject_reason_label($request); ?>
-      <?php if ($rejectReasonText !== ''): ?>
-        <p class="public-request-reason"><?= public_h($rejectReasonText) ?></p>
-      <?php endif; ?>
+          <?php $rejectReasonText = public_request_reject_reason_label($request); ?>
+          <?php if ($rejectReasonText !== ''): ?>
+            <p class="public-request-reason"><?= public_h($rejectReasonText) ?></p>
+          <?php endif; ?>
+        </div>
+      </div>
     </li>
     <?php
 }
@@ -574,6 +693,7 @@ function public_render_played_track_item($played, $event, $eventShareUrl) {
     $trackTitle = trim((string)($played['song_title'] ?? 'track'));
     ?>
     <li class="public-played-track-row<?= $requestCount > 1 ? ' is-grouped' : '' ?>">
+      <?php public_render_track_artwork($played, 'public-played-artwork'); ?>
       <div class="public-played-track-main">
         <strong><?= public_h($played['song_title'] ?? '') ?></strong>
         <span><?= public_h($played['artist'] ?? '') ?></span>
@@ -732,7 +852,7 @@ if ($event) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : ($notFound ? 'Event Not Found' : 'Join Event') ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event portal.' ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=190">
+  <link rel="stylesheet" href="/assets/public-site.css?v=210">
 </head>
 <body class="homepage-option-one public-event-detail-page public-event-portal-page">
   <main class="home-option-one">
