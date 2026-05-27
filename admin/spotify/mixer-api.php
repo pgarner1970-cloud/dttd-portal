@@ -201,6 +201,10 @@ function mx_clean_track($track) {
         'duration_ms' => isset($track['duration_ms']) ? (int)$track['duration_ms'] : null,
         'source' => (string)($track['source'] ?? 'search'),
         'request_id' => !empty($track['request_id']) ? (int)$track['request_id'] : null,
+        'request_group_id' => (string)($track['request_group_id'] ?? ''),
+        'request_count' => isset($track['request_count']) ? (int)$track['request_count'] : null,
+        'requesters' => is_array($track['requesters'] ?? null) ? array_values($track['requesters']) : [],
+        'request_notes' => is_array($track['request_notes'] ?? null) ? array_values($track['request_notes']) : [],
         'guest_name' => (string)($track['guest_name'] ?? ''),
         'message' => (string)($track['message'] ?? ''),
         'added_at' => (string)($track['added_at'] ?? date('Y-m-d H:i:s')),
@@ -217,7 +221,7 @@ function mx_clean_track($track) {
 }
 function mx_request_select_columns($extra = []) {
     $base = ['id', 'guest_name', 'song_title', 'artist', 'created_at', 'spotify_track_id'];
-    foreach (['spotify_track_url', 'spotify_album_image', 'status', 'message', 'dedication', 'spotify_queue_status'] as $col) {
+    foreach (['spotify_track_url', 'spotify_album_image', 'status', 'message', 'dedication', 'spotify_queue_status', 'request_group_id', 'event_id'] as $col) {
         if (mx_has_column('song_requests', $col)) $base[] = $col;
     }
     foreach ((array)$extra as $col) {
@@ -233,12 +237,63 @@ function mx_request_message_from_row($r) {
     if (isset($r['dedication']) && trim((string)$r['dedication']) !== '') return (string)$r['dedication'];
     return '';
 }
-function mx_track_from_request($request_id) {
+function mx_request_group_rows_from_request($request_id, $request_group_id = '') {
+    $request_id = (int)$request_id;
+    $request_group_id = trim((string)$request_group_id);
     $cols = mx_request_select_columns();
-    $stmt = db()->prepare("SELECT " . mx_select_sql($cols) . " FROM song_requests WHERE id = ? LIMIT 1");
-    $stmt->execute([(int)$request_id]);
-    $r = $stmt->fetch();
-    if (!$r || empty($r['spotify_track_id'])) return null;
+    $selectSql = mx_select_sql($cols);
+
+    if ($request_group_id !== '' && mx_has_column('song_requests', 'request_group_id')) {
+        $stmt = db()->prepare("SELECT {$selectSql} FROM song_requests WHERE request_group_id = ? AND spotify_track_id IS NOT NULL AND spotify_track_id <> '' AND status IN ('pending','maybe','duplicate') ORDER BY created_at ASC, id ASC");
+        $stmt->execute([$request_group_id]);
+        $rows = $stmt->fetchAll();
+        if ($rows) return $rows;
+    }
+
+    if ($request_id <= 0) return [];
+    $stmt = db()->prepare("SELECT {$selectSql} FROM song_requests WHERE id = ? LIMIT 1");
+    $stmt->execute([$request_id]);
+    $first = $stmt->fetch();
+    if (!$first || empty($first['spotify_track_id'])) return [];
+
+    $groupId = trim((string)($first['request_group_id'] ?? ''));
+    if ($groupId !== '' && mx_has_column('song_requests', 'request_group_id')) {
+        $stmt = db()->prepare("SELECT {$selectSql} FROM song_requests WHERE request_group_id = ? AND spotify_track_id IS NOT NULL AND spotify_track_id <> '' AND status IN ('pending','maybe','duplicate') ORDER BY created_at ASC, id ASC");
+        $stmt->execute([$groupId]);
+        $rows = $stmt->fetchAll();
+        if ($rows) return $rows;
+    }
+
+    return [$first];
+}
+
+function mx_track_from_request_group($request_id, $request_group_id = '') {
+    $rows = mx_request_group_rows_from_request($request_id, $request_group_id);
+    if (!$rows) return null;
+    $r = $rows[0];
+    if (empty($r['spotify_track_id'])) return null;
+
+    $requesters = [];
+    $notes = [];
+    foreach ($rows as $row) {
+        $name = trim((string)($row['guest_name'] ?? 'Guest'));
+        if ($name === '') $name = 'Guest';
+        if (!in_array($name, $requesters, true)) $requesters[] = $name;
+        $msg = trim(mx_request_message_from_row($row));
+        if ($msg !== '') {
+            $notes[] = ['guest_name' => $name, 'message' => $msg, 'created_at' => (string)($row['created_at'] ?? '')];
+        }
+    }
+
+    $messageParts = [];
+    foreach (array_slice($notes, 0, 3) as $note) {
+        $messageParts[] = $note['guest_name'] . ': ' . $note['message'];
+    }
+    if (count($notes) > 3) $messageParts[] = '+' . (count($notes) - 3) . ' more dedication' . ((count($notes) - 3) === 1 ? '' : 's');
+    $message = implode(' • ', $messageParts);
+    $requestCount = count($rows);
+    $guestLabel = $requestCount === 1 ? ($requesters[0] ?? 'Guest') : ($requestCount . ' guests');
+
     return mx_clean_track([
         'id' => $r['spotify_track_id'],
         'title' => $r['song_title'] ?? '',
@@ -248,10 +303,19 @@ function mx_track_from_request($request_id) {
         'url' => $r['spotify_track_url'] ?? '',
         'source' => 'request',
         'request_id' => (int)$r['id'],
-        'guest_name' => $r['guest_name'] ?? '',
-        'message' => mx_request_message_from_row($r),
+        'request_group_id' => (string)($r['request_group_id'] ?? $request_group_id),
+        'request_count' => $requestCount,
+        'requesters' => $requesters,
+        'request_notes' => $notes,
+        'guest_name' => $guestLabel,
+        'message' => $message,
     ]);
 }
+
+function mx_track_from_request($request_id) {
+    return mx_track_from_request_group($request_id, '');
+}
+
 function mx_current_event_id() {
     try {
         if (function_exists('dttd_get_calculated_current_event')) {
@@ -271,30 +335,58 @@ function mx_has_column($table, $column) {
         return $cache[$key] = (bool)$stmt->fetch();
     } catch (Throwable $e) { return $cache[$key] = false; }
 }
-function mx_flag_request_in_playlist($request_id, $status = 'dj_playlist') {
-    if (!$request_id) return;
+function mx_request_group_update_where($request_id, $request_group_id = '') {
+    $request_id = (int)$request_id;
+    $request_group_id = trim((string)$request_group_id);
+
+    if ($request_group_id !== '' && mx_has_column('song_requests', 'request_group_id')) {
+        return ['request_group_id = ?', [$request_group_id]];
+    }
+
+    if ($request_id > 0 && mx_has_column('song_requests', 'request_group_id')) {
+        try {
+            $stmt = db()->prepare("SELECT request_group_id FROM song_requests WHERE id = ? LIMIT 1");
+            $stmt->execute([$request_id]);
+            $gid = trim((string)$stmt->fetchColumn());
+            if ($gid !== '') return ['request_group_id = ?', [$gid]];
+        } catch (Throwable $ignored) {}
+    }
+
+    return ['id = ?', [$request_id]];
+}
+
+function mx_flag_request_group_in_playlist($request_id, $request_group_id = '', $status = 'dj_playlist') {
+    if (!$request_id && trim((string)$request_group_id) === '') return;
     try {
+        [$where, $whereParams] = mx_request_group_update_where($request_id, $request_group_id);
         $sets = [];
         $params = [];
         if (mx_has_column('song_requests', 'spotify_queued_at')) { $sets[] = 'spotify_queued_at = NOW()'; }
         if (mx_has_column('song_requests', 'spotify_queue_status')) { $sets[] = 'spotify_queue_status = ?'; $params[] = $status; }
-        // Moving a public request into the mixer/DJ playlist is a positive DJ decision.
+        // Moving a public request group into the mixer/DJ playlist is a positive DJ decision.
         // Clear Maybe/Duplicate so both the DJ console and public event board show it as queued.
         if (mx_has_column('song_requests', 'status')) { $sets[] = "status = CASE WHEN status IN ('maybe','duplicate') THEN 'pending' ELSE status END"; }
         if (mx_has_column('song_requests', 'reject_reason')) { $sets[] = 'reject_reason = NULL'; }
         if (!$sets) return;
-        $params[] = (int)$request_id;
-        $stmt = db()->prepare("UPDATE song_requests SET " . implode(', ', $sets) . " WHERE id = ? AND status IN ('pending','maybe','duplicate')");
+        $params = array_merge($params, $whereParams);
+        $stmt = db()->prepare("UPDATE song_requests SET " . implode(', ', $sets) . " WHERE {$where} AND status IN ('pending','maybe','duplicate')");
         $stmt->execute($params);
     } catch (Throwable $ignored) {}
 }
-function mx_mark_request_played($request_id) {
-    if (!$request_id) return;
+
+function mx_flag_request_in_playlist($request_id, $status = 'dj_playlist') {
+    mx_flag_request_group_in_playlist($request_id, '', $status);
+}
+
+function mx_mark_request_played($request_id, $request_group_id = '') {
+    if (!$request_id && trim((string)$request_group_id) === '') return;
     try {
-        $stmt = db()->prepare("UPDATE song_requests SET status = 'played' WHERE id = ?");
-        $stmt->execute([(int)$request_id]);
+        [$where, $whereParams] = mx_request_group_update_where($request_id, $request_group_id);
+        $stmt = db()->prepare("UPDATE song_requests SET status = 'played' WHERE {$where}");
+        $stmt->execute($whereParams);
     } catch (Throwable $ignored) {}
 }
+
 function mx_playback($deck = null) {
     try {
         if ($deck === 'a' || $deck === 'b') return dttd_spotify_current_playback_for_deck($deck);
@@ -590,8 +682,12 @@ function mx_track_output($t) {
     return $t;
 }
 function mx_requests($playlist) {
-    $already = [];
-    foreach ($playlist as $p) if (!empty($p['request_id'])) $already[(int)$p['request_id']] = true;
+    $alreadyIds = [];
+    $alreadyGroups = [];
+    foreach ($playlist as $p) {
+        if (!empty($p['request_id'])) $alreadyIds[(int)$p['request_id']] = true;
+        if (!empty($p['request_group_id'])) $alreadyGroups[(string)$p['request_group_id']] = true;
+    }
     try {
         $where = "spotify_track_id IS NOT NULL AND spotify_track_id <> '' AND status IN ('pending','maybe','duplicate')";
         $params = [];
@@ -607,28 +703,74 @@ function mx_requests($playlist) {
             $params[] = $eventId;
         }
         $cols = mx_request_select_columns();
-        $stmt = db()->prepare("SELECT " . mx_select_sql($cols) . " FROM song_requests WHERE $where ORDER BY created_at ASC, id ASC LIMIT 30");
+        $stmt = db()->prepare("SELECT " . mx_select_sql($cols) . " FROM song_requests WHERE $where ORDER BY created_at ASC, id ASC LIMIT 60");
         $stmt->execute($params);
         $rows = $stmt->fetchAll();
     } catch (Throwable $e) {
         $rows = [];
     }
-    $out = [];
+
+    $groups = [];
     foreach ($rows as $r) {
-        if (isset($already[(int)$r['id']])) continue;
+        $gid = trim((string)($r['request_group_id'] ?? ''));
+        $key = $gid !== '' ? ('gid:' . $gid) : ('track:' . strtolower(trim((string)($r['spotify_track_id'] ?? ''))) . '|' . strtolower(trim((string)($r['song_title'] ?? ''))) . '|' . strtolower(trim((string)($r['artist'] ?? ''))));
+        if ($gid !== '' && isset($alreadyGroups[$gid])) continue;
+        if ($gid === '' && isset($alreadyIds[(int)$r['id']])) continue;
+
+        if (!isset($groups[$key])) {
+            $groups[$key] = [
+                'key' => $key,
+                'request_group_id' => $gid,
+                'rows' => [],
+                'first_created_at' => (string)($r['created_at'] ?? ''),
+            ];
+        }
+        $groups[$key]['rows'][] = $r;
+        if (!empty($r['created_at']) && (empty($groups[$key]['first_created_at']) || strtotime($r['created_at']) < strtotime($groups[$key]['first_created_at']))) {
+            $groups[$key]['first_created_at'] = (string)$r['created_at'];
+        }
+    }
+
+    $out = [];
+    foreach ($groups as $group) {
+        $rows = $group['rows'];
+        if (!$rows) continue;
+        $first = $rows[0];
+        $requesters = [];
+        $notes = [];
+        foreach ($rows as $row) {
+            $name = trim((string)($row['guest_name'] ?? 'Guest'));
+            if ($name === '') $name = 'Guest';
+            if (!in_array($name, $requesters, true)) $requesters[] = $name;
+            $msg = trim(mx_request_message_from_row($row));
+            if ($msg !== '') $notes[] = ['guest_name' => $name, 'message' => $msg, 'created_at' => (string)($row['created_at'] ?? '')];
+        }
+        $messageParts = [];
+        foreach (array_slice($notes, 0, 3) as $note) $messageParts[] = $note['guest_name'] . ': ' . $note['message'];
+        if (count($notes) > 3) $messageParts[] = '+' . (count($notes) - 3) . ' more dedication' . ((count($notes) - 3) === 1 ? '' : 's');
+        $count = count($rows);
         $out[] = [
-            'id' => (int)$r['id'],
-            'guest_name' => (string)($r['guest_name'] ?? 'Guest'),
-            'title' => (string)($r['song_title'] ?? ''),
-            'artist' => (string)($r['artist'] ?? ''),
-            'message' => mx_request_message_from_row($r),
-            'image' => (string)($r['spotify_album_image'] ?? ''),
-            'created_at' => (string)($r['created_at'] ?? ''),
-            'status' => (string)($r['status'] ?? 'pending'),
-            'queue_status' => (string)($r['spotify_queue_status'] ?? ''),
+            'id' => (int)$first['id'],
+            'request_group_id' => (string)$group['request_group_id'],
+            'request_count' => $count,
+            'guest_name' => $count === 1 ? (string)($first['guest_name'] ?? 'Guest') : ($count . ' guests'),
+            'requesters' => $requesters,
+            'request_notes' => $notes,
+            'title' => (string)($first['song_title'] ?? ''),
+            'artist' => (string)($first['artist'] ?? ''),
+            'message' => implode(' • ', $messageParts),
+            'image' => (string)($first['spotify_album_image'] ?? ''),
+            'created_at' => (string)$group['first_created_at'],
+            'status' => (string)($first['status'] ?? 'pending'),
+            'queue_status' => (string)($first['spotify_queue_status'] ?? ''),
         ];
     }
-    return $out;
+
+    usort($out, function($a, $b) {
+        return strtotime((string)($a['created_at'] ?? '')) <=> strtotime((string)($b['created_at'] ?? ''));
+    });
+
+    return array_slice($out, 0, 30);
 }
 
 function mx_track_ids_match($a, $b) {
@@ -850,6 +992,7 @@ function mx_load_track_to_deck($track, $deck, $playback = null, &$playlist = nul
 }
 
 function mx_track_key($track) {
+    if (!empty($track['request_group_id'])) return 'request_group:' . (string)$track['request_group_id'];
     if (!empty($track['request_id'])) return 'request:' . (int)$track['request_id'];
     return 'track:' . (string)($track['id'] ?? '');
 }
@@ -996,13 +1139,14 @@ try {
 
     if ($action === 'accept_request') {
         $requestId = (int)($_POST['request_id'] ?? 0);
-        foreach ($playlist as $p) if (!empty($p['request_id']) && (int)$p['request_id'] === $requestId) throw new RuntimeException('That request is already in the DJ playlist.');
-        $track = mx_track_from_request($requestId);
+        $requestGroupId = trim((string)($_POST['request_group_id'] ?? ''));
+        $track = mx_track_from_request_group($requestId, $requestGroupId);
         if (!$track) throw new RuntimeException('That request has no Spotify track attached.');
+        if (mx_playlist_contains_track($playlist, $track)) throw new RuntimeException('That request group is already in the DJ playlist.');
         array_unshift($playlist, $track);
         mx_save_playlist($playlist);
-        mx_flag_request_in_playlist($requestId);
-        mx_json_out(['ok' => true, 'message' => 'Request moved to DJ playlist.', 'state' => mx_state()]);
+        mx_flag_request_group_in_playlist($requestId, $requestGroupId);
+        mx_json_out(['ok' => true, 'message' => 'Request group moved to DJ playlist.', 'state' => mx_state()]);
     }
 
     if ($action === 'remove_playlist') {
@@ -1052,7 +1196,8 @@ try {
 
     if ($action === 'load_request' || $action === 'auto_load_request') {
         $requestId = (int)($_POST['request_id'] ?? 0);
-        $track = mx_track_from_request($requestId);
+        $requestGroupId = trim((string)($_POST['request_group_id'] ?? ''));
+        $track = mx_track_from_request_group($requestId, $requestGroupId);
         if (!$track) throw new RuntimeException('That request has no Spotify track attached.');
         $deviceA = mx_setting('spotify_mixer_device_a', '');
         $deviceB = mx_setting('spotify_mixer_device_b', '');
@@ -1068,23 +1213,24 @@ try {
         }
         $playback = mx_playback($deck);
         mx_load_track_to_deck($track, $deck, $playback, $playlist, false, 'public_request');
-        mx_flag_request_in_playlist($requestId, 'loaded_' . $deck);
-        mx_json_out(['ok' => true, 'message' => 'Public request loaded to Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
+        mx_flag_request_group_in_playlist($requestId, $requestGroupId, 'loaded_' . $deck);
+        mx_json_out(['ok' => true, 'message' => 'Public request group loaded to Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
     }
 
 
 
     if ($action === 'play_request_direct') {
         $requestId = (int)($_POST['request_id'] ?? 0);
-        $track = mx_track_from_request($requestId);
+        $requestGroupId = trim((string)($_POST['request_group_id'] ?? ''));
+        $track = mx_track_from_request_group($requestId, $requestGroupId);
         if (!$track) throw new RuntimeException('That request has no Spotify track attached.');
         $deck = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
         $playback = mx_playback($deck);
         mx_load_track_to_deck($track, $deck, $playback, $playlist, false, 'public_request');
-        mx_flag_request_in_playlist($requestId, 'loaded_' . $deck);
+        mx_flag_request_group_in_playlist($requestId, $requestGroupId, 'loaded_' . $deck);
         $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
         mx_play_track($device, $track['id'] ?? '', null, $deck);
-        mx_json_out(['ok' => true, 'message' => 'Public request loaded and played on Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
+        mx_json_out(['ok' => true, 'message' => 'Public request group loaded and played on Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
     }
 
     if ($action === 'clear_loaded') {

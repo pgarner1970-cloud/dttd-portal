@@ -166,7 +166,14 @@ document.head.appendChild(overviewStyle);
     const artist = item.artist || '';
     if(els.choiceImage) els.choiceImage.src = image(item.image || item.spotify_album_image || '');
     if(els.choiceTitle) els.choiceTitle.textContent = title;
-    if(els.choiceArtist) els.choiceArtist.textContent = artist + (source === 'request' && item.guest_name ? ' • requested by ' + item.guest_name : '');
+    if(els.choiceArtist){
+      let suffix = '';
+      if(source === 'request'){
+        if(Number(item.request_count || 0) > 1) suffix = ' • ' + Number(item.request_count || 0) + ' requests';
+        else if(item.guest_name) suffix = ' • requested by ' + item.guest_name;
+      }
+      els.choiceArtist.textContent = artist + suffix;
+    }
     const aBlocked = !deckCanLoad('a');
     const bBlocked = !deckCanLoad('b');
     let html = '';
@@ -194,9 +201,11 @@ document.head.appendChild(overviewStyle);
     const item = choice.item;
     const params = {};
     if(src === 'request'){
-      if(action === 'playlist') Object.assign(params, {action:'accept_request', request_id:item.id});
-      if(action === 'load_a' || action === 'load_b') Object.assign(params, {action:'load_request', request_id:item.id, deck:action.slice(-1)});
-      if(action === 'play_a' || action === 'play_b') Object.assign(params, {action:'play_request_direct', request_id:item.id, deck:action.slice(-1)});
+      const requestParams = {request_id:item.id};
+      if(item.request_group_id) requestParams.request_group_id = item.request_group_id;
+      if(action === 'playlist') Object.assign(params, requestParams, {action:'accept_request'});
+      if(action === 'load_a' || action === 'load_b') Object.assign(params, requestParams, {action:'load_request', deck:action.slice(-1)});
+      if(action === 'play_a' || action === 'play_b') Object.assign(params, requestParams, {action:'play_request_direct', deck:action.slice(-1)});
     } else {
       const trackJson = JSON.stringify(item);
       if(action === 'playlist') Object.assign(params, {action:'add_track', track_json:trackJson});
@@ -358,7 +367,7 @@ document.head.appendChild(overviewStyle);
           <strong>${esc(t.title)}</strong><br>
           <span class="mini muted">${esc(t.artist)}${duration(t.duration_ms) ? ' • ' + duration(t.duration_ms) : ''}${t.source === 'request' ? ' • public request' : ''}</span>
           <div class="workflow-row">${workflowBadge('DJ Playlist', 'queued')}${t.source === 'request' ? workflowBadge('Request', 'source') : workflowBadge(sourceLabel(t), 'source')}</div>
-          ${t.source === 'request' ? `<div class="playlist-note mini" title="${esc((t.guest_name || 'Guest') + (t.message ? ': ' + t.message : ''))}"><strong>${esc(t.guest_name || 'Guest')}</strong>${t.message ? ': ' + esc(t.message) : ''}</div>` : ''}
+          ${t.source === 'request' ? `<div class="playlist-note mini" title="${esc((t.guest_name || 'Guest') + (t.message ? ': ' + t.message : ''))}"><strong>${esc((Number(t.request_count || 0) > 1 ? Number(t.request_count || 0) + ' requests' : (t.guest_name || 'Guest')))}</strong>${t.message ? ': ' + esc(t.message) : ''}</div>` : ''}
         </div>
         <div class="row-actions">
           <button class="mixer-btn green auto-btn mixer-mini-action" data-action="auto_load" data-idx="${i}" title="Auto-load to the first empty standby player" aria-label="Auto-load to the first empty standby player">⇄</button>
@@ -373,19 +382,24 @@ document.head.appendChild(overviewStyle);
     if(els.requestCount) els.requestCount.textContent = reqs.length;
     if(!els.publicRequests) return;
     if(!reqs.length){ els.publicRequests.innerHTML = '<div class="empty">No new Spotify-matched public requests waiting.</div>'; return; }
-    els.publicRequests.innerHTML = reqs.map(r => `
-      <div class="request-row">
+    els.publicRequests.innerHTML = reqs.map(r => {
+      const count = Number(r.request_count || 1);
+      const people = Array.isArray(r.requesters) && r.requesters.length ? r.requesters.join(', ') : (r.guest_name || 'Guest');
+      const countLabel = count > 1 ? workflowBadge(count + ' requests', 'source') : '';
+      return `
+      <div class="request-row grouped-request-row${count > 1 ? ' has-multiple-requests' : ''}">
         <img src="${esc(image(r.image))}" alt="">
         <div>
           <strong>${esc(r.title)}</strong> <span class="muted">— ${esc(r.artist)}</span>
-          <div class="request-detail mini"><span class="request-time">${esc((r.created_at || '').slice(11,16))}</span><span><strong>${esc(r.guest_name || 'Guest')}</strong></span></div>
+          <div class="request-detail mini"><span class="request-time">${esc((r.created_at || '').slice(11,16))}</span><span><strong>${esc(people)}</strong></span></div>
           ${r.message ? `<div class="request-message mini" title="${esc(r.message)}">${esc(r.message)}</div>` : '<div class="request-message mini muted">No dedication/message</div>'}
-          <div class="request-source">${workflowBadge('Waiting review', 'waiting')}${r.queue_status ? workflowBadge(r.queue_status.replace(/_/g, ' '), 'source') : ''}</div>
+          <div class="request-source">${workflowBadge('Waiting review', 'waiting')}${countLabel}${r.queue_status ? workflowBadge(r.queue_status.replace(/_/g, ' '), 'source') : ''}</div>
         </div>
         <div class="row-actions quick-actions">
           <button class="mixer-btn green wide" data-select-request='${esc(JSON.stringify(r))}'>Choose action</button>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
   function render(){ if(state?.crates) availableCrates = state.crates; renderDevices(); renderPlaylist(); renderRequests(); renderDecks(); if(activeSource === 'crates') renderDjCrates(availableCrates.length ? availableCrates : (state?.crates || [])); if(activeSource === 'history') renderHistory(); }
   async function refresh(silent=true){
