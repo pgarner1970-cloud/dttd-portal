@@ -114,8 +114,9 @@ function dttd_find_spotify_profile_id_for_slot($slot) {
         return null;
     }
 
+    // Preferred: an existing row explicitly bound to this account slot.
     if (dttd_settings_table_has_column('spotify_profiles', 'profile_slot')) {
-        $stmt = db()->prepare('SELECT id FROM spotify_profiles WHERE profile_slot = ? LIMIT 1');
+        $stmt = db()->prepare('SELECT id FROM spotify_profiles WHERE profile_slot = ? ORDER BY id ASC LIMIT 1');
         $stmt->execute([$slot]);
         $row = $stmt->fetch();
         if (!empty($row['id'])) {
@@ -123,6 +124,8 @@ function dttd_find_spotify_profile_id_for_slot($slot) {
         }
     }
 
+    // Legacy fallback: before profile_slot existed, the first three rows acted as Account 1/2/3.
+    // Bind the selected legacy row to the requested slot so future saves are deterministic.
     $rows = db()->query('SELECT id FROM spotify_profiles ORDER BY id ASC LIMIT 3')->fetchAll();
     if (!empty($rows[$slot - 1]['id'])) {
         $id = (int)$rows[$slot - 1]['id'];
@@ -134,6 +137,20 @@ function dttd_find_spotify_profile_id_for_slot($slot) {
     }
 
     return null;
+}
+
+function dttd_spotify_profile_id_is_valid($id) {
+    $id = (int)$id;
+    if ($id <= 0) {
+        return false;
+    }
+    try {
+        $stmt = db()->prepare('SELECT id FROM spotify_profiles WHERE id = ? LIMIT 1');
+        $stmt->execute([$id]);
+        return (bool)$stmt->fetch();
+    } catch (Throwable $e) {
+        return false;
+    }
 }
 
 function dttd_save_spotify_profiles(array $postedProfiles, &$debugError = null) {
@@ -168,7 +185,8 @@ function dttd_save_spotify_profiles(array $postedProfiles, &$debugError = null) 
                 'use_for_public_search' => $publicSearch,
             ];
 
-            $id = dttd_find_spotify_profile_id_for_slot($slot);
+            $postedId = isset($posted['id']) ? (int)$posted['id'] : 0;
+            $id = dttd_spotify_profile_id_is_valid($postedId) ? $postedId : dttd_find_spotify_profile_id_for_slot($slot);
             if ($id) {
                 $sets = [];
                 $values = [];
@@ -260,7 +278,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $spotify_queue_enabled = $new_spotify_enabled && $new_spotify_queue_enabled;
             $spotify_queue_mode = $new_spotify_queue_mode;
             $spotify_profiles = dttd_load_spotify_profiles();
-            $saved = true;
+            $_SESSION['settings_flash'] = 'Settings saved. Spotify account role assignments updated.';
+            header('Location: settings.php#spotify-accounts');
+            exit;
         } else {
             $error = 'Settings could not be saved. Please check the app_settings and spotify_profiles tables exist.' . ($settings_debug_error !== '' ? ' Detail: ' . $settings_debug_error : '');
         }
@@ -406,7 +426,7 @@ admin_header('Settings - DJ Portal');
               </label>
             </div>
 
-            <div class="settings-section-header" style="margin-top:1rem;">
+            <div id="spotify-accounts" class="settings-section-header" style="margin-top:1rem;">
               <h2>Spotify Accounts</h2>
               <p>Duo means two separate Spotify logins. Assign Account 1/2/3 to Deck A, Deck B or Public Search as needed.</p>
             </div>
@@ -420,6 +440,7 @@ admin_header('Settings - DJ Portal');
                   </div>
 
                   <label>Account label</label>
+                  <input type="hidden" name="spotify_profiles[<?= (int)$slot ?>][id]" value="<?= h((string)($profile['id'] ?? '')) ?>">
                   <input class="spotify-settings-input" type="text" name="spotify_profiles[<?= (int)$slot ?>][label]" value="<?= h($profile['label']) ?>" placeholder="Account <?= (int)$slot ?>">
 
                   <label>Connected Spotify login / note</label>
