@@ -1,5 +1,5 @@
 <?php
-// Public URL wrapper used when the DJ subdomain resolves /spotify directly.
+// Public URL wrapper used by the Spotify redirect URI area.
 require_once __DIR__ . '/../admin/_auth.php';
 require_once __DIR__ . '/../includes/spotify.php';
 require_once __DIR__ . '/../includes/spotify-account-oauth.php';
@@ -15,6 +15,6 @@ try {
 } catch (Throwable $e) {
     $_SESSION['settings_flash'] = 'Spotify connection could not start: ' . $e->getMessage();
     $_SESSION['spotify_flash'] = $_SESSION['settings_flash'];
-    header('Location: /settings.php#spotify-accounts');
+    header('Location: /admin/settings.php#spotify-accounts');
     exit;
 }

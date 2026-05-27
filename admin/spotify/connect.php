@@ -9,8 +9,6 @@ try {
         header('Location: ' . dttd_spotify_start_account_oauth($slot));
         exit;
     }
-
-    // Legacy/default connect button behaviour.
     header('Location: ' . dttd_spotify_authorize_url());
     exit;
 } catch (Throwable $e) {
