@@ -4375,3 +4375,81 @@ a:hover .venue-facebook-icon{
     padding:5px 8px;
   }
 }
+
+/* v200 public event board polish: privacy for declined requests + icon-only actions */
+.public-request-board-item.is-unable .public-request-member-list,
+.public-request-board-item.is-unable .public-request-member,
+.public-request-board-item.is-unable .public-request-dedication{
+  display:none;
+}
+
+.public-sr-only{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  padding:0!important;
+  margin:-1px!important;
+  overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;
+  white-space:nowrap!important;
+  border:0!important;
+}
+
+.public-track-action.public-track-icon-action{
+  width:36px;
+  min-width:36px;
+  height:36px;
+  min-height:36px;
+  padding:0;
+  border-radius:999px;
+  gap:0;
+}
+
+.public-track-action.spotify::before{
+  content:none;
+  display:none;
+}
+
+.public-action-icon{
+  width:20px;
+  height:20px;
+  display:block;
+  overflow:visible;
+}
+
+.public-track-action.spotify .public-action-icon circle{
+  fill:#22c55e;
+  stroke:none;
+}
+
+.public-track-action.spotify .public-action-icon path{
+  fill:none;
+  stroke:#06170c;
+  stroke-width:1.65;
+  stroke-linecap:round;
+}
+
+.public-track-action.share .public-action-icon circle{
+  fill:currentColor;
+  stroke:none;
+}
+
+.public-track-action.share .public-action-icon path{
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.public-share-copied{
+  font-size:.74rem;
+  font-weight:950;
+  line-height:1;
+}
+
+@media(max-width:560px){
+  .public-track-action.public-track-icon-action{
+    flex:0 0 36px;
+  }
+}

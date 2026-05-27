@@ -494,7 +494,11 @@ function public_render_request_board_item($request) {
     $requestStatus = public_request_status_label($request);
     $dedicationRows = public_group_rows($request);
     $requestCount = public_group_request_count($request);
+    $isUnable = ($requestStatus === 'Unable to play');
     $groupClass = $requestCount > 1 ? ' is-grouped' : '';
+    if ($isUnable) {
+        $groupClass .= ' is-unable';
+    }
     ?>
     <li class="public-request-board-item<?= public_h($groupClass) ?>">
       <div class="public-request-row-head">
@@ -502,21 +506,20 @@ function public_render_request_board_item($request) {
         <span class="public-request-status <?= public_h(public_request_status_class($requestStatus)) ?>"><?= public_h($requestStatus) ?></span>
       </div>
       <span class="public-request-artist"><?= public_h($request['artist'] ?? '') ?></span>
-      <?php if ($requestCount > 1): ?>
-        <small class="public-request-group-count"><?= public_h($requestCount) ?> requests grouped</small>
-      <?php endif; ?>
 
-      <div class="public-request-member-list<?= $requestCount > 1 ? ' has-multiple' : '' ?>">
-        <?php foreach ($dedicationRows as $memberRequest): ?>
-          <?php $memberDedication = public_request_dedication($memberRequest); ?>
-          <div class="public-request-member">
-            <small>Requested by <?= public_h(public_request_guest_name($memberRequest)) ?></small>
-            <?php if ($memberDedication !== ''): ?>
-              <p class="public-request-dedication">“<?= public_h($memberDedication) ?>”</p>
-            <?php endif; ?>
-          </div>
-        <?php endforeach; ?>
-      </div>
+      <?php if (!$isUnable): ?>
+        <div class="public-request-member-list<?= $requestCount > 1 ? ' has-multiple' : '' ?>">
+          <?php foreach ($dedicationRows as $memberRequest): ?>
+            <?php $memberDedication = public_request_dedication($memberRequest); ?>
+            <div class="public-request-member">
+              <small>Requested by <?= public_h(public_request_guest_name($memberRequest)) ?></small>
+              <?php if ($memberDedication !== ''): ?>
+                <p class="public-request-dedication">“<?= public_h($memberDedication) ?>”</p>
+              <?php endif; ?>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
 
       <?php $rejectReasonText = public_request_reject_reason_label($request); ?>
       <?php if ($rejectReasonText !== ''): ?>
@@ -568,20 +571,35 @@ function public_render_played_track_item($played, $event, $eventShareUrl) {
     $spotifyUrl = public_played_spotify_url($played);
     $shareText = public_played_share_text($played, $event);
     $requestCount = public_group_request_count($played);
+    $trackTitle = trim((string)($played['song_title'] ?? 'track'));
     ?>
     <li class="public-played-track-row<?= $requestCount > 1 ? ' is-grouped' : '' ?>">
       <div class="public-played-track-main">
         <strong><?= public_h($played['song_title'] ?? '') ?></strong>
         <span><?= public_h($played['artist'] ?? '') ?></span>
-        <?php if ($requestCount > 1): ?>
-          <em class="public-played-group-count"><?= public_h($requestCount) ?> requests grouped</em>
-        <?php endif; ?>
       </div>
       <div class="public-played-track-actions">
         <?php if ($spotifyUrl): ?>
-          <a class="public-track-action spotify" href="<?= public_h($spotifyUrl) ?>" target="_blank" rel="noopener" aria-label="Open <?= public_h($played['song_title'] ?? 'track') ?> in Spotify">Spotify</a>
+          <a class="public-track-action public-track-icon-action spotify" href="<?= public_h($spotifyUrl) ?>" target="_blank" rel="noopener" aria-label="Open <?= public_h($trackTitle) ?> in Spotify" title="Open in Spotify">
+            <span class="public-sr-only">Open in Spotify</span>
+            <svg class="public-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M7.3 9.4c3.1-1 6.8-.8 9.8.9"></path>
+              <path d="M7.8 12.4c2.5-.8 5.5-.6 7.9.7"></path>
+              <path d="M8.3 15.2c1.9-.6 4-.5 5.8.4"></path>
+            </svg>
+          </a>
         <?php endif; ?>
-        <button class="public-track-action share" type="button" data-track-share data-share-title="<?= public_h(($played['song_title'] ?? 'Recently played') . ' | Dance Thru The Decades') ?>" data-share-text="<?= public_h($shareText) ?>" data-share-url="<?= public_h($eventShareUrl) ?>">Share</button>
+        <button class="public-track-action public-track-icon-action share" type="button" data-track-share data-share-title="<?= public_h(($played['song_title'] ?? 'Recently played') . ' | Dance Thru The Decades') ?>" data-share-text="<?= public_h($shareText) ?>" data-share-url="<?= public_h($eventShareUrl) ?>" aria-label="Share <?= public_h($trackTitle) ?>" title="Share this track">
+          <span class="public-sr-only">Share this track</span>
+          <svg class="public-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="18" cy="5" r="3"></circle>
+            <circle cx="6" cy="12" r="3"></circle>
+            <circle cx="18" cy="19" r="3"></circle>
+            <path d="M8.7 10.7l6.6-3.5"></path>
+            <path d="M8.7 13.3l6.6 3.5"></path>
+          </svg>
+        </button>
       </div>
     </li>
     <?php
@@ -1080,11 +1098,17 @@ if ($event) {
         }
 
         var copyText = text + '\n' + url;
-        var original = btn.textContent;
+        var originalHtml = btn.innerHTML;
+        var originalLabel = btn.getAttribute('aria-label') || 'Share this track';
         function showCopied(){
-          btn.textContent = 'Copied';
+          btn.innerHTML = '<span class="public-share-copied">Copied</span>';
+          btn.setAttribute('aria-label', 'Share text copied');
           btn.classList.add('copied');
-          setTimeout(function(){ btn.textContent = original; btn.classList.remove('copied'); }, 1800);
+          setTimeout(function(){
+            btn.innerHTML = originalHtml;
+            btn.setAttribute('aria-label', originalLabel);
+            btn.classList.remove('copied');
+          }, 1800);
         }
 
         if (navigator.clipboard && navigator.clipboard.writeText) {
