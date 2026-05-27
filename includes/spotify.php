@@ -342,20 +342,145 @@ function dttd_spotify_current_playback() {
     ]);
 }
 
+
+/**
+ * Multi-account playback helpers for Duo-aware mixer decks.
+ *
+ * Account roles are stored in spotify_profiles:
+ * - use_for_deck_a
+ * - use_for_deck_b
+ * - use_for_public_search
+ *
+ * If no role is assigned yet, these helpers fall back to the legacy primary
+ * app_settings token so standard/single-account operation keeps working.
+ */
+function dttd_spotify_profile_by_deck($deck) {
+    $deck = strtolower((string)$deck) === 'b' ? 'b' : 'a';
+    $col = $deck === 'b' ? 'use_for_deck_b' : 'use_for_deck_a';
+    try {
+        $cols = [];
+        $stmtCols = db()->query('SHOW COLUMNS FROM spotify_profiles');
+        foreach ($stmtCols->fetchAll() as $row) {
+            if (!empty($row['Field'])) $cols[$row['Field']] = true;
+        }
+        if (empty($cols[$col])) return null;
+        $order = !empty($cols['profile_slot']) ? 'profile_slot ASC, id ASC' : 'id ASC';
+        $stmt = db()->prepare("SELECT * FROM spotify_profiles WHERE enabled = 1 AND `$col` = 1 ORDER BY $order LIMIT 1");
+        $stmt->execute();
+        $row = $stmt->fetch();
+        return $row ?: null;
+    } catch (Throwable $e) {
+        return null;
+    }
+}
+
+function dttd_spotify_profile_id_for_deck($deck) {
+    $profile = dttd_spotify_profile_by_deck($deck);
+    return $profile && !empty($profile['id']) ? (int)$profile['id'] : 0;
+}
+
+function dttd_spotify_decks_share_profile() {
+    $a = dttd_spotify_profile_id_for_deck('a');
+    $b = dttd_spotify_profile_id_for_deck('b');
+    if ($a <= 0 || $b <= 0) return true; // legacy fallback = same account
+    return $a === $b;
+}
+
+function dttd_spotify_refresh_profile_token(array $profile) {
+    $refresh = trim((string)($profile['refresh_token'] ?? ''));
+    if ($refresh === '') {
+        throw new RuntimeException('Spotify account is not connected for this deck.');
+    }
+    $credentials = dttd_spotify_credentials();
+    $auth = base64_encode($credentials['client_id'] . ':' . $credentials['client_secret']);
+    $data = dttd_spotify_http_post(
+        'https://accounts.spotify.com/api/token',
+        [
+            'Authorization: Basic ' . $auth,
+            'Content-Type: application/x-www-form-urlencoded',
+        ],
+        http_build_query([
+            'grant_type' => 'refresh_token',
+            'refresh_token' => $refresh,
+        ])
+    );
+    if (empty($data['access_token'])) {
+        throw new RuntimeException('Spotify did not return a refreshed access token.');
+    }
+    $expiresAt = date('Y-m-d H:i:s', time() + (int)($data['expires_in'] ?? 3600));
+    $newRefresh = !empty($data['refresh_token']) ? $data['refresh_token'] : $refresh;
+    try {
+        $stmt = db()->prepare("UPDATE spotify_profiles SET access_token = ?, refresh_token = ?, granted_scopes = COALESCE(NULLIF(?, ''), granted_scopes), expires_at = ? WHERE id = ?");
+        $stmt->execute([
+            $data['access_token'],
+            $newRefresh,
+            (string)($data['scope'] ?? ''),
+            $expiresAt,
+            (int)$profile['id'],
+        ]);
+    } catch (Throwable $e) {}
+    return $data['access_token'];
+}
+
+function dttd_spotify_profile_access_token(array $profile) {
+    $token = trim((string)($profile['access_token'] ?? ''));
+    $expires = !empty($profile['expires_at']) ? strtotime((string)$profile['expires_at']) : 0;
+    if ($token !== '' && $expires > time() + 60) return $token;
+    return dttd_spotify_refresh_profile_token($profile);
+}
+
+function dttd_spotify_user_access_token_for_deck($deck) {
+    $profile = dttd_spotify_profile_by_deck($deck);
+    if ($profile) return dttd_spotify_profile_access_token($profile);
+    return dttd_spotify_user_access_token();
+}
+
+function dttd_spotify_queue_connected_for_deck($deck) {
+    if (!dttd_spotify_config_loaded()) return false;
+    $profile = dttd_spotify_profile_by_deck($deck);
+    if ($profile) return trim((string)($profile['refresh_token'] ?? '')) !== '';
+    return dttd_spotify_queue_connected();
+}
+
+function dttd_spotify_get_devices_for_deck($deck) {
+    $token = dttd_spotify_user_access_token_for_deck($deck);
+    $data = dttd_spotify_http_get('https://api.spotify.com/v1/me/player/devices', [
+        'Authorization: Bearer ' . $token,
+        'Accept: application/json',
+    ]);
+    return $data['devices'] ?? [];
+}
+
+function dttd_spotify_current_playback_for_deck($deck) {
+    $token = dttd_spotify_user_access_token_for_deck($deck);
+    return dttd_spotify_http_get('https://api.spotify.com/v1/me/player', [
+        'Authorization: Bearer ' . $token,
+        'Accept: application/json',
+    ]);
+}
+
 /**
  * Secondary/public Spotify profile + track cache helpers.
  *
  * The DJ console continues to use the existing app_settings Spotify credentials.
  * Public request search can use a separate spotify_profiles row with role=public_search.
  */
-function dttd_spotify_profile_by_role($role, $include_disabled = false) {
+function dttd_spotify_profile_by_role($role) {
     try {
-        if ($include_disabled) {
-            $stmt = db()->prepare("SELECT * FROM spotify_profiles WHERE role = ? ORDER BY id ASC LIMIT 1");
-        } else {
-            $stmt = db()->prepare("SELECT * FROM spotify_profiles WHERE role = ? AND enabled = 1 ORDER BY id ASC LIMIT 1");
+        $role = (string)$role;
+        if ($role === 'public_search') {
+            $cols = [];
+            $stmtCols = db()->query('SHOW COLUMNS FROM spotify_profiles');
+            foreach ($stmtCols->fetchAll() as $row) if (!empty($row['Field'])) $cols[$row['Field']] = true;
+            if (!empty($cols['use_for_public_search'])) {
+                $order = !empty($cols['profile_slot']) ? 'profile_slot ASC, id ASC' : 'id ASC';
+                $stmt = db()->query("SELECT * FROM spotify_profiles WHERE enabled = 1 AND use_for_public_search = 1 ORDER BY $order LIMIT 1");
+                $row = $stmt->fetch();
+                if ($row) return $row;
+            }
         }
-        $stmt->execute([(string)$role]);
+        $stmt = db()->prepare("SELECT * FROM spotify_profiles WHERE role = ? AND enabled = 1 ORDER BY id ASC LIMIT 1");
+        $stmt->execute([$role]);
         $row = $stmt->fetch();
         return $row ?: null;
     } catch (Throwable $e) {
@@ -370,7 +495,7 @@ function dttd_spotify_save_profile_credentials($role, $label, $client_id, $clien
     $enabled_int = $enabled ? 1 : 0;
 
     try {
-        $existing = dttd_spotify_profile_by_role($role, true);
+        $existing = dttd_spotify_profile_by_role($role);
         if ($existing) {
             if ($client_secret !== null && trim((string)$client_secret) !== '') {
                 $stmt = db()->prepare("UPDATE spotify_profiles SET label=?, client_id=?, client_secret=?, enabled=? WHERE id=?");
