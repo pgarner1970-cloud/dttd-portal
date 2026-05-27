@@ -4301,3 +4301,77 @@ a:hover .venue-facebook-icon{
     flex:1 1 120px;
   }
 }
+
+
+/* v190 grouped public request board + grouped played tracks */
+.public-request-board-item.is-grouped{
+  border-color:rgba(56,189,248,.22);
+  background:
+    linear-gradient(180deg, rgba(56,189,248,.06), rgba(255,255,255,.035)),
+    rgba(255,255,255,.035);
+}
+
+.public-request-group-count,
+.public-played-group-count{
+  display:inline-flex;
+  width:max-content;
+  align-items:center;
+  justify-content:center;
+  margin-top:7px;
+  padding:4px 8px;
+  border-radius:999px;
+  border:1px solid rgba(56,189,248,.32);
+  background:rgba(56,189,248,.10);
+  color:#d8f3ff;
+  font-size:.72rem;
+  line-height:1;
+  font-style:normal;
+  font-weight:950;
+  letter-spacing:.02em;
+}
+
+.public-request-member-list{
+  display:grid;
+  gap:8px;
+  margin-top:9px;
+}
+
+.public-request-member{
+  min-width:0;
+}
+
+.public-request-member-list.has-multiple .public-request-member{
+  padding:9px 10px;
+  border-radius:13px;
+  border:1px solid rgba(255,255,255,.11);
+  background:rgba(255,255,255,.045);
+}
+
+.public-request-member-list.has-multiple .public-request-member small{
+  margin-top:0;
+  color:#ecf6ff;
+}
+
+.public-request-member-list.has-multiple .public-request-dedication{
+  margin-top:7px;
+}
+
+.public-played-track-row.is-grouped{
+  border-color:rgba(56,189,248,.24);
+  background:rgba(56,189,248,.06);
+}
+
+.public-played-track-main .public-played-group-count{
+  margin-top:4px;
+}
+
+@media(max-width:560px){
+  .public-request-row-head{
+    gap:8px;
+  }
+
+  .public-request-status{
+    font-size:.68rem;
+    padding:5px 8px;
+  }
+}

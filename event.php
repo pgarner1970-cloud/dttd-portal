@@ -148,8 +148,8 @@ function public_recent_played_requests($event_id, $limit = 25) {
     }
 
     $limit = max(1, min(50, (int)$limit));
-    $select = ['song_title', 'artist', 'created_at'];
-    foreach (['spotify_track_url', 'spotify_track_id', 'updated_at'] as $column) {
+    $select = ['id', 'song_title', 'artist', 'created_at'];
+    foreach (['spotify_track_url', 'spotify_track_id', 'updated_at', 'request_group_id', 'guest_name', 'dedication', 'message'] as $column) {
         if (dttd_table_column_exists('song_requests', $column)) {
             $select[] = $column;
         }
@@ -169,7 +169,7 @@ function public_recent_played_requests($event_id, $limit = 25) {
             LIMIT " . $limit . "
         ");
         $stmt->execute([(int)$event_id]);
-        return $stmt->fetchAll();
+        return public_group_played_tracks($stmt->fetchAll());
     } catch (Throwable $e) {
         return [];
     }
@@ -198,7 +198,7 @@ function public_event_request_board($event_id, $limit = 40) {
 
     $limit = max(1, min(80, (int)$limit));
     $select = ['id', 'song_title', 'artist', 'guest_name', 'status', 'created_at'];
-    foreach (['dedication', 'message', 'spotify_queue_status', 'spotify_queued_at', 'updated_at', 'reject_reason'] as $column) {
+    foreach (['dedication', 'message', 'spotify_queue_status', 'spotify_queued_at', 'updated_at', 'reject_reason', 'request_group_id'] as $column) {
         if (dttd_table_column_exists('song_requests', $column)) {
             $select[] = $column;
         }
@@ -226,13 +226,155 @@ function public_event_request_board($event_id, $limit = 40) {
             LIMIT " . $limit . "
         ");
         $stmt->execute([(int)$event_id]);
-        return $stmt->fetchAll();
+        return public_group_request_board_rows($stmt->fetchAll());
     } catch (Throwable $e) {
         return [];
     }
 }
 
+
+function public_request_group_key($request) {
+    $groupId = trim((string)($request['request_group_id'] ?? ''));
+    if ($groupId !== '') {
+        return 'group:' . $groupId;
+    }
+
+    $id = (int)($request['id'] ?? 0);
+    return 'single:' . $id;
+}
+
+function public_group_request_board_rows($requests) {
+    $groups = [];
+    $order = [];
+
+    foreach ((array)$requests as $request) {
+        $key = public_request_group_key($request);
+        if (!isset($groups[$key])) {
+            $groups[$key] = $request;
+            $groups[$key]['rows'] = [];
+            $groups[$key]['request_count'] = 0;
+            $groups[$key]['request_group_key'] = $key;
+            $order[] = $key;
+        }
+        $groups[$key]['rows'][] = $request;
+        $groups[$key]['request_count']++;
+    }
+
+    $result = [];
+    foreach ($order as $key) {
+        $result[] = $groups[$key];
+    }
+
+    return $result;
+}
+
+function public_group_played_tracks($requests) {
+    $groups = [];
+    $order = [];
+
+    foreach ((array)$requests as $request) {
+        $key = public_request_group_key($request);
+        if (!isset($groups[$key])) {
+            $groups[$key] = $request;
+            $groups[$key]['rows'] = [];
+            $groups[$key]['request_count'] = 0;
+            $groups[$key]['request_group_key'] = $key;
+            $order[] = $key;
+        }
+        $groups[$key]['rows'][] = $request;
+        $groups[$key]['request_count']++;
+
+        if (empty($groups[$key]['spotify_track_url']) && !empty($request['spotify_track_url'])) {
+            $groups[$key]['spotify_track_url'] = $request['spotify_track_url'];
+        }
+        if (empty($groups[$key]['spotify_track_id']) && !empty($request['spotify_track_id'])) {
+            $groups[$key]['spotify_track_id'] = $request['spotify_track_id'];
+        }
+    }
+
+    $result = [];
+    foreach ($order as $key) {
+        $result[] = $groups[$key];
+    }
+
+    return $result;
+}
+
+function public_group_rows($request) {
+    return isset($request['rows']) && is_array($request['rows']) && $request['rows'] ? $request['rows'] : [$request];
+}
+
+function public_group_request_count($request) {
+    return isset($request['request_count']) ? max(1, (int)$request['request_count']) : count(public_group_rows($request));
+}
+
+function public_group_status_label($request) {
+    $rows = public_group_rows($request);
+    $hasQueued = false;
+    $hasPending = false;
+    $hasMaybe = false;
+    $hasDuplicate = false;
+    $hasPlayed = false;
+    $hasRejected = false;
+    $allPlayed = true;
+    $allRejected = true;
+
+    foreach ($rows as $row) {
+        $status = strtolower((string)($row['status'] ?? 'pending'));
+        $spotifyStatus = strtolower((string)($row['spotify_queue_status'] ?? ''));
+        $queuedAt = trim((string)($row['spotify_queued_at'] ?? ''));
+
+        if ($status !== 'played') {
+            $allPlayed = false;
+        }
+        if ($status !== 'rejected') {
+            $allRejected = false;
+        }
+        if ($status === 'played') {
+            $hasPlayed = true;
+        } elseif ($status === 'rejected') {
+            $hasRejected = true;
+        } elseif ($status === 'maybe') {
+            $hasMaybe = true;
+        } elseif ($status === 'duplicate') {
+            $hasDuplicate = true;
+        } else {
+            $hasPending = true;
+        }
+
+        if ($spotifyStatus !== '' || $queuedAt !== '') {
+            $hasQueued = true;
+        }
+    }
+
+    if ($allPlayed || ($hasPlayed && !$hasPending && !$hasMaybe && !$hasDuplicate && !$hasQueued && !$hasRejected)) {
+        return 'Played';
+    }
+
+    if ($allRejected) {
+        return 'Unable to play';
+    }
+
+    if ($hasQueued) {
+        return 'In DJ queue';
+    }
+
+    if ($hasMaybe) {
+        return 'Under review';
+    }
+
+    if ($hasDuplicate && !$hasPending) {
+        return 'Already requested';
+    }
+
+    return 'Waiting';
+}
+
 function public_request_status_label($request) {
+    if (isset($request['rows']) && is_array($request['rows'])) {
+        return public_group_status_label($request);
+    }
+
     $status = strtolower((string)($request['status'] ?? 'pending'));
     $spotifyStatus = strtolower((string)($request['spotify_queue_status'] ?? ''));
     $queuedAt = trim((string)($request['spotify_queued_at'] ?? ''));
@@ -281,11 +423,24 @@ function public_request_dedication($request) {
 }
 
 function public_request_reject_reason_label($request) {
-    if (strtolower((string)($request['status'] ?? '')) !== 'rejected') {
-        return '';
+    if (isset($request['rows']) && is_array($request['rows'])) {
+        if (public_request_status_label($request) !== 'Unable to play') {
+            return '';
+        }
+        $reason = '';
+        foreach ($request['rows'] as $row) {
+            $candidate = strtolower(trim((string)($row['reject_reason'] ?? '')));
+            if ($candidate !== '') {
+                $reason = $candidate;
+                break;
+            }
+        }
+    } else {
+        if (strtolower((string)($request['status'] ?? '')) !== 'rejected') {
+            return '';
+        }
+        $reason = strtolower(trim((string)($request['reject_reason'] ?? '')));
     }
-
-    $reason = strtolower(trim((string)($request['reject_reason'] ?? '')));
     $labels = [
         'not_suitable' => "Sorry, this one is not quite right for tonight's event.",
         'explicit' => 'Sorry, this one is not suitable for the audience tonight.',
@@ -298,31 +453,77 @@ function public_request_reject_reason_label($request) {
 }
 
 function public_request_board_summary($requests) {
-    $total = is_array($requests) ? count($requests) : 0;
-    if ($total <= 0) {
+    $groups = is_array($requests) ? $requests : [];
+    $groupTotal = count($groups);
+    if ($groupTotal <= 0) {
         return 'Requests from tonight are shown below.';
     }
 
+    $requestTotal = 0;
     $active = 0;
-    foreach ($requests as $request) {
-        $status = strtolower((string)($request['status'] ?? 'pending'));
-        if (!in_array($status, ['played', 'rejected'], true)) {
+    foreach ($groups as $request) {
+        $requestTotal += public_group_request_count($request);
+        $label = public_request_status_label($request);
+        if (!in_array($label, ['Played', 'Unable to play'], true)) {
             $active++;
         }
     }
 
-    $requestWord = $total === 1 ? 'request' : 'requests';
-    if ($active > 0) {
-        $activeWord = $active === 1 ? 'active request' : 'active requests';
-        return $total . ' ' . $requestWord . ' shown tonight, including ' . $active . ' ' . $activeWord . '.';
+    $songWord = $groupTotal === 1 ? 'song' : 'songs';
+    $requestWord = $requestTotal === 1 ? 'request' : 'requests';
+    $summary = $groupTotal . ' ' . $songWord . ' shown tonight';
+    if ($requestTotal !== $groupTotal) {
+        $summary .= ', covering ' . $requestTotal . ' ' . $requestWord;
     }
 
-    return $total . ' ' . $requestWord . ' shown tonight.';
+    if ($active > 0) {
+        $activeWord = $active === 1 ? 'active song' : 'active songs';
+        $summary .= ', including ' . $active . ' ' . $activeWord;
+    }
+
+    return $summary . '.';
 }
 
 function public_request_guest_name($request) {
     $name = trim((string)($request['guest_name'] ?? ''));
     return $name !== '' ? $name : 'Guest';
+}
+
+
+function public_render_request_board_item($request) {
+    $requestStatus = public_request_status_label($request);
+    $dedicationRows = public_group_rows($request);
+    $requestCount = public_group_request_count($request);
+    $groupClass = $requestCount > 1 ? ' is-grouped' : '';
+    ?>
+    <li class="public-request-board-item<?= public_h($groupClass) ?>">
+      <div class="public-request-row-head">
+        <strong><?= public_h($request['song_title'] ?? '') ?></strong>
+        <span class="public-request-status <?= public_h(public_request_status_class($requestStatus)) ?>"><?= public_h($requestStatus) ?></span>
+      </div>
+      <span class="public-request-artist"><?= public_h($request['artist'] ?? '') ?></span>
+      <?php if ($requestCount > 1): ?>
+        <small class="public-request-group-count"><?= public_h($requestCount) ?> requests grouped</small>
+      <?php endif; ?>
+
+      <div class="public-request-member-list<?= $requestCount > 1 ? ' has-multiple' : '' ?>">
+        <?php foreach ($dedicationRows as $memberRequest): ?>
+          <?php $memberDedication = public_request_dedication($memberRequest); ?>
+          <div class="public-request-member">
+            <small>Requested by <?= public_h(public_request_guest_name($memberRequest)) ?></small>
+            <?php if ($memberDedication !== ''): ?>
+              <p class="public-request-dedication">“<?= public_h($memberDedication) ?>”</p>
+            <?php endif; ?>
+          </div>
+        <?php endforeach; ?>
+      </div>
+
+      <?php $rejectReasonText = public_request_reject_reason_label($request); ?>
+      <?php if ($rejectReasonText !== ''): ?>
+        <p class="public-request-reason"><?= public_h($rejectReasonText) ?></p>
+      <?php endif; ?>
+    </li>
+    <?php
 }
 
 function public_played_spotify_url($played) {
@@ -360,6 +561,30 @@ function public_played_share_text($played, $event) {
     }
 
     return 'I am at ' . $eventTitle . ' with Dance Thru The Decades, listening to ' . $track . ' 🎶';
+}
+
+
+function public_render_played_track_item($played, $event, $eventShareUrl) {
+    $spotifyUrl = public_played_spotify_url($played);
+    $shareText = public_played_share_text($played, $event);
+    $requestCount = public_group_request_count($played);
+    ?>
+    <li class="public-played-track-row<?= $requestCount > 1 ? ' is-grouped' : '' ?>">
+      <div class="public-played-track-main">
+        <strong><?= public_h($played['song_title'] ?? '') ?></strong>
+        <span><?= public_h($played['artist'] ?? '') ?></span>
+        <?php if ($requestCount > 1): ?>
+          <em class="public-played-group-count"><?= public_h($requestCount) ?> requests grouped</em>
+        <?php endif; ?>
+      </div>
+      <div class="public-played-track-actions">
+        <?php if ($spotifyUrl): ?>
+          <a class="public-track-action spotify" href="<?= public_h($spotifyUrl) ?>" target="_blank" rel="noopener" aria-label="Open <?= public_h($played['song_title'] ?? 'track') ?> in Spotify">Spotify</a>
+        <?php endif; ?>
+        <button class="public-track-action share" type="button" data-track-share data-share-title="<?= public_h(($played['song_title'] ?? 'Recently played') . ' | Dance Thru The Decades') ?>" data-share-text="<?= public_h($shareText) ?>" data-share-url="<?= public_h($eventShareUrl) ?>">Share</button>
+      </div>
+    </li>
+    <?php
 }
 
 function public_event_photo_table_ready() {
@@ -489,7 +714,7 @@ if ($event) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : ($notFound ? 'Event Not Found' : 'Join Event') ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event portal.' ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=180">
+  <link rel="stylesheet" href="/assets/public-site.css?v=190">
 </head>
 <body class="homepage-option-one public-event-detail-page public-event-portal-page">
   <main class="home-option-one">
@@ -618,22 +843,7 @@ if ($event) {
                 <p class="public-card-summary"><?= public_h(public_request_board_summary($publicRequests)) ?></p>
                 <ul class="public-request-board-list">
                   <?php foreach ($visibleRequests as $request): ?>
-                    <?php $requestStatus = public_request_status_label($request); $dedicationText = public_request_dedication($request); ?>
-                    <li>
-                      <div class="public-request-row-head">
-                        <strong><?= public_h($request['song_title'] ?? '') ?></strong>
-                        <span class="public-request-status <?= public_h(public_request_status_class($requestStatus)) ?>"><?= public_h($requestStatus) ?></span>
-                      </div>
-                      <span class="public-request-artist"><?= public_h($request['artist'] ?? '') ?></span>
-                      <small>Requested by <?= public_h(public_request_guest_name($request)) ?></small>
-                      <?php if ($dedicationText !== ''): ?>
-                        <p class="public-request-dedication">“<?= public_h($dedicationText) ?>”</p>
-                      <?php endif; ?>
-                      <?php $rejectReasonText = public_request_reject_reason_label($request); ?>
-                      <?php if ($rejectReasonText !== ''): ?>
-                        <p class="public-request-reason"><?= public_h($rejectReasonText) ?></p>
-                      <?php endif; ?>
-                    </li>
+                    <?php public_render_request_board_item($request); ?>
                   <?php endforeach; ?>
                 </ul>
                 <?php if ($hiddenRequests): ?>
@@ -641,22 +851,7 @@ if ($event) {
                     <summary>View all requests</summary>
                     <ul class="public-request-board-list public-request-board-list-extra">
                       <?php foreach ($hiddenRequests as $request): ?>
-                        <?php $requestStatus = public_request_status_label($request); $dedicationText = public_request_dedication($request); ?>
-                        <li>
-                          <div class="public-request-row-head">
-                            <strong><?= public_h($request['song_title'] ?? '') ?></strong>
-                            <span class="public-request-status <?= public_h(public_request_status_class($requestStatus)) ?>"><?= public_h($requestStatus) ?></span>
-                          </div>
-                          <span class="public-request-artist"><?= public_h($request['artist'] ?? '') ?></span>
-                          <small>Requested by <?= public_h(public_request_guest_name($request)) ?></small>
-                          <?php if ($dedicationText !== ''): ?>
-                            <p class="public-request-dedication">“<?= public_h($dedicationText) ?>”</p>
-                          <?php endif; ?>
-                          <?php $rejectReasonText = public_request_reject_reason_label($request); ?>
-                          <?php if ($rejectReasonText !== ''): ?>
-                            <p class="public-request-reason"><?= public_h($rejectReasonText) ?></p>
-                          <?php endif; ?>
-                        </li>
+                        <?php public_render_request_board_item($request); ?>
                       <?php endforeach; ?>
                     </ul>
                   </details>
@@ -674,19 +869,7 @@ if ($event) {
                 <?php $visiblePlayed = array_slice($playedRequests, 0, 5); $hiddenPlayed = array_slice($playedRequests, 5); ?>
                 <ol class="public-mini-list public-played-list">
                   <?php foreach ($visiblePlayed as $played): ?>
-                    <?php $spotifyUrl = public_played_spotify_url($played); $shareText = public_played_share_text($played, $event); ?>
-                    <li class="public-played-track-row">
-                      <div class="public-played-track-main">
-                        <strong><?= public_h($played['song_title'] ?? '') ?></strong>
-                        <span><?= public_h($played['artist'] ?? '') ?></span>
-                      </div>
-                      <div class="public-played-track-actions">
-                        <?php if ($spotifyUrl): ?>
-                          <a class="public-track-action spotify" href="<?= public_h($spotifyUrl) ?>" target="_blank" rel="noopener" aria-label="Open <?= public_h($played['song_title'] ?? 'track') ?> in Spotify">Spotify</a>
-                        <?php endif; ?>
-                        <button class="public-track-action share" type="button" data-track-share data-share-title="<?= public_h(($played['song_title'] ?? 'Recently played') . ' | Dance Thru The Decades') ?>" data-share-text="<?= public_h($shareText) ?>" data-share-url="<?= public_h($eventShareUrl) ?>">Share</button>
-                      </div>
-                    </li>
+                    <?php public_render_played_track_item($played, $event, $eventShareUrl); ?>
                   <?php endforeach; ?>
                 </ol>
                 <?php if ($hiddenPlayed): ?>
@@ -694,19 +877,7 @@ if ($event) {
                     <summary>View more played songs</summary>
                     <ol class="public-mini-list public-played-list public-played-list-extra" start="6">
                       <?php foreach ($hiddenPlayed as $played): ?>
-                        <?php $spotifyUrl = public_played_spotify_url($played); $shareText = public_played_share_text($played, $event); ?>
-                        <li class="public-played-track-row">
-                          <div class="public-played-track-main">
-                            <strong><?= public_h($played['song_title'] ?? '') ?></strong>
-                            <span><?= public_h($played['artist'] ?? '') ?></span>
-                          </div>
-                          <div class="public-played-track-actions">
-                            <?php if ($spotifyUrl): ?>
-                              <a class="public-track-action spotify" href="<?= public_h($spotifyUrl) ?>" target="_blank" rel="noopener" aria-label="Open <?= public_h($played['song_title'] ?? 'track') ?> in Spotify">Spotify</a>
-                            <?php endif; ?>
-                            <button class="public-track-action share" type="button" data-track-share data-share-title="<?= public_h(($played['song_title'] ?? 'Recently played') . ' | Dance Thru The Decades') ?>" data-share-text="<?= public_h($shareText) ?>" data-share-url="<?= public_h($eventShareUrl) ?>">Share</button>
-                          </div>
-                        </li>
+                        <?php public_render_played_track_item($played, $event, $eventShareUrl); ?>
                       <?php endforeach; ?>
                     </ol>
                   </details>
