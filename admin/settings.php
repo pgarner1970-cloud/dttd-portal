@@ -24,9 +24,9 @@ if (!in_array($spotify_queue_mode, ['standard', 'mixer'], true)) {
 
 function dttd_default_spotify_profiles() {
     return [
-        1 => ['id' => null, 'label' => 'Account 1', 'account_email' => '', 'use_for_deck_a' => 1, 'use_for_deck_b' => 0, 'use_for_public_search' => 0, 'enabled' => 1],
-        2 => ['id' => null, 'label' => 'Account 2', 'account_email' => '', 'use_for_deck_a' => 0, 'use_for_deck_b' => 1, 'use_for_public_search' => 0, 'enabled' => 1],
-        3 => ['id' => null, 'label' => 'Account 3', 'account_email' => '', 'use_for_deck_a' => 0, 'use_for_deck_b' => 0, 'use_for_public_search' => 1, 'enabled' => 0],
+        1 => ['id' => null, 'label' => 'Account 1', 'account_email' => '', 'use_for_deck_a' => 1, 'use_for_deck_b' => 0, 'use_for_public_search' => 0, 'enabled' => 1, 'refresh_token' => '', 'granted_scopes' => '', 'connected_email' => ''],
+        2 => ['id' => null, 'label' => 'Account 2', 'account_email' => '', 'use_for_deck_a' => 0, 'use_for_deck_b' => 1, 'use_for_public_search' => 0, 'enabled' => 1, 'refresh_token' => '', 'granted_scopes' => '', 'connected_email' => ''],
+        3 => ['id' => null, 'label' => 'Account 3', 'account_email' => '', 'use_for_deck_a' => 0, 'use_for_deck_b' => 0, 'use_for_public_search' => 1, 'enabled' => 0, 'refresh_token' => '', 'granted_scopes' => '', 'connected_email' => ''],
     ];
 }
 
@@ -49,6 +49,9 @@ function dttd_load_spotify_profiles() {
                 'use_for_deck_b' => (int)($row['use_for_deck_b'] ?? 0),
                 'use_for_public_search' => (int)($row['use_for_public_search'] ?? 0),
                 'enabled' => (int)($row['enabled'] ?? 1),
+                'refresh_token' => $row['refresh_token'] ?? '',
+                'granted_scopes' => $row['granted_scopes'] ?? '',
+                'connected_email' => $row['account_email'] ?? '',
             ]);
             $slot++;
         }
@@ -311,6 +314,17 @@ admin_header('Settings - DJ Portal');
                   <label>Spotify email / note</label>
                   <input class="spotify-settings-input" type="text" name="spotify_profiles[<?= (int)$slot ?>][account_email]" value="<?= h($profile['account_email']) ?>" placeholder="name@example.com">
 
+                  <div class="spotify-account-connect-row">
+                    <?php $profileConnected = trim((string)($profile['refresh_token'] ?? '')) !== ''; ?>
+                    <span class="spotify-status-pill <?= $profileConnected ? 'connected' : 'not-connected' ?>">
+                      <?= $profileConnected ? 'Connected' : 'Not connected' ?>
+                    </span>
+                    <a class="touch-btn blue spotify-connect-btn" href="spotify/connect.php?profile_slot=<?= (int)$slot ?>">
+                      <?= $profileConnected ? 'Reconnect Account ' . (int)$slot : 'Connect Account ' . (int)$slot ?>
+                    </a>
+                  </div>
+                  <small class="spotify-account-help">This opens Spotify login for this account slot. The portal stores OAuth tokens only, never the Spotify password.</small>
+
                   <div class="settings-toggle-grid spotify-role-grid">
                     <label class="settings-toggle-card compact-role-toggle">
                       <input type="checkbox" name="spotify_profiles[<?= (int)$slot ?>][enabled]" value="1" <?= !empty($profile['enabled']) ? 'checked' : '' ?> <?= $slot === 1 ? 'disabled' : '' ?>>
@@ -345,7 +359,7 @@ admin_header('Settings - DJ Portal');
                 <span class="spotify-status-pill <?= $spotify_connected ? 'connected' : 'not-connected' ?>">
                   <?= $spotify_connected ? 'Primary connected' : 'Primary not connected' ?>
                 </span>
-                <small>Use Spotify Tools to connect/reconnect accounts and run diagnostics.</small>
+                <small>Use the account Connect buttons above for each Spotify login. Spotify Tools remains available for diagnostics.</small>
               </div>
               <a class="touch-btn green" href="spotify/">Spotify Tools</a>
             </div>
@@ -359,6 +373,9 @@ admin_header('Settings - DJ Portal');
           .spotify-role-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem;margin-top:.35rem;}
           .compact-role-toggle{padding:.65rem .7rem;min-height:auto;}
           .compact-role-toggle span strong{font-size:.9rem;}
+          .spotify-account-connect-row{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin:.35rem 0 .15rem;}
+          .spotify-connect-btn{padding:.7rem .9rem;font-size:.9rem;white-space:nowrap;}
+          .spotify-account-help{color:#9ec7ee;line-height:1.35;}
           @media(max-width:1100px){.spotify-account-grid{grid-template-columns:1fr;}}
         </style>
 

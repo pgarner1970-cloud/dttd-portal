@@ -8,8 +8,38 @@ if (!dttd_spotify_config_loaded()) {
     exit;
 }
 
-// Force a clean OAuth grant. This avoids Spotify reusing an old refresh token
-// that was created before playlist-read scopes were added.
-dttd_spotify_clear_user_tokens();
-header('Location: ' . dttd_spotify_authorize_url());
+$profileSlot = isset($_GET['profile_slot']) ? max(1, min(3, (int)$_GET['profile_slot'])) : 0;
+
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+
+$credentials = dttd_spotify_credentials();
+$statePayload = [
+    'nonce' => bin2hex(random_bytes(16)),
+    'profile_slot' => $profileSlot,
+];
+$state = base64_encode(json_encode($statePayload));
+$_SESSION['spotify_oauth_state'] = $state;
+$_SESSION['spotify_oauth_profile_slot'] = $profileSlot;
+
+$scope = implode(' ', [
+    'user-read-playback-state',
+    'user-read-currently-playing',
+    'user-modify-playback-state',
+    'playlist-read-private',
+    'playlist-read-collaborative',
+    'user-read-email',
+]);
+
+$params = [
+    'client_id' => $credentials['client_id'],
+    'response_type' => 'code',
+    'redirect_uri' => dttd_spotify_redirect_uri(),
+    'scope' => $scope,
+    'state' => $state,
+    'show_dialog' => 'true',
+];
+
+header('Location: https://accounts.spotify.com/authorize?' . http_build_query($params));
 exit;
