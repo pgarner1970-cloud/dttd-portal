@@ -187,7 +187,7 @@ function dttd_spotify_save_token_to_profile_slot($slot, array $token) {
 }
 
 function dttd_spotify_redirect_to_settings($params = '') {
-    $url = '/admin/settings.php';
+    $url = '/settings.php';
     if ($params !== '') {
         $url .= '?' . ltrim($params, '?');
     }
@@ -281,6 +281,6 @@ function dttd_spotify_finish_account_oauth() {
     $_SESSION['spotify_flash'] = 'Spotify account connected. You can now test Add to Spotify Queue.';
     return [
         'slot' => 0,
-        'redirect' => '/admin/spotify/index.php',
+        'redirect' => '/spotify/index.php',
     ];
 }

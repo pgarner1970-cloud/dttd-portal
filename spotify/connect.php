@@ -15,6 +15,6 @@ try {
 } catch (Throwable $e) {
     $_SESSION['settings_flash'] = 'Spotify connection could not start: ' . $e->getMessage();
     $_SESSION['spotify_flash'] = $_SESSION['settings_flash'];
-    header('Location: /admin/settings.php#spotify-accounts');
+    header('Location: /settings.php#spotify-accounts');
     exit;
 }
