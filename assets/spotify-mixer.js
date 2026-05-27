@@ -280,21 +280,52 @@ document.head.appendChild(overviewStyle);
     const s = String(name || 'G').trim();
     return (s ? s[0] : 'G').toUpperCase();
   }
+  function requestTime(value){
+    const s = String(value || '');
+    return s.length >= 16 ? s.slice(11,16) : '';
+  }
+  function requestNotesFrom(item){
+    const notes = Array.isArray(item?.request_notes)
+      ? item.request_notes.map(n => ({
+          guest_name: String(n?.guest_name || 'Guest').trim() || 'Guest',
+          message: String(n?.message || '').trim(),
+          created_at: String(n?.created_at || item?.created_at || item?.added_at || '')
+        }))
+      : [];
+    if(notes.length) return notes;
+    const guest = String(item?.guest_name || '').trim();
+    const msg = String(item?.message || '').trim();
+    if(guest || msg){
+      return [{guest_name: guest || 'Guest', message: msg, created_at: String(item?.created_at || item?.added_at || '')}];
+    }
+    return [];
+  }
+  function renderRequestNotesList(item, cls='mixer-request-note-list', emptyText='No dedication/message'){
+    const notes = requestNotesFrom(item);
+    if(!notes.length) return `<div class="${esc(cls)} empty-notes mini muted">${esc(emptyText)}</div>`;
+    return `<div class="${esc(cls)}">` + notes.map(note => {
+      const time = requestTime(note.created_at);
+      return `<div class="mixer-request-note">
+        <div class="loaded-request-avatar small">${esc(requestInitial(note.guest_name))}</div>
+        <div class="mixer-request-note-copy">
+          <div class="mixer-request-note-name"><strong>${esc(note.guest_name || 'Guest')}</strong>${time ? ` <span>${esc(time)}</span>` : ''}</div>
+          <div class="mixer-request-note-message${note.message ? '' : ' muted'}">${note.message ? esc(note.message) : esc(emptyText)}</div>
+        </div>
+      </div>`;
+    }).join('') + `</div>`;
+  }
   function renderDeckRequestNote(el, track){
     if(!el) return;
-    const guest = String(track?.guest_name || '').trim();
-    const msg = String(track?.message || '').trim();
-    if(!(track?.source === 'request') || (!guest && !msg)){
-      el.classList.remove('visible');
+    const notes = requestNotesFrom(track);
+    if(!(track?.source === 'request') || !notes.length){
+      el.classList.remove('visible', 'has-request-list');
       el.innerHTML = '';
       return;
     }
-    el.innerHTML = `<div class="loaded-request-avatar">${esc(requestInitial(guest))}</div>
-      <div class="loaded-request-copy">
-        <div class="loaded-request-name">${esc(guest || 'Guest')}</div>
-        <div class="loaded-request-message${msg ? '' : ' muted'}">${msg ? esc(msg) : 'No dedication/message'}</div>
-      </div>`;
-    el.classList.add('visible');
+    const count = Number(track?.request_count || notes.length || 1);
+    const title = count > 1 ? `${count} dedications / requests` : 'Request dedication';
+    el.innerHTML = `<div class="loaded-request-notes-head">${esc(title)}</div>${renderRequestNotesList(track, 'mixer-request-note-list deck-request-note-list')}`;
+    el.classList.add('visible', 'has-request-list');
   }
   function renderDecks(){
     const aPlaying = deckIsPlaying('a');
@@ -360,14 +391,22 @@ document.head.appendChild(overviewStyle);
     if(els.playlistCount) els.playlistCount.textContent = list.length;
     if(!els.djPlaylist) return;
     if(!list.length){ els.djPlaylist.innerHTML = '<div class="empty">DJ playlist is empty.</div>'; return; }
-    els.djPlaylist.innerHTML = list.map((t,i)=>`
-      <div class="playlist-row">
+    els.djPlaylist.innerHTML = list.map((t,i)=>{
+      const count = Number(t.request_count || 0);
+      const requestSummary = t.source === 'request' ? `
+          <div class="playlist-request-summary mini">
+            <span>${esc(count > 1 ? count + ' requests grouped' : '1 request')}</span>
+            ${Array.isArray(t.requesters) && t.requesters.length ? `<span>${esc(t.requesters.join(', '))}</span>` : ''}
+          </div>
+          ${renderRequestNotesList(t, 'mixer-request-note-list playlist-request-note-list')}` : '';
+      return `
+      <div class="playlist-row${t.source === 'request' && count > 1 ? ' grouped-playlist-row' : ''}">
         <img src="${esc(image(t.image))}" alt="">
         <div>
           <strong>${esc(t.title)}</strong><br>
           <span class="mini muted">${esc(t.artist)}${duration(t.duration_ms) ? ' • ' + duration(t.duration_ms) : ''}${t.source === 'request' ? ' • public request' : ''}</span>
-          <div class="workflow-row">${workflowBadge('DJ Playlist', 'queued')}${t.source === 'request' ? workflowBadge('Request', 'source') : workflowBadge(sourceLabel(t), 'source')}</div>
-          ${t.source === 'request' ? `<div class="playlist-note mini" title="${esc((t.guest_name || 'Guest') + (t.message ? ': ' + t.message : ''))}"><strong>${esc((Number(t.request_count || 0) > 1 ? Number(t.request_count || 0) + ' requests' : (t.guest_name || 'Guest')))}</strong>${t.message ? ': ' + esc(t.message) : ''}</div>` : ''}
+          <div class="workflow-row">${workflowBadge('DJ Playlist', 'queued')}${t.source === 'request' ? workflowBadge(count > 1 ? count + ' Requests' : 'Request', 'source') : workflowBadge(sourceLabel(t), 'source')}</div>
+          ${requestSummary}
         </div>
         <div class="row-actions">
           <button class="mixer-btn green auto-btn mixer-mini-action" data-action="auto_load" data-idx="${i}" title="Auto-load to the first empty standby player" aria-label="Auto-load to the first empty standby player">⇄</button>
@@ -375,7 +414,8 @@ document.head.appendChild(overviewStyle);
           <button class="mixer-btn blue mixer-mini-action" data-action="load" data-deck="b" data-load-b data-idx="${i}" title="Load to Player B" aria-label="Load to Player B">B</button>
           <button class="mixer-btn red mixer-mini-action" data-action="remove_playlist" data-idx="${i}" title="Remove from DJ playlist" aria-label="Remove from DJ playlist">×</button>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
   function renderRequests(){
     const reqs = state?.requests || [];
@@ -391,8 +431,8 @@ document.head.appendChild(overviewStyle);
         <img src="${esc(image(r.image))}" alt="">
         <div>
           <strong>${esc(r.title)}</strong> <span class="muted">— ${esc(r.artist)}</span>
-          <div class="request-detail mini"><span class="request-time">${esc((r.created_at || '').slice(11,16))}</span><span><strong>${esc(people)}</strong></span></div>
-          ${r.message ? `<div class="request-message mini" title="${esc(r.message)}">${esc(r.message)}</div>` : '<div class="request-message mini muted">No dedication/message</div>'}
+          <div class="request-detail mini"><span class="request-time">${esc(requestTime(r.created_at))}</span><span><strong>${esc(people)}</strong></span></div>
+          ${renderRequestNotesList(r, 'mixer-request-note-list public-request-note-list')}
           <div class="request-source">${workflowBadge('Waiting review', 'waiting')}${countLabel}${r.queue_status ? workflowBadge(r.queue_status.replace(/_/g, ' '), 'source') : ''}</div>
         </div>
         <div class="row-actions quick-actions">
