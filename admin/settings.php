@@ -172,6 +172,11 @@ admin_header('Settings - DJ Portal');
     </div>
 
     <div class="touch-panel-pad">
+      <?php if (!empty($_SESSION['settings_flash'])): ?>
+        <div class="settings-alert success"><?= h($_SESSION['settings_flash']) ?></div>
+        <?php unset($_SESSION['settings_flash']); ?>
+      <?php endif; ?>
+
       <?php if ($saved): ?>
         <div class="settings-alert success">Settings saved.</div>
       <?php endif; ?>
@@ -244,7 +249,7 @@ admin_header('Settings - DJ Portal');
           </div>
         </section>
 
-        <section class="settings-section spotify-settings-section">
+        <section class="settings-section spotify-settings-section" id="spotify-accounts">
           <div class="settings-section-header">
             <h2>Spotify Integration</h2>
             <p>Turn Spotify features on/off, set the developer app details, then assign connected Spotify accounts to Deck A, Deck B and Public Search.</p>
@@ -297,7 +302,7 @@ admin_header('Settings - DJ Portal');
 
             <div class="settings-section-header" style="margin-top:1rem;">
               <h2>Spotify Accounts</h2>
-              <p>Duo means two separate Spotify logins. Assign Account 1/2/3 to Deck A, Deck B or Public Search as needed.</p>
+              <p>Connect each Spotify login separately. Duo is simply two Spotify accounts: assign one to Deck A and one to Deck B. Account 3 is optional for public search or backup.</p>
             </div>
 
             <div class="spotify-account-grid">
@@ -308,11 +313,13 @@ admin_header('Settings - DJ Portal');
                     <?php if ($slot === 3): ?><small>Optional</small><?php endif; ?>
                   </div>
 
-                  <label>Display label</label>
-                  <input class="spotify-settings-input" type="text" name="spotify_profiles[<?= (int)$slot ?>][label]" value="<?= h($profile['label']) ?>" placeholder="Account <?= (int)$slot ?>">
+                  <label>Account label</label>
+                  <input class="spotify-settings-input" type="text" name="spotify_profiles[<?= (int)$slot ?>][label]" value="<?= h($profile['label']) ?>" placeholder="Example: Deck A Main, Deck B Duo, Public Search">
 
-                  <label>Spotify email / note</label>
-                  <input class="spotify-settings-input" type="text" name="spotify_profiles[<?= (int)$slot ?>][account_email]" value="<?= h($profile['account_email']) ?>" placeholder="name@example.com">
+                  <label>Connected Spotify login / note</label>
+                  <input class="spotify-settings-input" type="text" name="spotify_profiles[<?= (int)$slot ?>][account_email]" value="<?= h($profile['account_email']) ?>" placeholder="Auto-filled after Connect, or add a reminder note">
+
+                  <small class="spotify-account-help">Examples: “Deck A Main”, “Deck B Duo”, “Public Search”. Do not enter a Spotify password here.</small>
 
                   <div class="spotify-account-connect-row">
                     <?php $profileConnected = trim((string)($profile['refresh_token'] ?? '')) !== ''; ?>
@@ -323,7 +330,10 @@ admin_header('Settings - DJ Portal');
                       <?= $profileConnected ? 'Reconnect Account ' . (int)$slot : 'Connect Account ' . (int)$slot ?>
                     </a>
                   </div>
-                  <small class="spotify-account-help">This opens Spotify login for this account slot. The portal stores OAuth tokens only, never the Spotify password.</small>
+                  <?php if ($profileConnected && trim((string)$profile['account_email']) !== ''): ?>
+                    <div class="spotify-connected-user">Bound to: <strong><?= h($profile['account_email']) ?></strong></div>
+                  <?php endif; ?>
+                  <small class="spotify-account-help">The Connect button opens Spotify login for this account slot and returns here. The portal stores OAuth tokens only.</small>
 
                   <div class="settings-toggle-grid spotify-role-grid">
                     <label class="settings-toggle-card compact-role-toggle">
@@ -376,6 +386,7 @@ admin_header('Settings - DJ Portal');
           .spotify-account-connect-row{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin:.35rem 0 .15rem;}
           .spotify-connect-btn{padding:.7rem .9rem;font-size:.9rem;white-space:nowrap;}
           .spotify-account-help{color:#9ec7ee;line-height:1.35;}
+          .spotify-connected-user{border:1px solid rgba(34,197,94,.35);background:rgba(34,197,94,.09);border-radius:.8rem;padding:.55rem .7rem;color:#c8f7d8;font-size:.9rem;}
           @media(max-width:1100px){.spotify-account-grid{grid-template-columns:1fr;}}
         </style>
 

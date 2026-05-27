@@ -61,12 +61,13 @@ function dttd_spotify_save_profile_token($slot, array $token) {
         $fields[] = 'refresh_token = ?';
         $values[] = $token['refresh_token'];
     }
+    // Keep the friendly label chosen in Settings. Only update the connected Spotify
+    // login/email field from OAuth so the account card clearly shows what is bound.
     if ($email !== '') {
         $fields[] = 'account_email = ?';
         $values[] = $email;
-    }
-    if ($display !== '') {
-        $fields[] = 'label = ?';
+    } elseif ($display !== '') {
+        $fields[] = 'account_email = ?';
         $values[] = $display;
     }
 
@@ -108,6 +109,7 @@ try {
             dttd_spotify_save_user_token($token);
         }
         $_SESSION['spotify_flash'] = 'Spotify Account ' . $profileSlot . ' connected: ' . $accountLabel . '.';
+        $_SESSION['settings_flash'] = 'Spotify Account ' . $profileSlot . ' connected: ' . $accountLabel . '.';
     } else {
         dttd_spotify_save_user_token($token);
         $_SESSION['spotify_flash'] = 'Spotify account connected. You can now test Add to Spotify Queue.';
@@ -116,5 +118,9 @@ try {
     $_SESSION['spotify_flash'] = 'Spotify connection failed: ' . $e->getMessage();
 }
 
-header('Location: index.php');
+if (!empty($profileSlot) && $profileSlot >= 1 && $profileSlot <= 3) {
+    header('Location: ../settings.php?spotify_account=' . (int)$profileSlot . '&connected=1#spotify-accounts');
+} else {
+    header('Location: index.php');
+}
 exit;
