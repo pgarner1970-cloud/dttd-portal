@@ -33,7 +33,7 @@ document.head.appendChild(overviewStyle);
     toast: $('#mixerToast'),
     deviceA: $('#deviceA'), deviceB: $('#deviceB'),
     deckADevice: $('#deckADevice'), deckBDevice: $('#deckBDevice'),
-    deckAState: $('#deckAState'), deckBState: $('#deckBState'), deckAVu: $('#deckAVu'), deckBVu: $('#deckBVu'),
+    deckAState: $('#deckAState'), deckBState: $('#deckBState'), deckAVu: $('#deckAVu'), deckBVu: $('#deckBVu'), mixerModePill: $('#mixerModePill'), deckAAccount: $('#deckAAccount'), deckBAccount: $('#deckBAccount'), deckAWarning: $('#deckAWarning'), deckBWarning: $('#deckBWarning'),
     loadedA: $('#loadedA'), loadedB: $('#loadedB'), deckANote: $('#deckANote'), deckBNote: $('#deckBNote'),
     spotifyStatus: $('#spotifyStatus'),
     search: $('#spotifySearch'), searchResults: $('#searchResults'), searchStatus: $('#searchStatus'),
@@ -196,8 +196,31 @@ document.head.appendChild(overviewStyle);
     const missingB = !!state?.device_b && !deviceIsOnline(state.device_b);
     if(els.deckADevice) els.deckADevice.textContent = missingA ? 'Assigned device offline' : deviceName(state.device_a);
     if(els.deckBDevice) els.deckBDevice.textContent = missingB ? 'Assigned device offline' : deviceName(state.device_b);
-    setDeviceAlert('a', missingA);
-    setDeviceAlert('b', missingB);
+    renderAccountStatus();
+    setDeviceAlert('a', missingA || accountHasWarning('a'));
+    setDeviceAlert('b', missingB || accountHasWarning('b'));
+  }
+  function accountInfo(deck){ return deck === 'b' ? state?.accounts?.deck_b : state?.accounts?.deck_a; }
+  function accountHasWarning(deck){ const a = accountInfo(deck); return !!(a && a.warning); }
+  function setWarn(el, msg){ if(!el) return; el.textContent = msg || ''; el.classList.toggle('visible', !!msg); }
+  function setAccount(el, info, deck){
+    if(!el) return;
+    const label = info?.display || 'Primary / legacy Spotify account';
+    el.textContent = 'Spotify account: ' + label;
+    el.classList.toggle('warning', !!(info && info.warning));
+  }
+  function renderAccountStatus(){
+    setAccount(els.deckAAccount, state?.accounts?.deck_a, 'a');
+    setAccount(els.deckBAccount, state?.accounts?.deck_b, 'b');
+    setWarn(els.deckAWarning, state?.accounts?.deck_a?.warning || '');
+    setWarn(els.deckBWarning, state?.accounts?.deck_b?.warning || '');
+    if(els.mixerModePill){
+      const duo = !!state?.duo_mode;
+      const auto = !!state?.auto_start_opposite;
+      els.mixerModePill.textContent = duo ? ('Duo mode' + (auto ? ' · Auto-start on' : ' · Manual handover')) : 'Standard mode';
+      els.mixerModePill.classList.toggle('duo', duo);
+      els.mixerModePill.classList.toggle('warn', !!(state?.accounts?.deck_a?.warning || state?.accounts?.deck_b?.warning));
+    }
   }
   function setDeckState(el, playing, loaded){
     if(!el) return;
@@ -255,12 +278,12 @@ document.head.appendChild(overviewStyle);
       const otherDeck = deck === 'a' ? 'b' : 'a';
       const otherDevice = otherDeck === 'a' ? state?.device_a : state?.device_b;
       document.querySelectorAll(`[data-deck-action="play_toggle"][data-deck="${deck}"]`).forEach(b => {
-        b.disabled = !loaded || !device;
+        b.disabled = !loaded || !device || accountHasWarning(deck);
         b.classList.toggle('transport-playing', !!playing);
         b.classList.toggle('transport-ready', !!loaded && !playing);
-        b.title = playing ? 'Pause Player ' + deck.toUpperCase() : 'Play / resume Player ' + deck.toUpperCase();
+        b.title = accountHasWarning(deck) ? (accountInfo(deck)?.warning || 'Spotify account warning') : (playing ? 'Pause Player ' + deck.toUpperCase() : 'Play / resume Player ' + deck.toUpperCase());
       });
-      ["seek_start","seek_back","seek_forward","seek_end"].forEach(act => document.querySelectorAll(`[data-deck-action="${act}"][data-deck="${deck}"]`).forEach(b => b.disabled = !loaded || !device));
+      ["seek_start","seek_back","seek_forward","seek_end"].forEach(act => document.querySelectorAll(`[data-deck-action="${act}"][data-deck="${deck}"]`).forEach(b => b.disabled = !loaded || !device || accountHasWarning(deck)));
       document.querySelectorAll(`[data-deck-action="clear_loaded"][data-deck="${deck}"]`).forEach(b => b.disabled = playing || !loaded);
       document.querySelectorAll(`[data-deck-action="emergency_swap"][data-deck="${deck}"]`).forEach(b => {
         b.disabled = !loaded || !device || !otherDevice;

@@ -792,6 +792,11 @@ function mx_state() {
         'duo_mode' => !mx_decks_share_spotify_profile(),
         'auto_start_opposite' => mx_auto_start_opposite_enabled(),
         'server_time' => date('H:i:s'),
+        'accounts' => [
+            'deck_a' => function_exists('dttd_spotify_profile_summary_for_deck') ? dttd_spotify_profile_summary_for_deck('a') : null,
+            'deck_b' => function_exists('dttd_spotify_profile_summary_for_deck') ? dttd_spotify_profile_summary_for_deck('b') : null,
+            'public_search' => function_exists('dttd_spotify_profile_summary_for_public_search') ? dttd_spotify_profile_summary_for_public_search() : null,
+        ],
         'devices' => array_values(array_map(function($d){ return [
             'id' => (string)($d['id'] ?? ''), 'name' => (string)($d['name'] ?? 'Spotify device'), 'type' => (string)($d['type'] ?? ''), 'is_active' => !empty($d['is_active']), 'deck_account' => (string)($d['deck_account'] ?? '')
         ]; }, $devices)),

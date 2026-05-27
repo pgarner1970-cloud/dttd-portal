@@ -793,3 +793,68 @@ function dttd_spotify_public_search_tracks_cached($query, $limit = 8) {
     return ['tracks' => array_slice($cache, 0, $limit), 'meta' => $meta];
 }
 
+
+/**
+ * Compact Spotify profile summary for mixer UI/status validation.
+ */
+function dttd_spotify_profile_summary_for_deck($deck) {
+    $deck = strtolower((string)$deck) === 'b' ? 'b' : 'a';
+    $profile = function_exists('dttd_spotify_profile_by_deck') ? dttd_spotify_profile_by_deck($deck) : null;
+    if (!$profile) {
+        return [
+            'assigned' => false,
+            'connected' => dttd_spotify_queue_connected(),
+            'id' => 0,
+            'slot' => 0,
+            'label' => 'Primary / legacy Spotify account',
+            'display' => 'Primary / legacy Spotify account',
+            'email' => '',
+            'warning' => dttd_spotify_queue_connected() ? '' : 'No connected Spotify account assigned to Deck ' . strtoupper($deck),
+        ];
+    }
+    $label = trim((string)($profile['label'] ?? ''));
+    $email = trim((string)($profile['account_email'] ?? ''));
+    $slot = isset($profile['profile_slot']) ? (int)$profile['profile_slot'] : 0;
+    $connected = trim((string)($profile['refresh_token'] ?? '')) !== '';
+    $display = $label !== '' ? $label : ('Account ' . ($slot ?: (int)($profile['id'] ?? 0)));
+    if ($email !== '') $display .= ' — ' . $email;
+    return [
+        'assigned' => true,
+        'connected' => $connected,
+        'id' => (int)($profile['id'] ?? 0),
+        'slot' => $slot,
+        'label' => $label,
+        'display' => $display,
+        'email' => $email,
+        'warning' => $connected ? '' : 'Assigned Spotify account is not connected for Deck ' . strtoupper($deck),
+    ];
+}
+
+function dttd_spotify_profile_summary_for_public_search() {
+    $profile = null;
+    try {
+        $cols = [];
+        $stmtCols = db()->query('SHOW COLUMNS FROM spotify_profiles');
+        foreach ($stmtCols->fetchAll() as $row) if (!empty($row['Field'])) $cols[$row['Field']] = true;
+        if (!empty($cols['use_for_public_search'])) {
+            $order = !empty($cols['profile_slot']) ? 'profile_slot ASC, id ASC' : 'id ASC';
+            $stmt = db()->query("SELECT * FROM spotify_profiles WHERE enabled = 1 AND use_for_public_search = 1 ORDER BY $order LIMIT 1");
+            $profile = $stmt->fetch() ?: null;
+        }
+    } catch (Throwable $e) { $profile = null; }
+    if (!$profile) return ['assigned' => false, 'connected' => false, 'display' => 'Not assigned'];
+    $label = trim((string)($profile['label'] ?? ''));
+    $email = trim((string)($profile['account_email'] ?? ''));
+    $slot = isset($profile['profile_slot']) ? (int)$profile['profile_slot'] : 0;
+    $display = $label !== '' ? $label : ('Account ' . ($slot ?: (int)($profile['id'] ?? 0)));
+    if ($email !== '') $display .= ' — ' . $email;
+    return [
+        'assigned' => true,
+        'connected' => trim((string)($profile['refresh_token'] ?? '')) !== '',
+        'id' => (int)($profile['id'] ?? 0),
+        'slot' => $slot,
+        'label' => $label,
+        'display' => $display,
+        'email' => $email,
+    ];
+}
