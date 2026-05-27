@@ -23,6 +23,7 @@ if (!in_array($spotify_queue_mode, ['standard', 'mixer'], true)) {
 }
 
 $settings_flash = $_SESSION['settings_flash'] ?? '';
+$settings_debug_error = '';
 unset($_SESSION['settings_flash']);
 
 function dttd_settings_table_has_column($table, $column) {
@@ -52,32 +53,53 @@ function dttd_default_spotify_profiles() {
     ];
 }
 
+function dttd_spotify_profile_columns_for_settings() {
+    return [
+        'profile_slot','label','account_email','role','enabled','use_for_deck_a','use_for_deck_b','use_for_public_search',
+        'refresh_token','granted_scopes','spotify_user_id','spotify_display_name','access_token','expires_at'
+    ];
+}
+
+function dttd_profile_row_value(array $row, $key, $default = '') {
+    return array_key_exists($key, $row) ? $row[$key] : $default;
+}
+
 function dttd_load_spotify_profiles() {
     $profiles = dttd_default_spotify_profiles();
 
     try {
-        $order = dttd_settings_table_has_column('spotify_profiles', 'profile_slot') ? 'COALESCE(profile_slot, id), id' : 'id';
-        $stmt = db()->query("SELECT * FROM spotify_profiles ORDER BY " . $order . " ASC LIMIT 3");
-        $rows = $stmt->fetchAll();
-        $slot = 1;
+        $rows = db()->query('SELECT * FROM spotify_profiles ORDER BY ' . (dttd_settings_table_has_column('spotify_profiles', 'profile_slot') ? 'COALESCE(profile_slot, id), id' : 'id') . ' ASC')->fetchAll();
+        $fallbackSlot = 1;
         foreach ($rows as $row) {
-            if ($slot > 3) {
-                break;
+            $slot = 0;
+            if (dttd_settings_table_has_column('spotify_profiles', 'profile_slot') && !empty($row['profile_slot'])) {
+                $slot = (int)$row['profile_slot'];
             }
+            if ($slot < 1 || $slot > 3) {
+                while ($fallbackSlot <= 3 && !empty($profiles[$fallbackSlot]['id'])) {
+                    $fallbackSlot++;
+                }
+                $slot = $fallbackSlot;
+                $fallbackSlot++;
+            }
+            if ($slot < 1 || $slot > 3) {
+                continue;
+            }
+            $connectedEmail = trim((string)dttd_profile_row_value($row, 'account_email', ''));
+            $displayName = trim((string)dttd_profile_row_value($row, 'spotify_display_name', ''));
             $profiles[$slot] = array_merge($profiles[$slot], [
-                'id' => $row['id'] ?? null,
-                'label' => $row['label'] ?? $profiles[$slot]['label'],
-                'account_email' => $row['account_email'] ?? '',
-                'use_for_deck_a' => (int)($row['use_for_deck_a'] ?? 0),
-                'use_for_deck_b' => (int)($row['use_for_deck_b'] ?? 0),
-                'use_for_public_search' => (int)($row['use_for_public_search'] ?? 0),
-                'enabled' => (int)($row['enabled'] ?? 1),
-                'refresh_token' => $row['refresh_token'] ?? '',
-                'granted_scopes' => $row['granted_scopes'] ?? '',
-                'connected_email' => $row['account_email'] ?? '',
-                'profile_slot' => $row['profile_slot'] ?? $slot,
+                'id' => dttd_profile_row_value($row, 'id', null),
+                'label' => dttd_profile_row_value($row, 'label', $profiles[$slot]['label']),
+                'account_email' => $connectedEmail,
+                'use_for_deck_a' => (int)dttd_profile_row_value($row, 'use_for_deck_a', 0),
+                'use_for_deck_b' => (int)dttd_profile_row_value($row, 'use_for_deck_b', 0),
+                'use_for_public_search' => (int)dttd_profile_row_value($row, 'use_for_public_search', 0),
+                'enabled' => (int)dttd_profile_row_value($row, 'enabled', 1),
+                'refresh_token' => dttd_profile_row_value($row, 'refresh_token', ''),
+                'granted_scopes' => dttd_profile_row_value($row, 'granted_scopes', ''),
+                'connected_email' => $connectedEmail !== '' ? $connectedEmail : $displayName,
+                'profile_slot' => $slot,
             ]);
-            $slot++;
         }
     } catch (Throwable $e) {
         // Table may not exist yet. The page should still render so SQL can be applied separately.
@@ -86,17 +108,38 @@ function dttd_load_spotify_profiles() {
     return $profiles;
 }
 
-function dttd_save_spotify_profiles(array $postedProfiles) {
-    try {
-        $order = dttd_settings_table_has_column('spotify_profiles', 'profile_slot') ? 'COALESCE(profile_slot, id), id' : 'id';
-        $existing = db()->query("SELECT id FROM spotify_profiles ORDER BY " . $order . " ASC LIMIT 3")->fetchAll();
-        $existingIds = [];
-        foreach ($existing as $row) {
-            if (!empty($row['id'])) {
-                $existingIds[] = (int)$row['id'];
-            }
-        }
+function dttd_find_spotify_profile_id_for_slot($slot) {
+    $slot = (int)$slot;
+    if ($slot < 1 || $slot > 3) {
+        return null;
+    }
 
+    if (dttd_settings_table_has_column('spotify_profiles', 'profile_slot')) {
+        $stmt = db()->prepare('SELECT id FROM spotify_profiles WHERE profile_slot = ? LIMIT 1');
+        $stmt->execute([$slot]);
+        $row = $stmt->fetch();
+        if (!empty($row['id'])) {
+            return (int)$row['id'];
+        }
+    }
+
+    $rows = db()->query('SELECT id FROM spotify_profiles ORDER BY id ASC LIMIT 3')->fetchAll();
+    if (!empty($rows[$slot - 1]['id'])) {
+        $id = (int)$rows[$slot - 1]['id'];
+        if (dttd_settings_table_has_column('spotify_profiles', 'profile_slot')) {
+            $stmt = db()->prepare('UPDATE spotify_profiles SET profile_slot = ? WHERE id = ?');
+            $stmt->execute([$slot, $id]);
+        }
+        return $id;
+    }
+
+    return null;
+}
+
+function dttd_save_spotify_profiles(array $postedProfiles, &$debugError = null) {
+    try {
+        // Ensure Account 1/2/3 role assignments are saved by slot, not by fragile row order.
+        // This lets the checkboxes work even after OAuth has inserted/updated rows.
         for ($slot = 1; $slot <= 3; $slot++) {
             $posted = $postedProfiles[$slot] ?? [];
             $label = trim((string)($posted['label'] ?? ('Account ' . $slot)));
@@ -109,37 +152,59 @@ function dttd_save_spotify_profiles(array $postedProfiles) {
             if ($slot === 1) {
                 $enabled = 1;
             }
-
             if ($label === '') {
                 $label = 'Account ' . $slot;
             }
 
-            $id = $existingIds[$slot - 1] ?? null;
+            $role = ($publicSearch && !$deckA && !$deckB) ? 'public_search' : 'playback';
+            $data = [
+                'profile_slot' => $slot,
+                'label' => $label,
+                'account_email' => $email,
+                'role' => $role,
+                'enabled' => $enabled,
+                'use_for_deck_a' => $deckA,
+                'use_for_deck_b' => $deckB,
+                'use_for_public_search' => $publicSearch,
+            ];
 
+            $id = dttd_find_spotify_profile_id_for_slot($slot);
             if ($id) {
-                $sets = ['label = ?', 'account_email = ?', 'enabled = ?', 'use_for_deck_a = ?', 'use_for_deck_b = ?', 'use_for_public_search = ?'];
-                $values = [$label, $email, $enabled, $deckA, $deckB, $publicSearch];
-                if (dttd_settings_table_has_column('spotify_profiles', 'profile_slot')) {
-                    $sets[] = 'profile_slot = ?';
-                    $values[] = $slot;
+                $sets = [];
+                $values = [];
+                foreach ($data as $column => $value) {
+                    if (dttd_settings_table_has_column('spotify_profiles', $column)) {
+                        $sets[] = '`' . $column . '` = ?';
+                        $values[] = $value;
+                    }
                 }
-                $values[] = $id;
-                $stmt = db()->prepare('UPDATE spotify_profiles SET ' . implode(', ', $sets) . ' WHERE id = ?');
-                $stmt->execute($values);
+                if ($sets) {
+                    $values[] = $id;
+                    $stmt = db()->prepare('UPDATE spotify_profiles SET ' . implode(', ', $sets) . ' WHERE id = ?');
+                    $stmt->execute($values);
+                }
             } else {
-                $columns = ['label', 'account_email', 'role', 'enabled', 'use_for_deck_a', 'use_for_deck_b', 'use_for_public_search'];
-                $values = [$label, $email, ($publicSearch && !$deckA && !$deckB ? 'public_search' : 'playback'), $enabled, $deckA, $deckB, $publicSearch];
-                if (dttd_settings_table_has_column('spotify_profiles', 'profile_slot')) {
-                    $columns[] = 'profile_slot';
-                    $values[] = $slot;
+                $cols = [];
+                $marks = [];
+                $values = [];
+                foreach ($data as $column => $value) {
+                    if (dttd_settings_table_has_column('spotify_profiles', $column)) {
+                        $cols[] = '`' . $column . '`';
+                        $marks[] = '?';
+                        $values[] = $value;
+                    }
                 }
-                $marks = implode(', ', array_fill(0, count($columns), '?'));
-                $stmt = db()->prepare('INSERT INTO spotify_profiles (' . implode(', ', $columns) . ') VALUES (' . $marks . ')');
+                if (!$cols) {
+                    throw new RuntimeException('spotify_profiles has no writable profile columns.');
+                }
+                $stmt = db()->prepare('INSERT INTO spotify_profiles (' . implode(', ', $cols) . ') VALUES (' . implode(', ', $marks) . ')');
                 $stmt->execute($values);
             }
         }
         return true;
     } catch (Throwable $e) {
+        $debugError = $e->getMessage();
+        error_log('Spotify profile settings save failed: ' . $e->getMessage());
         return false;
     }
 }
@@ -178,7 +243,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (!empty($_POST['spotify_profiles']) && is_array($_POST['spotify_profiles'])) {
-            $ok = dttd_save_spotify_profiles($_POST['spotify_profiles']) && $ok;
+            $profileSaveError = '';
+            $ok = dttd_save_spotify_profiles($_POST['spotify_profiles'], $profileSaveError) && $ok;
+            if ($profileSaveError !== '') {
+                $settings_debug_error = $profileSaveError;
+            }
         }
 
         if ($ok) {
@@ -193,7 +262,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $spotify_profiles = dttd_load_spotify_profiles();
             $saved = true;
         } else {
-            $error = 'Settings could not be saved. Please check the app_settings and spotify_profiles tables exist.';
+            $error = 'Settings could not be saved. Please check the app_settings and spotify_profiles tables exist.' . ($settings_debug_error !== '' ? ' Detail: ' . $settings_debug_error : '');
         }
     }
 }
@@ -350,11 +419,11 @@ admin_header('Settings - DJ Portal');
                     <?php if ($slot === 3): ?><small>Optional</small><?php endif; ?>
                   </div>
 
-                  <label>Display label</label>
+                  <label>Account label</label>
                   <input class="spotify-settings-input" type="text" name="spotify_profiles[<?= (int)$slot ?>][label]" value="<?= h($profile['label']) ?>" placeholder="Account <?= (int)$slot ?>">
 
-                  <label>Spotify email / note</label>
-                  <input class="spotify-settings-input" type="text" name="spotify_profiles[<?= (int)$slot ?>][account_email]" value="<?= h($profile['account_email']) ?>" placeholder="name@example.com">
+                  <label>Connected Spotify login / note</label>
+                  <input class="spotify-settings-input" type="text" name="spotify_profiles[<?= (int)$slot ?>][account_email]" value="<?= h($profile['account_email']) ?>" placeholder="Auto-filled after Connect, or add a reminder note">
 
                   <div class="spotify-account-connect-row">
                     <?php $profileConnected = trim((string)($profile['refresh_token'] ?? '')) !== ''; ?>
