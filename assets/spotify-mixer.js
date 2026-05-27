@@ -46,6 +46,32 @@ document.head.appendChild(overviewStyle);
 
   function esc(s){ return String(s ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c])); }
   function duration(ms){ if(!ms && ms !== 0) return ''; const sec=Math.max(0, Math.round(Number(ms)/1000)); return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'); }
+  function sourceLabel(track){
+    const src = String(track?.loaded_origin || track?.source || '').toLowerCase();
+    if(src === 'dj_playlist') return 'DJ Playlist';
+    if(src === 'public_request' || src === 'request') return 'Public Request';
+    if(src === 'dj_crate' || src === 'crate') return 'DJ Crate';
+    if(src === 'history') return 'History';
+    if(src === 'search' || src === 'track') return 'Search';
+    return src ? src.replace(/_/g, ' ') : 'Manual';
+  }
+  function playedThresholdLabel(track){
+    const ms = Number(track?.duration_ms || 0);
+    if(!ms) return '60% or 90s';
+    const threshold = Math.min(ms * 0.6, 90000);
+    return duration(threshold) + ' / ' + duration(ms);
+  }
+  function progressStatus(track, deck){
+    if(!track || !track.id) return {label:'Empty', cls:'empty', detail:''};
+    if(track.played_qualified) return {label:'Played', cls:'played', detail:'Played threshold reached'};
+    const playing = deck ? deckIsPlaying(deck) : false;
+    if(playing) return {label:'Playing', cls:'playing', detail:'Will count as played at ' + playedThresholdLabel(track)};
+    if(track.played_on_deck) return {label:'Paused / in progress', cls:'progress', detail:'Not marked played yet'};
+    return {label:'Loaded', cls:'loaded', detail:'Not marked played until ' + playedThresholdLabel(track)};
+  }
+  function workflowBadge(label, cls='info', title=''){
+    return `<span class="workflow-badge ${esc(cls)}"${title ? ` title="${esc(title)}"` : ''}>${esc(label)}</span>`;
+  }
   function deckProgress(track, deck){
     const deviceId = state?.['device_' + deck] || '';
     const active = state?.active_device_id === deviceId && !!state?.is_playing;
@@ -235,7 +261,8 @@ document.head.appendChild(overviewStyle);
     const prog = deckProgress(track, deck);
     const remainingLabel = prog.durationMs ? (prog.sameTrack ? `-${duration(prog.remainingMs)}` : duration(prog.durationMs)) : '';
     const elapsedLabel = prog.sameTrack ? duration(prog.progressMs) : '0:00';
-    return `<div class="loaded-track"><img src="${esc(image(track.image))}" alt=""><div><div class="track-title">${esc(track.title)}</div><div class="track-artist">${esc(track.artist)}</div></div></div>
+    const st = progressStatus(track, deck);
+    return `<div class="loaded-track"><img src="${esc(image(track.image))}" alt=""><div><div class="track-title">${esc(track.title)}</div><div class="track-artist">${esc(track.artist)}</div><div class="workflow-row">${workflowBadge(st.label, st.cls, st.detail)}${workflowBadge('From ' + sourceLabel(track), 'source')}</div></div></div>
       <div class="track-progress-meta"><span>${prog.sameTrack ? elapsedLabel : 'Ready'}</span><span>${remainingLabel}</span></div>
       <div class="now-bar ${prog.sameTrack ? 'active' : ''}"><span style="width:${prog.sameTrack ? prog.pct : 0}%"></span></div>
       ${prog.sameTrack ? `<div class="track-time-left">${duration(prog.remainingMs)} remaining</div>` : (prog.durationMs ? `<div class="track-time-left muted">Track length ${duration(prog.durationMs)}</div>` : '')}`;
@@ -285,6 +312,14 @@ document.head.appendChild(overviewStyle);
       });
       ["seek_start","seek_back","seek_forward","seek_end"].forEach(act => document.querySelectorAll(`[data-deck-action="${act}"][data-deck="${deck}"]`).forEach(b => b.disabled = !loaded || !device || accountHasWarning(deck)));
       document.querySelectorAll(`[data-deck-action="clear_loaded"][data-deck="${deck}"]`).forEach(b => b.disabled = playing || !loaded);
+      document.querySelectorAll(`[data-deck-action="return_loaded"][data-deck="${deck}"]`).forEach(b => {
+        b.disabled = playing || !loaded;
+        b.title = 'Return unplayed Player ' + deck.toUpperCase() + ' track to the appropriate queue';
+      });
+      document.querySelectorAll(`[data-deck-action="mark_loaded_played"][data-deck="${deck}"]`).forEach(b => {
+        b.disabled = playing || !loaded;
+        b.title = 'Manually mark Player ' + deck.toUpperCase() + ' as played and unload it';
+      });
       document.querySelectorAll(`[data-deck-action="emergency_swap"][data-deck="${deck}"]`).forEach(b => {
         b.disabled = !loaded || !device || !otherDevice;
         b.title = 'Emergency transfer Player ' + deck.toUpperCase() + ' to Player ' + otherDeck.toUpperCase();
@@ -322,6 +357,7 @@ document.head.appendChild(overviewStyle);
         <div>
           <strong>${esc(t.title)}</strong><br>
           <span class="mini muted">${esc(t.artist)}${duration(t.duration_ms) ? ' • ' + duration(t.duration_ms) : ''}${t.source === 'request' ? ' • public request' : ''}</span>
+          <div class="workflow-row">${workflowBadge('DJ Playlist', 'queued')}${t.source === 'request' ? workflowBadge('Request', 'source') : workflowBadge(sourceLabel(t), 'source')}</div>
           ${t.source === 'request' ? `<div class="playlist-note mini" title="${esc((t.guest_name || 'Guest') + (t.message ? ': ' + t.message : ''))}"><strong>${esc(t.guest_name || 'Guest')}</strong>${t.message ? ': ' + esc(t.message) : ''}</div>` : ''}
         </div>
         <div class="row-actions">
@@ -344,7 +380,7 @@ document.head.appendChild(overviewStyle);
           <strong>${esc(r.title)}</strong> <span class="muted">— ${esc(r.artist)}</span>
           <div class="request-detail mini"><span class="request-time">${esc((r.created_at || '').slice(11,16))}</span><span><strong>${esc(r.guest_name || 'Guest')}</strong></span></div>
           ${r.message ? `<div class="request-message mini" title="${esc(r.message)}">${esc(r.message)}</div>` : '<div class="request-message mini muted">No dedication/message</div>'}
-          <div class="request-source">Public request • ${esc(r.status || 'pending')}</div>
+          <div class="request-source">${workflowBadge('Waiting review', 'waiting')}${r.queue_status ? workflowBadge(r.queue_status.replace(/_/g, ' '), 'source') : ''}</div>
         </div>
         <div class="row-actions quick-actions">
           <button class="mixer-btn green wide" data-select-request='${esc(JSON.stringify(r))}'>Choose action</button>

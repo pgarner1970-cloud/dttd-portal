@@ -892,6 +892,19 @@ function mx_remove_track_from_playlist($playlist, $track) {
     }));
 }
 
+
+function mx_unload_loaded_as_played($deck) {
+    $deck = $deck === 'b' ? 'b' : 'a';
+    $loaded = mx_json('spotify_mixer_loaded_' . $deck, []);
+    if (!is_array($loaded) || empty($loaded['id'])) throw new RuntimeException('No track loaded on Player ' . strtoupper($deck) . '.');
+    $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
+    if (mx_device_playing($device, mx_playback($deck))) throw new RuntimeException('Pause Player ' . strtoupper($deck) . ' before manually marking it played.');
+    $loaded['played_qualified'] = true;
+    if (!empty($loaded['request_id'])) mx_mark_request_played((int)$loaded['request_id']);
+    mx_add_history($deck, $loaded);
+    mx_set('spotify_mixer_loaded_' . $deck, '');
+}
+
 function mx_json_out($data) { echo json_encode($data); exit; }
 
 try {
@@ -1078,6 +1091,23 @@ try {
         mx_save_playlist($playlist);
         mx_set('spotify_mixer_loaded_' . $deck, '');
         mx_json_out(['ok' => true, 'state' => mx_state()]);
+    }
+
+
+    if ($action === 'return_loaded') {
+        $deck = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
+        $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
+        if (mx_device_playing($device, mx_playback($deck))) throw new RuntimeException('Pause Player ' . strtoupper($deck) . ' before returning it.');
+        mx_return_loaded_if_unplayed($deck, $playlist, null);
+        mx_save_playlist($playlist);
+        mx_set('spotify_mixer_loaded_' . $deck, '');
+        mx_json_out(['ok' => true, 'message' => 'Unplayed track returned safely.', 'state' => mx_state()]);
+    }
+
+    if ($action === 'mark_loaded_played') {
+        $deck = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
+        mx_unload_loaded_as_played($deck);
+        mx_json_out(['ok' => true, 'message' => 'Track marked as played and unloaded.', 'state' => mx_state()]);
     }
 
     if ($action === 'play_toggle') {

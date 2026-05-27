@@ -15,6 +15,9 @@ admin_header('Spotify Mixer - DJ Portal');
 
 .source-tabs{display:flex;gap:8px;align-items:center;margin-bottom:10px}.source-tab{border:1px solid rgba(96,145,205,.35);background:rgba(16,28,44,.92);color:#cfe4ff;border-radius:11px;padding:9px 11px;font-weight:1000;cursor:pointer}.source-tab.active{border-color:#3498ff;color:#fff;background:rgba(52,152,255,.17);box-shadow:0 0 18px rgba(52,152,255,.16)}.source-panel{display:none}.source-panel.active{display:block}.spotify-playlist-row,.history-row{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:9px;border-radius:13px;border:1px solid rgba(96,145,205,.2);background:rgba(255,255,255,.027);margin-top:7px}.spotify-playlist-row img,.history-row img{width:44px;height:44px;border-radius:9px;object-fit:cover}.source-list{margin-top:8px}.history-meta{color:#9fc2e9;font-size:12px;margin-top:3px;font-weight:800}.source-tools{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px}.source-tools .mixer-btn{min-height:36px;padding:7px 10px;font-size:12px}.crate-create-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin:8px 0 10px}.crate-icon{width:44px;height:44px;border-radius:9px;display:grid;place-items:center;background:rgba(52,152,255,.15);border:1px solid rgba(52,152,255,.28);font-size:21px;color:#bfe1ff}.active-crate{border-color:rgba(255,193,7,.55)!important;box-shadow:0 0 16px rgba(255,193,7,.12)}@media(max-width:700px){.source-tabs{flex-wrap:wrap}.spotify-playlist-row,.history-row{grid-template-columns:44px 1fr}.spotify-playlist-row .row-actions,.history-row .row-actions{grid-column:1/-1;justify-content:flex-start}}
 
+
+.workflow-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;align-items:center}.workflow-badge{display:inline-flex;align-items:center;border-radius:999px;padding:3px 7px;font-size:11px;font-weight:1000;line-height:1;border:1px solid rgba(150,170,200,.28);background:rgba(150,170,200,.08);color:#dbeafe;text-transform:uppercase;letter-spacing:.025em}.workflow-badge.loaded{border-color:rgba(52,152,255,.45);background:rgba(52,152,255,.11);color:#9bd3ff}.workflow-badge.playing{border-color:rgba(34,197,94,.55);background:rgba(34,197,94,.13);color:#89ffb8}.workflow-badge.played{border-color:rgba(168,85,247,.55);background:rgba(168,85,247,.13);color:#d9b5ff}.workflow-badge.progress{border-color:rgba(245,158,11,.55);background:rgba(245,158,11,.12);color:#ffd37a}.workflow-badge.queued{border-color:rgba(34,197,94,.42);background:rgba(34,197,94,.09);color:#afffce}.workflow-badge.waiting{border-color:rgba(255,177,26,.5);background:rgba(255,177,26,.11);color:#ffd270}.workflow-badge.source{border-color:rgba(96,145,205,.32);background:rgba(96,145,205,.08);color:#b8d8ff}.transport-manual{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.transport-manual .mixer-btn{min-height:44px;font-size:12px}.mixer-btn.purple{border-color:#a855f7;color:#d9b5ff;background:rgba(168,85,247,.12)}@media(max-width:700px){.transport-manual{grid-template-columns:1fr}}
+
 </style>
 <main class="spotify-mixer-app" data-api="<?= h(admin_url('spotify/mixer-api.php')) ?>">
   <div class="mixer-toast" id="mixerToast"></div>
@@ -57,6 +60,10 @@ admin_header('Spotify Mixer - DJ Portal');
           <div class="transport-under">
             <button class="mixer-btn red transport-eject" data-deck-action="clear_loaded" data-deck="a">⏏ Eject A</button>
             <button class="mixer-btn orange transport-swap" data-deck-action="emergency_swap" data-deck="a">⇄ Swap to B<small>Emergency</small></button>
+          </div>
+          <div class="transport-manual">
+            <button class="mixer-btn blue" data-deck-action="return_loaded" data-deck="a">↩ Return if unplayed</button>
+            <button class="mixer-btn purple" data-deck-action="mark_loaded_played" data-deck="a">✓ Mark played</button>
           </div>
         </div>
         <div class="loaded-request-note-card" id="deckANote"></div>
@@ -123,6 +130,10 @@ admin_header('Spotify Mixer - DJ Portal');
             <button class="mixer-btn red transport-eject" data-deck-action="clear_loaded" data-deck="b">⏏ Eject B</button>
             <button class="mixer-btn orange transport-swap" data-deck-action="emergency_swap" data-deck="b">⇄ Swap to A<small>Emergency</small></button>
           </div>
+          <div class="transport-manual">
+            <button class="mixer-btn blue" data-deck-action="return_loaded" data-deck="b">↩ Return if unplayed</button>
+            <button class="mixer-btn purple" data-deck-action="mark_loaded_played" data-deck="b">✓ Mark played</button>
+          </div>
         </div>
         <div class="loaded-request-note-card" id="deckBNote"></div>
       </div>
@@ -130,5 +141,5 @@ admin_header('Spotify Mixer - DJ Portal');
   </div>
   <div class="mixer-footer"><div><strong>Spotify status:</strong> <span id="spotifyStatus">Checking…</span></div><div class="mini muted">Device status is polled; Spotify can lag briefly, so active players remain protected.</div></div>
 </main>
-<script src="<?= h(admin_url('assets/spotify-mixer.js')) ?>?v=20260527-mixer-polish-v1"></script>
+<script src="<?= h(admin_url('assets/spotify-mixer.js')) ?>?v=20260527-queue-workflow-v1"></script>
 <?php admin_footer(); ?>
