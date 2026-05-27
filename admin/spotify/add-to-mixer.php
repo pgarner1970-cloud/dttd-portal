@@ -48,6 +48,92 @@ function mx_has_column_local($table, $column) {
     }
 }
 
+function mx_new_request_group_id_local() {
+    try {
+        return 'grp_' . bin2hex(random_bytes(8));
+    } catch (Throwable $e) {
+        return 'grp_' . uniqid('', true);
+    }
+}
+
+function mx_current_event_id_local() {
+    try {
+        if (function_exists('dttd_get_calculated_current_event')) {
+            $event = dttd_get_calculated_current_event();
+            if ($event && !empty($event['id'])) {
+                return (int)$event['id'];
+            }
+        }
+    } catch (Throwable $e) {
+        return 0;
+    }
+    return 0;
+}
+
+function mx_resolve_request_group_id_local($submittedGroupId) {
+    $submittedGroupId = trim((string)$submittedGroupId);
+    if ($submittedGroupId === '' || !mx_has_column_local('song_requests', 'request_group_id')) {
+        return $submittedGroupId;
+    }
+
+    if (strpos($submittedGroupId, 'gid:') === 0) {
+        return substr($submittedGroupId, 4);
+    }
+
+    // Older queue cards may have posted the fallback display key, e.g.
+    // "open|song title|artist", when the DB row had no request_group_id yet.
+    // Convert that fallback key into a real group id so Add to Mixer can work.
+    if (strpos($submittedGroupId, 'open|') !== 0) {
+        return $submittedGroupId;
+    }
+
+    $parts = explode('|', $submittedGroupId, 3);
+    if (count($parts) !== 3) {
+        return $submittedGroupId;
+    }
+
+    $eventId = mx_current_event_id_local();
+    if ($eventId <= 0) {
+        return $submittedGroupId;
+    }
+
+    $baseKey = $parts[1] . '|' . $parts[2];
+
+    try {
+        $existing = db()->prepare("
+            SELECT request_group_id
+            FROM song_requests
+            WHERE event_id = ?
+            AND request_group_id IS NOT NULL
+            AND request_group_id <> ''
+            AND status IN ('pending','maybe','duplicate')
+            AND CONCAT(LOWER(TRIM(song_title)), '|', LOWER(TRIM(artist))) = ?
+            ORDER BY created_at ASC, id ASC
+            LIMIT 1
+        ");
+        $existing->execute([$eventId, $baseKey]);
+        $existingGroupId = $existing->fetchColumn();
+        if ($existingGroupId) {
+            return (string)$existingGroupId;
+        }
+
+        $newGroupId = mx_new_request_group_id_local();
+        $update = db()->prepare("
+            UPDATE song_requests
+            SET request_group_id = ?
+            WHERE event_id = ?
+            AND (request_group_id IS NULL OR request_group_id = '')
+            AND status IN ('pending','maybe','duplicate')
+            AND CONCAT(LOWER(TRIM(song_title)), '|', LOWER(TRIM(artist))) = ?
+        ");
+        $update->execute([$newGroupId, $eventId, $baseKey]);
+
+        return $update->rowCount() > 0 ? $newGroupId : $submittedGroupId;
+    } catch (Throwable $e) {
+        return $submittedGroupId;
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     mx_redirect_back();
 }
@@ -62,6 +148,7 @@ if ($groupId === '') {
     $_SESSION['spotify_flash'] = 'No request group was supplied.';
     mx_redirect_back();
 }
+$groupId = mx_resolve_request_group_id_local($groupId);
 
 try {
     $where = "status IN ('pending','maybe','duplicate') AND spotify_track_id IS NOT NULL AND spotify_track_id <> ''";

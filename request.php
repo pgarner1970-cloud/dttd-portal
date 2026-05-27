@@ -42,6 +42,49 @@ function dttd_request_event_label($event) {
     return $bits ? implode(' at ', $bits) : 'Tonight\'s event';
 }
 
+function dttd_public_request_base_key($song_title, $artist) {
+    return strtolower(trim((string)$song_title)) . '|' . strtolower(trim((string)$artist));
+}
+
+function dttd_public_new_request_group_id() {
+    try {
+        return 'grp_' . bin2hex(random_bytes(8));
+    } catch (Throwable $e) {
+        return 'grp_' . uniqid('', true);
+    }
+}
+
+function dttd_public_request_group_id_for_request($event_id, $song_title, $artist) {
+    if (!dttd_request_column_exists('request_group_id')) {
+        return null;
+    }
+
+    $base_key = dttd_public_request_base_key($song_title, $artist);
+
+    try {
+        $stmt = db()->prepare("
+            SELECT request_group_id
+            FROM song_requests
+            WHERE event_id = ?
+            AND request_group_id IS NOT NULL
+            AND request_group_id <> ''
+            AND status IN ('pending','maybe','duplicate')
+            AND CONCAT(LOWER(TRIM(song_title)), '|', LOWER(TRIM(artist))) = ?
+            ORDER BY created_at ASC, id ASC
+            LIMIT 1
+        ");
+        $stmt->execute([(int)$event_id, $base_key]);
+        $existing = $stmt->fetchColumn();
+        if ($existing) {
+            return (string)$existing;
+        }
+    } catch (Throwable $e) {
+        return dttd_public_new_request_group_id();
+    }
+
+    return dttd_public_new_request_group_id();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['song_title']) && $event && $requests_open) {
     $guest_name = trim($_POST['guest_name'] ?? '');
     $song_title = trim($_POST['song_title'] ?? '');
@@ -79,6 +122,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['song_title']) && $eve
             if (dttd_request_column_exists('source')) {
                 $columns[] = 'source';
                 $values[] = $request_source === 'spotify' ? 'api' : 'manual';
+            }
+
+            if (dttd_request_column_exists('request_group_id')) {
+                $columns[] = 'request_group_id';
+                $values[] = dttd_public_request_group_id_for_request((int)$event['id'], $song_title, $artist);
             }
 
             if (dttd_request_column_exists('created_at')) {
