@@ -79,7 +79,7 @@ $public_current = 'home';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dance Thru the Decades Events</title>
   <meta name="description" content="Dance Thru the Decades Events — 60s, 70s, 80s, 90s and 00s party nights, DJ events, song requests and Facebook event updates.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=167">
+  <link rel="stylesheet" href="/assets/public-site.css?v=168">
 </head>
 <body class="homepage-option-one">
   <main class="home-option-one">
@@ -104,87 +104,71 @@ $public_current = 'home';
           Feel-good party nights, classic floor-fillers and moments worth sharing.
         </p>
 
-        <div class="option-one-action-strip dynamic-action-strip" data-homepage-state="<?= htmlspecialchars($homepage_state) ?>" aria-label="Event actions">
-          <?php if ($homepage_state === 'public-event' && $active_event && !empty($active_event['event_code'])): ?>
-            <a class="option-one-action-card primary-action" href="/request.php">
-              <span class="option-one-icon">♪</span>
-              <span>
-                <strong>Request a Song</strong>
-                <?php if ($has_event_access): ?><em>You’re connected — request now</em><?php else: ?><em>Available via event QR/code at the venue</em><?php endif; ?>
-              </span>
-            </a>
+        <?php if ($has_event_access && $connected_event): ?>
+          <section class="home-connected-event-panel" aria-label="Connected event actions">
+            <p class="homepage-state-note connected"><strong>You’re connected to <?= h($connected_event['event_name'] ?? 'this event') ?></strong><span>Request songs and upload photos from this device until the event closes.</span></p>
+            <div class="option-one-action-strip dynamic-action-strip event-action-strip">
+              <a class="option-one-action-card primary-action" href="/request.php">
+                <span class="option-one-icon">♪</span>
+                <span><strong>Request a Song</strong><em>Send a request to the DJ queue</em></span>
+              </a>
+              <a class="option-one-action-card" href="/event.php">
+                <span class="option-one-icon">▣</span>
+                <span><strong>This Event</strong><em>Live event hub and details</em></span>
+              </a>
+              <a class="option-one-action-card" href="/gallery.php">
+                <span class="option-one-icon">▧</span>
+                <span><strong>Upload Photos</strong><em>Uploads wait for moderation</em></span>
+              </a>
+            </div>
+          </section>
+        <?php elseif (($homepage_state === 'public-event' || $homepage_state === 'private-event') && $active_event && !empty($active_event['event_code'])): ?>
+          <section class="home-connected-event-panel home-event-open-panel" aria-label="Live event actions">
+            <p class="homepage-state-note"><strong>At tonight’s event?</strong><span>Scan the venue QR code or enter the event code to request songs and upload photos.</span></p>
+            <div class="option-one-action-strip dynamic-action-strip event-action-strip">
+              <a class="option-one-action-card primary-action" href="/request.php">
+                <span class="option-one-icon">♪</span>
+                <span><strong>Request a Song</strong><em>Enter the venue code to continue</em></span>
+              </a>
+              <a class="option-one-action-card" href="/event.php">
+                <span class="option-one-icon">▣</span>
+                <span><strong>This Event</strong><em>Join the event hub</em></span>
+              </a>
+              <a class="option-one-action-card" href="/gallery.php">
+                <span class="option-one-icon">▧</span>
+                <span><strong>Upload Photos</strong><em>Available via event QR/code</em></span>
+              </a>
+            </div>
+          </section>
+        <?php endif; ?>
 
-            <a class="option-one-action-card" href="/event.php">
-              <span class="option-one-icon">▣</span>
-              <span>
-                <strong>This Event</strong>
-                <?php if ($has_event_access): ?><em>Live event hub and details</em><?php else: ?><em>Venue, times and event info</em><?php endif; ?>
-              </span>
-            </a>
+        <div class="option-one-action-strip dynamic-action-strip public-home-action-strip" aria-label="Public website actions">
+          <a class="option-one-action-card primary-action" href="/events.php">
+            <span class="option-one-icon">▦</span>
+            <span>
+              <strong>Upcoming Events</strong>
+              <em>Public nights and future dates</em>
+            </span>
+          </a>
 
-            <a class="option-one-action-card" href="/gallery.php">
-              <span class="option-one-icon">▧</span>
-              <span>
-                <strong>Upload Photos</strong>
-                <?php if ($has_event_access): ?><em>Upload photos for this event</em><?php else: ?><em>Upload page opens from event QR/code</em><?php endif; ?>
-              </span>
-            </a>
+          <a class="option-one-action-card" href="/gallery.php">
+            <span class="option-one-icon">▧</span>
+            <span>
+              <strong>Photos & Memories</strong>
+              <em>View and share event moments</em>
+            </span>
+          </a>
 
-          <?php elseif ($homepage_state === 'private-event' && $active_event && !empty($active_event['event_code'])): ?>
-            <a class="option-one-action-card primary-action" href="/request.php">
-              <span class="option-one-icon">♪</span>
-              <span>
-                <strong>Guest Requests</strong>
-                <em>Use the private event QR/code</em>
-              </span>
-            </a>
-
-            <a class="option-one-action-card" href="/gallery.php">
-              <span class="option-one-icon">▧</span>
-              <span>
-                <strong>Upload Photos</strong>
-                <em>Moderated before display</em>
-              </span>
-            </a>
-
-            <a class="option-one-action-card" href="/event.php">
-              <span class="option-one-icon">▣</span>
-              <span>
-                <strong>Event Info</strong>
-                <em>Private guest event page</em>
-              </span>
-            </a>
-
-          <?php else: ?>
-            <a class="option-one-action-card primary-action" href="/events.php">
-              <span class="option-one-icon">▦</span>
-              <span>
-                <strong>Upcoming Events</strong>
-                <em>Public nights and future dates</em>
-              </span>
-            </a>
-
-            <a class="option-one-action-card" href="/gallery.php">
-              <span class="option-one-icon">▧</span>
-              <span>
-                <strong>Photos & Memories</strong>
-                <em>View and share event moments</em>
-              </span>
-            </a>
-
-            <a class="option-one-action-card" href="<?= htmlspecialchars($facebookUrl) ?>" target="_blank" rel="noopener">
-              <span class="option-one-icon">f</span>
-              <span>
-                <strong>Follow Us</strong>
-                <em>Updates, photos and announcements</em>
-              </span>
-            </a>
-          <?php endif; ?>
+          <a class="option-one-action-card" href="<?= htmlspecialchars($facebookUrl) ?>" target="_blank" rel="noopener">
+            <span class="option-one-icon">f</span>
+            <span>
+              <strong>Follow Us</strong>
+              <em>Updates, photos and announcements</em>
+            </span>
+          </a>
         </div>
 
-        <?php if ($has_event_access && $connected_event): ?>
-          <p class="homepage-state-note connected">You’re connected to <?= h($connected_event['event_name'] ?? 'this event') ?>. This device will be remembered until the event closes.</p>
-        <?php elseif ($homepage_state === 'no-event'): ?>
+        <?php if (!$has_event_access && $homepage_state === 'no-event'): ?>
           <p class="homepage-state-note">Song requests open automatically when an event is live.</p>
         <?php endif; ?>
       </div>

@@ -142,13 +142,21 @@ function public_find_event_by_slug($slug) {
     return null;
 }
 
-function public_recent_played_requests($event_id) {
+function public_recent_played_requests($event_id, $limit = 25) {
     if (!dttd_table_exists('song_requests')) {
         return [];
     }
 
+    $limit = max(1, min(50, (int)$limit));
+
     try {
-        $stmt = db()->prepare("\n            SELECT song_title, artist, created_at\n            FROM song_requests\n            WHERE event_id = ? AND status = 'played'\n            ORDER BY updated_at DESC, created_at DESC, id DESC\n            LIMIT 8\n        ");
+        $stmt = db()->prepare("
+            SELECT song_title, artist, created_at
+            FROM song_requests
+            WHERE event_id = ? AND status = 'played'
+            ORDER BY updated_at DESC, created_at DESC, id DESC
+            LIMIT " . $limit . "
+        ");
         $stmt->execute([(int)$event_id]);
         return $stmt->fetchAll();
     } catch (Throwable $e) {
@@ -168,6 +176,68 @@ function public_pending_request_count($event_id) {
     } catch (Throwable $e) {
         return 0;
     }
+}
+
+
+function public_event_photo_table_ready() {
+    return dttd_table_exists('event_photo_uploads')
+        && dttd_table_column_exists('event_photo_uploads', 'event_id')
+        && dttd_table_column_exists('event_photo_uploads', 'file_path');
+}
+
+function public_event_approved_photos($event_id, $limit = 12) {
+    $photos = [];
+    $limit = max(1, min(30, (int)$limit));
+
+    if (public_event_photo_table_ready()) {
+        try {
+            $statusFilter = dttd_table_column_exists('event_photo_uploads', 'status') ? "AND status = 'approved'" : '';
+            $orderParts = [];
+            if (dttd_table_column_exists('event_photo_uploads', 'approved_at')) {
+                $orderParts[] = 'approved_at DESC';
+            }
+            if (dttd_table_column_exists('event_photo_uploads', 'uploaded_at')) {
+                $orderParts[] = 'uploaded_at DESC';
+            }
+            if (dttd_table_column_exists('event_photo_uploads', 'created_at')) {
+                $orderParts[] = 'created_at DESC';
+            }
+            $orderParts[] = 'id DESC';
+            $orderSql = implode(', ', array_unique($orderParts));
+
+            $stmt = db()->prepare("SELECT file_path, guest_name FROM event_photo_uploads WHERE event_id = ? $statusFilter ORDER BY $orderSql LIMIT ?");
+            $stmt->execute([(int)$event_id, $limit]);
+            foreach ($stmt->fetchAll() as $row) {
+                $path = trim((string)($row['file_path'] ?? ''));
+                if ($path === '') {
+                    continue;
+                }
+                $photos[] = [
+                    'path' => ltrim($path, '/'),
+                    'guest_name' => trim((string)($row['guest_name'] ?? '')),
+                ];
+            }
+        } catch (Throwable $e) {
+            $photos = [];
+        }
+    }
+
+    if (!$photos) {
+        $approvedDir = __DIR__ . '/uploads/event-photos/approved';
+        if (is_dir($approvedDir)) {
+            foreach (glob($approvedDir . '/event-' . (int)$event_id . '-*.{jpg,jpeg,png,webp,gif}', GLOB_BRACE) ?: [] as $file) {
+                $photos[] = [
+                    'path' => 'uploads/event-photos/approved/' . basename($file),
+                    'guest_name' => '',
+                ];
+                if (count($photos) >= $limit) {
+                    break;
+                }
+            }
+        }
+    }
+
+    return array_slice($photos, 0, $limit);
 }
 
 $facebookUrl = defined('FACEBOOK_URL') ? FACEBOOK_URL : 'https://www.facebook.com/profile.php?id=61579454050951';
@@ -218,8 +288,9 @@ if ($event) {
     $mapQuery = trim($venue . ' ' . $venueAddress . ' ' . $postcode);
     $mapEmbedUrl = $mapQuery ? 'https://www.google.com/maps?q=' . urlencode($mapQuery) . '&output=embed' : '';
     $mapExternalUrl = $mapQuery ? 'https://www.google.com/maps/search/?api=1&query=' . urlencode($mapQuery) : '';
-    $playedRequests = $hasEventAccess ? public_recent_played_requests((int)$event['id']) : [];
+    $playedRequests = $hasEventAccess ? public_recent_played_requests((int)$event['id'], 25) : [];
     $pendingCount = $hasEventAccess ? public_pending_request_count((int)$event['id']) : 0;
+    $eventPhotos = $hasEventAccess ? public_event_approved_photos((int)$event['id'], 12) : [];
 }
 ?>
 <!DOCTYPE html>
@@ -229,7 +300,7 @@ if ($event) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : ($notFound ? 'Event Not Found' : 'Join Event') ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event portal.' ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=167">
+  <link rel="stylesheet" href="/assets/public-site.css?v=168">
 </head>
 <body class="homepage-option-one public-event-detail-page public-event-portal-page">
   <main class="home-option-one">
@@ -340,20 +411,64 @@ if ($event) {
               <p><?= $pendingCount > 0 ? public_h($pendingCount . ' request' . ($pendingCount === 1 ? '' : 's') . ' waiting for the DJ.') : 'Requests you send will appear in the DJ queue.' ?></p>
             </article>
 
-            <article class="public-feature-card public-live-card">
+            <article class="public-feature-card public-live-card public-played-card">
               <span class="public-feature-kicker">Played</span>
               <h2>Recently played</h2>
               <?php if ($playedRequests): ?>
-                <ul class="public-mini-list">
-                  <?php foreach ($playedRequests as $played): ?>
+                <?php $visiblePlayed = array_slice($playedRequests, 0, 5); $hiddenPlayed = array_slice($playedRequests, 5); ?>
+                <ol class="public-mini-list public-played-list">
+                  <?php foreach ($visiblePlayed as $played): ?>
                     <li><strong><?= public_h($played['song_title'] ?? '') ?></strong><span><?= public_h($played['artist'] ?? '') ?></span></li>
                   <?php endforeach; ?>
-                </ul>
+                </ol>
+                <?php if ($hiddenPlayed): ?>
+                  <details class="public-expand-list">
+                    <summary>View more played songs</summary>
+                    <ol class="public-mini-list public-played-list public-played-list-extra" start="6">
+                      <?php foreach ($hiddenPlayed as $played): ?>
+                        <li><strong><?= public_h($played['song_title'] ?? '') ?></strong><span><?= public_h($played['artist'] ?? '') ?></span></li>
+                      <?php endforeach; ?>
+                    </ol>
+                  </details>
+                <?php endif; ?>
               <?php else: ?>
                 <p>Played-track history will appear here once songs have been marked as played.</p>
               <?php endif; ?>
             </article>
           </div>
+
+          <article class="public-feature-card public-event-photo-carousel-card">
+            <div class="public-feature-card-header">
+              <div>
+                <span class="public-feature-kicker">Photos & Memories</span>
+                <h2>Event photos</h2>
+              </div>
+              <a class="public-neon-btn subtle" href="/gallery.php">Upload / View Gallery</a>
+            </div>
+
+            <?php if (!empty($eventPhotos)): ?>
+              <div class="public-photo-carousel" data-public-carousel>
+                <button class="public-carousel-btn public-carousel-prev" type="button" aria-label="Previous photo">‹</button>
+                <div class="public-photo-carousel-track">
+                  <?php foreach ($eventPhotos as $photo): ?>
+                    <a class="public-photo-carousel-slide" href="/<?= public_h($photo['path']) ?>" target="_blank" rel="noopener">
+                      <img src="/<?= public_h($photo['path']) ?>" alt="Approved photo from <?= public_h($title) ?>">
+                      <?php if (!empty($photo['guest_name'])): ?>
+                        <span>Shared by <?= public_h($photo['guest_name']) ?></span>
+                      <?php endif; ?>
+                    </a>
+                  <?php endforeach; ?>
+                </div>
+                <button class="public-carousel-btn public-carousel-next" type="button" aria-label="Next photo">›</button>
+              </div>
+            <?php else: ?>
+              <div class="public-carousel-empty">
+                <strong>No approved photos yet.</strong>
+                <span>Be the first to upload a memory from tonight. Photos appear here once approved.</span>
+                <a class="public-neon-btn" href="/gallery.php">Upload Photos</a>
+              </div>
+            <?php endif; ?>
+          </article>
         <?php endif; ?>
 
         <article class="public-event-detail-card <?= $isCancelled ? 'is-cancelled' : '' ?>">
@@ -439,5 +554,17 @@ if ($event) {
 
     <?php require __DIR__ . '/includes/public-footer.php'; ?>
   </main>
+  <script>
+    document.querySelectorAll('[data-public-carousel]').forEach(function(carousel) {
+      var track = carousel.querySelector('.public-photo-carousel-track');
+      if (!track) return;
+      carousel.querySelectorAll('.public-carousel-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var direction = btn.classList.contains('public-carousel-prev') ? -1 : 1;
+          track.scrollBy({ left: direction * Math.max(260, track.clientWidth * 0.85), behavior: 'smooth' });
+        });
+      });
+    });
+  </script>
 </body>
 </html>

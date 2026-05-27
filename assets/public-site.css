@@ -3716,3 +3716,201 @@ a:hover .venue-facebook-icon{
   color:#ffd54a;
   opacity:1;
 }
+
+/* v168 homepage connected event row, played expansion and event photo carousel */
+.home-connected-event-panel{
+  width:min(100%, 920px);
+  margin:18px auto 16px;
+  padding:16px;
+  border:1px solid rgba(255,79,216,.34);
+  border-radius:24px;
+  background:linear-gradient(180deg, rgba(255,79,216,.08), rgba(31,0,48,.42));
+  box-shadow:0 0 28px rgba(255,79,216,.14), inset 0 0 18px rgba(255,255,255,.035);
+  backdrop-filter:blur(8px);
+}
+
+.home-connected-event-panel .homepage-state-note{
+  margin:0 auto 14px;
+  display:grid;
+  gap:4px;
+}
+
+.home-connected-event-panel .homepage-state-note strong{
+  display:block;
+  color:#ffd54a;
+  letter-spacing:.04em;
+}
+
+.home-connected-event-panel .homepage-state-note span{
+  display:block;
+  color:#f3e8ff;
+  font-weight:700;
+  letter-spacing:0;
+}
+
+.home-connected-event-panel .event-action-strip{
+  margin:0;
+  width:100%;
+}
+
+.public-home-action-strip{
+  margin-top:16px;
+}
+
+.public-played-list{
+  counter-reset:none;
+}
+
+.public-played-list li{
+  align-items:center;
+}
+
+.public-expand-list{
+  margin-top:12px;
+}
+
+.public-expand-list summary{
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:42px;
+  padding:10px 16px;
+  border-radius:999px;
+  border:1px solid rgba(255,79,216,.45);
+  background:rgba(255,79,216,.10);
+  color:#fff;
+  font-weight:900;
+  box-shadow:0 0 16px rgba(255,79,216,.16);
+  list-style:none;
+}
+
+.public-expand-list summary::-webkit-details-marker{
+  display:none;
+}
+
+.public-played-list-extra{
+  margin-top:12px;
+}
+
+.public-event-photo-carousel-card{
+  width:min(920px, 100%);
+  margin:0 auto 24px;
+}
+
+.public-photo-carousel{
+  position:relative;
+  margin-top:12px;
+}
+
+.public-photo-carousel-track{
+  display:flex;
+  gap:16px;
+  overflow-x:auto;
+  scroll-snap-type:x mandatory;
+  scroll-behavior:smooth;
+  padding:4px 4px 14px;
+  scrollbar-width:thin;
+}
+
+.public-photo-carousel-slide{
+  position:relative;
+  flex:0 0 min(78%, 560px);
+  min-height:320px;
+  overflow:hidden;
+  border-radius:24px;
+  border:1px solid rgba(255,79,216,.38);
+  background:rgba(255,255,255,.06);
+  box-shadow:0 12px 38px rgba(0,0,0,.32), 0 0 22px rgba(255,79,216,.14);
+  scroll-snap-align:center;
+  color:#fff;
+  text-decoration:none;
+}
+
+.public-photo-carousel-slide img{
+  width:100%;
+  height:100%;
+  min-height:320px;
+  display:block;
+  object-fit:cover;
+}
+
+.public-photo-carousel-slide span{
+  position:absolute;
+  left:14px;
+  bottom:14px;
+  right:14px;
+  padding:10px 12px;
+  border-radius:14px;
+  background:rgba(9,0,18,.72);
+  border:1px solid rgba(255,255,255,.18);
+  color:#fff;
+  font-weight:800;
+  text-shadow:0 2px 8px rgba(0,0,0,.6);
+}
+
+.public-carousel-btn{
+  position:absolute;
+  top:50%;
+  z-index:2;
+  transform:translateY(-50%);
+  width:46px;
+  height:46px;
+  border-radius:999px;
+  border:1px solid rgba(255,79,216,.55);
+  background:rgba(25,0,40,.78);
+  color:#fff;
+  font-size:2.1rem;
+  line-height:1;
+  cursor:pointer;
+  box-shadow:0 0 18px rgba(255,79,216,.25);
+}
+
+.public-carousel-prev{ left:-12px; }
+.public-carousel-next{ right:-12px; }
+
+.public-carousel-empty{
+  display:grid;
+  gap:10px;
+  justify-items:start;
+  padding:18px;
+  border-radius:20px;
+  border:1px dashed rgba(255,79,216,.38);
+  background:rgba(255,255,255,.045);
+  color:#f3e8ff;
+}
+
+.public-carousel-empty strong{
+  color:#fff;
+  font-size:1.2rem;
+}
+
+@media(max-width:760px){
+  .home-connected-event-panel{
+    width:min(100% - 22px, 920px);
+    padding:13px;
+    margin-top:16px;
+  }
+
+  .public-home-action-strip{
+    margin-top:14px;
+  }
+
+  .public-photo-carousel-slide{
+    flex-basis:88%;
+    min-height:240px;
+  }
+
+  .public-photo-carousel-slide img{
+    min-height:240px;
+  }
+
+  .public-carousel-btn{
+    width:40px;
+    height:40px;
+    font-size:1.8rem;
+  }
+
+  .public-carousel-prev{ left:4px; }
+  .public-carousel-next{ right:4px; }
+}

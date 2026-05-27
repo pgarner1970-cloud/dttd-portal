@@ -184,7 +184,7 @@ $approvedPhotos = $event ? dttd_gallery_approved_photos((int)$event['id']) : [];
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upload Photos | Dance Thru the Decades</title>
   <meta name="description" content="Upload event photos for Dance Thru the Decades. Photos are moderated before they appear publicly.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=167">
+  <link rel="stylesheet" href="/assets/public-site.css?v=168">
 </head>
 <body class="homepage-option-one public-event-feature-page public-gallery-page">
   <main class="home-option-one">
