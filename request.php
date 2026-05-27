@@ -1,50 +1,48 @@
 <?php
 require_once __DIR__ . '/includes/db.php';
+dttd_redirect_public_feature_to_primary_domain();
 
-$event = null;
-$access_ok = false;
-
-$event_id = !empty($_GET['event']) ? (int)$_GET['event'] : (!empty($_POST['event_id']) ? (int)$_POST['event_id'] : 0);
-$code = strtoupper(trim($_GET['code'] ?? $_POST['code'] ?? ''));
-$token = trim($_GET['token'] ?? $_POST['token'] ?? '');
-
-if ($code !== '') {
-    $stmt = db()->prepare("SELECT * FROM events WHERE UPPER(event_code) = UPPER(?) LIMIT 1");
-    $stmt->execute([$code]);
-    $event = $stmt->fetch();
-    $access_ok = (bool)$event;
-} elseif ($token !== '') {
-    $stmt = db()->prepare("SELECT * FROM events WHERE guest_token = ? LIMIT 1");
-    $stmt->execute([$token]);
-    $event = $stmt->fetch();
-    $access_ok = (bool)$event;
-} elseif ($event_id) {
-    // Backwards-compatible admin-style link support only if a matching event is found,
-    // but guest submission is still blocked unless code/token is supplied.
-    $event = get_event($event_id);
+if (!function_exists('public_h')) {
+    function public_h($value) {
+        return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+    }
 }
 
-$available = event_is_available($event);
-$requests_open = event_requests_open($event);
+$facebookUrl = defined('FACEBOOK_URL') ? FACEBOOK_URL : 'https://www.facebook.com/profile.php?id=61579454050951';
+$public_current = '';
+$gate_error = '';
 $success = false;
 $error = '';
 
-function dttd_request_column_exists($column) {
-    static $cache = [];
-    if (isset($cache[$column])) return $cache[$column];
+$is_access_attempt = (
+    isset($_GET['code']) || isset($_GET['token']) || isset($_GET['access']) ||
+    isset($_POST['event_access_code']) || isset($_POST['event_code']) || isset($_POST['code']) || isset($_POST['token']) || isset($_POST['access'])
+);
 
-    try {
-        $stmt = db()->prepare("SHOW COLUMNS FROM song_requests LIKE ?");
-        $stmt->execute([$column]);
-        $cache[$column] = (bool)$stmt->fetch();
-    } catch (Throwable $e) {
-        $cache[$column] = false;
-    }
-
-    return $cache[$column];
+if ($is_access_attempt && !isset($_POST['song_title'])) {
+    [$access_event, $access_error] = dttd_handle_event_access_submission('/request.php');
+    $gate_error = $access_error;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $access_ok && $requests_open) {
+$event = dttd_event_from_access_cookie(true);
+$available = $event ? event_is_available($event) : false;
+$requests_open = $event ? event_requests_open($event) : false;
+
+function dttd_request_column_exists($column) {
+    return dttd_table_column_exists('song_requests', $column);
+}
+
+function dttd_request_event_label($event) {
+    if (!$event) return 'Request a Song';
+
+    $bits = [];
+    if (!empty($event['event_name'])) $bits[] = $event['event_name'];
+    if (!empty($event['venue_name'])) $bits[] = $event['venue_name'];
+
+    return $bits ? implode(' at ', $bits) : 'Tonight\'s event';
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['song_title']) && $event && $requests_open) {
     $guest_name = trim($_POST['guest_name'] ?? '');
     $song_title = trim($_POST['song_title'] ?? '');
     $artist = trim($_POST['artist'] ?? '');
@@ -53,152 +51,173 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $access_ok && $requests_open) {
     if ($guest_name === '' || $song_title === '' || $artist === '') {
         $error = 'Please enter your name, song title and artist.';
     } else {
-        $columns = ['event_id', 'guest_name', 'song_title', 'artist'];
-        $values = [(int)$event['id'], $guest_name, $song_title, $artist];
+        try {
+            $columns = ['event_id', 'guest_name', 'song_title', 'artist'];
+            $values = [(int)$event['id'], $guest_name, $song_title, $artist];
 
-        if (dttd_request_column_exists('dedication')) {
-            $columns[] = 'dedication';
-            $values[] = $dedication;
-        }
-
-        $spotify_fields = [
-            'spotify_track_id' => trim($_POST['spotify_track_id'] ?? ''),
-            'spotify_track_url' => trim($_POST['spotify_track_url'] ?? ''),
-            'spotify_artist_name' => trim($_POST['spotify_artist_name'] ?? ''),
-            'spotify_album_image' => trim($_POST['spotify_album_image'] ?? ''),
-            'request_source' => ($_POST['request_source'] ?? '') === 'spotify' ? 'spotify' : 'manual',
-        ];
-
-        foreach ($spotify_fields as $column => $value) {
-            if (dttd_request_column_exists($column)) {
-                $columns[] = $column;
-                $values[] = $value;
+            if (dttd_request_column_exists('dedication')) {
+                $columns[] = 'dedication';
+                $values[] = $dedication;
             }
+
+            $request_source = ($_POST['request_source'] ?? '') === 'spotify' ? 'spotify' : 'manual';
+            $spotify_fields = [
+                'spotify_track_id' => trim($_POST['spotify_track_id'] ?? ''),
+                'spotify_track_url' => trim($_POST['spotify_track_url'] ?? ''),
+                'spotify_artist_name' => trim($_POST['spotify_artist_name'] ?? ''),
+                'spotify_album_image' => trim($_POST['spotify_album_image'] ?? ''),
+                'request_source' => $request_source,
+            ];
+
+            foreach ($spotify_fields as $column => $value) {
+                if (dttd_request_column_exists($column)) {
+                    $columns[] = $column;
+                    $values[] = $value;
+                }
+            }
+
+            if (dttd_request_column_exists('source')) {
+                $columns[] = 'source';
+                $values[] = $request_source === 'spotify' ? 'api' : 'manual';
+            }
+
+            if (dttd_request_column_exists('created_at')) {
+                $columns[] = 'created_at';
+                $values[] = date('Y-m-d H:i:s');
+            }
+
+            $placeholders = array_fill(0, count($columns), '?');
+            $stmt = db()->prepare("INSERT INTO song_requests (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")");
+            $stmt->execute($values);
+            $success = true;
+        } catch (Throwable $e) {
+            $error = 'Sorry, your request could not be sent just now. Please try again.';
         }
-
-        if (dttd_request_column_exists('created_at')) {
-            $columns[] = 'created_at';
-            $values[] = date('Y-m-d H:i:s');
-        }
-
-        $placeholders = array_fill(0, count($columns), '?');
-        $stmt = db()->prepare("INSERT INTO song_requests (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")");
-        $stmt->execute($values);
-        $success = true;
     }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['song_title']) && !$event) {
+    $gate_error = 'Please enter the event code first, then send your request.';
 }
 
-function request_link_for_event($event) {
-    if (!$event) return '/';
-    if (!empty($event['event_code'])) {
-        return '/event.php?code=' . urlencode($event['event_code']);
-    }
-    if (!empty($event['guest_token'])) {
-        return '/event.php?token=' . urlencode($event['guest_token']);
-    }
-    return '/';
-}
-
-function request_self_link($event) {
-    if (!$event) return '/request.php';
-    if (!empty($event['event_code'])) {
-        return '/request.php?code=' . urlencode($event['event_code']);
-    }
-    if (!empty($event['guest_token'])) {
-        return '/request.php?token=' . urlencode($event['guest_token']);
-    }
-    return '/request.php?event=' . (int)$event['id'];
-}
+$title = 'Request a Song';
+$eventLabel = dttd_request_event_label($event);
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Request a Song</title>
-<link rel="stylesheet" href="/assets/style.css">
-  <link rel="stylesheet" href="/assets/public.css?v=127">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><?= public_h($title) ?> | Dance Thru the Decades</title>
+  <meta name="description" content="Request a song at a Dance Thru the Decades event using the venue QR code or event code.">
+  <link rel="stylesheet" href="/assets/public-site.css?v=167">
 </head>
-<body class="public-page">
-    <a class="public-dj-login public-home-link" href="/">
-      <span class="login-icon">⌂</span>
-      <span>Home</span>
-    </a>
-<nav class="topnav">
-  <a href="/">Home</a>
-  <?php if ($event && $access_ok): ?><a href="<?= h(request_link_for_event($event)) ?>">Event Portal</a><?php endif; ?>
-</nav>
+<body class="homepage-option-one public-event-feature-page public-request-page">
+  <main class="home-option-one">
+    <?php require __DIR__ . '/includes/public-nav.php'; ?>
 
-<section class="hero">
-      <div class="homepage-logo-wrap"><img class="site-logo-img" src="/assets/dttd-logo.webp" alt="Dance Thru The Decades Events logo"></div>
-  <span class="badge">Song Requests</span>
-  <h1>Request a Song</h1>
-  <?php if ($event): ?>
-    <p class="subtitle"><?= h($event['event_name']) ?> at <?= h($event['venue_name']) ?></p>
-  <?php else: ?>
-    <p class="subtitle">Please scan the venue QR code or use the event link.</p>
-  <?php endif; ?>
-</section>
+    <section class="public-event-detail-hero public-feature-hero">
+      <div class="option-one-logo-shell public-list-logo">
+        <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=152" alt="Dance Thru The Decades Events logo">
+      </div>
+      <p class="option-one-eyebrow">Song Requests</p>
+      <h1 class="event-detail-title">Request a Song</h1>
+      <p class="option-one-subtitle"><?= $event ? public_h($eventLabel) : 'Scan the QR code at the venue or enter the event code to continue.' ?></p>
+    </section>
 
-<main class="container">
-      <div class="public-logo-wrap public-logo-primary"><img class="public-logo" src="/assets/dttd-logo.webp" alt="Dance Thru The Decades Events logo"></div>
-<div class="card">
-    <?php if (!$access_ok): ?>
-      <h2>Event access required</h2>
-      <p>Song requests are only available from a valid event link or QR code.</p>
-      <p>Please scan the QR code at the venue, or open the event link provided by the DJ.</p>
-      <a class="btn btn-secondary" href="/">Back to Website</a>
-    <?php elseif (!$available): ?>
-      <h2>Requests unavailable</h2>
-      <p>Song requests are not currently available for this event. Please check back during the event.</p>
-      <a class="btn btn-secondary" href="<?= h(request_link_for_event($event)) ?>">Back to Event Portal</a>
-    <?php elseif (!$requests_open): ?>
-      <h2>Requests closed</h2>
-      <p>Song requests have closed for this event so the DJ can finish the night smoothly.</p>
-      <a class="btn btn-secondary" href="<?= h(request_link_for_event($event)) ?>">Back to Event Portal</a>
-    <?php elseif ($success): ?>
-      <h2>Request Sent</h2>
-      <p>Thanks — your request has been sent to the DJ.</p>
-      <a class="btn btn-primary" href="<?= h(request_self_link($event)) ?>">Send Another Request</a>
-      <a class="btn btn-secondary" href="<?= h(request_link_for_event($event)) ?>">Back to Event Portal</a>
-    <?php else: ?>
-      <?php if ($error): ?><div class="notice"><?= h($error) ?></div><?php endif; ?>
-      <form method="post" data-spotify-request-form>
-        <input type="hidden" name="event_id" value="<?= (int)$event['id'] ?>">
-        <?php if (!empty($event['event_code'])): ?><input type="hidden" name="code" value="<?= h($event['event_code']) ?>"><?php endif; ?>
-        <?php if (!empty($event['guest_token'])): ?><input type="hidden" name="token" value="<?= h($event['guest_token']) ?>"><?php endif; ?>
+    <section class="public-event-detail-section public-feature-section">
+      <?php if (!$event): ?>
+        <article class="public-empty-card public-access-card">
+          <h2>Join this event</h2>
+          <p>Enter the event code displayed at the venue, or scan the QR code again. We will remember this device for the rest of the evening.</p>
 
-        <label>Your name *</label>
-        <input name="guest_name" required maxlength="120" placeholder="Your name">
+          <?php if ($gate_error): ?>
+            <div class="public-alert error"><?= public_h($gate_error) ?></div>
+          <?php endif; ?>
 
-        <label>Song title *</label>
-        <input name="song_title" required maxlength="190" placeholder="Example: September">
+          <form class="public-access-form" method="post" action="/request.php">
+            <label for="event_access_code">Event code</label>
+            <input id="event_access_code" name="event_access_code" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="Example: 5MKDP2" required>
+            <button class="public-neon-btn" type="submit">Continue</button>
+          </form>
 
-        <label>Artist *</label>
-        <input name="artist" required maxlength="190" placeholder="Example: Earth, Wind & Fire">
+          <p class="public-small-note">The code is shown on venue posters, table cards or screens.</p>
+          <a class="public-neon-btn subtle" href="/">Back to Website</a>
+        </article>
 
-        <input type="hidden" name="spotify_track_id">
-        <input type="hidden" name="spotify_track_url">
-        <input type="hidden" name="spotify_artist_name">
-        <input type="hidden" name="spotify_album_image">
-        <input type="hidden" name="request_source" value="manual">
+      <?php elseif (!$available): ?>
+        <article class="public-empty-card public-access-card">
+          <h2>Requests unavailable</h2>
+          <p>Song requests are not currently available for this event.</p>
+          <a class="public-neon-btn" href="/event.php">Back to Event</a>
+        </article>
 
-        <div class="spotify-search-box">
-          <small class="spotify-search-status" data-spotify-status></small>
-          <div class="spotify-results" data-spotify-results hidden></div>
-          <div class="spotify-selected" data-spotify-selected hidden></div>
-        </div>
+      <?php elseif (!$requests_open): ?>
+        <article class="public-empty-card public-access-card">
+          <h2>Requests closed</h2>
+          <p>Song requests have closed for this event so the DJ can finish the night smoothly.</p>
+          <a class="public-neon-btn" href="/event.php">Back to Event</a>
+        </article>
 
-        <label>Dedication / message</label>
-        <textarea name="dedication" placeholder="Optional message or dedication"></textarea>
+      <?php elseif ($success): ?>
+        <article class="public-empty-card public-access-card">
+          <h2>Request sent</h2>
+          <p>Thanks — your request has been sent to the DJ queue.</p>
+          <div class="public-event-actions public-centred-actions">
+            <a class="public-neon-btn" href="/request.php">Send another request</a>
+            <a class="public-neon-btn subtle" href="/event.php">Back to Event</a>
+          </div>
+        </article>
 
-        <button class="btn btn-primary" type="submit">Send Request</button>
-      </form>
-      <p class="small">Song requests are linked to this event only.</p>
-    <?php endif; ?>
-  </div>
-</main>
-<footer class="footer">© <?= date('Y') ?> Dance Thru the Decades Events</footer>
-<script src="https://dancethruthedecades.co.uk/assets/spotify-request-search.js?v=2"></script>
+      <?php else: ?>
+        <article class="public-feature-card public-request-card">
+          <div class="public-feature-card-header">
+            <div>
+              <span class="public-feature-kicker">Connected to this event</span>
+              <h2><?= public_h($eventLabel) ?></h2>
+            </div>
+            <a class="public-neon-btn subtle" href="/event.php">Event Info</a>
+          </div>
+
+          <?php if ($error): ?>
+            <div class="public-alert error"><?= public_h($error) ?></div>
+          <?php endif; ?>
+
+          <form class="public-request-form" method="post" action="/request.php" data-spotify-request-form>
+            <input type="hidden" name="event_id" value="<?= (int)$event['id'] ?>">
+
+            <label>Your name *</label>
+            <input name="guest_name" required maxlength="120" placeholder="Your name">
+
+            <label>Song title *</label>
+            <input name="song_title" required maxlength="190" placeholder="Example: September">
+
+            <label>Artist *</label>
+            <input name="artist" required maxlength="190" placeholder="Example: Earth, Wind & Fire">
+
+            <input type="hidden" name="spotify_track_id">
+            <input type="hidden" name="spotify_track_url">
+            <input type="hidden" name="spotify_artist_name">
+            <input type="hidden" name="spotify_album_image">
+            <input type="hidden" name="request_source" value="manual">
+
+            <div class="spotify-search-box public-spotify-search-box">
+              <small class="spotify-search-status" data-spotify-status></small>
+              <div class="spotify-results" data-spotify-results hidden></div>
+              <div class="spotify-selected" data-spotify-selected hidden></div>
+            </div>
+
+            <label>Dedication / message</label>
+            <textarea name="dedication" rows="4" placeholder="Optional message or dedication"></textarea>
+
+            <button class="public-neon-btn public-submit-btn" type="submit">Send Request</button>
+          </form>
+
+          <p class="public-small-note">Your request is linked to this event only.</p>
+        </article>
+      <?php endif; ?>
+    </section>
+
+    <?php require __DIR__ . '/includes/public-footer.php'; ?>
+  </main>
+  <script src="/assets/spotify-request-search.js?v=2"></script>
 </body>
 </html>

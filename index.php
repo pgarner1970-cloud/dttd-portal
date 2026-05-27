@@ -5,6 +5,8 @@ $active_event = null;
 $active_event_is_public = false;
 $active_event_is_private = false;
 $homepage_state = 'no-event';
+$connected_event = null;
+$has_event_access = false;
 
 try {
     /*
@@ -59,6 +61,14 @@ try {
     $homepage_state = 'no-event';
 }
 
+try {
+    $connected_event = dttd_event_from_access_cookie(false);
+    $has_event_access = $connected_event && dttd_event_access_allowed($connected_event);
+} catch (Throwable $e) {
+    $connected_event = null;
+    $has_event_access = false;
+}
+
 $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
 $public_current = 'home';
 ?>
@@ -69,7 +79,7 @@ $public_current = 'home';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dance Thru the Decades Events</title>
   <meta name="description" content="Dance Thru the Decades Events — 60s, 70s, 80s, 90s and 00s party nights, DJ events, song requests and Facebook event updates.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=153">
+  <link rel="stylesheet" href="/assets/public-site.css?v=167">
 </head>
 <body class="homepage-option-one">
   <main class="home-option-one">
@@ -100,7 +110,7 @@ $public_current = 'home';
               <span class="option-one-icon">♪</span>
               <span>
                 <strong>Request a Song</strong>
-                <em>Available via event QR/code at the venue</em>
+                <?php if ($has_event_access): ?><em>You’re connected — request now</em><?php else: ?><em>Available via event QR/code at the venue</em><?php endif; ?>
               </span>
             </a>
 
@@ -108,7 +118,7 @@ $public_current = 'home';
               <span class="option-one-icon">▣</span>
               <span>
                 <strong>This Event</strong>
-                <em>Venue, times and event info</em>
+                <?php if ($has_event_access): ?><em>Live event hub and details</em><?php else: ?><em>Venue, times and event info</em><?php endif; ?>
               </span>
             </a>
 
@@ -116,7 +126,7 @@ $public_current = 'home';
               <span class="option-one-icon">▧</span>
               <span>
                 <strong>Upload Photos</strong>
-                <em>Upload page opens from event QR/code</em>
+                <?php if ($has_event_access): ?><em>Upload photos for this event</em><?php else: ?><em>Upload page opens from event QR/code</em><?php endif; ?>
               </span>
             </a>
 
@@ -172,69 +182,10 @@ $public_current = 'home';
           <?php endif; ?>
         </div>
 
-        <?php if ($homepage_state === 'no-event'): ?>
+        <?php if ($has_event_access && $connected_event): ?>
+          <p class="homepage-state-note connected">You’re connected to <?= h($connected_event['event_name'] ?? 'this event') ?>. This device will be remembered until the event closes.</p>
+        <?php elseif ($homepage_state === 'no-event'): ?>
           <p class="homepage-state-note">Song requests open automatically when an event is live.</p>
-        <?php endif; ?>
-      </div>
-    </section>
-<section class="home-info-section" id="memories">
-      <div class="home-info-grid">
-        <?php if ($homepage_state === 'no-event'): ?>
-          <article class="home-info-card">
-            <span>📅</span>
-            <h2>Public Nights</h2>
-            <p>See upcoming Dance Thru The Decades events that are open to the public.</p>
-          </article>
-
-          <article class="home-info-card">
-            <span>📸</span>
-            <h2>Photos & Memories</h2>
-            <p>Gallery uploads will be reviewed before they appear publicly on the site.</p>
-          </article>
-
-          <article class="home-info-card">
-            <span>👍</span>
-            <h2>Follow Us</h2>
-            <p>Keep up with upcoming nights, event photos, playlists and announcements.</p>
-          </article>
-
-        <?php elseif ($homepage_state === 'public-event'): ?>
-          <article class="home-info-card">
-            <span>🎵</span>
-            <h2>Request Songs</h2>
-            <p>Requests are open for the current event. Send your song request to the DJ queue.</p>
-          </article>
-
-          <article class="home-info-card">
-            <span>📍</span>
-            <h2>Check In</h2>
-            <p>At the event? Tag us and let your friends know where the party is happening.</p>
-          </article>
-
-          <article class="home-info-card">
-            <span>📸</span>
-            <h2>Upload Photos</h2>
-            <p>Share dancefloor memories. Uploads are moderated before they go live.</p>
-          </article>
-
-        <?php else: ?>
-          <article class="home-info-card">
-            <span>🎵</span>
-            <h2>Guest Requests</h2>
-            <p>Guests can request songs using the private event QR or event link.</p>
-          </article>
-
-          <article class="home-info-card">
-            <span>📸</span>
-            <h2>Private Memories</h2>
-            <p>Photos can be uploaded for the event and reviewed before display.</p>
-          </article>
-
-          <article class="home-info-card">
-            <span>🔐</span>
-            <h2>Guest Access</h2>
-            <p>Future Wi-Fi and guest access features can link to this private event flow.</p>
-          </article>
         <?php endif; ?>
       </div>
     </section>

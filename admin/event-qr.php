@@ -45,12 +45,7 @@ if (empty($event['event_code'])) {
     exit;
 }
 
-$public_request_url = rtrim(app_setting('public_request_base_url', ''), '/');
-if ($public_request_url === '') {
-    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'] ?? '';
-    $public_request_url = $scheme . '://' . $host;
-}
+$public_request_url = dttd_public_request_base_url();
 
 $event_request_url = $public_request_url . '/request.php?code=' . rawurlencode($event['event_code']);
 
