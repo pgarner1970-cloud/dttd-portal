@@ -426,9 +426,19 @@ document.head.appendChild(overviewStyle);
 
 
   async function search(q){
-    if(!q || q.trim().length < 2){ els.searchResults.innerHTML=''; els.searchStatus.textContent=''; return; }
+    if(!q || q.trim().length < 3){ els.searchResults.innerHTML=''; els.searchStatus.textContent=''; return; }
     els.searchStatus.innerHTML = '<span class="spinner"></span> Searching…';
-    try{ const data = await apiGet({action:'search', q}); if(data.ok){ els.searchStatus.textContent = ''; renderSearchResults(data.tracks || []); } else { els.searchStatus.textContent = data.error || 'Search failed'; } }
+    try{
+      const res = await fetch('/api/spotify-search.php?q=' + encodeURIComponent(q), {cache:'no-store'});
+      const data = await res.json();
+      if(data.ok){
+        const sourceLabel = data.rate_limited ? 'Spotify cooling down — cached matches shown' : (data.source === 'cache' ? 'Cached matches shown' : '');
+        els.searchStatus.textContent = sourceLabel;
+        renderSearchResults(data.tracks || []);
+      } else {
+        els.searchStatus.textContent = data.error || data.message || 'Search failed';
+      }
+    }
     catch(e){ els.searchStatus.textContent = 'Search failed'; }
   }
   app.addEventListener('click', (e)=>{
@@ -477,7 +487,7 @@ document.head.appendChild(overviewStyle);
     }
   });
   if(els.search){
-    els.search.addEventListener('input', ()=>{ clearTimeout(searchTimer); searchTimer = setTimeout(()=>search(els.search.value), 450); });
+    els.search.addEventListener('input', ()=>{ clearTimeout(searchTimer); searchTimer = setTimeout(()=>search(els.search.value), 750); });
   }
   const clearSearch = $('#clearSearch'); if(clearSearch) clearSearch.addEventListener('click', ()=>{ els.search.value=''; els.search.focus(); els.searchResults.innerHTML=''; els.searchStatus.textContent=''; });
   const refreshNow = $('#refreshNow'); if(refreshNow) refreshNow.addEventListener('click', ()=>refresh(false));
