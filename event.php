@@ -381,6 +381,10 @@ if ($event) {
     $pendingCount = $hasEventAccess ? public_pending_request_count((int)$event['id']) : 0;
     $publicRequests = $hasEventAccess ? public_event_request_board((int)$event['id'], 40) : [];
     $eventPhotos = $hasEventAccess ? public_event_approved_photos((int)$event['id'], 12) : [];
+    $requestsOpen = $hasEventAccess && !$isCancelled ? event_requests_open($event) : false;
+    $requestCloseIso = dttd_event_request_close_iso($event);
+    $requestTimerLabel = dttd_event_request_timer_label($event);
+    $requestCloseClock = dttd_event_request_close_clock_label($event);
 }
 ?>
 <!DOCTYPE html>
@@ -390,7 +394,7 @@ if ($event) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : ($notFound ? 'Event Not Found' : 'Join Event') ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event portal.' ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=169">
+  <link rel="stylesheet" href="/assets/public-site.css?v=170">
 </head>
 <body class="homepage-option-one public-event-detail-page public-event-portal-page">
   <main class="home-option-one">
@@ -476,11 +480,21 @@ if ($event) {
             </div>
 
             <div class="public-event-action-grid">
-              <a class="public-event-action-tile" href="/request.php">
-                <span>🎵</span>
-                <strong>Request a Song</strong>
-                <em>Send a request to the DJ queue</em>
-              </a>
+              <?php if ($requestsOpen): ?>
+                <a class="public-event-action-tile request-window-card is-open" href="/request.php">
+                  <span>🎵</span>
+                  <strong>Request a Song</strong>
+                  <em>Send a request to the DJ queue</em>
+                  <small class="public-request-timer" <?= $requestCloseIso ? 'data-countdown-to="' . public_h($requestCloseIso) . '"' : '' ?>><?= public_h($requestTimerLabel) ?></small>
+                </a>
+              <?php else: ?>
+                <span class="public-event-action-tile request-window-card is-closed" aria-disabled="true">
+                  <span>🎵</span>
+                  <strong>Requests Closed</strong>
+                  <em>Song requests are now closed<?= $requestCloseClock ? ' — closed at ' . public_h($requestCloseClock) : '' ?></em>
+                  <small class="public-request-timer is-closed">Requests closed</small>
+                </span>
+              <?php endif; ?>
               <a class="public-event-action-tile" href="/gallery.php">
                 <span>📸</span>
                 <strong>Upload Photos</strong>
@@ -493,6 +507,12 @@ if ($event) {
               </a>
             </div>
           </article>
+
+          <?php if (!$requestsOpen): ?>
+            <div class="public-alert info public-request-window-closed-note">
+              Song requests are now closed for this event. You can still view requests, see recently played tracks and upload photos.
+            </div>
+          <?php endif; ?>
 
           <div class="public-event-live-grid">
             <article class="public-feature-card public-live-card public-requests-card">
@@ -713,6 +733,35 @@ if ($event) {
     <?php require __DIR__ . '/includes/public-footer.php'; ?>
   </main>
   <script>
+    (function(){
+      function labelFor(ms){
+        if(ms <= 0) return 'Requests closed';
+        var total = Math.ceil(ms / 60000);
+        var h = Math.floor(total / 60);
+        var m = total % 60;
+        if(h > 0) return 'Requests close in ' + h + 'h' + (m ? ' ' + m + 'm' : '');
+        return 'Requests close in ' + Math.max(1, m) + 'm';
+      }
+      function tick(){
+        document.querySelectorAll('[data-countdown-to]').forEach(function(el){
+          var target = Date.parse(el.getAttribute('data-countdown-to'));
+          if(!target) return;
+          var remaining = target - Date.now();
+          el.textContent = labelFor(remaining);
+          if(remaining <= 0){
+            el.classList.add('is-closed');
+            var card = el.closest('.request-window-card');
+            if(card){
+              card.classList.remove('is-open');
+              card.classList.add('is-closed');
+            }
+          }
+        });
+      }
+      tick();
+      setInterval(tick, 30000);
+    })();
+
     document.querySelectorAll('[data-public-carousel]').forEach(function(carousel) {
       var track = carousel.querySelector('.public-photo-carousel-track');
       if (!track) return;

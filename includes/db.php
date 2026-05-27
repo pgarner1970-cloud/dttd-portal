@@ -93,6 +93,57 @@ function event_requests_open($event) {
     return true;
 }
 
+function dttd_event_request_close_timestamp($event) {
+    if (!$event || empty($event['requests_close_at'])) {
+        return null;
+    }
+
+    $timestamp = strtotime((string)$event['requests_close_at']);
+    return $timestamp ?: null;
+}
+
+function dttd_event_request_close_iso($event) {
+    $timestamp = dttd_event_request_close_timestamp($event);
+    return $timestamp ? date('c', $timestamp) : '';
+}
+
+function dttd_event_request_close_clock_label($event) {
+    $timestamp = dttd_event_request_close_timestamp($event);
+    return $timestamp ? date('H:i', $timestamp) : '';
+}
+
+function dttd_event_request_timer_label($event) {
+    if (!$event) {
+        return '';
+    }
+
+    $timestamp = dttd_event_request_close_timestamp($event);
+
+    if (!$timestamp) {
+        return event_requests_open($event) ? 'Requests open now' : 'Requests closed';
+    }
+
+    $remaining = $timestamp - time();
+
+    if ($remaining <= 0) {
+        return 'Requests closed';
+    }
+
+    $hours = intdiv($remaining, 3600);
+    $minutes = (int)ceil(($remaining % 3600) / 60);
+
+    if ($minutes === 60) {
+        $hours++;
+        $minutes = 0;
+    }
+
+    if ($hours > 0) {
+        return 'Requests close in ' . $hours . 'h' . ($minutes > 0 ? ' ' . $minutes . 'm' : '');
+    }
+
+    return 'Requests close in ' . max(1, $minutes) . 'm';
+}
+
 function build_event_times($event_date, $start_time, $end_time, $close_minutes) {
     $start = new DateTime($event_date . ' ' . $start_time);
     $end = new DateTime($event_date . ' ' . $end_time);

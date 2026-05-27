@@ -148,6 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['song_title']) && $eve
 
 $title = 'Request a Song';
 $eventLabel = dttd_request_event_label($event);
+$requestCloseClock = $event ? dttd_event_request_close_clock_label($event) : '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -156,7 +157,7 @@ $eventLabel = dttd_request_event_label($event);
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= public_h($title) ?> | Dance Thru the Decades</title>
   <meta name="description" content="Request a song at a Dance Thru the Decades event using the venue QR code or event code.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=168">
+  <link rel="stylesheet" href="/assets/public-site.css?v=170">
 </head>
 <body class="homepage-option-one public-event-feature-page public-request-page">
   <main class="home-option-one">
@@ -202,7 +203,13 @@ $eventLabel = dttd_request_event_label($event);
         <article class="public-empty-card public-access-card">
           <h2>Requests closed</h2>
           <p>Song requests have closed for this event so the DJ can finish the night smoothly.</p>
-          <a class="public-neon-btn" href="/event.php">Back to Event</a>
+          <?php if ($requestCloseClock): ?>
+            <p class="public-small-note">The request window closed at <?= public_h($requestCloseClock) ?>.</p>
+          <?php endif; ?>
+          <div class="public-event-actions public-centred-actions">
+            <a class="public-neon-btn" href="/event.php">Back to Event</a>
+            <a class="public-neon-btn subtle" href="/gallery.php">Upload Photos</a>
+          </div>
         </article>
 
       <?php elseif ($success): ?>
