@@ -278,9 +278,13 @@ function mx_flag_request_in_playlist($request_id, $status = 'dj_playlist') {
         $params = [];
         if (mx_has_column('song_requests', 'spotify_queued_at')) { $sets[] = 'spotify_queued_at = NOW()'; }
         if (mx_has_column('song_requests', 'spotify_queue_status')) { $sets[] = 'spotify_queue_status = ?'; $params[] = $status; }
+        // Moving a public request into the mixer/DJ playlist is a positive DJ decision.
+        // Clear Maybe/Duplicate so both the DJ console and public event board show it as queued.
+        if (mx_has_column('song_requests', 'status')) { $sets[] = "status = CASE WHEN status IN ('maybe','duplicate') THEN 'pending' ELSE status END"; }
+        if (mx_has_column('song_requests', 'reject_reason')) { $sets[] = 'reject_reason = NULL'; }
         if (!$sets) return;
         $params[] = (int)$request_id;
-        $stmt = db()->prepare("UPDATE song_requests SET " . implode(', ', $sets) . " WHERE id = ?");
+        $stmt = db()->prepare("UPDATE song_requests SET " . implode(', ', $sets) . " WHERE id = ? AND status IN ('pending','maybe','duplicate')");
         $stmt->execute($params);
     } catch (Throwable $ignored) {}
 }

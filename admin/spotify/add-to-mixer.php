@@ -186,9 +186,13 @@ try {
     $updateParams = [];
     if (mx_has_column_local('song_requests', 'spotify_queued_at')) { $sets[] = 'spotify_queued_at = NOW()'; }
     if (mx_has_column_local('song_requests', 'spotify_queue_status')) { $sets[] = 'spotify_queue_status = ?'; $updateParams[] = 'mixer_request'; }
+    // If the DJ changes their mind on a Maybe/Duplicate item and sends it to the mixer,
+    // make the request visibly active again rather than leaving the public/admin badges as MAYBE.
+    if (mx_has_column_local('song_requests', 'status')) { $sets[] = "status = CASE WHEN status IN ('maybe','duplicate') THEN 'pending' ELSE status END"; }
+    if (mx_has_column_local('song_requests', 'reject_reason')) { $sets[] = 'reject_reason = NULL'; }
     if ($sets) {
         $updateParams[] = $groupId;
-        $upd = db()->prepare('UPDATE song_requests SET ' . implode(', ', $sets) . ' WHERE request_group_id = ?');
+        $upd = db()->prepare('UPDATE song_requests SET ' . implode(', ', $sets) . " WHERE request_group_id = ? AND status IN ('pending','maybe','duplicate')");
         $upd->execute($updateParams);
     }
 

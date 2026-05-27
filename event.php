@@ -187,7 +187,7 @@ function public_event_request_board($event_id, $limit = 40) {
 
     $limit = max(1, min(80, (int)$limit));
     $select = ['id', 'song_title', 'artist', 'guest_name', 'status', 'created_at'];
-    foreach (['dedication', 'message', 'spotify_queue_status', 'spotify_queued_at', 'updated_at'] as $column) {
+    foreach (['dedication', 'message', 'spotify_queue_status', 'spotify_queued_at', 'updated_at', 'reject_reason'] as $column) {
         if (dttd_table_column_exists('song_requests', $column)) {
             $select[] = $column;
         }
@@ -202,12 +202,13 @@ function public_event_request_board($event_id, $limit = 40) {
             SELECT $selectSql
             FROM song_requests
             WHERE event_id = ?
-              AND LOWER(COALESCE(status, 'pending')) NOT IN ('rejected', 'removed', 'hidden')
+              AND LOWER(COALESCE(status, 'pending')) NOT IN ('removed', 'hidden')
             ORDER BY
               CASE
                 WHEN LOWER(COALESCE(status, 'pending')) IN ('pending','maybe','duplicate') THEN 0
+                WHEN LOWER(COALESCE(status, 'pending')) = 'rejected' THEN 1
                 WHEN LOWER(COALESCE(status, 'pending')) = 'played' THEN 2
-                ELSE 1
+                ELSE 3
               END ASC,
               created_at DESC,
               id DESC
@@ -229,6 +230,10 @@ function public_request_status_label($request) {
         return 'Played';
     }
 
+    if ($status === 'rejected') {
+        return 'Unable to play';
+    }
+
     if ($spotifyStatus !== '' || $queuedAt !== '') {
         return 'In DJ queue';
     }
@@ -247,6 +252,7 @@ function public_request_status_label($request) {
 function public_request_status_class($label) {
     $key = strtolower((string)$label);
     if (str_contains($key, 'played')) return 'played';
+    if (str_contains($key, 'unable')) return 'unable';
     if (str_contains($key, 'queue')) return 'queued';
     if (str_contains($key, 'review')) return 'review';
     if (str_contains($key, 'already')) return 'duplicate';
@@ -261,6 +267,46 @@ function public_request_dedication($request) {
     }
 
     return '';
+}
+
+function public_request_reject_reason_label($request) {
+    if (strtolower((string)($request['status'] ?? '')) !== 'rejected') {
+        return '';
+    }
+
+    $reason = strtolower(trim((string)($request['reject_reason'] ?? '')));
+    $labels = [
+        'not_suitable' => "Sorry, this one is not quite right for tonight's event.",
+        'explicit' => 'Sorry, this one is not suitable for the audience tonight.',
+        'already_played' => 'Sorry, this track has already been played tonight.',
+        'time_constraints' => 'Sorry, there may not be enough time to fit this one in tonight.',
+        'not_available' => 'Sorry, the DJ cannot access this track tonight.',
+    ];
+
+    return $labels[$reason] ?? 'Sorry, the DJ is unable to play this one tonight.';
+}
+
+function public_request_board_summary($requests) {
+    $total = is_array($requests) ? count($requests) : 0;
+    if ($total <= 0) {
+        return 'Requests from tonight are shown below.';
+    }
+
+    $active = 0;
+    foreach ($requests as $request) {
+        $status = strtolower((string)($request['status'] ?? 'pending'));
+        if (!in_array($status, ['played', 'rejected'], true)) {
+            $active++;
+        }
+    }
+
+    $requestWord = $total === 1 ? 'request' : 'requests';
+    if ($active > 0) {
+        $activeWord = $active === 1 ? 'active request' : 'active requests';
+        return $total . ' ' . $requestWord . ' shown tonight, including ' . $active . ' ' . $activeWord . '.';
+    }
+
+    return $total . ' ' . $requestWord . ' shown tonight.';
 }
 
 function public_request_guest_name($request) {
@@ -520,11 +566,7 @@ if ($event) {
               <h2>Requests tonight</h2>
               <?php if (!empty($publicRequests)): ?>
                 <?php $visibleRequests = array_slice($publicRequests, 0, 5); $hiddenRequests = array_slice($publicRequests, 5); ?>
-                <?php if ($pendingCount > 0): ?>
-                  <p class="public-card-summary"><?= public_h($pendingCount . ' request' . ($pendingCount === 1 ? '' : 's') . ' waiting for the DJ.') ?></p>
-                <?php else: ?>
-                  <p class="public-card-summary">Requests from tonight are shown below.</p>
-                <?php endif; ?>
+                <p class="public-card-summary"><?= public_h(public_request_board_summary($publicRequests)) ?></p>
                 <ul class="public-request-board-list">
                   <?php foreach ($visibleRequests as $request): ?>
                     <?php $requestStatus = public_request_status_label($request); $dedicationText = public_request_dedication($request); ?>
@@ -537,6 +579,10 @@ if ($event) {
                       <small>Requested by <?= public_h(public_request_guest_name($request)) ?></small>
                       <?php if ($dedicationText !== ''): ?>
                         <p class="public-request-dedication">“<?= public_h($dedicationText) ?>”</p>
+                      <?php endif; ?>
+                      <?php $rejectReasonText = public_request_reject_reason_label($request); ?>
+                      <?php if ($rejectReasonText !== ''): ?>
+                        <p class="public-request-reason"><?= public_h($rejectReasonText) ?></p>
                       <?php endif; ?>
                     </li>
                   <?php endforeach; ?>
@@ -556,6 +602,10 @@ if ($event) {
                           <small>Requested by <?= public_h(public_request_guest_name($request)) ?></small>
                           <?php if ($dedicationText !== ''): ?>
                             <p class="public-request-dedication">“<?= public_h($dedicationText) ?>”</p>
+                          <?php endif; ?>
+                          <?php $rejectReasonText = public_request_reject_reason_label($request); ?>
+                          <?php if ($rejectReasonText !== ''): ?>
+                            <p class="public-request-reason"><?= public_h($rejectReasonText) ?></p>
                           <?php endif; ?>
                         </li>
                       <?php endforeach; ?>

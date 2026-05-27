@@ -635,7 +635,7 @@ admin_header('DJ Portal');
           <?php
             $first = $group['items'][0];
             $is_spotify_queued = in_array(strtolower((string)($group['spotify_queue_status'] ?? '')), ['queued','mixer_request','dj_playlist','loaded_a','loaded_b'], true);
-            $display_status = ($is_spotify_queued && strtolower((string)$group['status']) === 'pending') ? 'spotify' : $group['status'];
+            $display_status = $is_spotify_queued ? 'spotify' : $group['status'];
           ?>
           <article class="request-card status-<?= h($group['status']) ?><?= $is_spotify_queued ? ' spotify-queued-card' : '' ?> compact-queue-card">
             <div class="req-time">
