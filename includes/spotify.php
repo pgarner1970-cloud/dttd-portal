@@ -348,9 +348,13 @@ function dttd_spotify_current_playback() {
  * The DJ console continues to use the existing app_settings Spotify credentials.
  * Public request search can use a separate spotify_profiles row with role=public_search.
  */
-function dttd_spotify_profile_by_role($role) {
+function dttd_spotify_profile_by_role($role, $include_disabled = false) {
     try {
-        $stmt = db()->prepare("SELECT * FROM spotify_profiles WHERE role = ? AND enabled = 1 ORDER BY id ASC LIMIT 1");
+        if ($include_disabled) {
+            $stmt = db()->prepare("SELECT * FROM spotify_profiles WHERE role = ? ORDER BY id ASC LIMIT 1");
+        } else {
+            $stmt = db()->prepare("SELECT * FROM spotify_profiles WHERE role = ? AND enabled = 1 ORDER BY id ASC LIMIT 1");
+        }
         $stmt->execute([(string)$role]);
         $row = $stmt->fetch();
         return $row ?: null;
@@ -366,7 +370,7 @@ function dttd_spotify_save_profile_credentials($role, $label, $client_id, $clien
     $enabled_int = $enabled ? 1 : 0;
 
     try {
-        $existing = dttd_spotify_profile_by_role($role);
+        $existing = dttd_spotify_profile_by_role($role, true);
         if ($existing) {
             if ($client_secret !== null && trim((string)$client_secret) !== '') {
                 $stmt = db()->prepare("UPDATE spotify_profiles SET label=?, client_id=?, client_secret=?, enabled=? WHERE id=?");
