@@ -148,13 +148,24 @@ function public_recent_played_requests($event_id, $limit = 25) {
     }
 
     $limit = max(1, min(50, (int)$limit));
+    $select = ['song_title', 'artist', 'created_at'];
+    foreach (['spotify_track_url', 'spotify_track_id', 'updated_at'] as $column) {
+        if (dttd_table_column_exists('song_requests', $column)) {
+            $select[] = $column;
+        }
+    }
+
+    $selectSql = implode(', ', array_map(function($column) {
+        return '`' . str_replace('`', '', $column) . '`';
+    }, array_unique($select)));
 
     try {
+        $orderSql = dttd_table_column_exists('song_requests', 'updated_at') ? 'updated_at DESC, created_at DESC, id DESC' : 'created_at DESC, id DESC';
         $stmt = db()->prepare("
-            SELECT song_title, artist, created_at
+            SELECT $selectSql
             FROM song_requests
             WHERE event_id = ? AND status = 'played'
-            ORDER BY updated_at DESC, created_at DESC, id DESC
+            ORDER BY $orderSql
             LIMIT " . $limit . "
         ");
         $stmt->execute([(int)$event_id]);
@@ -314,6 +325,43 @@ function public_request_guest_name($request) {
     return $name !== '' ? $name : 'Guest';
 }
 
+function public_played_spotify_url($played) {
+    $direct = trim((string)($played['spotify_track_url'] ?? ''));
+    if ($direct !== '' && preg_match('~^https?://~i', $direct)) {
+        return $direct;
+    }
+
+    $trackId = trim((string)($played['spotify_track_id'] ?? ''));
+    if ($trackId !== '') {
+        return 'https://open.spotify.com/track/' . rawurlencode($trackId);
+    }
+
+    $query = trim((string)($played['song_title'] ?? '') . ' ' . (string)($played['artist'] ?? ''));
+    return $query !== '' ? 'https://open.spotify.com/search/' . rawurlencode($query) : '';
+}
+
+function public_event_share_url($event) {
+    $base = function_exists('dttd_public_request_base_url') ? dttd_public_request_base_url('https://dancethruthedecades.co.uk') : 'https://dancethruthedecades.co.uk';
+    return rtrim($base, '/') . '/event/' . rawurlencode(public_event_slug($event));
+}
+
+function public_played_share_text($played, $event) {
+    $title = trim((string)($played['song_title'] ?? ''));
+    $artist = trim((string)($played['artist'] ?? ''));
+    $eventTitle = trim((string)($event['event_name'] ?? $event['name'] ?? 'this Dance Thru The Decades event'));
+
+    $track = $title;
+    if ($artist !== '') {
+        $track .= ' by ' . $artist;
+    }
+
+    if ($track === '') {
+        return 'I am at ' . $eventTitle . ' with Dance Thru The Decades.';
+    }
+
+    return 'I am at ' . $eventTitle . ' with Dance Thru The Decades, listening to ' . $track . ' 🎶';
+}
+
 function public_event_photo_table_ready() {
     return dttd_table_exists('event_photo_uploads')
         && dttd_table_column_exists('event_photo_uploads', 'event_id')
@@ -423,6 +471,7 @@ if ($event) {
     $mapQuery = trim($venue . ' ' . $venueAddress . ' ' . $postcode);
     $mapEmbedUrl = $mapQuery ? 'https://www.google.com/maps?q=' . urlencode($mapQuery) . '&output=embed' : '';
     $mapExternalUrl = $mapQuery ? 'https://www.google.com/maps/search/?api=1&query=' . urlencode($mapQuery) : '';
+    $eventShareUrl = public_event_share_url($event);
     $playedRequests = $hasEventAccess ? public_recent_played_requests((int)$event['id'], 25) : [];
     $pendingCount = $hasEventAccess ? public_pending_request_count((int)$event['id']) : 0;
     $publicRequests = $hasEventAccess ? public_event_request_board((int)$event['id'], 40) : [];
@@ -440,7 +489,7 @@ if ($event) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : ($notFound ? 'Event Not Found' : 'Join Event') ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event portal.' ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=170">
+  <link rel="stylesheet" href="/assets/public-site.css?v=180">
 </head>
 <body class="homepage-option-one public-event-detail-page public-event-portal-page">
   <main class="home-option-one">
@@ -625,7 +674,19 @@ if ($event) {
                 <?php $visiblePlayed = array_slice($playedRequests, 0, 5); $hiddenPlayed = array_slice($playedRequests, 5); ?>
                 <ol class="public-mini-list public-played-list">
                   <?php foreach ($visiblePlayed as $played): ?>
-                    <li><strong><?= public_h($played['song_title'] ?? '') ?></strong><span><?= public_h($played['artist'] ?? '') ?></span></li>
+                    <?php $spotifyUrl = public_played_spotify_url($played); $shareText = public_played_share_text($played, $event); ?>
+                    <li class="public-played-track-row">
+                      <div class="public-played-track-main">
+                        <strong><?= public_h($played['song_title'] ?? '') ?></strong>
+                        <span><?= public_h($played['artist'] ?? '') ?></span>
+                      </div>
+                      <div class="public-played-track-actions">
+                        <?php if ($spotifyUrl): ?>
+                          <a class="public-track-action spotify" href="<?= public_h($spotifyUrl) ?>" target="_blank" rel="noopener" aria-label="Open <?= public_h($played['song_title'] ?? 'track') ?> in Spotify">Spotify</a>
+                        <?php endif; ?>
+                        <button class="public-track-action share" type="button" data-track-share data-share-title="<?= public_h(($played['song_title'] ?? 'Recently played') . ' | Dance Thru The Decades') ?>" data-share-text="<?= public_h($shareText) ?>" data-share-url="<?= public_h($eventShareUrl) ?>">Share</button>
+                      </div>
+                    </li>
                   <?php endforeach; ?>
                 </ol>
                 <?php if ($hiddenPlayed): ?>
@@ -633,7 +694,19 @@ if ($event) {
                     <summary>View more played songs</summary>
                     <ol class="public-mini-list public-played-list public-played-list-extra" start="6">
                       <?php foreach ($hiddenPlayed as $played): ?>
-                        <li><strong><?= public_h($played['song_title'] ?? '') ?></strong><span><?= public_h($played['artist'] ?? '') ?></span></li>
+                        <?php $spotifyUrl = public_played_spotify_url($played); $shareText = public_played_share_text($played, $event); ?>
+                        <li class="public-played-track-row">
+                          <div class="public-played-track-main">
+                            <strong><?= public_h($played['song_title'] ?? '') ?></strong>
+                            <span><?= public_h($played['artist'] ?? '') ?></span>
+                          </div>
+                          <div class="public-played-track-actions">
+                            <?php if ($spotifyUrl): ?>
+                              <a class="public-track-action spotify" href="<?= public_h($spotifyUrl) ?>" target="_blank" rel="noopener" aria-label="Open <?= public_h($played['song_title'] ?? 'track') ?> in Spotify">Spotify</a>
+                            <?php endif; ?>
+                            <button class="public-track-action share" type="button" data-track-share data-share-title="<?= public_h(($played['song_title'] ?? 'Recently played') . ' | Dance Thru The Decades') ?>" data-share-text="<?= public_h($shareText) ?>" data-share-url="<?= public_h($eventShareUrl) ?>">Share</button>
+                          </div>
+                        </li>
                       <?php endforeach; ?>
                     </ol>
                   </details>
@@ -820,6 +893,36 @@ if ($event) {
           var direction = btn.classList.contains('public-carousel-prev') ? -1 : 1;
           track.scrollBy({ left: direction * Math.max(260, track.clientWidth * 0.85), behavior: 'smooth' });
         });
+      });
+    });
+
+    document.querySelectorAll('[data-track-share]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var title = btn.getAttribute('data-share-title') || 'Dance Thru The Decades';
+        var text = btn.getAttribute('data-share-text') || 'I am at a Dance Thru The Decades event 🎶';
+        var url = btn.getAttribute('data-share-url') || window.location.href;
+        var payload = { title: title, text: text, url: url };
+
+        if (navigator.share) {
+          navigator.share(payload).catch(function(){});
+          return;
+        }
+
+        var copyText = text + '\n' + url;
+        var original = btn.textContent;
+        function showCopied(){
+          btn.textContent = 'Copied';
+          btn.classList.add('copied');
+          setTimeout(function(){ btn.textContent = original; btn.classList.remove('copied'); }, 1800);
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(copyText).then(showCopied).catch(function(){
+            window.prompt('Copy this to share:', copyText);
+          });
+        } else {
+          window.prompt('Copy this to share:', copyText);
+        }
       });
     });
   </script>
