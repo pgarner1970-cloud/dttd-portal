@@ -3382,6 +3382,5 @@ body.lightbox-open { overflow:hidden; }
   .public-grid-heading-row { flex-direction:column; align-items:flex-start; }
 }
 
-/* Keep the gallery lightbox closed until a photo is deliberately clicked. */
+/* Patch: ensure the gallery lightbox really stays hidden until a photo is clicked. */
 .public-lightbox[hidden] { display: none !important; }
-.public-lightbox-nav[hidden] { display: none !important; }
