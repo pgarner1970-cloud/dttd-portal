@@ -40,35 +40,6 @@ function photo_public_url($path) {
     return '/' . ltrim($path, '/');
 }
 
-function photo_absolute_path($path) {
-    $path = trim(str_replace('\\', '/', (string)$path));
-    if ($path === '') {
-        return '';
-    }
-    if (strpos($path, dirname(__DIR__) . '/') === 0) {
-        return $path;
-    }
-    $path = ltrim($path, '/');
-    if (strpos($path, 'uploads/event-photos/') !== 0) {
-        return '';
-    }
-    return dirname(__DIR__) . '/' . $path;
-}
-
-function photo_existing_public_path($path) {
-    $abs = photo_absolute_path($path);
-    return ($abs !== '' && is_file($abs) && filesize($abs) > 0) ? ltrim(str_replace('\\', '/', (string)$path), '/') : '';
-}
-
-function photo_admin_image_url($row, $variant = 'thumb') {
-    $id = (int)($row['id'] ?? 0);
-    if ($id <= 0) {
-        $paths = photo_row_display_paths($row);
-        return photo_public_url($paths[$variant] ?? $paths['display'] ?? '');
-    }
-    return '/admin/event-photo-image.php?id=' . $id . '&variant=' . rawurlencode($variant) . '&v=' . urlencode((string)($row['updated_at'] ?? $row['created_at'] ?? time()));
-}
-
 function photo_storage_directories() {
     $base = photo_upload_base_dir();
     $dirs = [
@@ -209,6 +180,83 @@ function photo_draw_gradient($im, $x, $y, $w, $h, $from, $to) {
     }
 }
 
+function photo_alloc($im, $rgb, $alpha = 0) {
+    return imagecolorallocatealpha($im, (int)$rgb[0], (int)$rgb[1], (int)$rgb[2], (int)$alpha);
+}
+
+function photo_draw_rounded_rect($im, $x1, $y1, $x2, $y2, $radius, $color, $filled = true) {
+    $x1 = (int)$x1; $y1 = (int)$y1; $x2 = (int)$x2; $y2 = (int)$y2; $radius = (int)$radius;
+    if ($filled) {
+        imagefilledrectangle($im, $x1 + $radius, $y1, $x2 - $radius, $y2, $color);
+        imagefilledrectangle($im, $x1, $y1 + $radius, $x2, $y2 - $radius, $color);
+        imagefilledarc($im, $x1 + $radius, $y1 + $radius, $radius * 2, $radius * 2, 180, 270, $color, IMG_ARC_PIE);
+        imagefilledarc($im, $x2 - $radius, $y1 + $radius, $radius * 2, $radius * 2, 270, 360, $color, IMG_ARC_PIE);
+        imagefilledarc($im, $x2 - $radius, $y2 - $radius, $radius * 2, $radius * 2, 0, 90, $color, IMG_ARC_PIE);
+        imagefilledarc($im, $x1 + $radius, $y2 - $radius, $radius * 2, $radius * 2, 90, 180, $color, IMG_ARC_PIE);
+    } else {
+        imageline($im, $x1 + $radius, $y1, $x2 - $radius, $y1, $color);
+        imageline($im, $x1 + $radius, $y2, $x2 - $radius, $y2, $color);
+        imageline($im, $x1, $y1 + $radius, $x1, $y2 - $radius, $color);
+        imageline($im, $x2, $y1 + $radius, $x2, $y2 - $radius, $color);
+        imagearc($im, $x1 + $radius, $y1 + $radius, $radius * 2, $radius * 2, 180, 270, $color);
+        imagearc($im, $x2 - $radius, $y1 + $radius, $radius * 2, $radius * 2, 270, 360, $color);
+        imagearc($im, $x2 - $radius, $y2 - $radius, $radius * 2, $radius * 2, 0, 90, $color);
+        imagearc($im, $x1 + $radius, $y2 - $radius, $radius * 2, $radius * 2, 90, 180, $color);
+    }
+}
+
+function photo_draw_glow_rounded_rect($im, $x1, $y1, $x2, $y2, $radius, $rgb, $borderRgb = null) {
+    $borderRgb = $borderRgb ?: $rgb;
+    for ($i = 14; $i >= 2; $i -= 2) {
+        $alpha = min(120, 120 - ($i * 5));
+        $c = photo_alloc($im, $rgb, $alpha);
+        for ($n = 0; $n < 2; $n++) {
+            photo_draw_rounded_rect($im, $x1 - $i - $n, $y1 - $i - $n, $x2 + $i + $n, $y2 + $i + $n, $radius + $i, $c, false);
+        }
+    }
+    $c1 = photo_alloc($im, $borderRgb, 0);
+    $c2 = photo_alloc($im, [255, 185, 255], 15);
+    for ($n = 0; $n < 4; $n++) {
+        photo_draw_rounded_rect($im, $x1 - $n, $y1 - $n, $x2 + $n, $y2 + $n, $radius + $n, $n === 0 ? $c2 : $c1, false);
+    }
+}
+
+function photo_ttf_bbox_width($size, $font, $text) {
+    $box = imagettfbbox($size, 0, $font, $text);
+    return abs($box[2] - $box[0]);
+}
+
+function photo_fit_font_size($text, $font, $maxWidth, $start, $min) {
+    if (!is_file($font) || !function_exists('imagettfbbox')) return $start;
+    for ($size = $start; $size >= $min; $size--) {
+        if (photo_ttf_bbox_width($size, $font, $text) <= $maxWidth) return $size;
+    }
+    return $min;
+}
+
+function photo_draw_centered_ttf($im, $text, $size, $y, $color, $font, $x1, $x2, $angle = 0) {
+    if (!is_file($font) || !function_exists('imagettftext')) return false;
+    $w = photo_ttf_bbox_width($size, $font, $text);
+    $x = (int)round($x1 + (($x2 - $x1 - $w) / 2));
+    imagettftext($im, $size, $angle, $x, (int)$y, $color, $font, $text);
+    return true;
+}
+
+function photo_draw_glow_text($im, $text, $size, $y, $color, $glowRgb, $font, $x1, $x2, $angle = 0) {
+    if (!is_file($font) || !function_exists('imagettftext')) return false;
+    $w = photo_ttf_bbox_width($size, $font, $text);
+    $x = (int)round($x1 + (($x2 - $x1 - $w) / 2));
+    for ($r = 7; $r >= 1; $r--) {
+        $gc = photo_alloc($im, $glowRgb, 108);
+        imagettftext($im, $size, $angle, $x - $r, (int)$y, $gc, $font, $text);
+        imagettftext($im, $size, $angle, $x + $r, (int)$y, $gc, $font, $text);
+        imagettftext($im, $size, $angle, $x, (int)$y - $r, $gc, $font, $text);
+        imagettftext($im, $size, $angle, $x, (int)$y + $r, $gc, $font, $text);
+    }
+    imagettftext($im, $size, $angle, $x, (int)$y, $color, $font, $text);
+    return true;
+}
+
 function photo_render_framed_image($sourcePath, $destPath, $event, $orientation = 'portrait') {
     if (!extension_loaded('gd')) {
         return false;
@@ -221,89 +269,157 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
 
     $srcW = imagesx($src);
     $srcH = imagesy($src);
-
     $portrait = $orientation !== 'landscape';
+
+    // Portrait cards are best for socials; landscape photos get a polished widescreen card.
     $canvasW = $portrait ? 1080 : 1600;
     $canvasH = $portrait ? 1350 : 1200;
-
     $im = imagecreatetruecolor($canvasW, $canvasH);
     imageantialias($im, true);
+    imagesavealpha($im, true);
 
-    photo_draw_gradient($im, 0, 0, $canvasW, $canvasH, [18, 0, 35], [48, 0, 70]);
-    $glow = imagecolorallocatealpha($im, 232, 61, 255, 100);
-    imagefilledellipse($im, (int)($canvasW * 0.5), (int)($canvasH * 0.16), (int)($canvasW * 0.7), (int)($canvasH * 0.22), $glow);
+    $deepPurple = [18, 0, 31];
+    $purple = [50, 0, 78];
+    $hotPink = [235, 54, 255];
+    $softPink = [255, 158, 255];
+    $goldRgb = [255, 220, 86];
+    $whiteRgb = [255, 255, 255];
 
-    $panelX = 36;
-    $panelY = 36;
-    $panelW = $canvasW - 72;
-    $panelH = $canvasH - 72;
-    $panelBg = imagecolorallocatealpha($im, 20, 4, 34, 22);
-    $panelBorder = imagecolorallocate($im, 198, 59, 219);
-    imagefilledrectangle($im, $panelX, $panelY, $panelX + $panelW, $panelY + $panelH, $panelBg);
-    imagerectangle($im, $panelX, $panelY, $panelX + $panelW, $panelY + $panelH, $panelBorder);
+    // Background: dark purple with a subtle stage-light/ray feel.
+    photo_draw_gradient($im, 0, 0, $canvasW, $canvasH, $deepPurple, $purple);
+    $ray = photo_alloc($im, [120, 39, 160], 118);
+    $cx = (int)($canvasW / 2);
+    $cy = (int)($canvasH * 0.08);
+    for ($a = -70; $a <= 250; $a += 18) {
+        $x1 = $cx + (int)(cos(deg2rad($a)) * $canvasW * 1.2);
+        $y1 = $cy + (int)(sin(deg2rad($a)) * $canvasH * 1.1);
+        $x2 = $cx + (int)(cos(deg2rad($a + 8)) * $canvasW * 1.2);
+        $y2 = $cy + (int)(sin(deg2rad($a + 8)) * $canvasH * 1.1);
+        imagefilledpolygon($im, [$cx, $cy, $x1, $y1, $x2, $y2], 3, $ray);
+    }
+    imagefilledellipse($im, $cx, (int)($canvasH * 0.14), (int)($canvasW * 0.85), (int)($canvasH * 0.22), photo_alloc($im, [200, 60, 255], 112));
 
-    $headerH = 120;
-    $footerH = 160;
-    $innerPad = 36;
-    $photoX = $panelX + $innerPad;
-    $photoY = $panelY + $headerH + 8;
-    $photoW = $panelW - ($innerPad * 2);
-    $photoH = $panelH - $headerH - $footerH - 16;
+    $margin = $portrait ? 88 : 90;
+    $cardX1 = $margin;
+    $cardY1 = $portrait ? 54 : 50;
+    $cardX2 = $canvasW - $margin;
+    $cardY2 = $canvasH - ($portrait ? 58 : 54);
+    $cardRadius = $portrait ? 58 : 48;
 
-    $photoBg = imagecolorallocate($im, 10, 10, 22);
-    imagefilledrectangle($im, $photoX, $photoY, $photoX + $photoW, $photoY + $photoH, $photoBg);
+    photo_draw_rounded_rect($im, $cardX1, $cardY1, $cardX2, $cardY2, $cardRadius, photo_alloc($im, [24, 0, 35], 8), true);
+    photo_draw_glow_rounded_rect($im, $cardX1, $cardY1, $cardX2, $cardY2, $cardRadius, $hotPink, $softPink);
 
-    $scale = max($photoW / $srcW, $photoH / $srcH);
+    $cardW = $cardX2 - $cardX1;
+    $cardH = $cardY2 - $cardY1;
+    $headerH = $portrait ? 118 : 120;
+    $footerH = $portrait ? 260 : 250;
+    $photoPad = $portrait ? 36 : 46;
+    $photoX = $cardX1 + $photoPad;
+    $photoY = $cardY1 + $headerH;
+    $photoW = $cardW - ($photoPad * 2);
+    $photoH = $cardH - $headerH - $footerH;
+
+    // Draw a dark placeholder, then cover-crop the source photo into the window.
+    imagefilledrectangle($im, $photoX, $photoY, $photoX + $photoW, $photoY + $photoH, photo_alloc($im, [5, 5, 14], 0));
+    $scale = max($photoW / max(1, $srcW), $photoH / max(1, $srcH));
     $cropW = (int)round($photoW / $scale);
     $cropH = (int)round($photoH / $scale);
     $cropX = (int)max(0, floor(($srcW - $cropW) / 2));
     $cropY = (int)max(0, floor(($srcH - $cropH) / 2));
     photo_resize_cover($src, $im, $cropX, $cropY, $cropW, $cropH, $photoW, $photoH);
 
-    $frameColor = imagecolorallocate($im, 244, 78, 255);
-    imagerectangle($im, $photoX - 3, $photoY - 3, $photoX + $photoW + 3, $photoY + $photoH + 3, $frameColor);
+    // Soft vignette and neon dividers.
+    imagefilledrectangle($im, $photoX, $photoY, $photoX + $photoW, $photoY + 70, photo_alloc($im, [12, 0, 22], 104));
+    imagefilledrectangle($im, $photoX, $photoY + $photoH - 80, $photoX + $photoW, $photoY + $photoH, photo_alloc($im, [12, 0, 22], 102));
+    $line = photo_alloc($im, $hotPink, 0);
+    for ($i = 0; $i < 5; $i++) {
+        imageline($im, $photoX, $photoY - 2 + $i, $photoX + $photoW, $photoY - 28 + $i, $i === 2 ? $line : photo_alloc($im, $hotPink, 78));
+        imageline($im, $photoX, $photoY + $photoH + 2 + $i, $photoX + $photoW, $photoY + $photoH - 18 + $i, $i === 2 ? $line : photo_alloc($im, $hotPink, 82));
+    }
 
-    $white = imagecolorallocate($im, 255, 255, 255);
-    $gold = imagecolorallocate($im, 255, 222, 88);
-    $muted = imagecolorallocate($im, 220, 205, 240);
-
-    $fontBold = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
-    $fontRegular = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf';
-
+    // Header logo and title.
     $logoPath = dirname(__DIR__) . '/assets/dttd-logo-inner.png';
     if (is_file($logoPath)) {
         $logo = photo_load_image_resource($logoPath, $logoMime);
         if ($logo) {
             $logoW = imagesx($logo);
             $logoH = imagesy($logo);
-            $targetH = 72;
+            $targetH = $portrait ? 128 : 100;
             $targetW = (int)round($logoW * ($targetH / max(1, $logoH)));
-            imagecopyresampled($im, $logo, $panelX + 28, $panelY + 24, 0, 0, $targetW, $targetH, $logoW, $logoH);
+            $lx = $cardX1 + ($portrait ? 28 : 34);
+            $ly = $cardY1 + ($portrait ? 24 : 18);
+            imagecopyresampled($im, $logo, $lx, $ly, 0, 0, $targetW, $targetH, $logoW, $logoH);
             imagedestroy($logo);
         }
     }
 
+    $fontBold = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
+    $fontRegular = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf';
+    $fontMono = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf';
+    $white = photo_alloc($im, $whiteRgb, 0);
+    $gold = photo_alloc($im, $goldRgb, 0);
+    $pink = photo_alloc($im, $hotPink, 0);
+
     if (is_file($fontBold) && function_exists('imagettftext')) {
-        imagettftext($im, 18, 0, $panelX + $panelW - 190, $panelY + 52, $gold, $fontBold, 'EVENT PHOTO');
-        imagettftext($im, 38, 0, $panelX + 34, $panelY + $panelH - 108, $white, $fontBold, trim((string)($event['event_name'] ?? 'Dance Thru The Decades')));
-        $venueLine = trim((string)($event['venue_name'] ?? ''));
-        $dateLine = '';
-        if (!empty($event['event_date'])) {
-            try {
-                $dateLine = (new DateTime($event['event_date']))->format('D j M Y');
-            } catch (Throwable $e) {
-                $dateLine = (string)$event['event_date'];
-            }
-        }
-        $secondLine = implode('  •  ', array_filter([$venueLine, $dateLine]));
-        imagettftext($im, 21, 0, $panelX + 36, $panelY + $panelH - 60, $muted, $fontRegular, $secondLine ?: 'Dance Thru The Decades Events');
-        imagettftext($im, 16, 0, $panelX + 36, $panelY + $panelH - 28, $gold, $fontBold, 'Dance Thru The Decades Events');
-    } else {
-        imagestring($im, 5, $panelX + 26, $panelY + 30, 'EVENT PHOTO', $gold);
-        imagestring($im, 5, $panelX + 26, $panelY + $panelH - 88, trim((string)($event['event_name'] ?? 'Dance Thru The Decades')), $white);
+        $eventPhoto = 'E V E N T   P H O T O';
+        $titleSize = $portrait ? 24 : 22;
+        $titleW = photo_ttf_bbox_width($titleSize, $fontBold, $eventPhoto);
+        imagettftext($im, $titleSize, 0, $cardX2 - $titleW - ($portrait ? 62 : 74), $cardY1 + ($portrait ? 76 : 74), $gold, $fontBold, $eventPhoto);
     }
 
-    $saved = photo_save_image_resource($im, $destPath, 90);
+    $eventName = trim((string)($event['event_name'] ?? 'Dance Thru The Decades')) ?: 'Dance Thru The Decades';
+    $venueLine = trim((string)($event['venue_name'] ?? ''));
+    $dateLine = '';
+    if (!empty($event['event_date'])) {
+        try {
+            $dateLine = (new DateTime($event['event_date']))->format('D j M Y');
+        } catch (Throwable $e) {
+            $dateLine = (string)$event['event_date'];
+        }
+    }
+
+    $footerTop = $photoY + $photoH + ($portrait ? 56 : 52);
+    if (is_file($fontBold) && function_exists('imagettftext')) {
+        $nameSize = photo_fit_font_size($eventName, $fontBold, $cardW - 170, $portrait ? 44 : 42, 24);
+        photo_draw_glow_text($im, $eventName, $nameSize, $footerTop + ($portrait ? 16 : 4), $white, [255, 80, 255], $fontBold, $cardX1 + 60, $cardX2 - 60);
+
+        if ($venueLine !== '') {
+            $venueSize = photo_fit_font_size($venueLine, $fontBold, $cardW - 190, $portrait ? 28 : 26, 18);
+            photo_draw_centered_ttf($im, $venueLine, $venueSize, $footerTop + ($portrait ? 66 : 52), $gold, $fontBold, $cardX1 + 74, $cardX2 - 74);
+        }
+
+        if ($dateLine !== '') {
+            $dateSize = $portrait ? 25 : 23;
+            $starGap = $portrait ? 34 : 32;
+            $dateW = photo_ttf_bbox_width($dateSize, $fontBold, $dateLine);
+            $dateX1 = $cardX1 + (($cardW - $dateW) / 2);
+            imagettftext($im, $dateSize, 0, (int)$dateX1, $footerTop + ($portrait ? 108 : 92), $white, $fontBold, $dateLine);
+            imagettftext($im, $dateSize + 8, 0, (int)($dateX1 - $starGap), $footerTop + ($portrait ? 108 : 92), $pink, $fontBold, '★');
+            imagettftext($im, $dateSize + 8, 0, (int)($dateX1 + $dateW + 12), $footerTop + ($portrait ? 108 : 92), $pink, $fontBold, '★');
+        }
+
+        $strap = 'D A N C E   T H R U   T H E   D E C A D E S   E V E N T S';
+        $strapSize = photo_fit_font_size($strap, $fontBold, $cardW - 170, $portrait ? 15 : 14, 10);
+        photo_draw_centered_ttf($im, $strap, $strapSize, $cardY2 - ($portrait ? 52 : 46), $pink, $fontBold, $cardX1 + 60, $cardX2 - 60);
+    } else {
+        imagestring($im, 5, $cardX1 + 40, $footerTop, $eventName, $white);
+    }
+
+    // Decorative sparkle stars in the footer.
+    if (is_file($fontBold) && function_exists('imagettftext')) {
+        $sparkles = [
+            [$cardX1 + (int)($cardW * 0.17), $footerTop + 88, 26],
+            [$cardX1 + (int)($cardW * 0.24), $footerTop + 64, 24],
+            [$cardX1 + (int)($cardW * 0.29), $footerTop + 112, 22],
+            [$cardX2 - (int)($cardW * 0.20), $footerTop + 74, 25],
+            [$cardX2 - (int)($cardW * 0.13), $footerTop + 106, 23],
+        ];
+        foreach ($sparkles as $sp) {
+            imagettftext($im, $sp[2], 0, $sp[0], $sp[1], photo_alloc($im, [238, 78, 255], 15), $fontBold, '✦');
+        }
+    }
+
+    $saved = photo_save_image_resource($im, $destPath, 92);
     imagedestroy($src);
     imagedestroy($im);
     return $saved;
@@ -423,14 +539,10 @@ function photo_row_display_paths($row) {
     $thumb = trim((string)($row['thumb_path'] ?? ''));
     $original = trim((string)($row['original_path'] ?? ''));
 
-    $display = photo_existing_public_path($framed) ?: photo_existing_public_path($file) ?: photo_existing_public_path($original) ?: ($framed ?: $file ?: $original);
-    $thumbPath = photo_existing_public_path($thumb) ?: photo_existing_public_path($framed) ?: photo_existing_public_path($file) ?: photo_existing_public_path($original) ?: ($thumb ?: $display);
-    $originalPath = photo_existing_public_path($original) ?: photo_existing_public_path($framed) ?: photo_existing_public_path($file) ?: $original;
-
     return [
-        'display' => $display,
-        'thumb' => $thumbPath,
-        'original' => $originalPath,
+        'display' => $framed ?: $file,
+        'thumb' => $thumb ?: ($framed ?: $file),
+        'original' => $original ?: ($framed ?: $file),
     ];
 }
 ?>
