@@ -40,37 +40,33 @@ function photo_public_url($path) {
     return '/' . ltrim($path, '/');
 }
 
-function photo_site_root_dir() {
-    return dirname(__DIR__);
-}
-
 function photo_absolute_path($path) {
-    $path = trim((string)$path);
-    if ($path === '' || preg_match('~^https?://~i', $path)) {
+    $path = trim(str_replace('\\', '/', (string)$path));
+    if ($path === '') {
         return '';
     }
-    return photo_site_root_dir() . '/' . ltrim(str_replace('\\', '/', $path), '/');
+    if (strpos($path, dirname(__DIR__) . '/') === 0) {
+        return $path;
+    }
+    $path = ltrim($path, '/');
+    if (strpos($path, 'uploads/event-photos/') !== 0) {
+        return '';
+    }
+    return dirname(__DIR__) . '/' . $path;
 }
 
-function photo_file_exists($path) {
+function photo_existing_public_path($path) {
     $abs = photo_absolute_path($path);
-    return $abs !== '' && is_file($abs);
+    return ($abs !== '' && is_file($abs) && filesize($abs) > 0) ? ltrim(str_replace('\\', '/', (string)$path), '/') : '';
 }
 
-function photo_first_existing_path(array $paths) {
-    foreach ($paths as $path) {
-        $path = trim((string)$path);
-        if ($path !== '' && (preg_match('~^https?://~i', $path) || photo_file_exists($path))) {
-            return $path;
-        }
+function photo_admin_image_url($row, $variant = 'thumb') {
+    $id = (int)($row['id'] ?? 0);
+    if ($id <= 0) {
+        $paths = photo_row_display_paths($row);
+        return photo_public_url($paths[$variant] ?? $paths['display'] ?? '');
     }
-    foreach ($paths as $path) {
-        $path = trim((string)$path);
-        if ($path !== '') {
-            return $path;
-        }
-    }
-    return '';
+    return '/admin/event-photo-image.php?id=' . $id . '&variant=' . rawurlencode($variant) . '&v=' . urlencode((string)($row['updated_at'] ?? $row['created_at'] ?? time()));
 }
 
 function photo_storage_directories() {
@@ -427,67 +423,14 @@ function photo_row_display_paths($row) {
     $thumb = trim((string)($row['thumb_path'] ?? ''));
     $original = trim((string)($row['original_path'] ?? ''));
 
-    $display = photo_first_existing_path([$framed, $file, $original, $thumb]);
-    $thumbDisplay = photo_first_existing_path([$thumb, $framed, $file, $original]);
-    $originalDisplay = photo_first_existing_path([$original, $file, $framed, $thumb]);
+    $display = photo_existing_public_path($framed) ?: photo_existing_public_path($file) ?: photo_existing_public_path($original) ?: ($framed ?: $file ?: $original);
+    $thumbPath = photo_existing_public_path($thumb) ?: photo_existing_public_path($framed) ?: photo_existing_public_path($file) ?: photo_existing_public_path($original) ?: ($thumb ?: $display);
+    $originalPath = photo_existing_public_path($original) ?: photo_existing_public_path($framed) ?: photo_existing_public_path($file) ?: $original;
 
     return [
         'display' => $display,
-        'thumb' => $thumbDisplay,
-        'original' => $originalDisplay,
+        'thumb' => $thumbPath,
+        'original' => $originalPath,
     ];
-}
-
-function photo_ensure_generated_files(array $row, array $event = null) {
-    $original = trim((string)($row['original_path'] ?? ''));
-    $framed = trim((string)($row['framed_path'] ?? ''));
-    $thumb = trim((string)($row['thumb_path'] ?? ''));
-    $file = trim((string)($row['file_path'] ?? ''));
-
-    if ($original === '' || !photo_file_exists($original)) {
-        return false;
-    }
-
-    $event = $event ?: $row;
-    $changed = false;
-    $originalAbs = photo_absolute_path($original);
-
-    if ($framed !== '' && !photo_file_exists($framed)) {
-        $framedAbs = photo_absolute_path($framed);
-        @mkdir(dirname($framedAbs), 0775, true);
-        $orientation = (string)($row['image_orientation'] ?? 'portrait');
-        if (!photo_render_framed_image($originalAbs, $framedAbs, $event, $orientation)) {
-            @copy($originalAbs, $framedAbs);
-        }
-        $changed = true;
-    }
-
-    $thumbSource = ($framed !== '' && photo_file_exists($framed)) ? $framed : (($file !== '' && photo_file_exists($file)) ? $file : $original);
-    if ($thumb !== '' && !photo_file_exists($thumb) && $thumbSource !== '') {
-        $thumbAbs = photo_absolute_path($thumb);
-        @mkdir(dirname($thumbAbs), 0775, true);
-        if (!photo_render_thumb(photo_absolute_path($thumbSource), $thumbAbs, 540)) {
-            @copy(photo_absolute_path($thumbSource), $thumbAbs);
-        }
-        $changed = true;
-    }
-
-    return $changed;
-}
-
-function photo_delete_upload_files(array $row) {
-    $paths = [];
-    foreach (['original_path', 'framed_path', 'thumb_path', 'file_path'] as $field) {
-        $path = trim((string)($row[$field] ?? ''));
-        if ($path !== '' && !preg_match('~^https?://~i', $path)) {
-            $paths[$path] = true;
-        }
-    }
-    foreach (array_keys($paths) as $path) {
-        $abs = photo_absolute_path($path);
-        if ($abs !== '' && is_file($abs)) {
-            @unlink($abs);
-        }
-    }
 }
 ?>
