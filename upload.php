@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upload Photos | Dance Thru The Decades</title>
   <meta name="description" content="Upload your event photos for moderation and inclusion in the public gallery.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=154">
+  <link rel="stylesheet" href="/assets/public-site.css?v=155">
 </head>
 <body class="homepage-option-one public-gallery-page">
   <main class="home-option-one">

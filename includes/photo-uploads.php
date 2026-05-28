@@ -30,13 +30,27 @@ function photo_relative_to_public($path) {
 }
 
 function photo_public_url($path) {
-    $path = trim((string)$path);
+    $path = trim(str_replace('\\', '/', (string)$path));
     if ($path === '') {
         return '';
     }
     if (preg_match('~^https?://~i', $path)) {
         return $path;
     }
+
+    $siteRoot = realpath(dirname(__DIR__));
+    $pathReal = realpath($path);
+    if ($siteRoot && $pathReal && strpos($pathReal, $siteRoot) === 0) {
+        $path = ltrim(substr($pathReal, strlen($siteRoot)), '/');
+    }
+
+    $path = preg_replace('~^\./+~', '', $path);
+    while (strpos($path, '../') === 0) {
+        $path = substr($path, 3);
+    }
+    $path = preg_replace('~^/?dttd-portal/~', '', $path);
+    $path = preg_replace('~^/?public_html/~', '', $path);
+
     return '/' . ltrim($path, '/');
 }
 
@@ -388,54 +402,6 @@ function photo_insert_upload($event, $guestName, $originalName, array $paths) {
     return (int)db()->lastInsertId();
 }
 
-function photo_delete_upload_permanently($photoId) {
-    $photoId = (int)$photoId;
-    if ($photoId <= 0) {
-        return false;
-    }
-
-    $select = ['id', 'file_path'];
-    foreach (['original_path', 'framed_path', 'thumb_path'] as $column) {
-        if (photo_column_exists('event_photo_uploads', $column)) {
-            $select[] = $column;
-        }
-    }
-
-    $stmt = db()->prepare('SELECT ' . implode(', ', $select) . ' FROM event_photo_uploads WHERE id = ? LIMIT 1');
-    $stmt->execute([$photoId]);
-    $photo = $stmt->fetch();
-    if (!$photo) {
-        return false;
-    }
-
-    $webRoot = realpath(dirname(__DIR__));
-    $uploadRoot = realpath(photo_upload_base_dir());
-    $paths = [];
-    foreach (['file_path', 'original_path', 'framed_path', 'thumb_path'] as $field) {
-        $value = trim((string)($photo[$field] ?? ''));
-        if ($value !== '' && !preg_match('~^https?://~i', $value)) {
-            $paths[$value] = true;
-        }
-    }
-
-    foreach (array_keys($paths) as $relativePath) {
-        $candidate = $webRoot . '/' . ltrim(str_replace('\\', '/', $relativePath), '/');
-        $real = realpath($candidate);
-        if (!$real || !is_file($real)) {
-            continue;
-        }
-
-        $insideUploads = $uploadRoot && strpos($real, $uploadRoot . DIRECTORY_SEPARATOR) === 0;
-        if ($insideUploads) {
-            @unlink($real);
-        }
-    }
-
-    $delete = db()->prepare('DELETE FROM event_photo_uploads WHERE id = ?');
-    $delete->execute([$photoId]);
-    return true;
-}
-
 function photo_row_display_paths($row) {
     $file = trim((string)($row['file_path'] ?? ''));
     $framed = trim((string)($row['framed_path'] ?? ''));
@@ -448,4 +414,77 @@ function photo_row_display_paths($row) {
         'original' => $original ?: ($framed ?: $file),
     ];
 }
+
+function photo_absolute_upload_path($path) {
+    $path = trim(str_replace('\\', '/', (string)$path));
+    if ($path === '') {
+        return '';
+    }
+
+    $path = preg_replace('~^https?://[^/]+/~i', '', $path);
+    $path = preg_replace('~^\./+~', '', $path);
+    while (strpos($path, '../') === 0) {
+        $path = substr($path, 3);
+    }
+    $path = preg_replace('~^/?dttd-portal/~', '', $path);
+    $path = preg_replace('~^/?public_html/~', '', $path);
+    $path = ltrim($path, '/');
+
+    $root = realpath(dirname(__DIR__));
+    $candidate = dirname(__DIR__) . '/' . $path;
+    $real = realpath($candidate);
+
+    if ($root && $real && strpos($real, $root . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR) === 0) {
+        return $real;
+    }
+
+    // Allow deletion of a not-yet-realpath-resolvable file only when it is clearly inside uploads.
+    if ($root && strpos($path, 'uploads/') === 0) {
+        return $candidate;
+    }
+
+    return '';
+}
+
+function photo_delete_upload_files(array $row) {
+    $paths = photo_row_display_paths($row);
+    $extra = [
+        $row['file_path'] ?? '',
+        $row['original_path'] ?? '',
+        $row['framed_path'] ?? '',
+        $row['thumb_path'] ?? '',
+        $paths['display'] ?? '',
+        $paths['thumb'] ?? '',
+        $paths['original'] ?? '',
+    ];
+
+    $deleted = 0;
+    $seen = [];
+    foreach ($extra as $path) {
+        $abs = photo_absolute_upload_path($path);
+        if ($abs === '' || isset($seen[$abs])) {
+            continue;
+        }
+        $seen[$abs] = true;
+        if (is_file($abs) && @unlink($abs)) {
+            $deleted++;
+        }
+    }
+    return $deleted;
+}
+
+function photo_delete_upload_permanently($photoId) {
+    $stmt = db()->prepare('SELECT * FROM event_photo_uploads WHERE id = ? LIMIT 1');
+    $stmt->execute([(int)$photoId]);
+    $row = $stmt->fetch();
+    if (!$row) {
+        return false;
+    }
+
+    photo_delete_upload_files($row);
+    $delete = db()->prepare('DELETE FROM event_photo_uploads WHERE id = ? LIMIT 1');
+    $delete->execute([(int)$photoId]);
+    return true;
+}
+
 ?>

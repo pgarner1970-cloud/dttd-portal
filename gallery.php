@@ -210,7 +210,7 @@ try {
   (function(){
     const items = Array.from(document.querySelectorAll('[data-lightbox-item]'));
     const lightbox = document.getElementById('publicPhotoLightbox');
-    if (!lightbox) return;
+    if (!lightbox || !items.length) return;
 
     const image = document.getElementById('publicLightboxImage');
     const title = document.getElementById('publicLightboxTitle');
@@ -218,24 +218,11 @@ try {
     const closeBtn = lightbox.querySelector('.public-lightbox-close');
     const prevBtn = lightbox.querySelector('.public-lightbox-nav.prev');
     const nextBtn = lightbox.querySelector('.public-lightbox-nav.next');
-    let index = 0;
-
-    function closeLightbox(){
-      lightbox.hidden = true;
-      if (image) image.src = '';
-      document.body.classList.remove('lightbox-open');
-    }
-
-    if (!items.length) {
-      closeLightbox();
-      if (closeBtn) closeBtn.addEventListener('click', closeLightbox);
-      return;
-    }
-
-    if (items.length < 2) {
+    if (items.length <= 1) {
       if (prevBtn) prevBtn.hidden = true;
       if (nextBtn) nextBtn.hidden = true;
     }
+    let index = 0;
 
     function render(i){
       const item = items[i];
@@ -253,12 +240,20 @@ try {
       item.addEventListener('click', () => render(i));
     });
 
+    function closeLightbox(){
+      lightbox.hidden = true;
+      image.src = '';
+      document.body.classList.remove('lightbox-open');
+    }
+
     closeBtn.addEventListener('click', closeLightbox);
 
-    prevBtn.addEventListener('click', () => render((index - 1 + items.length) % items.length));
-    nextBtn.addEventListener('click', () => render((index + 1) % items.length));
+    if (prevBtn) prevBtn.addEventListener('click', () => render((index - 1 + items.length) % items.length));
+    if (nextBtn) nextBtn.addEventListener('click', () => render((index + 1) % items.length));
     lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !lightbox.hidden) closeLightbox(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !lightbox.hidden) closeLightbox();
+    });
   })();
   </script>
 </body>
