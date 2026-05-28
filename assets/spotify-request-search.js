@@ -39,7 +39,7 @@
         return;
       }
 
-      tracks.forEach(function (track) {
+      tracks.slice(0, 5).forEach(function (track) {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'spotify-result';
@@ -66,7 +66,7 @@
 
           if (selected) {
             selected.hidden = false;
-            selected.innerHTML = 'Spotify matched: <strong>' + escapeHtml(track.title || '') + '</strong> — ' + escapeHtml(track.artist || '');
+            selected.innerHTML = '<span class="spotify-selected-label">Spotify match selected</span><strong>' + escapeHtml(track.title || '') + '</strong><small>' + escapeHtml(track.artist || '') + '</small>';
           }
           results.hidden = true;
           setStatus('');
