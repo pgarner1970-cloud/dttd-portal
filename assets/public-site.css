@@ -3382,8 +3382,174 @@ body.lightbox-open { overflow:hidden; }
   .public-grid-heading-row { flex-direction:column; align-items:flex-start; }
 }
 
-/* v-photo-fix: keep public gallery lightbox hidden until JS opens it */
-.public-lightbox[hidden] { display: none !important; }
-body.lightbox-open { overflow: hidden; }
+
+/* Public event feature page repair: restore card/form/action layouts */
+.public-feature-section{
+  width:min(1120px, calc(100% - 36px));
+  margin:0 auto;
+  padding:22px 0 74px;
+}
+
+.public-feature-card,
+.public-empty-card,
+.public-access-card{
+  border:1px solid rgba(255,79,216,.34);
+  border-radius:26px;
+  background:linear-gradient(135deg, rgba(48,9,68,.82), rgba(15,4,28,.72));
+  box-shadow:0 24px 80px rgba(0,0,0,.38), inset 0 0 40px rgba(255,79,216,.08);
+  padding:clamp(22px, 3vw, 34px);
+  color:#fff;
+}
+
+.public-feature-card-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  margin-bottom:22px;
+}
+
+.public-feature-card-header h2,
+.public-empty-card h2{
+  margin:0;
+  font-size:clamp(1.45rem, 2.4vw, 2.25rem);
+  line-height:1.1;
+}
+
+.public-feature-kicker,
+.public-connected-pill{
+  display:inline-flex;
+  color:#fce7ff;
+  font-size:.95rem;
+  margin-bottom:8px;
+}
+
+.public-request-form,
+.public-access-form{
+  display:grid;
+  grid-template-columns:repeat(6, minmax(0, 1fr));
+  gap:12px 14px;
+  align-items:end;
+}
+
+.public-request-form label,
+.public-access-form label{
+  grid-column:span 2;
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+  color:#fff;
+  font-weight:900;
+}
+
+.public-request-form input:not([type="hidden"]),
+.public-request-form textarea,
+.public-access-form input,
+.public-upload-form select,
+.public-upload-form input[type="text"],
+.public-upload-form input[type="file"],
 .public-filter-grid select,
-.public-filter-grid option { background-color: #1a0d2b; color: #fff; }
+.public-filter-grid input{
+  width:100%;
+  min-height:48px;
+  border-radius:16px;
+  border:1px solid rgba(255,125,243,.42);
+  background:rgba(255,255,255,.08);
+  color:#fff;
+  padding:13px 15px;
+  font:inherit;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.04);
+}
+
+.public-request-form textarea{
+  min-height:88px;
+  resize:vertical;
+}
+
+.public-request-form input::placeholder,
+.public-request-form textarea::placeholder,
+.public-access-form input::placeholder{
+  color:rgba(255,255,255,.58);
+}
+
+.public-request-form textarea,
+.public-request-form .spotify-search-box{
+  grid-column:1 / -1;
+}
+
+.public-request-form > label:nth-of-type(4){
+  grid-column:1 / -1;
+}
+
+.public-submit-btn,
+.public-access-form .public-neon-btn{
+  justify-self:start;
+}
+
+.public-event-hub-card{
+  margin-bottom:28px;
+}
+
+.public-event-action-grid{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:16px;
+}
+
+.public-event-action-tile{
+  display:grid;
+  grid-template-columns:auto 1fr;
+  grid-template-areas:
+    "icon title"
+    "icon text"
+    "icon small";
+  gap:2px 12px;
+  align-items:center;
+  min-height:104px;
+  padding:18px;
+  border:1px solid rgba(255,79,216,.36);
+  border-radius:22px;
+  background:rgba(255,255,255,.06);
+  color:#fff;
+  text-decoration:none;
+  box-shadow:0 0 24px rgba(255,79,216,.13);
+}
+
+.public-event-action-tile > span{
+  grid-area:icon;
+  display:grid;
+  place-items:center;
+  width:52px;
+  height:52px;
+  border-radius:50%;
+  border:1px solid rgba(255,79,216,.55);
+  background:rgba(255,79,216,.12);
+  box-shadow:0 0 18px rgba(255,79,216,.3);
+}
+
+.public-event-action-tile strong{grid-area:title;font-size:1.08rem;}
+.public-event-action-tile em{grid-area:text;color:#f3e8ff;font-style:italic;}
+.public-event-action-tile small{grid-area:small;color:#ffe66b;font-weight:900;}
+
+.home-info-link-card{
+  display:block;
+  color:#fff;
+  text-decoration:none;
+}
+.home-info-link-card:hover{
+  transform:translateY(-2px);
+  border-color:rgba(255,213,74,.55);
+}
+
+@media (max-width: 760px){
+  .public-feature-card-header{display:block;}
+  .public-request-form,
+  .public-access-form,
+  .public-event-action-grid{grid-template-columns:1fr;}
+  .public-request-form label,
+  .public-access-form label,
+  .public-request-form textarea,
+  .public-request-form .spotify-search-box,
+  .public-request-form > label:nth-of-type(4){grid-column:1 / -1;}
+  .public-event-action-tile{grid-template-columns:1fr; grid-template-areas:"icon" "title" "text" "small"; text-align:left;}
+}
