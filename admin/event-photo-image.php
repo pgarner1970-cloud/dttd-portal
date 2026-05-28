@@ -1,16 +1,16 @@
 <?php
-require_once __DIR__ . '/../includes/photo-uploads.php';
 require_once __DIR__ . '/_auth.php';
+require_once __DIR__ . '/../includes/photo-uploads.php';
 
 $id = (int)($_GET['id'] ?? 0);
-$variant = strtolower((string)($_GET['variant'] ?? 'thumb'));
-if (!in_array($variant, ['thumb', 'display', 'original'], true)) {
-    $variant = 'thumb';
+$type = strtolower(trim((string)($_GET['type'] ?? 'display')));
+if (!in_array($type, ['thumb', 'display', 'framed', 'original'], true)) {
+    $type = 'display';
 }
 
 if ($id <= 0) {
     http_response_code(404);
-    exit;
+    exit('Photo not found');
 }
 
 $selectPieces = ['p.*'];
@@ -23,31 +23,36 @@ $stmt->execute([$id]);
 $row = $stmt->fetch();
 if (!$row) {
     http_response_code(404);
-    exit;
+    exit('Photo not found');
 }
 
 $paths = photo_row_display_paths($row);
-$rel = $paths[$variant] ?? $paths['display'] ?? '';
-$abs = photo_absolute_path($rel);
-if ($abs === '' || !is_file($abs) || filesize($abs) <= 0) {
-    foreach (['thumb', 'display', 'original'] as $fallback) {
-        $rel = $paths[$fallback] ?? '';
-        $abs = photo_absolute_path($rel);
-        if ($abs !== '' && is_file($abs) && filesize($abs) > 0) {
-            break;
-        }
-    }
+$rel = '';
+if ($type === 'thumb') {
+    $rel = $paths['thumb'];
+} elseif ($type === 'original') {
+    $rel = $paths['original'];
+} else {
+    $rel = $paths['display'];
 }
 
-if ($abs === '' || !is_file($abs) || filesize($abs) <= 0) {
+$rel = photo_relative_to_public($rel);
+$root = realpath(dirname(__DIR__));
+$file = realpath(dirname(__DIR__) . '/' . $rel);
+
+if (!$root || !$file || strpos($file, $root . DIRECTORY_SEPARATOR) !== 0 || !is_file($file)) {
     http_response_code(404);
-    exit;
+    exit('Image file not found');
 }
 
-$info = @getimagesize($abs);
-$mime = $info['mime'] ?? 'image/jpeg';
-header('Content-Type: ' . $mime);
-header('Content-Length: ' . filesize($abs));
-header('Cache-Control: private, max-age=120, must-revalidate');
-readfile($abs);
+$info = @getimagesize($file);
+if (!$info || empty($info['mime']) || strpos($info['mime'], 'image/') !== 0) {
+    http_response_code(404);
+    exit('Invalid image');
+}
+
+header('Content-Type: ' . $info['mime']);
+header('Content-Length: ' . filesize($file));
+header('Cache-Control: private, max-age=60');
+readfile($file);
 exit;

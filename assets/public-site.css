@@ -3382,5 +3382,8 @@ body.lightbox-open { overflow:hidden; }
   .public-grid-heading-row { flex-direction:column; align-items:flex-start; }
 }
 
-/* Ensure the public gallery lightbox never displays until JavaScript explicitly opens it. */
+/* v-photo-fix: keep public gallery lightbox hidden until JS opens it */
 .public-lightbox[hidden] { display: none !important; }
+body.lightbox-open { overflow: hidden; }
+.public-filter-grid select,
+.public-filter-grid option { background-color: #1a0d2b; color: #fff; }
