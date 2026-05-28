@@ -82,6 +82,18 @@ function public_event_image_url($image) {
     return '/uploads/events/' . $image;
 }
 
+function public_absolute_url($path) {
+    $path = trim((string)$path);
+    if ($path === '') {
+        return '';
+    }
+    if (preg_match('~^https?://~i', $path)) {
+        return $path;
+    }
+    $base = function_exists('dttd_public_request_base_url') ? dttd_public_request_base_url('https://dancethruthedecades.co.uk') : 'https://dancethruthedecades.co.uk';
+    return rtrim($base, '/') . '/' . ltrim($path, '/');
+}
+
 function public_event_description($event) {
     foreach (['public_description', 'event_description', 'description', 'public_notes', 'notes'] as $field) {
         if (!empty($event[$field])) {
@@ -668,35 +680,44 @@ function public_event_share_url($event) {
     return rtrim($base, '/') . '/event/' . rawurlencode(public_event_slug($event));
 }
 
-function public_played_share_text($played, $event) {
+function public_played_share_text($played, $event, $eventUrl = '', $spotifyUrl = '') {
     $title = trim((string)($played['song_title'] ?? ''));
     $artist = trim((string)($played['artist'] ?? ''));
-    $eventTitle = trim((string)($event['event_name'] ?? $event['name'] ?? 'this Dance Thru The Decades event'));
-    $spotifyUrl = public_played_spotify_url($played);
+    $eventTitle = trim((string)($event['event_name'] ?? $event['name'] ?? 'this event'));
 
-    if ($title === '') {
-        $text = 'I’m currently at ' . $eventTitle . ' with Dance Thru The Decades 🎶';
+    if ($title !== '' && $artist !== '') {
+        $message = 'I’m currently at ' . $eventTitle . ' with Dance Thru The Decades, listening to “' . $title . '” by ' . $artist . ' 🎶';
+    } elseif ($title !== '') {
+        $message = 'I’m currently at ' . $eventTitle . ' with Dance Thru The Decades, listening to “' . $title . '” 🎶';
     } else {
-        $track = '“' . $title . '”';
-        if ($artist !== '') {
-            $track .= ' by ' . $artist;
-        }
-        $text = 'I’m currently at ' . $eventTitle . ' with Dance Thru The Decades, listening to ' . $track . ' 🎶';
+        $message = 'I’m currently at ' . $eventTitle . ' with Dance Thru The Decades 🎶';
     }
 
+    $links = [];
     if ($spotifyUrl !== '') {
-        $text .= "
-
-Listen on Spotify: " . $spotifyUrl;
+        $links[] = 'Listen on Spotify:
+' . $spotifyUrl;
+    }
+    if ($eventUrl !== '') {
+        $links[] = 'Event:
+' . $eventUrl;
     }
 
-    return $text;
+    if ($links) {
+        $message .= "
+
+" . implode("
+
+", $links);
+    }
+
+    return $message;
 }
 
 
 function public_render_played_track_item($played, $event, $eventShareUrl) {
     $spotifyUrl = public_played_spotify_url($played);
-    $shareText = public_played_share_text($played, $event);
+    $shareText = public_played_share_text($played, $event, $eventShareUrl, $spotifyUrl);
     $requestCount = public_group_request_count($played);
     $trackTitle = trim((string)($played['song_title'] ?? 'track'));
     ?>
@@ -718,7 +739,7 @@ function public_render_played_track_item($played, $event, $eventShareUrl) {
             </svg>
           </a>
         <?php endif; ?>
-        <button class="public-track-action public-track-icon-action share" type="button" data-track-share data-share-title="<?= public_h(($played['song_title'] ?? 'Recently played') . ' | Dance Thru The Decades') ?>" data-share-text="<?= public_h($shareText) ?>" data-share-url="<?= public_h($eventShareUrl) ?>" aria-label="Share <?= public_h($trackTitle) ?>" title="Share this track">
+        <button class="public-track-action public-track-icon-action share" type="button" data-track-share data-share-title="<?= public_h(($played['song_title'] ?? 'Recently played') . ' | Dance Thru The Decades') ?>" data-share-text="<?= public_h($shareText) ?>" data-share-url="<?= public_h($eventShareUrl) ?>" data-share-spotify="<?= public_h($spotifyUrl) ?>" aria-label="Share <?= public_h($trackTitle) ?>" title="Share this track">
           <span class="public-sr-only">Share this track</span>
           <svg class="public-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <circle cx="18" cy="5" r="3"></circle>
@@ -860,7 +881,19 @@ if ($event) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : ($notFound ? 'Event Not Found' : 'Join Event') ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event portal.' ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=210">
+  <?php if ($event): ?>
+    <link rel="canonical" href="<?= public_h($eventShareUrl) ?>">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Dance Thru The Decades">
+    <meta property="og:title" content="<?= public_h($title . ' | Dance Thru The Decades') ?>">
+    <meta property="og:description" content="<?= public_h(($description ?: ($title . ($venue ? ' at ' . $venue : '') . ' — request songs, share photos and see what has played.'))) ?>">
+    <meta property="og:url" content="<?= public_h($eventShareUrl) ?>">
+    <meta property="og:image" content="<?= public_h($imageUrl ? public_absolute_url($imageUrl) : public_absolute_url('/assets/dttd-logo-inner.png')) ?>">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?= public_h($title . ' | Dance Thru The Decades') ?>">
+    <meta name="twitter:description" content="<?= public_h(($description ?: ($title . ($venue ? ' at ' . $venue : '') . ' — Dance Thru The Decades event portal.'))) ?>">
+  <?php endif; ?>
+  <link rel="stylesheet" href="/assets/public-site.css?v=211">
 </head>
 <body class="homepage-option-one public-event-detail-page public-event-portal-page">
   <main class="home-option-one">
@@ -1216,16 +1249,23 @@ if ($event) {
     document.querySelectorAll('[data-track-share]').forEach(function(btn){
       btn.addEventListener('click', function(){
         var title = btn.getAttribute('data-share-title') || 'Dance Thru The Decades';
-        var text = btn.getAttribute('data-share-text') || 'I am at a Dance Thru The Decades event 🎶';
+        var text = btn.getAttribute('data-share-text') || 'I’m currently at a Dance Thru The Decades event 🎶';
         var url = btn.getAttribute('data-share-url') || window.location.href;
-        var payload = { title: title, text: text, url: url };
+        var copyText = text;
+        var payload = { title: title, text: copyText, url: url };
+
+        function copyForPaste(){
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(copyText).catch(function(){});
+          }
+        }
 
         if (navigator.share) {
+          copyForPaste();
           navigator.share(payload).catch(function(){});
           return;
         }
 
-        var copyText = text + '\n' + url;
         var originalHtml = btn.innerHTML;
         var originalLabel = btn.getAttribute('aria-label') || 'Share this track';
         function showCopied(){
