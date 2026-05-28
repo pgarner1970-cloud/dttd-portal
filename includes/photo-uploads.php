@@ -415,6 +415,93 @@ function photo_row_display_paths($row) {
     ];
 }
 
+
+function photo_update_upload_paths($photoId, array $paths) {
+    $sets = [];
+    $values = [];
+
+    foreach (['file_path', 'original_path', 'framed_path', 'thumb_path', 'image_orientation'] as $column) {
+        if (array_key_exists($column, $paths) && ($column === 'file_path' || photo_column_exists('event_photo_uploads', $column))) {
+            $sets[] = "$column = ?";
+            $values[] = $paths[$column];
+        }
+    }
+
+    if (!$sets) {
+        return;
+    }
+
+    $values[] = (int)$photoId;
+    $stmt = db()->prepare('UPDATE event_photo_uploads SET ' . implode(', ', $sets) . ' WHERE id = ?');
+    $stmt->execute($values);
+}
+
+function photo_ensure_display_versions(array $row) {
+    $paths = photo_row_display_paths($row);
+
+    $displayAbs = photo_absolute_upload_path($paths['display'] ?? '');
+    $thumbAbs = photo_absolute_upload_path($paths['thumb'] ?? '');
+    if ($displayAbs && is_file($displayAbs) && $thumbAbs && is_file($thumbAbs)) {
+        return $paths;
+    }
+
+    $sourceRel = trim((string)($row['original_path'] ?? '')) ?: trim((string)($row['file_path'] ?? ''));
+    $sourceAbs = photo_absolute_upload_path($sourceRel);
+    if (!$sourceAbs || !is_file($sourceAbs)) {
+        return $paths;
+    }
+
+    $event = [
+        'event_name' => $row['event_name'] ?? 'Dance Thru The Decades',
+        'venue_name' => $row['venue_name'] ?? '',
+        'event_date' => $row['event_date'] ?? '',
+    ];
+
+    $info = @getimagesize($sourceAbs);
+    $srcW = (int)($info[0] ?? 0);
+    $srcH = (int)($info[1] ?? 0);
+    $orientation = ($srcW > ($srcH * 1.15)) ? 'landscape' : 'portrait';
+
+    $dirs = photo_storage_directories();
+    $base = pathinfo($sourceRel, PATHINFO_FILENAME) ?: ('photo-' . (int)($row['id'] ?? 0));
+    $base = preg_replace('~[^a-zA-Z0-9._-]+~', '-', $base);
+    if (strpos($base, 'photo-') !== 0) {
+        $base = 'photo-' . $base;
+    }
+
+    $framedRel = trim((string)($row['framed_path'] ?? '')) ?: 'uploads/event-photos/framed/' . $base . '.jpg';
+    $thumbRel = trim((string)($row['thumb_path'] ?? '')) ?: 'uploads/event-photos/thumbs/' . $base . '.jpg';
+    $framedAbs = photo_absolute_upload_path($framedRel) ?: ($dirs['framed'] . '/' . basename($framedRel));
+    $thumbAbs = photo_absolute_upload_path($thumbRel) ?: ($dirs['thumbs'] . '/' . basename($thumbRel));
+
+    if (!is_file($framedAbs)) {
+        if (!photo_render_framed_image($sourceAbs, $framedAbs, $event, $orientation)) {
+            @copy($sourceAbs, $framedAbs);
+        }
+    }
+    if (!is_file($thumbAbs) && is_file($framedAbs)) {
+        if (!photo_render_thumb($framedAbs, $thumbAbs, 540)) {
+            @copy($framedAbs, $thumbAbs);
+        }
+    }
+
+    if (!empty($row['id'])) {
+        photo_update_upload_paths((int)$row['id'], [
+            'file_path' => $framedRel,
+            'original_path' => $sourceRel,
+            'framed_path' => $framedRel,
+            'thumb_path' => $thumbRel,
+            'image_orientation' => $orientation,
+        ]);
+    }
+
+    return [
+        'display' => is_file($framedAbs) ? $framedRel : ($paths['display'] ?? ''),
+        'thumb' => is_file($thumbAbs) ? $thumbRel : (is_file($framedAbs) ? $framedRel : ($paths['thumb'] ?? '')),
+        'original' => $sourceRel,
+    ];
+}
+
 function photo_absolute_upload_path($path) {
     $path = trim(str_replace('\\', '/', (string)$path));
     if ($path === '') {

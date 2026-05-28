@@ -80,9 +80,9 @@ admin_header('Photo Moderation');
 .photo-notice{padding:14px 16px;border:1px solid rgba(147,197,253,.28);border-radius:14px;background:rgba(59,130,246,.12);color:#dbeafe;font-weight:800;margin-bottom:16px;}
 .photo-notice.success{border-color:rgba(34,197,94,.38);background:rgba(34,197,94,.12);color:#bbf7d0;}
 .photo-notice.error{border-color:rgba(239,68,68,.42);background:rgba(239,68,68,.13);color:#fecaca;}
-.photo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;}
-.photo-mod-card{border:1px solid rgba(148,163,184,.18);border-radius:18px;background:rgba(255,255,255,.055);padding:14px;box-shadow:0 12px 34px rgba(0,0,0,.28);}
-.photo-preview{display:block;width:100%;aspect-ratio:1/1;border:1px solid rgba(148,163,184,.16);border-radius:14px;background:rgba(2,6,23,.55);overflow:hidden;margin-bottom:12px;}
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,278px));gap:18px;align-items:start;justify-content:start;}
+.photo-mod-card{width:100%;max-width:278px;border:1px solid rgba(148,163,184,.18);border-radius:18px;background:rgba(255,255,255,.055);padding:14px;box-shadow:0 12px 34px rgba(0,0,0,.28);overflow:hidden;}
+.photo-preview{display:block;width:100%;aspect-ratio:4/3;border:1px solid rgba(148,163,184,.16);border-radius:14px;background:rgba(2,6,23,.55);overflow:hidden;margin-bottom:12px;}
 .photo-preview img{width:100%;height:100%;display:block;object-fit:cover;}
 .photo-preview-missing{height:100%;display:grid;place-items:center;text-align:center;color:#94a3b8;font-weight:900;padding:18px;}
 .photo-mod-card h3{margin:0 0 8px;font-size:18px;line-height:1.15;}
@@ -94,7 +94,7 @@ admin_header('Photo Moderation');
 .photo-btn.approve{border-color:rgba(34,197,94,.48);background:rgba(34,197,94,.16);}
 .photo-btn.reject{border-color:rgba(245,158,11,.52);background:rgba(245,158,11,.15);}
 .photo-btn.delete{border-color:rgba(239,68,68,.58);background:rgba(239,68,68,.18);}
-@media (max-width:760px){.photo-event-select{min-width:0;max-width:none;width:100%;}.photo-filter-form,.photo-filter-form label{width:100%;}.photo-admin-title{font-size:24px;}}
+@media (max-width:760px){.photo-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));}.photo-mod-card{max-width:none;}.photo-event-select{min-width:0;max-width:none;width:100%;}.photo-filter-form,.photo-filter-form label{width:100%;}.photo-admin-title{font-size:24px;}}
 </style>
 <main class="photo-admin-page">
   <div class="photo-admin-header">
@@ -138,7 +138,7 @@ admin_header('Photo Moderation');
       <?php else: ?>
         <div class="photo-grid">
           <?php foreach ($photos as $photo):
-            $paths = photo_row_display_paths($photo);
+            $paths = photo_ensure_display_versions($photo);
             $thumbUrl = photo_public_url($paths['thumb']);
             $displayUrl = photo_public_url($paths['display']);
             $dateText = !empty($photo['event_date']) ? date('D j M Y', strtotime($photo['event_date'])) : '';
