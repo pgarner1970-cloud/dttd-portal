@@ -83,11 +83,7 @@ try {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gallery | Dance Thru The Decades</title>
   <meta name="description" content="Browse approved photos from Dance Thru The Decades events.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=20260528-photos3">
-  <style>
-    .public-lightbox[hidden], body:not(.lightbox-open) .public-lightbox { display: none !important; }
-    body.lightbox-open .public-lightbox:not([hidden]) { display: grid !important; }
-  </style>
+  <link rel="stylesheet" href="/assets/public-site.css?v=212">
 </head>
 <body class="homepage-option-one public-gallery-page">
   <main class="home-option-one">
@@ -214,11 +210,6 @@ try {
   (function(){
     const items = Array.from(document.querySelectorAll('[data-lightbox-item]'));
     const lightbox = document.getElementById('publicPhotoLightbox');
-    if (lightbox) {
-      lightbox.hidden = true;
-      lightbox.setAttribute('hidden', 'hidden');
-      document.body.classList.remove('lightbox-open');
-    }
     if (!lightbox || !items.length) return;
 
     const image = document.getElementById('publicLightboxImage');
@@ -238,7 +229,6 @@ try {
       title.textContent = item.dataset.lightboxTitle || '';
       meta.textContent = item.dataset.lightboxMeta || '';
       lightbox.hidden = false;
-      lightbox.removeAttribute('hidden');
       document.body.classList.add('lightbox-open');
     }
 
@@ -248,8 +238,6 @@ try {
 
     closeBtn.addEventListener('click', () => {
       lightbox.hidden = true;
-      lightbox.setAttribute('hidden', 'hidden');
-      image.src = '';
       document.body.classList.remove('lightbox-open');
     });
 
