@@ -852,7 +852,7 @@ if ($event) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : ($notFound ? 'Event Not Found' : 'Join Event') ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event portal.' ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=212">
+  <link rel="stylesheet" href="/assets/public-site.css?v=210">
 </head>
 <body class="homepage-option-one public-event-detail-page public-event-portal-page">
   <main class="home-option-one">
@@ -1051,31 +1051,29 @@ if ($event) {
                 <button class="public-carousel-btn public-carousel-next" type="button" aria-label="Next photo">›</button>
               </div>
             <?php else: ?>
-              <div class="public-photo-carousel public-placeholder-carousel" data-public-carousel>
-                <button class="public-carousel-btn public-carousel-prev" type="button" aria-label="Previous photo placeholder">‹</button>
-                <div class="public-photo-carousel-track">
-                  <div class="public-photo-carousel-slide public-photo-placeholder-slide">
-                    <span class="public-placeholder-icon">📸</span>
+              <div class="public-photo-empty-panel">
+                <div class="public-photo-empty-copy">
+                  <div class="public-photo-empty-line">
+                    <span aria-hidden="true">📸</span>
                     <strong>Photos from tonight will appear here</strong>
                     <em>Once approved, guest uploads become part of the event memories.</em>
                   </div>
-                  <div class="public-photo-carousel-slide public-photo-placeholder-slide">
-                    <span class="public-placeholder-icon">✨</span>
+                  <div class="public-photo-empty-line">
+                    <span aria-hidden="true">✨</span>
                     <strong>Share your best dancefloor moment</strong>
                     <em>Upload photos from your phone and we will check them before they go live.</em>
                   </div>
-                  <div class="public-photo-carousel-slide public-photo-placeholder-slide">
-                    <span class="public-placeholder-icon">🎶</span>
+                  <div class="public-photo-empty-line">
+                    <span aria-hidden="true">🎶</span>
                     <strong>Keep the memories together</strong>
                     <em>Approved photos will build into tonight’s gallery.</em>
                   </div>
                 </div>
-                <button class="public-carousel-btn public-carousel-next" type="button" aria-label="Next photo placeholder">›</button>
-              </div>
-              <div class="public-carousel-empty public-carousel-empty-actions">
-                <strong>No approved photos yet.</strong>
-                <span>Be the first to upload a memory from tonight. Photos appear here once approved.</span>
-                <a class="public-neon-btn" href="/upload.php">Upload Photos</a>
+                <div class="public-photo-empty-cta">
+                  <strong>No approved photos yet.</strong>
+                  <span>Be the first to upload a memory from tonight.</span>
+                  <a class="public-neon-btn" href="/upload.php">Upload Photos</a>
+                </div>
               </div>
             <?php endif; ?>
           </article>
