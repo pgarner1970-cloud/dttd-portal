@@ -189,7 +189,7 @@ try {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upcoming Events | Dance Thru the Decades</title>
   <meta name="description" content="Upcoming public Dance Thru the Decades events, party nights and request-enabled DJ events.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=300">
+  <link rel="stylesheet" href="/assets/public-site.css?v=211">
 </head>
 <body class="homepage-option-one public-list-page">
   <main class="home-option-one">

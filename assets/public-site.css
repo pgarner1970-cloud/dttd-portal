@@ -3382,135 +3382,426 @@ body.lightbox-open { overflow:hidden; }
   .public-grid-heading-row { flex-direction:column; align-items:flex-start; }
 }
 
-/* Request page Spotify search refinement: no nested scrollbar */
-.public-request-form .public-spotify-search-box,
-.spotify-search-box.public-spotify-search-box {
-  grid-column: 2 / 4;
-  margin-top: -0.2rem;
+/* v211 public site layout stabilisation
+   Keep public form/event/gallery styling together so later page patches do not regress to browser defaults. */
+body.homepage-option-one .home-option-one{
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,79,216,.26), transparent 28%),
+    repeating-conic-gradient(from 0deg at 50% 48%, rgba(255,255,255,.055) 0deg 4deg, transparent 4deg 12deg),
+    linear-gradient(180deg,#1b0028 0%,#16001f 48%,#07000d 100%);
 }
 
-.public-spotify-search-box .spotify-search-status {
-  display: block;
-  color: rgba(255,255,255,.86);
-  font-size: .95rem;
-  line-height: 1.35;
-  margin: .2rem 0 .75rem;
+.public-event-detail-section,
+.public-feature-section,
+.public-gallery-shell{
+  width:min(1160px, calc(100% - 48px)) !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
 }
 
-.public-spotify-search-box .spotify-results[hidden],
-.public-spotify-search-box .spotify-selected[hidden] {
-  display: none !important;
+.public-feature-card,
+.public-request-card,
+.public-event-hub-card,
+.public-live-card,
+.public-event-photo-carousel-card,
+.public-filter-card,
+.upload-card{
+  border:1px solid rgba(255,79,216,.46) !important;
+  border-radius:28px !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,79,216,.18), transparent 38%),
+    linear-gradient(180deg, rgba(72,5,82,.84), rgba(30,0,45,.88)) !important;
+  box-shadow:0 18px 54px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08) !important;
+  backdrop-filter:blur(10px);
+  padding:28px !important;
 }
 
-.public-spotify-search-box .spotify-results {
-  display: grid;
-  gap: .65rem;
-  max-height: none !important;
-  overflow: visible !important;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
+.public-feature-card-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  margin-bottom:24px;
+}
+.public-feature-card-header h2,
+.public-request-card h2,
+.public-live-card h2,
+.upload-card h2{
+  margin:.2rem 0 0;
+  color:#fff;
+  font-size:clamp(2rem, 4vw, 3.6rem);
+  line-height:1.05;
+  letter-spacing:-.045em;
+  text-transform:none;
+}
+.public-feature-kicker,
+.public-filter-card .option-one-eyebrow,
+.upload-card .option-one-eyebrow{
+  color:#ffe257 !important;
+  font-size:.95rem;
+  font-weight:950;
+  text-transform:uppercase;
+  letter-spacing:.24em;
+}
+.public-connected-pill{
+  display:inline-flex;
+  align-items:center;
+  min-height:34px;
+  padding:8px 14px;
+  border:1px solid rgba(255,255,255,.22);
+  border-radius:999px;
+  color:#f7e9ff;
+  background:rgba(255,255,255,.07);
+  font-weight:850;
 }
 
-.public-spotify-search-box .spotify-result {
-  appearance: none;
-  width: 100%;
-  display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
-  gap: .85rem;
-  align-items: center;
-  text-align: left;
-  padding: .7rem .85rem;
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,.18);
-  background: linear-gradient(135deg, rgba(255,255,255,.11), rgba(255,255,255,.045));
-  color: #fff;
-  cursor: pointer;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
-  transition: transform .15s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease;
+/* Public forms */
+.public-styled-form,
+.public-request-form,
+.public-access-form,
+.public-upload-form{
+  width:100%;
+}
+.public-request-grid,
+.public-filter-grid.upload-grid{
+  display:grid !important;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:18px !important;
+  align-items:start;
+  margin-bottom:18px;
+}
+.public-filter-grid.upload-grid{
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+}
+.public-field,
+.public-upload-form label,
+.public-filter-grid label,
+.public-access-form label{
+  display:grid !important;
+  gap:8px;
+  color:#fff;
+  font-weight:900;
+}
+.public-field span,
+.public-upload-form label span,
+.public-filter-grid label span,
+.public-access-form label{
+  color:#fff;
+  font-weight:950;
+  text-shadow:0 1px 8px rgba(0,0,0,.35);
+}
+.public-styled-form input:not([type="hidden"]),
+.public-styled-form textarea,
+.public-access-form input,
+.public-upload-form input[type="text"],
+.public-upload-form input[type="file"],
+.public-upload-form select,
+.public-filter-grid select,
+.public-filter-grid input,
+.public-filter-grid textarea{
+  width:100% !important;
+  min-height:54px;
+  border:1px solid rgba(255,125,243,.64) !important;
+  border-radius:16px !important;
+  color:#fff !important;
+  background:rgba(255,255,255,.105) !important;
+  padding:14px 16px !important;
+  font:inherit !important;
+  font-weight:750;
+  outline:none;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 0 0 rgba(255,213,74,0);
+  transition:border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+.public-styled-form textarea,
+.public-upload-form textarea,
+.public-filter-grid textarea{
+  min-height:116px;
+  resize:vertical;
+}
+.public-styled-form input::placeholder,
+.public-styled-form textarea::placeholder,
+.public-upload-form input::placeholder,
+.public-upload-form textarea::placeholder{
+  color:rgba(255,255,255,.56);
+}
+.public-styled-form input:focus,
+.public-styled-form textarea:focus,
+.public-upload-form input:focus,
+.public-upload-form select:focus,
+.public-filter-grid select:focus,
+.public-filter-grid input:focus{
+  border-color:#ffe257 !important;
+  box-shadow:0 0 0 3px rgba(255,226,87,.16), 0 0 24px rgba(255,79,216,.22) !important;
+  background:rgba(255,255,255,.14) !important;
+}
+.public-upload-form select option,
+.public-filter-grid select option{
+  color:#111 !important;
+  background:#fff !important;
+}
+.public-field-wide{
+  margin-top:18px;
+  max-width:720px;
+}
+.public-submit-btn{
+  margin-top:16px;
+  min-width:170px;
 }
 
-.public-spotify-search-box .spotify-result:hover,
-.public-spotify-search-box .spotify-result:focus-visible {
-  transform: translateY(-1px);
-  border-color: rgba(255,217,80,.75);
-  background: linear-gradient(135deg, rgba(255,217,80,.16), rgba(176,38,255,.13));
-  box-shadow: 0 0 0 3px rgba(255,217,80,.12), 0 14px 30px rgba(0,0,0,.25);
-  outline: none;
+/* Spotify request search results */
+.public-spotify-search-box{
+  grid-column:1 / -1;
+  width:min(720px, 100%);
+  margin:4px 0 0 auto;
+}
+.spotify-search-status{
+  display:block;
+  min-height:20px;
+  color:#f5e7ff;
+  font-weight:700;
+  margin:0 0 8px;
+}
+.spotify-results[hidden],
+.spotify-selected[hidden]{
+  display:none !important;
+}
+.spotify-results{
+  display:grid;
+  gap:10px;
+  max-height:none !important;
+  overflow:visible !important;
+  padding:0 !important;
+  border:0 !important;
+  background:transparent !important;
+}
+.spotify-result{
+  width:100%;
+  display:grid;
+  grid-template-columns:64px minmax(0,1fr);
+  gap:14px;
+  align-items:center;
+  min-height:78px;
+  padding:10px 14px;
+  border:1px solid rgba(255,125,243,.34);
+  border-radius:18px;
+  color:#fff;
+  text-align:left;
+  background:rgba(255,255,255,.065);
+  cursor:pointer;
+}
+.spotify-result:hover,
+.spotify-result:focus-visible{
+  border-color:rgba(255,226,87,.85);
+  background:rgba(255,255,255,.11);
+  outline:none;
+}
+.spotify-result img,
+.spotify-art-placeholder{
+  width:64px;
+  height:64px;
+  border-radius:12px;
+  object-fit:cover;
+  display:grid;
+  place-items:center;
+  background:rgba(255,255,255,.12);
+}
+.spotify-result strong{
+  display:block;
+  color:#fff;
+  font-size:1.06rem;
+  line-height:1.15;
+  margin-bottom:4px;
+}
+.spotify-result small{
+  display:block;
+  color:#ead7f8;
+  line-height:1.25;
+}
+.spotify-selected{
+  margin-top:10px;
+  padding:12px 14px;
+  border:1px solid rgba(38,217,122,.46);
+  border-radius:16px;
+  color:#eafff1;
+  background:rgba(17,114,61,.22);
+  font-weight:750;
 }
 
-.public-spotify-search-box .spotify-result img,
-.public-spotify-search-box .spotify-art-placeholder {
-  width: 64px;
-  height: 64px;
-  border-radius: 12px;
-  object-fit: cover;
-  background: rgba(0,0,0,.28);
-  box-shadow: 0 8px 18px rgba(0,0,0,.28);
+/* Current event hub/actions */
+.public-event-action-grid{
+  display:grid !important;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:16px !important;
+}
+.public-event-action-tile{
+  min-height:118px;
+  display:grid !important;
+  grid-template-columns:auto minmax(0,1fr);
+  grid-template-areas:"icon title" "icon copy" "icon meta";
+  column-gap:14px;
+  align-items:center;
+  padding:18px;
+  border:1px solid rgba(255,125,243,.42);
+  border-radius:22px;
+  color:#fff;
+  background:rgba(255,255,255,.075);
+  text-decoration:none;
+}
+.public-event-action-tile > span:first-child{
+  grid-area:icon;
+  width:52px;
+  height:52px;
+  display:grid;
+  place-items:center;
+  border-radius:16px;
+  background:rgba(255,79,216,.18);
+  border:1px solid rgba(255,125,243,.35);
+  font-size:1.55rem;
+}
+.public-event-action-tile strong{grid-area:title;font-size:1.22rem;line-height:1.15;}
+.public-event-action-tile em{grid-area:copy;color:#f1d7ff;font-style:normal;line-height:1.25;}
+.public-event-action-tile small{grid-area:meta;color:#ffe257;font-weight:900;}
+
+.public-event-live-grid{
+  display:grid !important;
+  grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);
+  gap:24px !important;
+  align-items:start;
+  margin-top:24px;
+}
+.public-request-board-list,
+.public-mini-list{
+  list-style:none !important;
+  margin:16px 0 0 !important;
+  padding:0 !important;
+  display:grid;
+  gap:14px;
+}
+.public-request-board-list li,
+.public-mini-list li,
+.public-request-board-item,
+.public-played-track-item{
+  list-style:none !important;
+}
+.public-request-board-item,
+.public-played-track-item,
+.public-mini-list > li{
+  display:grid;
+  grid-template-columns:76px minmax(0,1fr) auto;
+  gap:14px;
+  align-items:center;
+  padding:14px;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:18px;
+  background:rgba(255,255,255,.07);
+}
+.public-request-board-item img,
+.public-played-track-item img,
+.public-mini-list img{
+  width:64px;
+  height:64px;
+  object-fit:cover;
+  border-radius:10px;
+}
+.public-track-action-group{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.public-track-action{
+  width:44px;
+  height:44px;
+  display:inline-grid;
+  place-items:center;
+  border:1px solid rgba(255,125,243,.55);
+  border-radius:999px;
+  color:#fff;
+  background:rgba(255,255,255,.075);
+  text-decoration:none;
+}
+.public-track-action.spotify{background:rgba(30,215,96,.18);}
+.public-track-action svg{width:20px;height:20px;display:block;}
+.public-status-pill,
+.public-request-status-pill{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:30px;
+  padding:5px 10px;
+  border-radius:999px;
+  font-size:.78rem;
+  font-weight:950;
+  border:1px solid rgba(255,255,255,.25);
 }
 
-.public-spotify-search-box .spotify-result span:last-child {
-  min-width: 0;
+/* Event photos empty state must not show broken carousel controls */
+.public-placeholder-carousel{
+  display:none !important;
+}
+.public-carousel-empty{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px 16px;
+  align-items:center;
+  padding:20px;
+  border:1px solid rgba(255,125,243,.26);
+  border-radius:18px;
+  background:rgba(255,255,255,.045);
+}
+.public-carousel-empty strong{font-size:1.1rem;}
+.public-carousel-empty .public-neon-btn{margin-left:auto;}
+
+/* Gallery lightbox: never override hidden */
+.public-lightbox[hidden],
+.public-lightbox.is-hidden,
+body:not(.lightbox-open) .public-lightbox[hidden]{
+  display:none !important;
+  visibility:hidden !important;
+  pointer-events:none !important;
 }
 
-.public-spotify-search-box .spotify-result strong {
-  display: block;
-  color: #fff;
-  font-size: 1rem;
-  line-height: 1.15;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.public-spotify-search-box .spotify-result small {
-  display: block;
-  margin-top: .25rem;
-  color: rgba(255,255,255,.78);
-  font-size: .9rem;
-  line-height: 1.25;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.public-spotify-search-box .spotify-selected {
-  margin-top: .75rem;
-  padding: .75rem .95rem;
-  border-radius: 16px;
-  border: 1px solid rgba(41, 255, 135, .45);
-  background: rgba(19, 144, 73, .17);
-  color: #fff;
-}
-
-.public-spotify-search-box .spotify-selected-label {
-  display: block;
-  color: #6dff9f;
-  font-size: .78rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  margin-bottom: .15rem;
-}
-
-.public-spotify-search-box .spotify-selected strong,
-.public-spotify-search-box .spotify-selected small {
-  display: block;
-}
-
-@media (max-width: 820px) {
-  .public-request-form .public-spotify-search-box,
-  .spotify-search-box.public-spotify-search-box {
-    grid-column: 1 / -1;
+@media(max-width:900px){
+  .public-request-grid,
+  .public-filter-grid.upload-grid,
+  .public-event-action-grid,
+  .public-event-live-grid{
+    grid-template-columns:1fr !important;
   }
-  .public-spotify-search-box .spotify-result {
-    grid-template-columns: 56px minmax(0, 1fr);
-    padding: .65rem;
+  .public-spotify-search-box{
+    width:100%;
+    margin-left:0;
   }
-  .public-spotify-search-box .spotify-result img,
-  .public-spotify-search-box .spotify-art-placeholder {
-    width: 56px;
-    height: 56px;
+  .public-feature-card-header{
+    flex-direction:column;
   }
+}
+@media(max-width:560px){
+  .public-event-detail-section,
+  .public-feature-section,
+  .public-gallery-shell{
+    width:min(100% - 24px, 1160px) !important;
+  }
+  .public-feature-card,
+  .public-request-card,
+  .public-event-hub-card,
+  .public-live-card,
+  .public-event-photo-carousel-card,
+  .public-filter-card,
+  .upload-card{
+    padding:20px !important;
+    border-radius:22px !important;
+  }
+  .event-detail-title{font-size:clamp(2.7rem, 13vw, 4.2rem);}
+  .public-request-board-item,
+  .public-played-track-item,
+  .public-mini-list > li{
+    grid-template-columns:58px minmax(0,1fr);
+  }
+  .public-track-action-group{
+    grid-column:1 / -1;
+    justify-content:flex-end;
+  }
+  .spotify-result{grid-template-columns:56px minmax(0,1fr);}
+  .spotify-result img,.spotify-art-placeholder{width:56px;height:56px;}
 }
