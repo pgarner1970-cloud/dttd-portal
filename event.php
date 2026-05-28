@@ -668,7 +668,7 @@ function public_event_share_url($event) {
     return rtrim($base, '/') . '/event/' . rawurlencode(public_event_slug($event));
 }
 
-function public_played_share_text($played, $event) {
+function public_played_share_text($played, $event, $eventShareUrl = '', $spotifyUrl = '') {
     $title = trim((string)($played['song_title'] ?? ''));
     $artist = trim((string)($played['artist'] ?? ''));
     $eventTitle = trim((string)($event['event_name'] ?? $event['name'] ?? 'this Dance Thru The Decades event'));
@@ -678,17 +678,28 @@ function public_played_share_text($played, $event) {
         $track .= ' by ' . $artist;
     }
 
-    if ($track === '') {
-        return 'I am at ' . $eventTitle . ' with Dance Thru The Decades.';
+    $parts = [];
+    if ($track !== '') {
+        $parts[] = 'Hi, I’m currently at ' . $eventTitle . ' with Dance Thru The Decades, listening to ' . $track . ' 🎶';
+    } else {
+        $parts[] = 'Hi, I’m currently at ' . $eventTitle . ' with Dance Thru The Decades 🎶';
     }
 
-    return 'I am at ' . $eventTitle . ' with Dance Thru The Decades, listening to ' . $track . ' 🎶';
+    if ($eventShareUrl !== '') {
+        $parts[] = 'Event page: ' . $eventShareUrl;
+    }
+
+    if ($spotifyUrl !== '') {
+        $parts[] = 'Listen on Spotify: ' . $spotifyUrl;
+    }
+
+    return implode("\n", $parts);
 }
 
 
 function public_render_played_track_item($played, $event, $eventShareUrl) {
     $spotifyUrl = public_played_spotify_url($played);
-    $shareText = public_played_share_text($played, $event);
+    $shareText = public_played_share_text($played, $event, $eventShareUrl, $spotifyUrl);
     $requestCount = public_group_request_count($played);
     $trackTitle = trim((string)($played['song_title'] ?? 'track'));
     ?>
@@ -710,7 +721,7 @@ function public_render_played_track_item($played, $event, $eventShareUrl) {
             </svg>
           </a>
         <?php endif; ?>
-        <button class="public-track-action public-track-icon-action share" type="button" data-track-share data-share-title="<?= public_h(($played['song_title'] ?? 'Recently played') . ' | Dance Thru The Decades') ?>" data-share-text="<?= public_h($shareText) ?>" data-share-url="<?= public_h($eventShareUrl) ?>" aria-label="Share <?= public_h($trackTitle) ?>" title="Share this track">
+        <button class="public-track-action public-track-icon-action share" type="button" data-track-share data-share-title="<?= public_h(($played['song_title'] ?? 'Recently played') . ' | Dance Thru The Decades') ?>" data-share-text="<?= public_h($shareText) ?>" data-share-url="<?= public_h($spotifyUrl ?: $eventShareUrl) ?>" data-event-url="<?= public_h($eventShareUrl) ?>" data-spotify-url="<?= public_h($spotifyUrl) ?>" aria-label="Share <?= public_h($trackTitle) ?>" title="Share this track">
           <span class="public-sr-only">Share this track</span>
           <svg class="public-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <circle cx="18" cy="5" r="3"></circle>
@@ -852,7 +863,7 @@ if ($event) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : ($notFound ? 'Event Not Found' : 'Join Event') ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event portal.' ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=300">
+  <link rel="stylesheet" href="/assets/public-site.css?v=210">
 </head>
 <body class="homepage-option-one public-event-detail-page public-event-portal-page">
   <main class="home-option-one">
@@ -1210,6 +1221,14 @@ if ($event) {
         var title = btn.getAttribute('data-share-title') || 'Dance Thru The Decades';
         var text = btn.getAttribute('data-share-text') || 'I am at a Dance Thru The Decades event 🎶';
         var url = btn.getAttribute('data-share-url') || window.location.href;
+        var eventUrl = btn.getAttribute('data-event-url') || '';
+        var spotifyUrl = btn.getAttribute('data-spotify-url') || '';
+        if (eventUrl && text.indexOf(eventUrl) === -1) {
+          text += '\nEvent page: ' + eventUrl;
+        }
+        if (spotifyUrl && text.indexOf(spotifyUrl) === -1) {
+          text += '\nListen on Spotify: ' + spotifyUrl;
+        }
         var payload = { title: title, text: text, url: url };
 
         if (navigator.share) {
