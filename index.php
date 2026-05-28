@@ -69,7 +69,7 @@ $public_current = 'home';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dance Thru the Decades Events</title>
   <meta name="description" content="Dance Thru the Decades Events — 60s, 70s, 80s, 90s and 00s party nights, DJ events, song requests and Facebook event updates.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=211">
+  <link rel="stylesheet" href="/assets/public-site.css?v=260">
 </head>
 <body class="homepage-option-one">
   <main class="home-option-one">

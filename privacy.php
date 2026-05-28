@@ -15,7 +15,7 @@ $public_current = 'privacy';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Privacy & Cookies | Dance Thru the Decades</title>
   <meta name="description" content="Privacy and cookie information for Dance Thru the Decades event song requests and photo uploads.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=300">
+  <link rel="stylesheet" href="/assets/public-site.css?v=260">
 </head>
 <body class="homepage-option-one public-list-page public-policy-page">
   <main class="home-option-one">

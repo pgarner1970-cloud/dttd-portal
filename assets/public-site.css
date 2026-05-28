@@ -3382,426 +3382,495 @@ body.lightbox-open { overflow:hidden; }
   .public-grid-heading-row { flex-direction:column; align-items:flex-start; }
 }
 
-/* v211 public site layout stabilisation
-   Keep public form/event/gallery styling together so later page patches do not regress to browser defaults. */
-body.homepage-option-one .home-option-one{
-  min-height:100vh;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(255,79,216,.26), transparent 28%),
-    repeating-conic-gradient(from 0deg at 50% 48%, rgba(255,255,255,.055) 0deg 4deg, transparent 4deg 12deg),
-    linear-gradient(180deg,#1b0028 0%,#16001f 48%,#07000d 100%);
+/* v260 public layout stabilisation - do not remove
+   This block deliberately reasserts the shared public-page components so later
+   page-specific patches do not drop forms/lists back to browser defaults. */
+.public-sr-only{
+  position:absolute !important;
+  width:1px !important;
+  height:1px !important;
+  padding:0 !important;
+  margin:-1px !important;
+  overflow:hidden !important;
+  clip:rect(0,0,0,0) !important;
+  white-space:nowrap !important;
+  border:0 !important;
 }
 
-.public-event-detail-section,
-.public-feature-section,
-.public-gallery-shell{
-  width:min(1160px, calc(100% - 48px)) !important;
+body.public-event-detail-page .public-event-detail-section,
+body.public-request-page .public-event-detail-section,
+body.public-upload-page .public-gallery-shell,
+body.public-gallery-page .public-gallery-shell{
+  width:min(1180px, calc(100% - 48px)) !important;
   margin-left:auto !important;
   margin-right:auto !important;
 }
 
-.public-feature-card,
-.public-request-card,
-.public-event-hub-card,
-.public-live-card,
-.public-event-photo-carousel-card,
-.public-filter-card,
-.upload-card{
-  border:1px solid rgba(255,79,216,.46) !important;
+body.public-event-detail-page .public-feature-card,
+body.public-request-page .public-feature-card,
+body.public-upload-page .upload-card,
+body.public-gallery-page .public-filter-card,
+body.public-gallery-page .public-photo-grid-card{
+  border:1px solid rgba(255,79,216,.45) !important;
   border-radius:28px !important;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(255,79,216,.18), transparent 38%),
-    linear-gradient(180deg, rgba(72,5,82,.84), rgba(30,0,45,.88)) !important;
-  box-shadow:0 18px 54px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08) !important;
-  backdrop-filter:blur(10px);
-  padding:28px !important;
+  background:linear-gradient(160deg, rgba(89,7,105,.88), rgba(31,0,47,.86) 55%, rgba(13,0,24,.90)) !important;
+  box-shadow:0 22px 60px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.08) !important;
+  backdrop-filter:blur(8px);
 }
 
 .public-feature-card-header{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:18px;
-  margin-bottom:24px;
+  display:flex !important;
+  align-items:flex-start !important;
+  justify-content:space-between !important;
+  gap:18px !important;
+  margin-bottom:22px !important;
 }
-.public-feature-card-header h2,
-.public-request-card h2,
+.public-feature-kicker{
+  display:block !important;
+  margin:0 0 8px !important;
+  color:#ffe35a !important;
+  font-weight:950 !important;
+  letter-spacing:.22em !important;
+  text-transform:uppercase !important;
+}
+.public-feature-card h2,
 .public-live-card h2,
-.upload-card h2{
-  margin:.2rem 0 0;
-  color:#fff;
-  font-size:clamp(2rem, 4vw, 3.6rem);
-  line-height:1.05;
-  letter-spacing:-.045em;
-  text-transform:none;
-}
-.public-feature-kicker,
-.public-filter-card .option-one-eyebrow,
-.upload-card .option-one-eyebrow{
-  color:#ffe257 !important;
-  font-size:.95rem;
-  font-weight:950;
-  text-transform:uppercase;
-  letter-spacing:.24em;
-}
-.public-connected-pill{
-  display:inline-flex;
-  align-items:center;
-  min-height:34px;
-  padding:8px 14px;
-  border:1px solid rgba(255,255,255,.22);
-  border-radius:999px;
-  color:#f7e9ff;
-  background:rgba(255,255,255,.07);
-  font-weight:850;
+.public-request-card h2,
+.public-event-photo-carousel-card h2{
+  margin:0 0 16px !important;
+  color:#fff !important;
+  font-size:clamp(2rem, 4.8vw, 3.6rem) !important;
+  line-height:.95 !important;
+  text-shadow:0 0 18px rgba(255,79,216,.24) !important;
 }
 
-/* Public forms */
-.public-styled-form,
-.public-request-form,
-.public-access-form,
-.public-upload-form{
-  width:100%;
-}
-.public-request-grid,
-.public-filter-grid.upload-grid{
+.public-event-action-grid{
   display:grid !important;
-  grid-template-columns:repeat(3, minmax(0, 1fr));
-  gap:18px !important;
-  align-items:start;
-  margin-bottom:18px;
+  grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+  gap:16px !important;
 }
-.public-filter-grid.upload-grid{
-  grid-template-columns:repeat(2, minmax(0, 1fr));
-}
-.public-field,
-.public-upload-form label,
-.public-filter-grid label,
-.public-access-form label{
+.public-event-action-tile{
   display:grid !important;
-  gap:8px;
-  color:#fff;
-  font-weight:900;
+  grid-template-columns:54px minmax(0, 1fr) !important;
+  grid-template-rows:auto auto auto !important;
+  column-gap:14px !important;
+  align-items:center !important;
+  min-height:96px !important;
+  padding:20px !important;
+  border:1px solid rgba(255,125,243,.46) !important;
+  border-radius:20px !important;
+  background:rgba(255,255,255,.06) !important;
+  color:#fff !important;
+  text-decoration:none !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 0 22px rgba(255,79,216,.10) !important;
 }
-.public-field span,
-.public-upload-form label span,
-.public-filter-grid label span,
-.public-access-form label{
-  color:#fff;
-  font-weight:950;
-  text-shadow:0 1px 8px rgba(0,0,0,.35);
+.public-event-action-tile > span:first-child{
+  grid-row:1 / span 3 !important;
+  width:52px !important;
+  height:52px !important;
+  display:grid !important;
+  place-items:center !important;
+  border-radius:16px !important;
+  border:1px solid rgba(255,125,243,.48) !important;
+  background:rgba(255,79,216,.16) !important;
+  font-size:1.55rem !important;
 }
-.public-styled-form input:not([type="hidden"]),
-.public-styled-form textarea,
-.public-access-form input,
+.public-event-action-tile strong{
+  display:block !important;
+  font-size:1.15rem !important;
+  line-height:1.1 !important;
+}
+.public-event-action-tile em,
+.public-event-action-tile small{
+  display:block !important;
+  color:#f0dff7 !important;
+  font-style:normal !important;
+  line-height:1.25 !important;
+}
+.public-event-action-tile .public-request-timer{
+  color:#ffe35a !important;
+  font-weight:950 !important;
+  margin-top:4px !important;
+}
+
+.public-event-live-grid{
+  display:grid !important;
+  grid-template-columns:minmax(0, 1.05fr) minmax(360px, .95fr) !important;
+  gap:24px !important;
+  align-items:start !important;
+  margin-top:24px !important;
+}
+.public-live-card{
+  padding:28px !important;
+  min-width:0 !important;
+  overflow:hidden !important;
+}
+.public-card-summary{
+  margin:0 0 18px !important;
+  color:#fff !important;
+  font-weight:850 !important;
+}
+.public-request-board-list,
+.public-played-list{
+  display:grid !important;
+  gap:14px !important;
+  list-style:none !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+.public-request-board-item,
+.public-played-track-row{
+  list-style:none !important;
+  margin:0 !important;
+}
+.public-request-card-shell{
+  display:grid !important;
+  grid-template-columns:74px minmax(0, 1fr) !important;
+  gap:14px !important;
+  align-items:start !important;
+  padding:16px !important;
+  border:1px solid rgba(255,255,255,.15) !important;
+  border-radius:18px !important;
+  background:rgba(255,255,255,.055) !important;
+}
+.public-request-artwork,
+.public-played-artwork{
+  width:64px !important;
+  height:64px !important;
+  min-width:64px !important;
+  border-radius:10px !important;
+  object-fit:cover !important;
+  display:block !important;
+  background:rgba(255,255,255,.08) !important;
+}
+.public-request-card-main{
+  min-width:0 !important;
+}
+.public-request-row-head{
+  display:flex !important;
+  align-items:flex-start !important;
+  justify-content:space-between !important;
+  gap:12px !important;
+  margin-bottom:6px !important;
+}
+.public-request-row-head strong,
+.public-played-track-main strong{
+  display:block !important;
+  color:#fff !important;
+  font-weight:950 !important;
+  font-size:1.08rem !important;
+  line-height:1.15 !important;
+  overflow-wrap:anywhere !important;
+}
+.public-request-artist,
+.public-played-track-main span{
+  display:block !important;
+  color:#f2e6fa !important;
+  font-size:1rem !important;
+  line-height:1.25 !important;
+}
+.public-request-status{
+  flex:0 0 auto !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  min-height:28px !important;
+  padding:5px 12px !important;
+  border-radius:999px !important;
+  border:1px solid rgba(125,255,195,.45) !important;
+  background:rgba(20,120,78,.28) !important;
+  color:#d7ffe9 !important;
+  font-size:.78rem !important;
+  font-weight:950 !important;
+}
+.public-request-status.unable,
+.public-request-status.rejected{
+  border-color:rgba(255,125,125,.5) !important;
+  background:rgba(125,28,54,.35) !important;
+  color:#ffd3dd !important;
+}
+.public-request-member-list{
+  display:grid !important;
+  gap:8px !important;
+  margin-top:10px !important;
+}
+.public-request-member small{
+  display:block !important;
+  color:#d9cae9 !important;
+  font-weight:850 !important;
+}
+.public-request-dedication,
+.public-request-reason{
+  margin:7px 0 0 !important;
+  padding:11px 13px !important;
+  border:1px solid rgba(255,79,216,.28) !important;
+  border-radius:12px !important;
+  background:rgba(255,79,216,.10) !important;
+  color:#fff !important;
+}
+.public-played-track-row{
+  display:grid !important;
+  grid-template-columns:74px minmax(0, 1fr) auto !important;
+  gap:14px !important;
+  align-items:center !important;
+  padding:14px !important;
+  border:1px solid rgba(255,255,255,.15) !important;
+  border-radius:18px !important;
+  background:rgba(255,255,255,.055) !important;
+}
+.public-played-track-main{
+  min-width:0 !important;
+}
+.public-played-track-actions{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  gap:10px !important;
+  flex:0 0 auto !important;
+}
+.public-track-action,
+.public-track-icon-action{
+  width:44px !important;
+  height:44px !important;
+  min-width:44px !important;
+  padding:0 !important;
+  border:1px solid rgba(255,125,243,.55) !important;
+  border-radius:50% !important;
+  display:grid !important;
+  place-items:center !important;
+  background:rgba(255,255,255,.08) !important;
+  color:#fff !important;
+  text-decoration:none !important;
+  font-size:0 !important;
+  line-height:0 !important;
+  cursor:pointer !important;
+}
+.public-track-icon-action.spotify{
+  background:rgba(30,215,96,.22) !important;
+  border-color:rgba(30,215,96,.55) !important;
+}
+.public-action-icon{
+  width:22px !important;
+  height:22px !important;
+  display:block !important;
+  fill:none !important;
+  stroke:currentColor !important;
+  stroke-width:2 !important;
+  stroke-linecap:round !important;
+  stroke-linejoin:round !important;
+}
+.public-track-icon-action.spotify .public-action-icon circle:first-child{
+  fill:#1ed760 !important;
+  stroke:none !important;
+}
+.public-track-icon-action.spotify .public-action-icon path{
+  stroke:#fff !important;
+}
+
+body.public-request-page .public-request-card{
+  padding:28px !important;
+}
+.public-request-form{
+  display:grid !important;
+  grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+  gap:10px 18px !important;
+  align-items:start !important;
+}
+.public-request-form > label{
+  color:#fff !important;
+  font-weight:950 !important;
+  margin:0 !important;
+}
+.public-request-form input[type="text"],
+.public-request-form input:not([type]),
+.public-request-form textarea,
+.public-request-form select,
 .public-upload-form input[type="text"],
 .public-upload-form input[type="file"],
+.public-upload-form textarea,
 .public-upload-form select,
 .public-filter-grid select,
-.public-filter-grid input,
-.public-filter-grid textarea{
+.public-filter-grid input{
   width:100% !important;
-  min-height:54px;
-  border:1px solid rgba(255,125,243,.64) !important;
-  border-radius:16px !important;
+  min-height:54px !important;
+  box-sizing:border-box !important;
+  border:1px solid rgba(255,125,243,.50) !important;
+  border-radius:18px !important;
+  background:rgba(255,255,255,.075) !important;
   color:#fff !important;
-  background:rgba(255,255,255,.105) !important;
   padding:14px 16px !important;
   font:inherit !important;
-  font-weight:750;
-  outline:none;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 0 0 rgba(255,213,74,0);
-  transition:border-color .16s ease, box-shadow .16s ease, background .16s ease;
+  font-weight:800 !important;
+  outline:none !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06) !important;
 }
-.public-styled-form textarea,
-.public-upload-form textarea,
-.public-filter-grid textarea{
-  min-height:116px;
-  resize:vertical;
-}
-.public-styled-form input::placeholder,
-.public-styled-form textarea::placeholder,
-.public-upload-form input::placeholder,
-.public-upload-form textarea::placeholder{
-  color:rgba(255,255,255,.56);
-}
-.public-styled-form input:focus,
-.public-styled-form textarea:focus,
+.public-request-form input:focus,
+.public-request-form textarea:focus,
 .public-upload-form input:focus,
+.public-upload-form textarea:focus,
 .public-upload-form select:focus,
 .public-filter-grid select:focus,
 .public-filter-grid input:focus{
-  border-color:#ffe257 !important;
-  box-shadow:0 0 0 3px rgba(255,226,87,.16), 0 0 24px rgba(255,79,216,.22) !important;
-  background:rgba(255,255,255,.14) !important;
+  border-color:#ffe35a !important;
+  box-shadow:0 0 0 3px rgba(255,227,90,.14), 0 0 18px rgba(255,79,216,.26) !important;
 }
+.public-request-form textarea,
+.public-upload-form textarea{
+  min-height:104px !important;
+  resize:vertical !important;
+}
+.public-request-form input::placeholder,
+.public-request-form textarea::placeholder,
+.public-upload-form input::placeholder,
+.public-upload-form textarea::placeholder{
+  color:rgba(255,255,255,.55) !important;
+}
+.public-request-form select option,
 .public-upload-form select option,
 .public-filter-grid select option{
   color:#111 !important;
   background:#fff !important;
 }
-.public-field-wide{
-  margin-top:18px;
-  max-width:720px;
-}
-.public-submit-btn{
-  margin-top:16px;
-  min-width:170px;
-}
-
-/* Spotify request search results */
+.public-request-form > label:nth-of-type(1){ grid-column:1; grid-row:1; }
+.public-request-form > input[name="guest_name"]{ grid-column:1; grid-row:2; }
+.public-request-form > label:nth-of-type(2){ grid-column:2; grid-row:1; }
+.public-request-form > input[name="song_title"]{ grid-column:2; grid-row:2; }
+.public-request-form > label:nth-of-type(3){ grid-column:3; grid-row:1; }
+.public-request-form > input[name="artist"]{ grid-column:3; grid-row:2; }
 .public-spotify-search-box{
-  grid-column:1 / -1;
-  width:min(720px, 100%);
-  margin:4px 0 0 auto;
+  grid-column:2 / 4 !important;
+  grid-row:3 !important;
+  margin:8px 0 0 !important;
 }
+.public-request-form > label:nth-of-type(4){ grid-column:1 / 4; grid-row:4; margin-top:10px !important; }
+.public-request-form > textarea[name="dedication"]{ grid-column:1 / 4; grid-row:5; }
+.public-request-form > .public-submit-btn,
+.public-request-form > button[type="submit"]{ grid-column:1; grid-row:6; margin-top:8px !important; }
 .spotify-search-status{
-  display:block;
-  min-height:20px;
-  color:#f5e7ff;
-  font-weight:700;
-  margin:0 0 8px;
-}
-.spotify-results[hidden],
-.spotify-selected[hidden]{
-  display:none !important;
+  display:block !important;
+  color:#f2e6fa !important;
+  margin:0 0 8px !important;
 }
 .spotify-results{
-  display:grid;
-  gap:10px;
+  display:grid !important;
+  gap:10px !important;
   max-height:none !important;
   overflow:visible !important;
   padding:0 !important;
   border:0 !important;
   background:transparent !important;
 }
-.spotify-result{
-  width:100%;
-  display:grid;
-  grid-template-columns:64px minmax(0,1fr);
-  gap:14px;
-  align-items:center;
-  min-height:78px;
-  padding:10px 14px;
-  border:1px solid rgba(255,125,243,.34);
-  border-radius:18px;
-  color:#fff;
-  text-align:left;
-  background:rgba(255,255,255,.065);
-  cursor:pointer;
-}
-.spotify-result:hover,
-.spotify-result:focus-visible{
-  border-color:rgba(255,226,87,.85);
-  background:rgba(255,255,255,.11);
-  outline:none;
+.spotify-results[hidden]{ display:none !important; }
+.spotify-result,
+.spotify-result-card,
+[data-spotify-result]{
+  display:grid !important;
+  grid-template-columns:64px minmax(0, 1fr) !important;
+  gap:12px !important;
+  align-items:center !important;
+  width:100% !important;
+  min-height:78px !important;
+  padding:10px 12px !important;
+  border:1px solid rgba(255,255,255,.16) !important;
+  border-radius:16px !important;
+  background:rgba(255,255,255,.075) !important;
+  color:#fff !important;
+  text-align:left !important;
+  cursor:pointer !important;
+  box-sizing:border-box !important;
 }
 .spotify-result img,
-.spotify-art-placeholder{
-  width:64px;
-  height:64px;
-  border-radius:12px;
-  object-fit:cover;
-  display:grid;
-  place-items:center;
-  background:rgba(255,255,255,.12);
+.spotify-result-card img,
+[data-spotify-result] img{
+  width:56px !important;
+  height:56px !important;
+  object-fit:cover !important;
+  border-radius:10px !important;
 }
-.spotify-result strong{
-  display:block;
-  color:#fff;
-  font-size:1.06rem;
-  line-height:1.15;
-  margin-bottom:4px;
+.spotify-result strong,
+.spotify-result-card strong,
+[data-spotify-result] strong{
+  display:block !important;
+  color:#fff !important;
+  font-weight:950 !important;
+  line-height:1.15 !important;
 }
-.spotify-result small{
-  display:block;
-  color:#ead7f8;
-  line-height:1.25;
+.spotify-result span,
+.spotify-result-card span,
+[data-spotify-result] span{
+  display:block !important;
+  color:#e8d7f2 !important;
+  line-height:1.25 !important;
 }
 .spotify-selected{
-  margin-top:10px;
-  padding:12px 14px;
-  border:1px solid rgba(38,217,122,.46);
-  border-radius:16px;
-  color:#eafff1;
-  background:rgba(17,114,61,.22);
-  font-weight:750;
+  margin-top:10px !important;
+  padding:12px 14px !important;
+  border:1px solid rgba(30,215,96,.45) !important;
+  border-radius:16px !important;
+  background:rgba(30,215,96,.12) !important;
+  color:#fff !important;
 }
+.spotify-selected[hidden]{ display:none !important; }
 
-/* Current event hub/actions */
-.public-event-action-grid{
-  display:grid !important;
-  grid-template-columns:repeat(3, minmax(0, 1fr));
-  gap:16px !important;
-}
-.public-event-action-tile{
-  min-height:118px;
-  display:grid !important;
-  grid-template-columns:auto minmax(0,1fr);
-  grid-template-areas:"icon title" "icon copy" "icon meta";
-  column-gap:14px;
-  align-items:center;
-  padding:18px;
-  border:1px solid rgba(255,125,243,.42);
-  border-radius:22px;
-  color:#fff;
-  background:rgba(255,255,255,.075);
-  text-decoration:none;
-}
-.public-event-action-tile > span:first-child{
-  grid-area:icon;
-  width:52px;
-  height:52px;
-  display:grid;
-  place-items:center;
-  border-radius:16px;
-  background:rgba(255,79,216,.18);
-  border:1px solid rgba(255,125,243,.35);
-  font-size:1.55rem;
-}
-.public-event-action-tile strong{grid-area:title;font-size:1.22rem;line-height:1.15;}
-.public-event-action-tile em{grid-area:copy;color:#f1d7ff;font-style:normal;line-height:1.25;}
-.public-event-action-tile small{grid-area:meta;color:#ffe257;font-weight:900;}
-
-.public-event-live-grid{
-  display:grid !important;
-  grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);
-  gap:24px !important;
-  align-items:start;
-  margin-top:24px;
-}
-.public-request-board-list,
-.public-mini-list{
-  list-style:none !important;
-  margin:16px 0 0 !important;
-  padding:0 !important;
-  display:grid;
-  gap:14px;
-}
-.public-request-board-list li,
-.public-mini-list li,
-.public-request-board-item,
-.public-played-track-item{
-  list-style:none !important;
-}
-.public-request-board-item,
-.public-played-track-item,
-.public-mini-list > li{
-  display:grid;
-  grid-template-columns:76px minmax(0,1fr) auto;
-  gap:14px;
-  align-items:center;
-  padding:14px;
-  border:1px solid rgba(255,255,255,.16);
-  border-radius:18px;
-  background:rgba(255,255,255,.07);
-}
-.public-request-board-item img,
-.public-played-track-item img,
-.public-mini-list img{
-  width:64px;
-  height:64px;
-  object-fit:cover;
-  border-radius:10px;
-}
-.public-track-action-group{
-  display:flex;
-  gap:8px;
-  align-items:center;
-}
-.public-track-action{
-  width:44px;
-  height:44px;
-  display:inline-grid;
-  place-items:center;
-  border:1px solid rgba(255,125,243,.55);
-  border-radius:999px;
-  color:#fff;
-  background:rgba(255,255,255,.075);
-  text-decoration:none;
-}
-.public-track-action.spotify{background:rgba(30,215,96,.18);}
-.public-track-action svg{width:20px;height:20px;display:block;}
-.public-status-pill,
-.public-request-status-pill{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  min-height:30px;
-  padding:5px 10px;
-  border-radius:999px;
-  font-size:.78rem;
-  font-weight:950;
-  border:1px solid rgba(255,255,255,.25);
-}
-
-/* Event photos empty state must not show broken carousel controls */
-.public-placeholder-carousel{
+.public-event-photo-carousel-card .public-placeholder-carousel,
+.public-event-photo-carousel-card .public-carousel-btn{
   display:none !important;
 }
-.public-carousel-empty{
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px 16px;
-  align-items:center;
-  padding:20px;
-  border:1px solid rgba(255,125,243,.26);
-  border-radius:18px;
-  background:rgba(255,255,255,.045);
+.public-event-photo-empty{
+  display:flex !important;
+  flex-wrap:wrap !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:16px !important;
+  padding:18px 0 0 !important;
 }
-.public-carousel-empty strong{font-size:1.1rem;}
-.public-carousel-empty .public-neon-btn{margin-left:auto;}
 
-/* Gallery lightbox: never override hidden */
 .public-lightbox[hidden],
 .public-lightbox.is-hidden,
-body:not(.lightbox-open) .public-lightbox[hidden]{
+.public-lightbox:not(.is-open){
   display:none !important;
-  visibility:hidden !important;
-  pointer-events:none !important;
+}
+.public-lightbox.is-open{
+  display:grid !important;
 }
 
 @media(max-width:900px){
-  .public-request-grid,
-  .public-filter-grid.upload-grid,
   .public-event-action-grid,
-  .public-event-live-grid{
+  .public-event-live-grid,
+  .public-request-form{
     grid-template-columns:1fr !important;
   }
-  .public-spotify-search-box{
-    width:100%;
-    margin-left:0;
+  .public-request-form > label,
+  .public-request-form > input,
+  .public-request-form > textarea,
+  .public-request-form > .public-spotify-search-box,
+  .public-request-form > .public-submit-btn,
+  .public-request-form > button[type="submit"]{
+    grid-column:1 !important;
+    grid-row:auto !important;
   }
-  .public-feature-card-header{
-    flex-direction:column;
+  .public-event-detail-section,
+  body.public-event-detail-page .public-event-detail-section,
+  body.public-request-page .public-event-detail-section,
+  body.public-upload-page .public-gallery-shell,
+  body.public-gallery-page .public-gallery-shell{
+    width:min(100% - 24px, 1180px) !important;
   }
 }
 @media(max-width:560px){
-  .public-event-detail-section,
-  .public-feature-section,
-  .public-gallery-shell{
-    width:min(100% - 24px, 1160px) !important;
+  .public-request-card-shell,
+  .public-played-track-row{
+    grid-template-columns:56px minmax(0, 1fr) !important;
+    gap:10px !important;
+    padding:12px !important;
   }
-  .public-feature-card,
-  .public-request-card,
-  .public-event-hub-card,
-  .public-live-card,
-  .public-event-photo-carousel-card,
-  .public-filter-card,
-  .upload-card{
-    padding:20px !important;
-    border-radius:22px !important;
+  .public-played-track-actions{
+    grid-column:1 / -1 !important;
+    justify-content:flex-start !important;
   }
-  .event-detail-title{font-size:clamp(2.7rem, 13vw, 4.2rem);}
-  .public-request-board-item,
-  .public-played-track-item,
-  .public-mini-list > li{
-    grid-template-columns:58px minmax(0,1fr);
+  .public-request-artwork,
+  .public-played-artwork{
+    width:52px !important;
+    height:52px !important;
+    min-width:52px !important;
   }
-  .public-track-action-group{
-    grid-column:1 / -1;
-    justify-content:flex-end;
-  }
-  .spotify-result{grid-template-columns:56px minmax(0,1fr);}
-  .spotify-result img,.spotify-art-placeholder{width:56px;height:56px;}
 }
