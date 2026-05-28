@@ -208,7 +208,7 @@ $requestCloseClock = $event ? dttd_event_request_close_clock_label($event) : '';
           <?php endif; ?>
           <div class="public-event-actions public-centred-actions">
             <a class="public-neon-btn" href="/event.php">Back to Event</a>
-            <a class="public-neon-btn subtle" href="/gallery.php">Upload Photos</a>
+            <a class="public-neon-btn subtle" href="/upload.php">Upload Photos</a>
           </div>
         </article>
 

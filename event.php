@@ -953,7 +953,7 @@ if ($event) {
                   <small class="public-request-timer is-closed">Requests closed</small>
                 </span>
               <?php endif; ?>
-              <a class="public-event-action-tile" href="/gallery.php">
+              <a class="public-event-action-tile" href="/upload.php">
                 <span>📸</span>
                 <strong>Upload Photos</strong>
                 <em>Uploads wait for moderation</em>
@@ -1032,7 +1032,7 @@ if ($event) {
                 <span class="public-feature-kicker">Photos & Memories</span>
                 <h2>Event photos</h2>
               </div>
-              <a class="public-neon-btn subtle" href="/gallery.php">Upload / View Gallery</a>
+              <span class="public-gallery-card-actions"><a class="public-neon-btn subtle" href="/upload.php">Upload Photos</a><a class="public-neon-btn subtle" href="/gallery.php">View Gallery</a></span>
             </div>
 
             <?php if (!empty($eventPhotos)): ?>
@@ -1075,7 +1075,7 @@ if ($event) {
               <div class="public-carousel-empty public-carousel-empty-actions">
                 <strong>No approved photos yet.</strong>
                 <span>Be the first to upload a memory from tonight. Photos appear here once approved.</span>
-                <a class="public-neon-btn" href="/gallery.php">Upload Photos</a>
+                <a class="public-neon-btn" href="/upload.php">Upload Photos</a>
               </div>
             <?php endif; ?>
           </article>

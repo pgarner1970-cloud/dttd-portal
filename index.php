@@ -133,7 +133,7 @@ $public_current = 'home';
                 <span class="option-one-icon">▣</span>
                 <span><strong>This Event</strong><em>Live event hub and details</em></span>
               </a>
-              <a class="option-one-action-card" href="/gallery.php">
+              <a class="option-one-action-card" href="/upload.php">
                 <span class="option-one-icon">▧</span>
                 <span><strong>Upload Photos</strong><em>Uploads wait for moderation</em></span>
               </a>
@@ -162,7 +162,7 @@ $public_current = 'home';
                 <span class="option-one-icon">▣</span>
                 <span><strong>This Event</strong><em>Join the event hub</em></span>
               </a>
-              <a class="option-one-action-card" href="/gallery.php">
+              <a class="option-one-action-card" href="/upload.php">
                 <span class="option-one-icon">▧</span>
                 <span><strong>Upload Photos</strong><em>Available via event QR/code</em></span>
               </a>
