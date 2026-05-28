@@ -3382,5 +3382,7 @@ body.lightbox-open { overflow:hidden; }
   .public-grid-heading-row { flex-direction:column; align-items:flex-start; }
 }
 
-/* Patch: ensure the gallery lightbox really stays hidden until a photo is clicked. */
-.public-lightbox[hidden] { display: none !important; }
+/* Photo gallery lightbox safety: make the hidden attribute win even when the lightbox class sets display:grid. */
+.public-lightbox[hidden] {
+  display: none !important;
+}
