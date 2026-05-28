@@ -388,6 +388,54 @@ function photo_insert_upload($event, $guestName, $originalName, array $paths) {
     return (int)db()->lastInsertId();
 }
 
+function photo_delete_upload_permanently($photoId) {
+    $photoId = (int)$photoId;
+    if ($photoId <= 0) {
+        return false;
+    }
+
+    $select = ['id', 'file_path'];
+    foreach (['original_path', 'framed_path', 'thumb_path'] as $column) {
+        if (photo_column_exists('event_photo_uploads', $column)) {
+            $select[] = $column;
+        }
+    }
+
+    $stmt = db()->prepare('SELECT ' . implode(', ', $select) . ' FROM event_photo_uploads WHERE id = ? LIMIT 1');
+    $stmt->execute([$photoId]);
+    $photo = $stmt->fetch();
+    if (!$photo) {
+        return false;
+    }
+
+    $webRoot = realpath(dirname(__DIR__));
+    $uploadRoot = realpath(photo_upload_base_dir());
+    $paths = [];
+    foreach (['file_path', 'original_path', 'framed_path', 'thumb_path'] as $field) {
+        $value = trim((string)($photo[$field] ?? ''));
+        if ($value !== '' && !preg_match('~^https?://~i', $value)) {
+            $paths[$value] = true;
+        }
+    }
+
+    foreach (array_keys($paths) as $relativePath) {
+        $candidate = $webRoot . '/' . ltrim(str_replace('\\', '/', $relativePath), '/');
+        $real = realpath($candidate);
+        if (!$real || !is_file($real)) {
+            continue;
+        }
+
+        $insideUploads = $uploadRoot && strpos($real, $uploadRoot . DIRECTORY_SEPARATOR) === 0;
+        if ($insideUploads) {
+            @unlink($real);
+        }
+    }
+
+    $delete = db()->prepare('DELETE FROM event_photo_uploads WHERE id = ?');
+    $delete->execute([$photoId]);
+    return true;
+}
+
 function photo_row_display_paths($row) {
     $file = trim((string)($row['file_path'] ?? ''));
     $framed = trim((string)($row['framed_path'] ?? ''));

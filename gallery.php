@@ -83,7 +83,7 @@ try {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gallery | Dance Thru The Decades</title>
   <meta name="description" content="Browse approved photos from Dance Thru The Decades events.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=154">
+  <link rel="stylesheet" href="/assets/public-site.css?v=155">
 </head>
 <body class="homepage-option-one public-gallery-page">
   <main class="home-option-one">
@@ -210,7 +210,7 @@ try {
   (function(){
     const items = Array.from(document.querySelectorAll('[data-lightbox-item]'));
     const lightbox = document.getElementById('publicPhotoLightbox');
-    if (!lightbox || !items.length) return;
+    if (!lightbox) return;
 
     const image = document.getElementById('publicLightboxImage');
     const title = document.getElementById('publicLightboxTitle');
@@ -219,6 +219,23 @@ try {
     const prevBtn = lightbox.querySelector('.public-lightbox-nav.prev');
     const nextBtn = lightbox.querySelector('.public-lightbox-nav.next');
     let index = 0;
+
+    function closeLightbox(){
+      lightbox.hidden = true;
+      if (image) image.src = '';
+      document.body.classList.remove('lightbox-open');
+    }
+
+    if (!items.length) {
+      closeLightbox();
+      if (closeBtn) closeBtn.addEventListener('click', closeLightbox);
+      return;
+    }
+
+    if (items.length < 2) {
+      if (prevBtn) prevBtn.hidden = true;
+      if (nextBtn) nextBtn.hidden = true;
+    }
 
     function render(i){
       const item = items[i];
@@ -236,14 +253,12 @@ try {
       item.addEventListener('click', () => render(i));
     });
 
-    closeBtn.addEventListener('click', () => {
-      lightbox.hidden = true;
-      document.body.classList.remove('lightbox-open');
-    });
+    closeBtn.addEventListener('click', closeLightbox);
 
     prevBtn.addEventListener('click', () => render((index - 1 + items.length) % items.length));
     nextBtn.addEventListener('click', () => render((index + 1) % items.length));
-    lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeBtn.click(); });
+    lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !lightbox.hidden) closeLightbox(); });
   })();
   </script>
 </body>

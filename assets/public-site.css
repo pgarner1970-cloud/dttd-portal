@@ -3367,6 +3367,7 @@ a:hover .venue-facebook-icon{
 .upload-help-copy { color:#d8cdea; margin:12px 0 0; }
 .upload-grid { margin-bottom:16px; }
 .public-lightbox { position:fixed; inset:0; background:rgba(10,0,20,.9); display:grid; place-items:center; z-index:1100; padding:24px; }
+.public-lightbox[hidden], .public-lightbox-nav[hidden] { display:none !important; }
 .public-lightbox figure { margin:0; max-width:min(92vw, 1100px); }
 .public-lightbox img { max-width:100%; max-height:78vh; border-radius:24px; display:block; margin:0 auto 14px; }
 .public-lightbox figcaption { text-align:center; color:#fff; display:grid; gap:6px; }

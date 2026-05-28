@@ -12,15 +12,21 @@ $message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['photo_id']) && !empty($_POST['action'])) {
     $photoId = (int)$_POST['photo_id'];
     $action = (string)$_POST['action'];
-    $newStatus = null;
-    if ($action === 'approve') $newStatus = 'approved';
-    if ($action === 'reject') $newStatus = 'rejected';
-    if ($action === 'pending') $newStatus = 'pending';
+    if ($action === 'delete') {
+        $message = photo_delete_upload_permanently($photoId)
+            ? 'Photo deleted permanently, including stored image files.'
+            : 'Photo could not be found or deleted.';
+    } else {
+        $newStatus = null;
+        if ($action === 'approve') $newStatus = 'approved';
+        if ($action === 'reject') $newStatus = 'rejected';
+        if ($action === 'pending') $newStatus = 'pending';
 
-    if ($newStatus) {
-        $stmt = db()->prepare('UPDATE event_photo_uploads SET status = ? WHERE id = ?');
-        $stmt->execute([$newStatus, $photoId]);
-        $message = 'Photo status updated.';
+        if ($newStatus) {
+            $stmt = db()->prepare('UPDATE event_photo_uploads SET status = ? WHERE id = ?');
+            $stmt->execute([$newStatus, $photoId]);
+            $message = 'Photo status updated.';
+        }
     }
 }
 
@@ -111,6 +117,9 @@ admin_header('Photo Moderation');
               <?php endif; ?>
               <?php if (($photo['status'] ?? '') !== 'pending'): ?>
                 <form method="post"><input type="hidden" name="photo_id" value="<?= (int)$photo['id'] ?>"><input type="hidden" name="action" value="pending"><button class="btn" type="submit">Back to Pending</button></form>
+              <?php endif; ?>
+              <?php if (($photo['status'] ?? '') === 'rejected'): ?>
+                <form method="post" onsubmit="return confirm('Delete this photo permanently? This removes the database record, original image, framed image and thumbnail from the server. This cannot be undone.');"><input type="hidden" name="photo_id" value="<?= (int)$photo['id'] ?>"><input type="hidden" name="action" value="delete"><button class="btn" style="background:#8b1f2f; border-color:#ff5c7a; color:#fff;" type="submit">Delete Permanently</button></form>
               <?php endif; ?>
             </div>
           </article>
