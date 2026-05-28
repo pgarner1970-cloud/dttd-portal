@@ -43,6 +43,7 @@ function admin_nav_active($page) {
         'mixer' => ['mixer.php'],
         'requests' => ['requests.php', 'index.php', 'request-debug.php'],
         'events' => ['events.php', 'event-edit.php', 'event-qr.php'],
+        'photos' => ['event-photos.php'],
         'venues' => ['venues.php', 'venue-edit.php'],
         'settings' => ['settings.php'],
     ];
@@ -169,6 +170,30 @@ function save_app_setting($key, $value) {
         return false;
     }
 }
+
+function dttd_admin_pending_photo_count() {
+    try {
+        if (!function_exists('dttd_table_exists') || !dttd_table_exists('event_photo_uploads')) {
+            return 0;
+        }
+        if (!dttd_table_column_exists('event_photo_uploads', 'status')) {
+            return 0;
+        }
+
+        $event = function_exists('dttd_get_calculated_current_event') ? dttd_get_calculated_current_event() : null;
+        if ($event && dttd_table_column_exists('event_photo_uploads', 'event_id')) {
+            $stmt = db()->prepare("SELECT COUNT(*) FROM event_photo_uploads WHERE event_id = ? AND status = 'pending'");
+            $stmt->execute([(int)$event['id']]);
+            return (int)$stmt->fetchColumn();
+        }
+
+        $stmt = db()->query("SELECT COUNT(*) FROM event_photo_uploads WHERE status = 'pending'");
+        return (int)$stmt->fetchColumn();
+    } catch (Throwable $e) {
+        return 0;
+    }
+}
+
 function admin_header($title = 'DJ Portal') {
     $time = date('H:i');
     $date = date('D, j M');
@@ -177,6 +202,7 @@ function admin_header($title = 'DJ Portal') {
     $show_live_mixer_nav = app_setting('spotify_enabled', '0') === '1'
         && app_setting('spotify_queue_enabled', '0') === '1'
         && app_setting('spotify_queue_mode', 'standard') === 'mixer';
+    $pending_photo_count = dttd_admin_pending_photo_count();
     ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -242,6 +268,13 @@ function admin_header($title = 'DJ Portal') {
             <svg viewBox="0 0 24 24" focusable="false"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 2a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm0 4a3 3 0 1 0 .01 0H12Zm0 2a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z"/></svg>
           </span>
           <span class="admin-nav-text">Requests</span>
+        </a>
+        <a class="header-admin-nav-btn <?= admin_nav_active('photos') ?>" href="<?= h(admin_url('event-photos.php')) ?>" title="Photos" aria-label="Photos">
+          <span class="admin-nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2ZM5 5h14v8.4l-3.1-3.1a1.5 1.5 0 0 0-2.12 0L10 14.1l-1.4-1.4a1.5 1.5 0 0 0-2.12 0L5 14.18V5Zm0 12 2.54-2.54L10 16.92l4.84-4.84L19 16.24V19H5v-2Zm3.5-6A2.5 2.5 0 1 0 8.5 6a2.5 2.5 0 0 0 0 5Z"/></svg>
+          </span>
+          <span class="admin-nav-text">Photos</span>
+          <?php if ($pending_photo_count > 0): ?><span class="admin-nav-badge"><?= (int)$pending_photo_count ?></span><?php endif; ?>
         </a>
         <a class="header-admin-nav-btn <?= admin_nav_active('events') ?>" href="<?= h(admin_url('events.php')) ?>" title="Events" aria-label="Events">
           <span class="admin-nav-icon" aria-hidden="true">
