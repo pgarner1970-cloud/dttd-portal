@@ -185,7 +185,7 @@ function admin_header($title = 'DJ Portal') {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= h($title) ?></title>
-<link rel="stylesheet" href="https://dancethruthedecades.co.uk/assets/admin-touch.css">
+<link rel="stylesheet" href="https://dancethruthedecades.co.uk/assets/admin-touch.css?v=20260528-photos2">
 <link rel="stylesheet" href="https://dancethruthedecades.co.uk/assets/admin-topbar-icons.css?v=20260522-1810">
 </head>
 <body class="admin-body">

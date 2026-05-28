@@ -30,27 +30,13 @@ function photo_relative_to_public($path) {
 }
 
 function photo_public_url($path) {
-    $path = trim(str_replace('\\', '/', (string)$path));
+    $path = trim((string)$path);
     if ($path === '') {
         return '';
     }
     if (preg_match('~^https?://~i', $path)) {
         return $path;
     }
-
-    $siteRoot = realpath(dirname(__DIR__));
-    $pathReal = realpath($path);
-    if ($siteRoot && $pathReal && strpos($pathReal, $siteRoot) === 0) {
-        $path = ltrim(substr($pathReal, strlen($siteRoot)), '/');
-    }
-
-    $path = preg_replace('~^\./+~', '', $path);
-    while (strpos($path, '../') === 0) {
-        $path = substr($path, 3);
-    }
-    $path = preg_replace('~^/?dttd-portal/~', '', $path);
-    $path = preg_replace('~^/?public_html/~', '', $path);
-
     return '/' . ltrim($path, '/');
 }
 
@@ -415,163 +401,103 @@ function photo_row_display_paths($row) {
     ];
 }
 
-
-function photo_update_upload_paths($photoId, array $paths) {
-    $sets = [];
-    $values = [];
-
-    foreach (['file_path', 'original_path', 'framed_path', 'thumb_path', 'image_orientation'] as $column) {
-        if (array_key_exists($column, $paths) && ($column === 'file_path' || photo_column_exists('event_photo_uploads', $column))) {
-            $sets[] = "$column = ?";
-            $values[] = $paths[$column];
-        }
+function photo_absolute_path_from_public($path) {
+    $path = trim((string)$path);
+    if ($path === '' || preg_match('~^https?://~i', $path)) {
+        return '';
     }
-
-    if (!$sets) {
-        return;
+    $path = ltrim(str_replace('\\', '/', $path), '/');
+    $root = realpath(dirname(__DIR__));
+    if (!$root) {
+        return '';
     }
-
-    $values[] = (int)$photoId;
-    $stmt = db()->prepare('UPDATE event_photo_uploads SET ' . implode(', ', $sets) . ' WHERE id = ?');
-    $stmt->execute($values);
+    $full = $root . '/' . $path;
+    $dir = realpath(dirname($full));
+    if (!$dir || strpos($dir, $root) !== 0) {
+        return '';
+    }
+    return $full;
 }
 
-function photo_ensure_display_versions(array $row) {
+function photo_delete_upload_files($row) {
+    $paths = [];
+    foreach (['file_path', 'original_path', 'framed_path', 'thumb_path'] as $key) {
+        if (!empty($row[$key])) {
+            $paths[] = (string)$row[$key];
+        }
+    }
+    $paths = array_unique($paths);
+    foreach ($paths as $path) {
+        $abs = photo_absolute_path_from_public($path);
+        if ($abs && is_file($abs)) {
+            @unlink($abs);
+        }
+    }
+}
+
+function photo_ensure_display_versions($row) {
     $paths = photo_row_display_paths($row);
+    $displayAbs = photo_absolute_path_from_public($paths['display']);
+    $thumbAbs = photo_absolute_path_from_public($paths['thumb']);
 
-    $displayAbs = photo_absolute_upload_path($paths['display'] ?? '');
-    $thumbAbs = photo_absolute_upload_path($paths['thumb'] ?? '');
     if ($displayAbs && is_file($displayAbs) && $thumbAbs && is_file($thumbAbs)) {
-        return $paths;
+        return $row;
     }
 
-    $sourceRel = trim((string)($row['original_path'] ?? '')) ?: trim((string)($row['file_path'] ?? ''));
-    $sourceAbs = photo_absolute_upload_path($sourceRel);
-    if (!$sourceAbs || !is_file($sourceAbs)) {
-        return $paths;
+    $original = trim((string)($row['original_path'] ?? '')) ?: trim((string)($row['file_path'] ?? ''));
+    $originalAbs = photo_absolute_path_from_public($original);
+    if (!$originalAbs || !is_file($originalAbs)) {
+        return $row;
     }
+
+    $dirs = photo_storage_directories();
+    $base = pathinfo($originalAbs, PATHINFO_FILENAME) ?: ('photo-' . (int)($row['id'] ?? time()));
+    $framedRel = trim((string)($row['framed_path'] ?? '')) ?: 'uploads/event-photos/framed/' . $base . '.jpg';
+    $thumbRel = trim((string)($row['thumb_path'] ?? '')) ?: 'uploads/event-photos/thumbs/' . $base . '.jpg';
+    $framedAbs = photo_absolute_path_from_public($framedRel);
+    $thumbAbs = photo_absolute_path_from_public($thumbRel);
 
     $event = [
         'event_name' => $row['event_name'] ?? 'Dance Thru The Decades',
         'venue_name' => $row['venue_name'] ?? '',
         'event_date' => $row['event_date'] ?? '',
     ];
+    $orientation = trim((string)($row['image_orientation'] ?? '')) ?: 'portrait';
 
-    $info = @getimagesize($sourceAbs);
-    $srcW = (int)($info[0] ?? 0);
-    $srcH = (int)($info[1] ?? 0);
-    $orientation = ($srcW > ($srcH * 1.15)) ? 'landscape' : 'portrait';
-
-    $dirs = photo_storage_directories();
-    $base = pathinfo($sourceRel, PATHINFO_FILENAME) ?: ('photo-' . (int)($row['id'] ?? 0));
-    $base = preg_replace('~[^a-zA-Z0-9._-]+~', '-', $base);
-    if (strpos($base, 'photo-') !== 0) {
-        $base = 'photo-' . $base;
-    }
-
-    $framedRel = trim((string)($row['framed_path'] ?? '')) ?: 'uploads/event-photos/framed/' . $base . '.jpg';
-    $thumbRel = trim((string)($row['thumb_path'] ?? '')) ?: 'uploads/event-photos/thumbs/' . $base . '.jpg';
-    $framedAbs = photo_absolute_upload_path($framedRel) ?: ($dirs['framed'] . '/' . basename($framedRel));
-    $thumbAbs = photo_absolute_upload_path($thumbRel) ?: ($dirs['thumbs'] . '/' . basename($thumbRel));
-
-    if (!is_file($framedAbs)) {
-        if (!photo_render_framed_image($sourceAbs, $framedAbs, $event, $orientation)) {
-            @copy($sourceAbs, $framedAbs);
+    if ($framedAbs && !is_file($framedAbs)) {
+        if (!photo_render_framed_image($originalAbs, $framedAbs, $event, $orientation)) {
+            @copy($originalAbs, $framedAbs);
         }
     }
-    if (!is_file($thumbAbs) && is_file($framedAbs)) {
-        if (!photo_render_thumb($framedAbs, $thumbAbs, 540)) {
-            @copy($framedAbs, $thumbAbs);
+    if ($thumbAbs && !is_file($thumbAbs)) {
+        $thumbSource = ($framedAbs && is_file($framedAbs)) ? $framedAbs : $originalAbs;
+        if (!photo_render_thumb($thumbSource, $thumbAbs, 540)) {
+            @copy($thumbSource, $thumbAbs);
         }
     }
 
-    if (!empty($row['id'])) {
-        photo_update_upload_paths((int)$row['id'], [
-            'file_path' => $framedRel,
-            'original_path' => $sourceRel,
-            'framed_path' => $framedRel,
-            'thumb_path' => $thumbRel,
-            'image_orientation' => $orientation,
-        ]);
+    $updates = [];
+    $params = [];
+    if (photo_column_exists('event_photo_uploads', 'framed_path') && empty($row['framed_path']) && $framedRel) {
+        $updates[] = 'framed_path = ?';
+        $params[] = $framedRel;
+        $row['framed_path'] = $framedRel;
     }
-
-    return [
-        'display' => is_file($framedAbs) ? $framedRel : ($paths['display'] ?? ''),
-        'thumb' => is_file($thumbAbs) ? $thumbRel : (is_file($framedAbs) ? $framedRel : ($paths['thumb'] ?? '')),
-        'original' => $sourceRel,
-    ];
-}
-
-function photo_absolute_upload_path($path) {
-    $path = trim(str_replace('\\', '/', (string)$path));
-    if ($path === '') {
-        return '';
+    if (photo_column_exists('event_photo_uploads', 'thumb_path') && empty($row['thumb_path']) && $thumbRel) {
+        $updates[] = 'thumb_path = ?';
+        $params[] = $thumbRel;
+        $row['thumb_path'] = $thumbRel;
     }
-
-    $path = preg_replace('~^https?://[^/]+/~i', '', $path);
-    $path = preg_replace('~^\./+~', '', $path);
-    while (strpos($path, '../') === 0) {
-        $path = substr($path, 3);
-    }
-    $path = preg_replace('~^/?dttd-portal/~', '', $path);
-    $path = preg_replace('~^/?public_html/~', '', $path);
-    $path = ltrim($path, '/');
-
-    $root = realpath(dirname(__DIR__));
-    $candidate = dirname(__DIR__) . '/' . $path;
-    $real = realpath($candidate);
-
-    if ($root && $real && strpos($real, $root . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR) === 0) {
-        return $real;
-    }
-
-    // Allow deletion of a not-yet-realpath-resolvable file only when it is clearly inside uploads.
-    if ($root && strpos($path, 'uploads/') === 0) {
-        return $candidate;
-    }
-
-    return '';
-}
-
-function photo_delete_upload_files(array $row) {
-    $paths = photo_row_display_paths($row);
-    $extra = [
-        $row['file_path'] ?? '',
-        $row['original_path'] ?? '',
-        $row['framed_path'] ?? '',
-        $row['thumb_path'] ?? '',
-        $paths['display'] ?? '',
-        $paths['thumb'] ?? '',
-        $paths['original'] ?? '',
-    ];
-
-    $deleted = 0;
-    $seen = [];
-    foreach ($extra as $path) {
-        $abs = photo_absolute_upload_path($path);
-        if ($abs === '' || isset($seen[$abs])) {
-            continue;
-        }
-        $seen[$abs] = true;
-        if (is_file($abs) && @unlink($abs)) {
-            $deleted++;
+    if ($updates && !empty($row['id'])) {
+        $params[] = (int)$row['id'];
+        try {
+            $stmt = db()->prepare('UPDATE event_photo_uploads SET ' . implode(', ', $updates) . ' WHERE id = ?');
+            $stmt->execute($params);
+        } catch (Throwable $e) {
         }
     }
-    return $deleted;
-}
 
-function photo_delete_upload_permanently($photoId) {
-    $stmt = db()->prepare('SELECT * FROM event_photo_uploads WHERE id = ? LIMIT 1');
-    $stmt->execute([(int)$photoId]);
-    $row = $stmt->fetch();
-    if (!$row) {
-        return false;
-    }
-
-    photo_delete_upload_files($row);
-    $delete = db()->prepare('DELETE FROM event_photo_uploads WHERE id = ? LIMIT 1');
-    $delete->execute([(int)$photoId]);
-    return true;
+    return $row;
 }
 
 ?>

@@ -3382,18 +3382,6 @@ body.lightbox-open { overflow:hidden; }
   .public-grid-heading-row { flex-direction:column; align-items:flex-start; }
 }
 
-/* v155 public upload select dropdown contrast fix */
-.public-upload-form select option,
-.public-filter-grid select option{
-  color:#fff;
-  background:#2a063d;
-}
-.public-upload-form select option:checked,
-.public-filter-grid select option:checked{
-  color:#fff;
-  background:#7c1dff;
-}
-.public-upload-form select,
-.public-filter-grid select{
-  color:#fff;
-}
+/* Keep the gallery lightbox closed until a photo is deliberately clicked. */
+.public-lightbox[hidden] { display: none !important; }
+.public-lightbox-nav[hidden] { display: none !important; }

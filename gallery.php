@@ -83,7 +83,7 @@ try {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gallery | Dance Thru The Decades</title>
   <meta name="description" content="Browse approved photos from Dance Thru The Decades events.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=155">
+  <link rel="stylesheet" href="/assets/public-site.css?v=20260528-photos2">
 </head>
 <body class="homepage-option-one public-gallery-page">
   <main class="home-option-one">
@@ -218,10 +218,6 @@ try {
     const closeBtn = lightbox.querySelector('.public-lightbox-close');
     const prevBtn = lightbox.querySelector('.public-lightbox-nav.prev');
     const nextBtn = lightbox.querySelector('.public-lightbox-nav.next');
-    if (items.length <= 1) {
-      if (prevBtn) prevBtn.hidden = true;
-      if (nextBtn) nextBtn.hidden = true;
-    }
     let index = 0;
 
     function render(i){
@@ -240,20 +236,14 @@ try {
       item.addEventListener('click', () => render(i));
     });
 
-    function closeLightbox(){
+    closeBtn.addEventListener('click', () => {
       lightbox.hidden = true;
-      image.src = '';
       document.body.classList.remove('lightbox-open');
-    }
-
-    closeBtn.addEventListener('click', closeLightbox);
-
-    if (prevBtn) prevBtn.addEventListener('click', () => render((index - 1 + items.length) % items.length));
-    if (nextBtn) nextBtn.addEventListener('click', () => render((index + 1) % items.length));
-    lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !lightbox.hidden) closeLightbox();
     });
+
+    prevBtn.addEventListener('click', () => render((index - 1 + items.length) % items.length));
+    nextBtn.addEventListener('click', () => render((index + 1) % items.length));
+    lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeBtn.click(); });
   })();
   </script>
 </body>
