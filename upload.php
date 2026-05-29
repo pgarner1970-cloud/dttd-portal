@@ -7,6 +7,19 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
 
 $events = array_values(array_filter(photo_selectable_events(), 'photo_can_select_event'));
 $currentEvent = null;
+$rememberedEvent = null;
+
+try {
+    if (function_exists('dttd_event_from_access_cookie')) {
+        $candidate = dttd_event_from_access_cookie(false);
+        if ($candidate && photo_can_select_event($candidate)) {
+            $rememberedEvent = $candidate;
+        }
+    }
+} catch (Throwable $e) {
+    $rememberedEvent = null;
+}
+
 try {
     $candidate = active_event();
     if ($candidate && photo_can_select_event($candidate)) {
@@ -16,21 +29,21 @@ try {
     $currentEvent = null;
 }
 
-$accessEvent = null;
-try {
-    if (function_exists('dttd_event_from_access_cookie')) {
-        $cookieEvent = dttd_event_from_access_cookie(false);
-        if ($cookieEvent && photo_can_select_event($cookieEvent)) {
-            $accessEvent = $cookieEvent;
-        }
-    }
-} catch (Throwable $e) {
-    $accessEvent = null;
+// If the visitor has joined/scanned an event, default uploads to that remembered event.
+// This avoids older still-selectable events appearing first when a live event is active.
+$defaultEvent = $rememberedEvent ?: $currentEvent;
+$selectedEventId = 0;
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $selectedEventId = (int)($_POST['event_id'] ?? 0);
+} elseif (isset($_GET['event_id'])) {
+    $selectedEventId = (int)$_GET['event_id'];
+} elseif ($defaultEvent) {
+    $selectedEventId = (int)$defaultEvent['id'];
 }
-
-$defaultUploadEvent = $accessEvent ?: $currentEvent;
-$selectedEventId = (int)($_POST['event_id'] ?? $_GET['event_id'] ?? ($defaultUploadEvent['id'] ?? 0));
-$selectedEvent = $selectedEventId ? photo_get_event($selectedEventId) : $defaultUploadEvent;
+$selectedEvent = $selectedEventId ? photo_get_event($selectedEventId) : $defaultEvent;
+if (!$currentEvent && $rememberedEvent) {
+    $currentEvent = $rememberedEvent;
+}
 $guestName = trim((string)($_POST['guest_name'] ?? ''));
 $success = '';
 $error = '';
@@ -65,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upload Photos | Dance Thru The Decades</title>
   <meta name="description" content="Upload your event photos for moderation and inclusion in the public gallery.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=281">
+  <link rel="stylesheet" href="/assets/public-site.css?v=260">
 </head>
 <body class="homepage-option-one public-gallery-page">
   <main class="home-option-one">
@@ -107,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <label>
               <span>Your name (optional)</span>
-              <input type="text" name="guest_name" maxlength="120" value="<?= photo_h($guestName) ?>" placeholder="Name to display with this photo">
+              <input type="text" name="guest_name" maxlength="120" value="<?= photo_h($guestName) ?>" placeholder="How should we credit this photo?">
             </label>
           </div>
 
@@ -119,8 +132,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <p class="upload-help-copy">Landscape and portrait photos are both supported. We keep the original image and create a branded display version automatically.</p>
 
           <div class="public-upload-actions">
-            <button class="public-neon-btn public-upload-submit" type="submit">Upload Photo</button>
-            <span class="public-upload-progress" aria-live="polite" hidden><span class="public-upload-spinner" aria-hidden="true"></span> Uploading your photo… please don’t close this page.</span>
+            <button class="public-neon-btn" type="submit">Upload Photo</button>
+            <a class="public-secondary-btn" href="/gallery.php">View Public Gallery</a>
           </div>
         </form>
       </article>
@@ -128,23 +141,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <?php require __DIR__ . '/includes/public-footer.php'; ?>
   </main>
-<script>
-(function () {
-  var form = document.querySelector('.public-upload-form');
-  if (!form) return;
-  form.addEventListener('submit', function () {
-    var button = form.querySelector('.public-upload-submit');
-    var progress = form.querySelector('.public-upload-progress');
-    if (button) {
-      button.disabled = true;
-      button.textContent = 'Uploading…';
-      button.classList.add('is-uploading');
-    }
-    if (progress) {
-      progress.hidden = false;
-    }
-  });
-}());
-</script>
 </body>
 </html>
