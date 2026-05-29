@@ -3875,116 +3875,118 @@ body.public-request-page .public-request-card{
   }
 }
 
-/* v281 scoped public event/upload stabilisation
-   Keep this narrowly scoped: event share placement + upload select/readability/progress only. */
-body.public-event-detail-page .public-event-title-row{
+/* v281 scoped public form polish: event access gate and upload event selector */
+.public-access-card .public-access-form{
   display:flex !important;
+  justify-content:center !important;
+  align-items:flex-end !important;
+  gap:12px !important;
+  flex-wrap:wrap !important;
+  margin:22px auto 14px !important;
+}
+.public-access-card .public-access-form label{
+  display:flex !important;
+  flex-direction:column !important;
   align-items:flex-start !important;
-  justify-content:space-between !important;
-  gap:18px !important;
-  margin-bottom:12px !important;
+  gap:8px !important;
+  color:#ffe35a !important;
+  font-weight:950 !important;
 }
-body.public-event-detail-page .public-event-title-main{
-  min-width:0 !important;
-}
-body.public-event-detail-page .public-event-title-row h2{
-  margin:6px 0 12px !important;
-}
-body.public-event-detail-page .public-event-share-button{
-  flex:0 0 auto !important;
-  width:52px !important;
-  height:52px !important;
-  display:grid !important;
-  place-items:center !important;
-  margin-top:8px !important;
-  border-radius:999px !important;
-  border:1px solid rgba(255,125,243,.72) !important;
-  background:radial-gradient(circle at 35% 25%, rgba(255,255,255,.16), transparent 35%), rgba(255,79,216,.14) !important;
-  color:#fff !important;
-  cursor:pointer !important;
-  box-shadow:0 0 20px rgba(255,79,216,.25), inset 0 1px 0 rgba(255,255,255,.10) !important;
-  transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease !important;
-}
-body.public-event-detail-page .public-event-share-button:hover,
-body.public-event-detail-page .public-event-share-button:focus-visible{
-  transform:translateY(-1px) !important;
-  border-color:#ffe35a !important;
-  box-shadow:0 0 0 3px rgba(255,227,90,.14), 0 0 26px rgba(255,79,216,.38), inset 0 1px 0 rgba(255,255,255,.14) !important;
-  outline:none !important;
-}
-body.public-event-detail-page .public-event-share-button .public-action-icon{
-  width:24px !important;
-  height:24px !important;
-}
-
-body.public-upload-page .public-upload-form select,
-body.public-gallery-page .public-filter-grid select{
-  appearance:none !important;
-  -webkit-appearance:none !important;
-  min-height:56px !important;
-  padding:15px 48px 15px 18px !important;
+.public-access-card .public-access-form input#event_access_code{
+  width:min(280px, 76vw) !important;
+  min-height:54px !important;
+  box-sizing:border-box !important;
+  border:1px solid rgba(255,125,243,.58) !important;
   border-radius:18px !important;
-  border:1px solid rgba(255,125,243,.60) !important;
-  background-color:rgba(255,255,255,.075) !important;
-  background-image:
-    linear-gradient(45deg, transparent 50%, #ffe35a 50%),
-    linear-gradient(135deg, #ffe35a 50%, transparent 50%),
-    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02)) !important;
-  background-position:
-    calc(100% - 27px) 50%,
-    calc(100% - 18px) 50%,
-    0 0 !important;
-  background-size:9px 9px, 9px 9px, 100% 100% !important;
-  background-repeat:no-repeat !important;
+  background:rgba(255,255,255,.08) !important;
   color:#fff !important;
+  padding:14px 16px !important;
+  font:inherit !important;
   font-weight:900 !important;
+  letter-spacing:.08em !important;
+  text-transform:uppercase !important;
+  outline:none !important;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 0 18px rgba(255,79,216,.08) !important;
 }
-body.public-upload-page .public-upload-form select:focus,
-body.public-gallery-page .public-filter-grid select:focus{
+.public-access-card .public-access-form input#event_access_code::placeholder{
+  color:rgba(255,255,255,.50) !important;
+  text-transform:none !important;
+  letter-spacing:0 !important;
+}
+.public-access-card .public-access-form input#event_access_code:focus{
   border-color:#ffe35a !important;
-  box-shadow:0 0 0 3px rgba(255,227,90,.14), 0 0 24px rgba(255,79,216,.28), inset 0 1px 0 rgba(255,255,255,.10) !important;
+  box-shadow:0 0 0 3px rgba(255,227,90,.16), 0 0 24px rgba(255,79,216,.28) !important;
 }
-body.public-upload-page .public-upload-form select option,
-body.public-gallery-page .public-filter-grid select option{
-  color:#111 !important;
-  background:#fff !important;
-  font-weight:700 !important;
+
+body.public-gallery-page .public-upload-form select[name="event_id"]{
+  appearance:none !important;
+  -webkit-appearance:none !important;
+  background-color:rgba(36, 5, 48, .98) !important;
+  background-image:linear-gradient(45deg, transparent 50%, #ffe35a 50%), linear-gradient(135deg, #ffe35a 50%, transparent 50%) !important;
+  background-position:calc(100% - 24px) 50%, calc(100% - 16px) 50% !important;
+  background-size:8px 8px, 8px 8px !important;
+  background-repeat:no-repeat !important;
+  border-color:rgba(255,125,243,.70) !important;
+  color:#fff !important;
+  padding-right:48px !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 0 20px rgba(255,79,216,.10) !important;
 }
-body.public-upload-page .public-upload-actions{
+body.public-gallery-page .public-upload-form select[name="event_id"]:focus{
+  border-color:#ffe35a !important;
+  box-shadow:0 0 0 3px rgba(255,227,90,.16), 0 0 24px rgba(255,79,216,.30) !important;
+}
+body.public-gallery-page .public-upload-form select[name="event_id"] option{
+  background:#240530 !important;
+  color:#fff !important;
+  font-weight:800 !important;
+}
+body.public-gallery-page .public-upload-form select[name="event_id"] option:checked,
+body.public-gallery-page .public-upload-form select[name="event_id"] option:hover{
+  background:#5a1473 !important;
+  color:#ffe35a !important;
+}
+.public-upload-actions{
+  display:flex !important;
   align-items:center !important;
+  gap:14px !important;
+  flex-wrap:wrap !important;
 }
-body.public-upload-page .public-upload-submit[disabled],
-body.public-upload-page .public-upload-submit.is-uploading{
+.public-upload-submit:disabled,
+.public-upload-submit.is-uploading{
   opacity:.72 !important;
-  cursor:wait !important;
+  cursor:progress !important;
   filter:saturate(.85) !important;
 }
-body.public-upload-page .public-upload-progress{
+.public-upload-progress{
   display:inline-flex !important;
   align-items:center !important;
   gap:10px !important;
-  color:#f7eaff !important;
+  color:#fff !important;
   font-weight:800 !important;
+  background:rgba(255,255,255,.07) !important;
+  border:1px solid rgba(255,125,243,.32) !important;
+  border-radius:999px !important;
+  padding:11px 15px !important;
 }
-body.public-upload-page .public-upload-progress[hidden]{
+.public-upload-progress[hidden]{
   display:none !important;
 }
-body.public-upload-page .public-upload-spinner{
+.public-upload-spinner{
   width:18px !important;
   height:18px !important;
   border-radius:999px !important;
-  border:3px solid rgba(255,255,255,.30) !important;
+  border:3px solid rgba(255,255,255,.25) !important;
   border-top-color:#ffe35a !important;
-  animation:dttd-upload-spin .8s linear infinite !important;
+  animation:dttdUploadSpin .8s linear infinite !important;
 }
-@keyframes dttd-upload-spin{ to{ transform:rotate(360deg); } }
-@media(max-width:720px){
-  body.public-event-detail-page .public-event-title-row{
-    align-items:flex-start !important;
+@keyframes dttdUploadSpin{to{transform:rotate(360deg)}}
+@media (max-width: 680px){
+  .public-access-card .public-access-form{
+    align-items:stretch !important;
   }
-  body.public-event-detail-page .public-event-share-button{
-    width:48px !important;
-    height:48px !important;
+  .public-access-card .public-access-form label,
+  .public-access-card .public-access-form input#event_access_code,
+  .public-access-card .public-access-form .public-neon-btn{
+    width:100% !important;
   }
 }

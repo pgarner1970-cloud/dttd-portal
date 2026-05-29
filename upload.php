@@ -16,8 +16,21 @@ try {
     $currentEvent = null;
 }
 
-$selectedEventId = (int)($_POST['event_id'] ?? $_GET['event_id'] ?? ($currentEvent['id'] ?? 0));
-$selectedEvent = $selectedEventId ? photo_get_event($selectedEventId) : $currentEvent;
+$accessEvent = null;
+try {
+    if (function_exists('dttd_event_from_access_cookie')) {
+        $cookieEvent = dttd_event_from_access_cookie(false);
+        if ($cookieEvent && photo_can_select_event($cookieEvent)) {
+            $accessEvent = $cookieEvent;
+        }
+    }
+} catch (Throwable $e) {
+    $accessEvent = null;
+}
+
+$defaultUploadEvent = $accessEvent ?: $currentEvent;
+$selectedEventId = (int)($_POST['event_id'] ?? $_GET['event_id'] ?? ($defaultUploadEvent['id'] ?? 0));
+$selectedEvent = $selectedEventId ? photo_get_event($selectedEventId) : $defaultUploadEvent;
 $guestName = trim((string)($_POST['guest_name'] ?? ''));
 $success = '';
 $error = '';
@@ -54,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="description" content="Upload your event photos for moderation and inclusion in the public gallery.">
   <link rel="stylesheet" href="/assets/public-site.css?v=281">
 </head>
-<body class="homepage-option-one public-gallery-page public-upload-page">
+<body class="homepage-option-one public-gallery-page">
   <main class="home-option-one">
     <?php require __DIR__ . '/includes/public-nav.php'; ?>
 
@@ -107,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
           <div class="public-upload-actions">
             <button class="public-neon-btn public-upload-submit" type="submit">Upload Photo</button>
-            <span class="public-upload-progress" hidden aria-live="polite"><span class="public-upload-spinner" aria-hidden="true"></span>Uploading your photo… please don’t close this page.</span>
+            <span class="public-upload-progress" aria-live="polite" hidden><span class="public-upload-spinner" aria-hidden="true"></span> Uploading your photo… please don’t close this page.</span>
           </div>
         </form>
       </article>
@@ -115,23 +128,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <?php require __DIR__ . '/includes/public-footer.php'; ?>
   </main>
-  <script>
-    (function(){
-      var form = document.querySelector('.public-upload-form');
-      if (!form) return;
-      form.addEventListener('submit', function(){
-        var btn = form.querySelector('.public-upload-submit');
-        var progress = form.querySelector('.public-upload-progress');
-        if (btn) {
-          btn.disabled = true;
-          btn.classList.add('is-uploading');
-          btn.textContent = 'Uploading…';
-        }
-        if (progress) {
-          progress.hidden = false;
-        }
-      });
-    })();
-  </script>
+<script>
+(function () {
+  var form = document.querySelector('.public-upload-form');
+  if (!form) return;
+  form.addEventListener('submit', function () {
+    var button = form.querySelector('.public-upload-submit');
+    var progress = form.querySelector('.public-upload-progress');
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'Uploading…';
+      button.classList.add('is-uploading');
+    }
+    if (progress) {
+      progress.hidden = false;
+    }
+  });
+}());
+</script>
 </body>
 </html>
