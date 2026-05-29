@@ -436,14 +436,44 @@ function photo_draw_neon_line($im, $x1, $y1, $x2, $y2, $color, $glowColor, $thic
 
 function photo_imagick_font_path($bold = false) {
     $candidates = $bold
-        ? ['/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', '/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf']
-        : ['/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', '/usr/share/fonts/dejavu/DejaVuSans.ttf'];
+        ? [
+            __DIR__ . '/../assets/fonts/DejaVuSans-Bold.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+            '/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf',
+            '/usr/local/share/fonts/DejaVuSans-Bold.ttf',
+            '/usr/share/fonts/TTF/DejaVuSans-Bold.ttf',
+        ]
+        : [
+            __DIR__ . '/../assets/fonts/DejaVuSans.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+            '/usr/share/fonts/dejavu/DejaVuSans.ttf',
+            '/usr/local/share/fonts/DejaVuSans.ttf',
+            '/usr/share/fonts/TTF/DejaVuSans.ttf',
+        ];
     foreach ($candidates as $path) {
         if (is_file($path)) {
             return $path;
         }
     }
-    return $candidates[0];
+
+    // 20i/shared hosts may expose ImageMagick fonts by family name rather than
+    // Linux filesystem path. Returning a family name avoids hard failure from
+    // a missing /usr/share/fonts path.
+    return $bold ? 'DejaVu-Sans-Bold' : 'DejaVu-Sans';
+}
+
+
+function photo_imagick_set_font_safe(ImagickDraw $draw, $fontPath) {
+    $fontPath = trim((string)$fontPath);
+    if ($fontPath === '') {
+        return;
+    }
+    try {
+        $draw->setFont($fontPath);
+    } catch (Throwable $e) {
+        // Fall back to ImageMagick's default font if the requested one is not available.
+        photo_overlay_log('Font unavailable, using ImageMagick default: ' . $fontPath);
+    }
 }
 
 function photo_imagick_text_width(Imagick $canvas, ImagickDraw $draw, $text) {
@@ -455,7 +485,7 @@ function photo_imagick_fit_font_size(Imagick $canvas, $text, $fontPath, $startSi
     $size = (int)$startSize;
     while ($size > (int)$minSize) {
         $draw = new ImagickDraw();
-        $draw->setFont($fontPath);
+        photo_imagick_set_font_safe($draw, $fontPath);
         $draw->setFontSize($size);
         $width = photo_imagick_text_width($canvas, $draw, $text);
         if ($width <= $maxWidth) {
@@ -517,7 +547,7 @@ function photo_imagick_draw_text(Imagick $canvas, $text, $x, $y, $fontPath, $fon
         return 0;
     }
     $draw = new ImagickDraw();
-    $draw->setFont($fontPath);
+    photo_imagick_set_font_safe($draw, $fontPath);
     $draw->setFontSize($fontSize);
     $draw->setTextAntialias(true);
     photo_imagick_apply_draw_color($draw, 'fill', $fill);
@@ -539,7 +569,7 @@ function photo_imagick_draw_text(Imagick $canvas, $text, $x, $y, $fontPath, $fon
 
 function photo_imagick_draw_pill(Imagick $canvas, $text, $x, $y, $fontPath, $fontSize, $textColor, $strokeColor, $fillColor, $paddingX = 24, $height = 42, $maxWidth = 0) {
     $probe = new ImagickDraw();
-    $probe->setFont($fontPath);
+    photo_imagick_set_font_safe($probe, $fontPath);
     $probe->setFontSize($fontSize);
     $label = trim((string)$text);
     if ($label === '') {
