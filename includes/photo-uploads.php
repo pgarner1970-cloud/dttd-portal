@@ -402,9 +402,10 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
     photo_stroke_rounded_rect($im, $panelX + 8, $panelY + 8, $panelX + $panelW - 8, $panelY + $panelH - 8, $radius - 10, $pinkLight, 1);
 
     // Layout measurements designed to keep logo/header/footer inside the final artwork.
-    $innerPad = $landscape ? 58 : 48;
-    $headerH = $landscape ? 128 : 145;
-    $footerH = $landscape ? 255 : 285;
+    // The framed image is final branded artwork, so keep generous safe areas for the logo and event text.
+    $innerPad = $landscape ? 58 : 54;
+    $headerH = $landscape ? 128 : 150;
+    $footerH = $landscape ? 310 : 330;
     $photoX = $panelX + $innerPad;
     $photoY = $panelY + $headerH;
     $photoW = $panelW - ($innerPad * 2);
@@ -444,10 +445,13 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
     $fontRegular = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf';
 
     // Header label.
-    photo_draw_letterspaced_text($im, 'EVENT PHOTO', $landscape ? 25 : 23, $panelX + $panelW - ($landscape ? 395 : 330), $panelY + ($landscape ? 76 : 86), $gold, $fontBold, 8);
+    $eventPhotoX = $panelX + $panelW - ($landscape ? 390 : 342);
+    $eventPhotoY = $panelY + ($landscape ? 78 : 92);
+    photo_draw_letterspaced_text($im, 'EVENT PHOTO', $landscape ? 26 : 25, $eventPhotoX + 2, $eventPhotoY + 2, $whiteGlow, $fontBold, 9);
+    photo_draw_letterspaced_text($im, 'EVENT PHOTO', $landscape ? 26 : 25, $eventPhotoX, $eventPhotoY, $gold, $fontBold, 9);
 
-    $eventName = trim((string)($event['event_name'] ?? 'Dance Thru The Decades'));
-    $venueLine = trim((string)($event['venue_name'] ?? ''));
+    $eventName = trim((string)($event['event_name'] ?? $event['name'] ?? 'Dance Thru The Decades'));
+    $venueLine = trim((string)($event['venue_name'] ?? $event['venue'] ?? ''));
     $dateLine = '';
     if (!empty($event['event_date'])) {
         try {
@@ -457,17 +461,28 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
         }
     }
 
-    $footerTop = $photoY + $photoH + ($landscape ? 35 : 40);
-    imagefilledrectangle($im, $panelX + 30, $footerTop - 10, $panelX + $panelW - 30, $panelY + $panelH - 35, photo_allocate($im, [25, 0, 38], 36));
+    $footerTop = $photoY + $photoH + ($landscape ? 24 : 36);
+    $footerBottom = $panelY + $panelH - 35;
+    photo_draw_gradient($im, $panelX + 30, $footerTop - 6, $panelW - 60, $footerBottom - ($footerTop - 6), [35, 0, 49], [13, 0, 24]);
+    imagefilledrectangle($im, $panelX + 30, $footerTop - 6, $panelX + $panelW - 30, $footerBottom, photo_allocate($im, [32, 0, 45], 52));
 
-    // Event footer text inside the branded artwork.
-    photo_draw_centered_text($im, $eventName, $landscape ? 48 : 52, $footerTop + ($landscape ? 78 : 92), $whiteGlow, $fontBold, $panelW - 230, $cx + 2);
-    photo_draw_centered_text($im, $eventName, $landscape ? 47 : 51, $footerTop + ($landscape ? 76 : 90), $white, $fontBold, $panelW - 230, $cx);
-    photo_draw_centered_text($im, $venueLine ?: 'Dance Thru The Decades Events', $landscape ? 31 : 31, $footerTop + ($landscape ? 127 : 146), $gold, $fontRegular, $panelW - 260, $cx);
-    photo_draw_centered_text($im, $dateLine, $landscape ? 29 : 30, $footerTop + ($landscape ? 176 : 199), $white, $fontBold, $panelW - 260, $cx);
+    // Event footer text inside the branded artwork. Use field fallbacks because older event rows use `name`/`venue`.
+    if ($eventName === '') { $eventName = 'Dance Thru The Decades'; }
+    if ($venueLine === '') { $venueLine = 'Dance Thru The Decades Events'; }
+    $lineDateVenue = trim($dateLine !== '' ? ($venueLine . ' • ' . $dateLine) : $venueLine);
+
+    $titleY = $footerTop + ($landscape ? 83 : 94);
+    $venueY = $footerTop + ($landscape ? 139 : 155);
+    $dateY = $footerTop + ($landscape ? 190 : 209);
+    photo_draw_centered_text($im, $eventName, $landscape ? 54 : 58, $titleY + 3, $whiteGlow, $fontBold, $panelW - 235, $cx + 2);
+    photo_draw_centered_text($im, $eventName, $landscape ? 53 : 57, $titleY, $white, $fontBold, $panelW - 235, $cx);
+    photo_draw_centered_text($im, $venueLine, $landscape ? 33 : 34, $venueY, $gold, $fontRegular, $panelW - 270, $cx);
+    if ($dateLine !== '') {
+        photo_draw_centered_text($im, $dateLine, $landscape ? 31 : 32, $dateY, $white, $fontBold, $panelW - 270, $cx);
+    }
 
     // Decorative stars around the footer, but avoid overlapping text on narrower portrait cards.
-    $starY = $footerTop + ($landscape ? 158 : 174);
+    $starY = $footerTop + ($landscape ? 170 : 188);
     foreach ([-420, -330, 330, 420] as $offset) {
         if (!$landscape && abs($offset) > 340) { continue; }
         photo_draw_star($im, $cx + $offset, $starY + (($offset % 2) ? 0 : 18), $landscape ? 17 : 16, $footerPink);
@@ -478,9 +493,9 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
     // Footer brand line.
     $brandText = 'DANCE THRU THE DECADES EVENTS';
     $brandX = $cx - ($landscape ? 225 : 205);
-    photo_draw_letterspaced_text($im, $brandText, 15, $brandX, $panelY + $panelH - 40, $footerPink, $fontBold, 5);
+    photo_draw_letterspaced_text($im, $brandText, $landscape ? 16 : 15, $brandX, $panelY + $panelH - 42, $footerPink, $fontBold, 5);
 
-    $saved = photo_save_image_resource($im, $destPath, 92);
+    $saved = photo_save_image_resource($im, $destPath, 95);
     imagedestroy($src);
     imagedestroy($im);
     return $saved;
