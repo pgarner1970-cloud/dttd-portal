@@ -950,7 +950,7 @@ if ($event) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : ($notFound ? 'Event Not Found' : 'Join Event') ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event portal.' ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=291">
+  <link rel="stylesheet" href="/assets/public-site.css?v=311">
 </head>
 <body class="homepage-option-one public-event-detail-page public-event-portal-page">
   <main class="home-option-one">
@@ -1141,10 +1141,13 @@ if ($event) {
                     $eventPhotoThumb = '/' . ltrim((string)($photo['thumb'] ?? $photo['path']), '/');
                     $eventPhotoShareUrl = !empty($photo['id']) ? public_absolute_url('/gallery.php?photo=' . (int)$photo['id']) : public_absolute_url($eventPhotoUrl);
                     $eventPhotoShareText = public_event_photo_share_text($event, $photo);
-                    $eventPhotoMeta = trim(($venue ? $venue : '') . (($venue && $dateLabel) ? ' · ' : '') . ($dateLabel ? $dateLabel : ''));
+                    $eventPhotoDateLabel = function_exists('dttd_public_event_date') ? dttd_public_event_date($event) : '';
+                    $eventPhotoMeta = trim(($venue ? $venue : '') . (($venue && $eventPhotoDateLabel) ? ' · ' : '') . ($eventPhotoDateLabel ? $eventPhotoDateLabel : ''));
                   ?>
                   <a class="public-event-photo-grid-item"
                      href="<?= public_h($eventPhotoUrl) ?>"
+                     target="_blank"
+                     rel="noopener"
                      data-event-photo-lightbox
                      data-lightbox-image="<?= public_h($eventPhotoUrl) ?>"
                      data-lightbox-title="<?= public_h($title) ?>"
@@ -1295,109 +1298,113 @@ if ($event) {
 
     <script>
       (function(){
-        function initEventPhotoLightbox(){
-          const lightbox = document.getElementById('eventPhotoLightbox');
+        function ready(fn){
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', fn);
+          } else {
+            fn();
+          }
+        }
+
+        ready(function(){
+          var lightbox = document.getElementById('eventPhotoLightbox');
           if (!lightbox) return;
 
-          const image = document.getElementById('eventPhotoLightboxImage');
-          const title = document.getElementById('eventPhotoLightboxTitle');
-          const meta = document.getElementById('eventPhotoLightboxMeta');
-          const notice = document.getElementById('eventPhotoLightboxNotice');
-          const closeBtn = lightbox.querySelector('.public-event-photo-lightbox-close');
-          const copyBtn = lightbox.querySelector('.public-event-photo-copy');
-          const shareBtn = lightbox.querySelector('.public-event-photo-share');
-          const downloadLink = lightbox.querySelector('.public-event-photo-download');
+          var image = document.getElementById('eventPhotoLightboxImage');
+          var title = document.getElementById('eventPhotoLightboxTitle');
+          var meta = document.getElementById('eventPhotoLightboxMeta');
+          var notice = document.getElementById('eventPhotoLightboxNotice');
+          var closeBtn = lightbox.querySelector('.public-event-photo-lightbox-close');
+          var copyBtn = lightbox.querySelector('.public-event-photo-copy');
+          var shareBtn = lightbox.querySelector('.public-event-photo-share');
+          var downloadLink = lightbox.querySelector('.public-event-photo-download');
+          var currentShareUrl = '';
+          var currentShareText = '';
 
-          let currentShareUrl = '';
-          let currentShareText = '';
-
-          function showNotice(message){
+          function setNotice(message){
             if (!notice) return;
             notice.textContent = message || '';
             if (message) {
-              window.clearTimeout(showNotice.timer);
-              showNotice.timer = window.setTimeout(function(){ notice.textContent = ''; }, 2400);
+              window.clearTimeout(setNotice.timer);
+              setNotice.timer = window.setTimeout(function(){ notice.textContent = ''; }, 2400);
             }
           }
 
-          function openItem(item){
-            currentShareUrl = item.dataset.lightboxShareUrl || item.href || window.location.href;
-            currentShareText = item.dataset.lightboxShareText || item.dataset.lightboxTitle || 'Dance Thru The Decades photo';
+          function closeLightbox(){
+            lightbox.hidden = true;
+            lightbox.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('lightbox-open');
+          }
 
-            image.src = item.dataset.lightboxImage || item.href || '';
-            image.alt = item.dataset.lightboxTitle || 'Event photo';
-            title.textContent = item.dataset.lightboxTitle || '';
-            meta.textContent = item.dataset.lightboxMeta || '';
-            if (downloadLink) downloadLink.href = item.dataset.lightboxImage || item.href || '#';
+          function openLightbox(item){
+            if (!image) return false;
+
+            currentShareUrl = item.getAttribute('data-lightbox-share-url') || item.href || window.location.href;
+            currentShareText = item.getAttribute('data-lightbox-share-text') || item.getAttribute('data-lightbox-title') || 'Dance Thru The Decades photo';
+
+            image.src = item.getAttribute('data-lightbox-image') || item.href || '';
+            image.alt = item.getAttribute('data-lightbox-title') || 'Event photo';
+            if (title) title.textContent = item.getAttribute('data-lightbox-title') || '';
+            if (meta) meta.textContent = item.getAttribute('data-lightbox-meta') || '';
+            if (downloadLink) downloadLink.href = item.getAttribute('data-lightbox-image') || item.href || '#';
 
             lightbox.hidden = false;
             lightbox.setAttribute('aria-hidden', 'false');
             document.body.classList.add('lightbox-open');
-            showNotice('');
+            setNotice('');
+            return true;
           }
+
+          document.querySelectorAll('[data-event-photo-lightbox]').forEach(function(item){
+            item.addEventListener('click', function(e){
+              try {
+                if (openLightbox(item)) {
+                  e.preventDefault();
+                }
+              } catch (err) {
+                // Allow the normal image link to open if anything goes wrong.
+              }
+            });
+          });
+
+          if (closeBtn) closeBtn.addEventListener('click', closeLightbox);
+          lightbox.addEventListener('click', function(e){
+            if (e.target === lightbox) closeLightbox();
+          });
+          document.addEventListener('keydown', function(e){
+            if (e.key === 'Escape' && !lightbox.hidden) closeLightbox();
+          });
 
           async function copyLink(){
             if (!currentShareUrl) return;
             try {
               await navigator.clipboard.writeText(currentShareUrl);
-              showNotice('Preview link copied');
-            } catch (e) {
+              setNotice('Preview link copied');
+            } catch (err) {
               window.prompt('Copy this link', currentShareUrl);
             }
           }
-
-          document.addEventListener('click', function(e){
-            const item = e.target.closest('[data-event-photo-lightbox]');
-            if (!item) return;
-            e.preventDefault();
-            openItem(item);
-          });
-
-          if (closeBtn) {
-            closeBtn.addEventListener('click', function(){
-              lightbox.hidden = true;
-              lightbox.setAttribute('aria-hidden', 'true');
-              document.body.classList.remove('lightbox-open');
-            });
-          }
-
-          lightbox.addEventListener('click', function(e){
-            if (e.target === lightbox && closeBtn) closeBtn.click();
-          });
-
-          document.addEventListener('keydown', function(e){
-            if (e.key === 'Escape' && !lightbox.hidden && closeBtn) closeBtn.click();
-          });
 
           if (copyBtn) copyBtn.addEventListener('click', copyLink);
 
           if (shareBtn) {
             shareBtn.addEventListener('click', async function(){
-              const shareData = {
-                title: title.textContent || 'Dance Thru The Decades photo',
-                text: currentShareText,
-                url: currentShareUrl
-              };
-
               if (navigator.share) {
                 try {
-                  await navigator.share(shareData);
+                  await navigator.share({
+                    title: title ? title.textContent : 'Dance Thru The Decades photo',
+                    text: currentShareText,
+                    url: currentShareUrl
+                  });
                   return;
-                } catch (e) {
-                  if (e && e.name === 'AbortError') return;
+                } catch (err) {
+                  if (err && err.name === 'AbortError') return;
                 }
               }
-
               copyLink();
             });
           }
-        }
-
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', initEventPhotoLightbox);
-        } else {
-          initEventPhotoLightbox();
-        }
+        });
       })();
     </script>
 

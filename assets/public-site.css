@@ -4584,3 +4584,104 @@ body.homepage-option-one .home-coming-up-card.is-live{
   cursor:pointer;
 }
 
+/* v311 event photo lightbox safety and section spacing */
+.public-event-portal-page .public-event-photo-carousel-card{
+  margin-bottom:36px !important;
+}
+
+.public-event-portal-page .public-event-photo-carousel-card + .public-event-detail-card,
+.public-event-portal-page .public-event-detail-card{
+  margin-top:36px !important;
+}
+
+.public-event-portal-page .public-event-photo-lightbox[hidden]{
+  display:none !important;
+}
+
+.public-event-portal-page .public-event-photo-lightbox{
+  position:fixed !important;
+  inset:0 !important;
+  z-index:99999 !important;
+  display:grid !important;
+  place-items:center !important;
+  padding:24px !important;
+  background:rgba(6,0,12,.88) !important;
+  backdrop-filter:blur(8px);
+}
+
+.public-event-portal-page .public-event-photo-lightbox figure{
+  width:min(960px, 100%) !important;
+  max-height:92vh !important;
+  margin:0 !important;
+  display:grid !important;
+  gap:14px !important;
+  justify-items:center !important;
+}
+
+.public-event-portal-page .public-event-photo-lightbox img{
+  max-width:100% !important;
+  max-height:70vh !important;
+  object-fit:contain !important;
+  display:block !important;
+  border-radius:18px !important;
+  background:rgba(0,0,0,.45) !important;
+  border:1px solid rgba(255,125,243,.38) !important;
+  box-shadow:0 0 35px rgba(255,79,216,.24) !important;
+}
+
+.public-event-portal-page .public-event-photo-lightbox figcaption{
+  display:grid !important;
+  gap:8px !important;
+  justify-items:center !important;
+  color:#fff !important;
+  text-align:center !important;
+}
+
+.public-event-portal-page .public-event-photo-lightbox-close{
+  position:absolute !important;
+  top:18px !important;
+  right:18px !important;
+  width:44px !important;
+  height:44px !important;
+  display:grid !important;
+  place-items:center !important;
+  border:1px solid rgba(255,125,243,.52) !important;
+  border-radius:50% !important;
+  background:rgba(18,0,32,.86) !important;
+  color:#fff !important;
+  font-size:1.8rem !important;
+  font-weight:900 !important;
+  line-height:1 !important;
+  cursor:pointer !important;
+  box-shadow:0 0 20px rgba(255,79,216,.24) !important;
+}
+
+.public-event-portal-page .public-event-photo-lightbox-actions{
+  display:flex !important;
+  flex-wrap:wrap !important;
+  justify-content:center !important;
+  gap:10px !important;
+  margin-top:4px !important;
+}
+
+.public-event-portal-page .public-event-photo-lightbox-actions button,
+.public-event-portal-page .public-event-photo-lightbox-actions a{
+  border:1px solid rgba(255,125,243,.55) !important;
+  border-radius:999px !important;
+  background:rgba(18,0,32,.78) !important;
+  color:#fff !important;
+  min-height:38px !important;
+  padding:8px 14px !important;
+  font:inherit !important;
+  font-weight:900 !important;
+  text-decoration:none !important;
+  cursor:pointer !important;
+}
+
+.public-event-portal-page .public-event-photo-lightbox-notice{
+  min-height:1.2em !important;
+  color:#ffd84f !important;
+  font-weight:800 !important;
+  text-align:center !important;
+}
+
