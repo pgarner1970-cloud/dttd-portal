@@ -1056,6 +1056,11 @@ if ($event) {
                 <strong>Upload Photos</strong>
                 <em>Uploads wait for moderation</em>
               </a>
+              <a class="public-event-action-tile public-mobile-selfie-action" href="/upload.php?selfie=1">
+                <span>🤳</span>
+                <strong>Take a Selfie</strong>
+                <em>Use your phone camera</em>
+              </a>
               <a class="public-event-action-tile" href="<?= public_h($facebookUrl) ?>" target="_blank" rel="noopener">
                 <span>f</span>
                 <strong>Follow Us</strong>

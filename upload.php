@@ -69,6 +69,7 @@ if ($rememberedEvent && !empty($rememberedEvent['id']) && photo_can_select_event
 }
 
 $guestName = trim((string)($_POST['guest_name'] ?? ''));
+$selfieMode = isset($_GET['selfie']) || (($_POST['upload_mode'] ?? '') === 'selfie');
 $success = '';
 $error = '';
 
@@ -103,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upload Photos | Dance Thru The Decades</title>
   <meta name="description" content="Upload your event photos for moderation and inclusion in the public gallery.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=282">
+  <link rel="stylesheet" href="/assets/public-site.css?v=314">
 </head>
 <body class="homepage-option-one public-gallery-page public-upload-page">
   <main class="home-option-one">
@@ -113,16 +114,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="option-one-logo-shell public-list-logo">
         <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=152" alt="Dance Thru The Decades Events logo">
       </div>
-      <p class="option-one-eyebrow">Event Photos</p>
-      <h1 class="public-gallery-title">Upload Photos</h1>
+      <p class="option-one-eyebrow"><?= $selfieMode ? 'Event Selfie' : 'Event Photos' ?></p>
+      <h1 class="public-gallery-title"><?= $selfieMode ? 'Take a Selfie' : 'Upload Photos' ?></h1>
       <p class="option-one-subtitle"><?= $uploadEventLocked ? 'You are connected to this event, so your photos will upload directly to it.' : ($currentEvent ? 'You can upload straight to the current event, or choose a recent past event if you are sharing later.' : 'Choose a recent past event to upload your photos. All uploads are moderated before going live.') ?></p>
     </section>
 
     <section class="public-gallery-shell">
       <article class="public-filter-card upload-card">
-        <p class="option-one-eyebrow">Photo Upload</p>
-        <h2><?= $uploadEventLocked ? 'Share photos from this event' : ($currentEvent ? 'Share your event memories' : 'Choose an event and upload') ?></h2>
-        <p>Uploads are reviewed first, then approved photos appear in the public gallery and event photo sections.</p>
+        <p class="option-one-eyebrow"><?= $selfieMode ? 'Selfie Upload' : 'Photo Upload' ?></p>
+        <h2><?= $selfieMode ? 'Snap and share your event selfie' : ($uploadEventLocked ? 'Share photos from this event' : ($currentEvent ? 'Share your event memories' : 'Choose an event and upload')) ?></h2>
+        <p><?= $selfieMode ? 'Use your phone camera, add your name if you want, and your selfie will wait for moderation like any other event photo.' : 'Uploads are reviewed first, then approved photos appear in the public gallery and event photo sections.' ?></p>
 
         <?php if ($success): ?>
           <div class="public-form-success"><?= photo_h($success) ?></div>
@@ -132,6 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form class="public-upload-form" method="post" enctype="multipart/form-data">
+          <input type="hidden" name="upload_mode" value="<?= $selfieMode ? 'selfie' : 'photo' ?>">
           <div class="public-filter-grid upload-grid">
             <?php if ($uploadEventLocked && $selectedEvent): ?>
               <label>
@@ -158,14 +160,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
 
           <label>
-            <span>Photo</span>
-            <input type="file" name="photo_upload" accept="image/jpeg,image/png,image/webp,image/gif" required>
+            <span><?= $selfieMode ? 'Selfie photo' : 'Photo' ?></span>
+            <input type="file" name="photo_upload" accept="image/jpeg,image/png,image/webp,image/gif" <?= $selfieMode ? 'capture="user"' : '' ?> required>
           </label>
 
-          <p class="upload-help-copy">Landscape and portrait photos are both supported. We keep the original image and create a branded display version automatically.</p>
+          <p class="upload-help-copy"><?= $selfieMode ? 'On most phones this opens the front camera. You can still choose an existing photo if your browser offers that option.' : 'Landscape and portrait photos are both supported. We keep the original image and create a branded display version automatically.' ?></p>
 
           <div class="public-upload-actions">
-            <button class="public-neon-btn public-upload-submit" type="submit">Upload Photo</button>
+            <button class="public-neon-btn public-upload-submit" type="submit"><?= $selfieMode ? 'Upload Selfie' : 'Upload Photo' ?></button>
             <span class="public-upload-progress" hidden aria-live="polite">
               <span class="public-upload-spinner" aria-hidden="true"></span>
               Uploading your photo… please don’t close this page.

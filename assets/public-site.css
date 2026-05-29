@@ -5022,3 +5022,23 @@ body.homepage-option-one .home-coming-up-card.is-live{
   }
 }
 
+/* v314 mobile event selfie action */
+.public-event-portal-page .public-mobile-selfie-action{
+  display:none;
+}
+
+@media (max-width: 760px){
+  .public-event-portal-page .public-mobile-selfie-action{
+    display:grid;
+  }
+
+  .public-event-portal-page .public-event-action-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+.public-upload-page .upload-card .upload-help-copy{
+  color:#f3e8ff;
+  line-height:1.45;
+}
+
