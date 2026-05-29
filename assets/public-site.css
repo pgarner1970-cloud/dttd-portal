@@ -4571,3 +4571,16 @@ body.homepage-option-one .home-coming-up-card.is-live{
   text-align:center;
 }
 
+/* v310 event portal photo lightbox fixes */
+.public-event-portal-page .public-event-photo-carousel-card{
+  margin-bottom:32px !important;
+}
+
+.public-event-portal-page .public-event-photo-carousel-card + .public-event-detail-card{
+  margin-top:32px !important;
+}
+
+.public-event-portal-page .public-event-photo-grid-item{
+  cursor:pointer;
+}
+
