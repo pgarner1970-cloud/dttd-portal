@@ -21,7 +21,7 @@ function dttd_photo_safe_abs_path($relativePath) {
 
 function dttd_photo_delete_files_for_row($photo) {
     $paths = photo_row_display_paths($photo);
-    $delete = array_unique(array_filter([
+    $delete = array_filter([
         $photo['file_path'] ?? '',
         $photo['original_path'] ?? '',
         $photo['framed_path'] ?? '',
@@ -29,7 +29,26 @@ function dttd_photo_delete_files_for_row($photo) {
         $paths['display'] ?? '',
         $paths['thumb'] ?? '',
         $paths['original'] ?? '',
-    ]));
+    ]);
+
+    // Defensive cleanup: delete any generated variant with the same stored basename.
+    // This catches older rows where only one of file_path/original_path/framed_path/thumb_path was populated.
+    $variantDirs = [
+        'uploads/event-photos/original/',
+        'uploads/event-photos/framed/',
+        'uploads/event-photos/thumbs/',
+    ];
+    foreach ($delete as $rel) {
+        $rel = photo_relative_to_public($rel);
+        $base = basename($rel);
+        if ($base !== '' && $base !== '.' && $base !== '..') {
+            foreach ($variantDirs as $dir) {
+                $delete[] = $dir . $base;
+            }
+        }
+    }
+
+    $delete = array_unique(array_filter($delete));
     foreach ($delete as $rel) {
         $abs = dttd_photo_safe_abs_path($rel);
         if ($abs) @unlink($abs);
@@ -167,7 +186,7 @@ admin_header('Photo Moderation');
               <?php if ($status !== 'rejected'): ?><form method="post"><input type="hidden" name="photo_id" value="<?= (int)$photo['id'] ?>"><input type="hidden" name="action" value="reject"><button class="photo-btn photo-btn-red" type="submit">Reject</button></form><?php endif; ?>
               <?php if ($status !== 'pending'): ?><form method="post"><input type="hidden" name="photo_id" value="<?= (int)$photo['id'] ?>"><input type="hidden" name="action" value="pending"><button class="photo-btn" type="submit">Back to Pending</button></form><?php endif; ?>
               <a class="photo-btn photo-btn-blue" href="<?= h($displayUrl) ?>" target="_blank" rel="noopener">View</a>
-              <?php if ($status === 'rejected'): ?><form method="post" onsubmit="return confirm('Delete this rejected photo permanently? This removes the database record and all image files.');"><input type="hidden" name="photo_id" value="<?= (int)$photo['id'] ?>"><input type="hidden" name="action" value="delete"><button class="photo-btn photo-btn-danger" type="submit">Delete</button></form><?php endif; ?>
+              <?php if ($status === 'rejected'): ?><form method="post"><input type="hidden" name="photo_id" value="<?= (int)$photo['id'] ?>"><input type="hidden" name="action" value="delete"><button class="photo-btn photo-btn-danger" type="submit">Delete</button></form><?php endif; ?>
             </div>
           </div>
         </article>
