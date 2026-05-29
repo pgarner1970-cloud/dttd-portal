@@ -83,7 +83,7 @@ try {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gallery | Dance Thru The Decades</title>
   <meta name="description" content="Browse approved photos from Dance Thru The Decades events.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=282">
+  <link rel="stylesheet" href="/assets/public-site.css?v=291">
 </head>
 <body class="homepage-option-one public-gallery-page">
   <main class="home-option-one">
@@ -185,7 +185,7 @@ try {
       </article>
     </section>
 
-    <div class="public-lightbox" id="publicPhotoLightbox" hidden>
+    <div class="public-lightbox is-hidden" id="publicPhotoLightbox" hidden>
       <button class="public-lightbox-close" type="button" aria-label="Close photo viewer">×</button>
       <button class="public-lightbox-nav prev" type="button" aria-label="Previous photo">‹</button>
       <figure>
@@ -224,6 +224,8 @@ try {
       title.textContent = item.dataset.lightboxTitle || '';
       meta.textContent = item.dataset.lightboxMeta || '';
       lightbox.hidden = false;
+      lightbox.classList.add('is-open');
+      lightbox.classList.remove('is-hidden');
       document.body.classList.add('lightbox-open');
     }
 
@@ -233,6 +235,8 @@ try {
 
     closeBtn.addEventListener('click', () => {
       lightbox.hidden = true;
+      lightbox.classList.remove('is-open');
+      lightbox.classList.add('is-hidden');
       document.body.classList.remove('lightbox-open');
     });
 
