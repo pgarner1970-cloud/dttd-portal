@@ -369,8 +369,8 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
     photo_stroke_rounded_rect($im, $panelX, $panelY, $panelX + $panelW, $panelY + $panelH, $radius, $pink, 5);
     photo_stroke_rounded_rect($im, $panelX + 7, $panelY + 7, $panelX + $panelW - 7, $panelY + $panelH - 7, $radius - 8, $pinkSoft, 1);
 
-    $headerH = $landscape ? 130 : 145;
-    $footerH = $landscape ? 270 : 300;
+    $headerH = $landscape ? 140 : 145;
+    $footerH = $landscape ? 230 : 300;
     $innerPad = $landscape ? 55 : 45;
     $photoX = $panelX + $innerPad;
     $photoY = $panelY + $headerH;
@@ -430,20 +430,20 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
     }
 
     // Footer panel and typography.
-    $footerTop = $photoY + $photoH + ($landscape ? 34 : 40);
+    $footerTop = $photoY + $photoH + ($landscape ? 24 : 40);
     imagefilledrectangle($im, $panelX + 35, $footerTop - 10, $panelX + $panelW - 35, $panelY + $panelH - 34, photo_allocate($im, [25, 0, 36], 32));
 
     if (is_file($fontBold) && function_exists('imagettftext')) {
         // Soft glow behind the title.
-        photo_draw_centered_text($im, $eventName, $landscape ? 47 : 50, $footerTop + ($landscape ? 78 : 92), photo_allocate($im, [255, 95, 255], 78), $fontBold, $panelW - 240, $cx + 3);
-        photo_draw_centered_text($im, $eventName, $landscape ? 46 : 49, $footerTop + ($landscape ? 76 : 90), $white, $fontBold, $panelW - 240, $cx);
-        photo_draw_centered_text($im, $venueLine ?: 'Dance Thru The Decades Events', $landscape ? 30 : 30, $footerTop + ($landscape ? 128 : 145), $gold, $fontRegular, $panelW - 260, $cx);
-        photo_draw_centered_text($im, $dateLine, $landscape ? 28 : 29, $footerTop + ($landscape ? 178 : 198), $white, $fontBold, $panelW - 260, $cx);
+        photo_draw_centered_text($im, $eventName, $landscape ? 47 : 50, $footerTop + ($landscape ? 62 : 92), photo_allocate($im, [255, 95, 255], 78), $fontBold, $panelW - 240, $cx + 3);
+        photo_draw_centered_text($im, $eventName, $landscape ? 46 : 49, $footerTop + ($landscape ? 60 : 90), $white, $fontBold, $panelW - 240, $cx);
+        photo_draw_centered_text($im, $venueLine ?: 'Dance Thru The Decades Events', $landscape ? 30 : 30, $footerTop + ($landscape ? 108 : 145), $gold, $fontRegular, $panelW - 260, $cx);
+        photo_draw_centered_text($im, $dateLine, $landscape ? 28 : 29, $footerTop + ($landscape ? 152 : 198), $white, $fontBold, $panelW - 260, $cx);
         photo_draw_letterspaced_text($im, 'DANCE THRU THE DECADES EVENTS', $landscape ? 15 : 15, $cx - ($landscape ? 205 : 202), $panelY + $panelH - 38, $footerPink, $fontBold, 5);
     }
 
     // Decorative stars.
-    $starY = $footerTop + ($landscape ? 156 : 173);
+    $starY = $footerTop + ($landscape ? 126 : 173);
     foreach ([-390, -310, 310, 390] as $offset) {
         if (!$landscape && abs($offset) > 330) { continue; }
         photo_draw_star($im, $cx + $offset, $starY + (($offset % 2) ? 0 : 18), $landscape ? 17 : 16, $footerPink);
@@ -468,13 +468,39 @@ function photo_render_thumb($sourcePath, $destPath, $size = 480) {
 
     $srcW = imagesx($src);
     $srcH = imagesy($src);
-    $side = min($srcW, $srcH);
-    $cropX = (int)max(0, floor(($srcW - $side) / 2));
-    $cropY = (int)max(0, floor(($srcH - $side) / 2));
 
+    // These thumbnails are not raw photos: they are finished branded artwork.
+    // Do not centre-crop them, otherwise the Dance Thru The Decades logo,
+    // neon border and footer/event details can be chopped off in the gallery.
     $thumb = imagecreatetruecolor($size, $size);
-    imagecopyresampled($thumb, $src, 0, 0, $cropX, $cropY, $size, $size, $side, $side);
-    $saved = imagejpeg($thumb, $destPath, 86);
+    imagealphablending($thumb, true);
+    imagesavealpha($thumb, true);
+
+    // Dark branded backdrop for any letterbox space around landscape/portrait art.
+    $bg1 = imagecolorallocate($thumb, 16, 0, 25);
+    $bg2 = imagecolorallocate($thumb, 55, 2, 77);
+    imagefilledrectangle($thumb, 0, 0, $size, $size, $bg1);
+    for ($y = 0; $y < $size; $y++) {
+        $t = $y / max(1, $size - 1);
+        $r = (int)round(16 + (55 - 16) * $t);
+        $g = (int)round(0 + (2 - 0) * $t);
+        $b = (int)round(25 + (77 - 25) * $t);
+        imageline($thumb, 0, $y, $size, $y, imagecolorallocate($thumb, $r, $g, $b));
+    }
+
+    $scale = min($size / max(1, $srcW), $size / max(1, $srcH));
+    $destW = (int)max(1, floor($srcW * $scale));
+    $destH = (int)max(1, floor($srcH * $scale));
+    $destX = (int)floor(($size - $destW) / 2);
+    $destY = (int)floor(($size - $destH) / 2);
+
+    imagecopyresampled($thumb, $src, $destX, $destY, 0, 0, $destW, $destH, $srcW, $srcH);
+
+    // Subtle branded outline so contained artwork still looks intentional.
+    $border = imagecolorallocate($thumb, 235, 55, 245);
+    imagerectangle($thumb, 0, 0, $size - 1, $size - 1, $border);
+
+    $saved = imagejpeg($thumb, $destPath, 88);
     imagedestroy($src);
     imagedestroy($thumb);
     return $saved;
