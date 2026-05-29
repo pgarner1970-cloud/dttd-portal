@@ -4161,3 +4161,197 @@ body.homepage-option-one .home-coming-up-card.is-live{
   }
 }
 
+/* v306 event portal compact request/played cards
+   Scoped to logged-in event portal only. Restores compact rows and icon buttons. */
+.public-event-portal-page .public-event-live-grid{
+  align-items:start;
+}
+
+.public-event-portal-page .public-live-card{
+  padding:24px;
+}
+
+.public-event-portal-page .public-request-board-list,
+.public-event-portal-page .public-mini-list{
+  gap:10px;
+}
+
+.public-event-portal-page .public-request-board-list li,
+.public-event-portal-page .public-mini-list li,
+.public-event-portal-page .public-request-card-shell,
+.public-event-portal-page .public-played-track-row{
+  min-height:0 !important;
+}
+
+.public-event-portal-page .public-request-board-list li,
+.public-event-portal-page .public-played-track-row{
+  display:block !important;
+  padding:0 !important;
+  border:0 !important;
+  background:transparent !important;
+}
+
+.public-event-portal-page .public-request-card-shell,
+.public-event-portal-page .public-played-track-row{
+  display:grid !important;
+  grid-template-columns:58px minmax(0, 1fr) auto !important;
+  gap:12px !important;
+  align-items:center !important;
+  padding:10px 12px !important;
+  border:1px solid rgba(255,125,243,.24) !important;
+  border-radius:16px !important;
+  background:rgba(255,255,255,.045) !important;
+}
+
+.public-event-portal-page .public-request-card-main,
+.public-event-portal-page .public-played-track-main{
+  min-width:0 !important;
+}
+
+.public-event-portal-page .public-request-row-head{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:10px !important;
+}
+
+.public-event-portal-page .public-request-artwork,
+.public-event-portal-page .public-played-artwork{
+  width:58px !important;
+  height:58px !important;
+  border-radius:10px !important;
+  object-fit:cover !important;
+  display:block !important;
+  grid-row:auto !important;
+}
+
+.public-event-portal-page .public-request-row-head strong,
+.public-event-portal-page .public-played-track-main strong{
+  display:block !important;
+  font-size:1rem !important;
+  line-height:1.15 !important;
+  color:#fff !important;
+}
+
+.public-event-portal-page .public-request-artist,
+.public-event-portal-page .public-played-track-main span,
+.public-event-portal-page .public-request-member small,
+.public-event-portal-page .public-request-dedication,
+.public-event-portal-page .public-request-reason{
+  font-size:.92rem !important;
+  line-height:1.25 !important;
+  color:#f3e8ff !important;
+  margin:0 !important;
+}
+
+.public-event-portal-page .public-request-member-list{
+  display:grid !important;
+  gap:2px !important;
+  margin-top:4px !important;
+}
+
+.public-event-portal-page .public-request-status{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  white-space:nowrap !important;
+  border-radius:999px !important;
+  padding:4px 8px !important;
+  font-size:.72rem !important;
+  font-weight:950 !important;
+  color:#ffd84f !important;
+  border:1px solid rgba(255,216,79,.38) !important;
+  background:rgba(255,216,79,.08) !important;
+}
+
+.public-event-portal-page .public-played-track-actions{
+  display:flex !important;
+  align-items:center !important;
+  gap:8px !important;
+  margin:0 !important;
+}
+
+.public-event-portal-page .public-track-action,
+.public-event-portal-page .public-track-icon-action{
+  width:38px !important;
+  height:38px !important;
+  min-width:38px !important;
+  min-height:38px !important;
+  display:inline-grid !important;
+  place-items:center !important;
+  padding:0 !important;
+  border:1px solid rgba(255,125,243,.42) !important;
+  border-radius:999px !important;
+  background:rgba(18,0,32,.78) !important;
+  color:#fff !important;
+  text-decoration:none !important;
+  cursor:pointer !important;
+  box-shadow:0 0 14px rgba(255,79,216,.16) !important;
+  overflow:hidden !important;
+  appearance:none !important;
+  -webkit-appearance:none !important;
+}
+
+.public-event-portal-page .public-track-action:hover,
+.public-event-portal-page .public-track-icon-action:hover{
+  background:rgba(255,79,216,.18) !important;
+}
+
+.public-event-portal-page .public-action-icon{
+  width:20px !important;
+  height:20px !important;
+  display:block !important;
+  fill:none !important;
+  stroke:currentColor !important;
+  stroke-width:2.2 !important;
+  stroke-linecap:round !important;
+  stroke-linejoin:round !important;
+}
+
+.public-event-portal-page .public-track-icon-action.spotify .public-action-icon circle:first-child{
+  fill:#1db954 !important;
+  stroke:#1db954 !important;
+}
+
+.public-event-portal-page .public-track-icon-action.spotify .public-action-icon path{
+  stroke:#06170c !important;
+}
+
+.public-event-portal-page .public-track-icon-action.share .public-action-icon circle{
+  fill:currentColor !important;
+  stroke:currentColor !important;
+}
+
+.public-event-portal-page .public-track-icon-action.share .public-action-icon path{
+  stroke:currentColor !important;
+}
+
+.public-event-portal-page .public-sr-only{
+  position:absolute !important;
+  width:1px !important;
+  height:1px !important;
+  padding:0 !important;
+  margin:-1px !important;
+  overflow:hidden !important;
+  clip:rect(0,0,0,0) !important;
+  white-space:nowrap !important;
+  border:0 !important;
+}
+
+@media (max-width: 620px){
+  .public-event-portal-page .public-request-card-shell,
+  .public-event-portal-page .public-played-track-row{
+    grid-template-columns:52px minmax(0, 1fr) !important;
+  }
+
+  .public-event-portal-page .public-played-track-actions{
+    grid-column:2;
+  }
+
+  .public-event-portal-page .public-request-artwork,
+  .public-event-portal-page .public-played-artwork{
+    width:52px !important;
+    height:52px !important;
+  }
+}
+
