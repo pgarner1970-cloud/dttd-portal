@@ -51,13 +51,25 @@ function home_public_event_venue($event) {
 }
 
 function home_event_is_private($event) {
+    /*
+     * Public homepage/scroller rule:
+     * only genuinely public/promoted events should appear here.
+     * Private parties can still use QR/code access to request songs/upload photos,
+     * but they should not be advertised on the public homepage.
+     */
+    foreach (['is_public', 'public_event', 'show_publicly', 'show_on_site', 'is_listed'] as $flagColumn) {
+        if (array_key_exists($flagColumn, $event) && $event[$flagColumn] !== null && $event[$flagColumn] !== '') {
+            return !((int)$event[$flagColumn] === 1);
+        }
+    }
+
     $visibility = strtolower((string)($event['queue_visibility'] ?? $event['visibility'] ?? 'public'));
     $eventType = strtolower((string)($event['event_type'] ?? ''));
     $status = strtolower((string)($event['status'] ?? ''));
 
     return (
-        $status === 'private'
-        || $visibility === 'private'
+        in_array($status, ['private', 'hidden', 'draft', 'cancelled'], true)
+        || in_array($visibility, ['private', 'hidden', 'unlisted'], true)
         || str_contains($eventType, 'private')
         || str_contains($eventType, 'wedding')
         || str_contains($eventType, 'birthday')
@@ -177,7 +189,7 @@ $public_current = 'home';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dance Thru the Decades Events</title>
   <meta name="description" content="Dance Thru the Decades Events — 60s, 70s, 80s, 90s and 00s party nights, DJ events, song requests and Facebook event updates.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=282">
+  <link rel="stylesheet" href="/assets/public-site.css?v=316">
 </head>
 <body class="homepage-option-one">
   <main class="home-option-one">
@@ -212,7 +224,7 @@ $public_current = 'home';
               </span>
             </a>
 
-            <a class="option-one-action-card" href="/event.php">
+            <a class="option-one-action-card live-event-action" href="/event.php">
               <span class="option-one-icon">▣</span>
               <span>
                 <strong>This Event</strong>
@@ -245,7 +257,7 @@ $public_current = 'home';
               </span>
             </a>
 
-            <a class="option-one-action-card" href="/event.php">
+            <a class="option-one-action-card live-event-action" href="/event.php">
               <span class="option-one-icon">▣</span>
               <span>
                 <strong>Event Info</strong>
