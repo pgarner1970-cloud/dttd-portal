@@ -9,6 +9,7 @@ if (!in_array($statusFilter, ['pending', 'approved', 'rejected', 'all'], true)) 
 $eventFilter = (int)($_GET['event_id'] ?? 0);
 $message = '';
 $error = '';
+$perPage = 20;
 
 function dttd_photo_safe_abs_path($relativePath) {
     $relativePath = photo_relative_to_public($relativePath);
@@ -60,6 +61,41 @@ if (!photo_column_exists('event_photo_uploads', 'original_path')) $selectPieces[
 if (!photo_column_exists('event_photo_uploads', 'framed_path')) $selectPieces[] = "'' AS framed_path";
 if (!photo_column_exists('event_photo_uploads', 'thumb_path')) $selectPieces[] = "'' AS thumb_path";
 
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_upload'])) {
+    try {
+        $eventId = (int)($_POST['admin_event_id'] ?? 0);
+        $guestName = trim((string)($_POST['admin_guest_name'] ?? ''));
+
+        $eventStmt = db()->prepare('SELECT * FROM events WHERE id = ? LIMIT 1');
+        $eventStmt->execute([$eventId]);
+        $event = $eventStmt->fetch();
+
+        if (!$event) {
+            throw new RuntimeException('Please choose a valid event.');
+        }
+
+        if (empty($_FILES['admin_photos']['tmp_name'][0])) {
+            throw new RuntimeException('Please choose at least one image.');
+        }
+
+        $uploaded = 0;
+        foreach ($_FILES['admin_photos']['tmp_name'] as $idx => $tmp) {
+            if (!is_uploaded_file($tmp) || ($_FILES['admin_photos']['error'][$idx] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+                continue;
+            }
+            $name = $_FILES['admin_photos']['name'][$idx] ?? ('upload-' . $idx . '.jpg');
+            $paths = photo_process_uploaded_file($tmp, $name, $event, $guestName);
+            photo_insert_upload($event, $guestName, $name, $paths);
+            $uploaded++;
+        }
+
+        $message = $uploaded . ' photo(s) uploaded successfully.';
+    } catch (Throwable $e) {
+        $error = $e->getMessage();
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['photo_id']) && !empty($_POST['action'])) {
     $photoId = (int)$_POST['photo_id'];
     $action = (string)$_POST['action'];
@@ -110,7 +146,7 @@ if ($eventFilter > 0) {
     $sql .= ' AND p.event_id = ?';
     $params[] = $eventFilter;
 }
-$sql .= ' ORDER BY FIELD(p.status, "pending","approved","rejected"), p.id DESC';
+$sql .= ' ORDER BY FIELD(p.status, "pending","approved","rejected"), p.id DESC LIMIT ' . (int)$perPage;
 $stmt = db()->prepare($sql);
 $stmt->execute($params);
 $photos = $stmt->fetchAll();
@@ -124,7 +160,7 @@ function dttd_photo_status_url($status, $eventFilter) {
 admin_header('Photo Moderation');
 ?>
 <style>
-.photo-mod-wrap{max-width:1220px;margin:28px auto 56px;padding:0 20px;color:#fff}.photo-mod-panel{background:linear-gradient(135deg,rgba(15,34,58,.96),rgba(3,18,28,.96));border:1px solid rgba(83,145,222,.35);border-radius:24px;padding:26px;box-shadow:0 24px 70px rgba(0,0,0,.28)}.photo-mod-head{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:flex-end}.photo-mod-head h1{font-size:34px;margin:0 0 8px}.photo-mod-head p{margin:0;color:#d8e7ff}.photo-filter-form{display:grid;grid-template-columns:minmax(180px,260px) minmax(260px,520px) auto;gap:14px;align-items:end}.photo-filter-form label{display:grid;gap:7px;font-weight:800}.photo-filter-form select,.photo-note-input{min-height:46px;border:1px solid rgba(126,156,196,.45);border-radius:14px;background:#111a2a;color:#fff;padding:0 14px;font-weight:700}.photo-filter-form select{-webkit-appearance:none;-moz-appearance:none;appearance:none;padding-right:42px;background-color:#111a2a;background-image:linear-gradient(45deg,transparent 50%,#ffe85a 50%),linear-gradient(135deg,#ffe85a 50%,transparent 50%),linear-gradient(135deg,rgba(255,255,255,.06),rgba(255,255,255,0));background-position:calc(100% - 24px) 50%,calc(100% - 16px) 50%,0 0;background-size:8px 8px,8px 8px,100% 100%;background-repeat:no-repeat}.photo-filter-form select:hover,.photo-filter-form select:focus{border-color:rgba(255,232,90,.85);box-shadow:0 0 0 3px rgba(255,232,90,.12),0 0 18px rgba(44,119,232,.22);outline:none}.photo-filter-form option{background:#111a2a;color:#fff;font-weight:700}.photo-btn{border:1px solid rgba(126,156,196,.35);border-radius:14px;background:#202936;color:#fff;font-weight:900;padding:13px 17px;text-decoration:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-height:46px}.photo-btn-green{background:#073b25;border-color:#07c66b}.photo-btn-red{background:#350d16;border-color:#ff4b63}.photo-btn-blue{background:#072a58;border-color:#2c77e8}.photo-btn-danger{background:#48101a;border-color:#ff5c70}.photo-tabs{display:flex;gap:12px;flex-wrap:wrap;margin:22px 0 0}.photo-tab{display:inline-flex;gap:10px;align-items:center;border:1px solid #2b79e8;border-radius:999px;padding:11px 18px;color:#fff;text-decoration:none;font-weight:900;background:#08264b}.photo-tab.active{border-color:#f7cf26;background:#3b3003}.photo-count{background:#1c63c7;border-radius:999px;min-width:25px;height:25px;display:inline-flex;align-items:center;justify-content:center}.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,280px));gap:24px;margin-top:26px}.photo-card{overflow:hidden;border:1px solid rgba(64,125,209,.46);border-radius:18px;background:#07101f;box-shadow:0 16px 38px rgba(0,0,0,.27)}.photo-thumb-link{display:block;background:#010612;border-bottom:1px solid rgba(255,255,255,.08)}.photo-thumb{display:block;width:100%;height:190px;object-fit:cover}.photo-card-body{padding:15px}.photo-card-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px}.photo-status{border:1px solid currentColor;border-radius:999px;padding:6px 11px;font-size:12px;font-weight:1000;text-transform:uppercase}.photo-status.pending{color:#ffdd2d}.photo-status.approved{color:#13d875}.photo-status.rejected{color:#ff6473}.photo-time{color:#a7bddb;font-weight:800;font-size:13px}.photo-title{font-size:20px;font-weight:1000;margin:0 0 8px}.photo-file,.photo-event{font-size:13px;color:#dbe8ff;margin:0 0 9px;word-break:break-word}.photo-note-label{display:grid;gap:7px;font-size:13px;font-weight:900;margin:10px 0}.photo-note-input{width:100%;box-sizing:border-box}.photo-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.photo-actions form{display:inline}.photo-actions .photo-btn{padding:10px 12px;min-height:42px;font-size:13px}.photo-notice{margin-top:20px;border-radius:14px;padding:13px 15px;background:#10233b;border:1px solid rgba(126,156,196,.35)}.photo-notice.success{border-color:#12b86a}.photo-notice.error{border-color:#ff5c70}@media(max-width:820px){.photo-filter-form{grid-template-columns:1fr}.photo-grid{grid-template-columns:minmax(0,1fr)}.photo-card{max-width:360px}}
+.photo-mod-wrap{max-width:1220px;margin:28px auto 56px;padding:0 20px;color:#fff}.photo-mod-panel{background:linear-gradient(135deg,rgba(15,34,58,.96),rgba(3,18,28,.96));border:1px solid rgba(83,145,222,.35);border-radius:24px;padding:26px;box-shadow:0 24px 70px rgba(0,0,0,.28)}.photo-mod-head{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:flex-end}.photo-mod-head h1{font-size:34px;margin:0 0 8px}.photo-mod-head p{margin:0;color:#d8e7ff}.photo-filter-form{display:grid;grid-template-columns:minmax(180px,260px) minmax(260px,520px) auto;gap:14px;align-items:end}.photo-filter-form label{display:grid;gap:7px;font-weight:800}.photo-filter-form select,.photo-note-input{min-height:46px;border:1px solid rgba(126,156,196,.45);border-radius:14px;background:#111a2a;color:#fff;padding:0 14px;font-weight:700}.photo-filter-form select{-webkit-appearance:none;-moz-appearance:none;appearance:none;padding-right:42px;background-color:#111a2a;background-image:linear-gradient(45deg,transparent 50%,#ffe85a 50%),linear-gradient(135deg,#ffe85a 50%,transparent 50%),linear-gradient(135deg,rgba(255,255,255,.06),rgba(255,255,255,0));background-position:calc(100% - 24px) 50%,calc(100% - 16px) 50%,0 0;background-size:8px 8px,8px 8px,100% 100%;background-repeat:no-repeat}.photo-filter-form select:hover,.photo-filter-form select:focus{border-color:rgba(255,232,90,.85);box-shadow:0 0 0 3px rgba(255,232,90,.12),0 0 18px rgba(44,119,232,.22);outline:none}.photo-filter-form option{background:#111a2a;color:#fff;font-weight:700}.photo-btn{border:1px solid rgba(126,156,196,.35);border-radius:14px;background:#202936;color:#fff;font-weight:900;padding:13px 17px;text-decoration:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-height:46px}.photo-btn-green{background:#073b25;border-color:#07c66b}.photo-btn-red{background:#350d16;border-color:#ff4b63}.photo-btn-blue{background:#072a58;border-color:#2c77e8}.photo-btn-danger{background:#48101a;border-color:#ff5c70}.photo-tabs{display:flex;gap:12px;flex-wrap:wrap;margin:22px 0 0}.photo-tab{display:inline-flex;gap:10px;align-items:center;border:1px solid #2b79e8;border-radius:999px;padding:11px 18px;color:#fff;text-decoration:none;font-weight:900;background:#08264b}.photo-tab.active{border-color:#f7cf26;background:#3b3003}.photo-count{background:#1c63c7;border-radius:999px;min-width:25px;height:25px;display:inline-flex;align-items:center;justify-content:center}.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,250px));gap:22px;margin-top:26px}.photo-card{overflow:hidden;border:1px solid rgba(64,125,209,.46);border-radius:18px;background:#07101f;box-shadow:0 16px 38px rgba(0,0,0,.27)}.photo-thumb-link{display:block;background:#010612;border-bottom:1px solid rgba(255,255,255,.08)}.photo-thumb{display:block;width:100%;height:190px;object-fit:contain;background:#020817;padding:8px;box-sizing:border-box}.photo-card-body{padding:14px}.photo-card-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px}.photo-status{border:1px solid currentColor;border-radius:999px;padding:6px 11px;font-size:12px;font-weight:1000;text-transform:uppercase}.photo-status.pending{color:#ffdd2d}.photo-status.approved{color:#13d875}.photo-status.rejected{color:#ff6473}.photo-time{color:#a7bddb;font-weight:800;font-size:13px}.photo-title{font-size:18px;font-weight:1000;margin:0 0 6px}.photo-file,.photo-event{font-size:13px;color:#dbe8ff;margin:0 0 9px;word-break:break-word}.photo-note-label{display:grid;gap:7px;font-size:13px;font-weight:900;margin:10px 0}.photo-note-input{width:100%;box-sizing:border-box}.photo-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.photo-actions form{display:inline}.photo-actions .photo-btn{padding:10px 12px;min-height:42px;font-size:13px}.photo-notice{margin-top:20px;border-radius:14px;padding:13px 15px;background:#10233b;border:1px solid rgba(126,156,196,.35)}.photo-notice.success{border-color:#12b86a}.photo-notice.error{border-color:#ff5c70}@media(max-width:820px){.photo-filter-form{grid-template-columns:1fr}.photo-grid{grid-template-columns:minmax(0,1fr)}.photo-card{max-width:360px}}
 </style>
 <div class="photo-mod-wrap">
   <section class="photo-mod-panel">
@@ -154,6 +190,20 @@ admin_header('Photo Moderation');
         <a class="photo-tab <?= $statusFilter === $value ? 'active' : '' ?>" href="<?= h(dttd_photo_status_url($value, $eventFilter)) ?>"><span><?= h($label) ?></span><span class="photo-count"><?= (int)$counts[$value] ?></span></a>
       <?php endforeach; ?>
     </nav>
+    <div class="photo-notice" style="margin-top:22px;">
+      <form method="post" enctype="multipart/form-data" style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:14px;align-items:end;">
+        <label style="display:grid;gap:7px;font-weight:800;"><span>Upload to event</span><select name="admin_event_id" required>
+          <option value="">Choose event</option>
+          <?php foreach ($eventOptions as $event): ?>
+            <option value="<?= (int)$event['id'] ?>"><?= h(photo_event_label($event)) ?></option>
+          <?php endforeach; ?>
+        </select></label>
+        <label style="display:grid;gap:7px;font-weight:800;"><span>Photographer / name</span><input class="photo-note-input" type="text" name="admin_guest_name" placeholder="Optional"></label>
+        <label style="display:grid;gap:7px;font-weight:800;"><span>Images</span><input type="file" name="admin_photos[]" accept="image/*" multiple required></label>
+        <button class="photo-btn photo-btn-blue" type="submit" name="admin_upload" value="1">Upload Photos</button>
+      </form>
+    </div>
+
 
     <?php if ($message): ?><div class="photo-notice success"><?= h($message) ?></div><?php endif; ?>
     <?php if ($error): ?><div class="photo-notice error"><?= h($error) ?></div><?php endif; ?>
@@ -180,7 +230,6 @@ admin_header('Photo Moderation');
             <h2 class="photo-title"><?= h(trim((string)($photo['guest_name'] ?? '')) ?: 'Guest upload') ?></h2>
             <p class="photo-file"><?= h((string)($photo['original_filename'] ?? '')) ?></p>
             <p class="photo-event"><?= h($eventLabel) ?></p>
-            <label class="photo-note-label">Moderation note<input class="photo-note-input" type="text" name="note" placeholder="Optional internal note" disabled></label>
             <div class="photo-actions">
               <?php if ($status !== 'approved'): ?><form method="post"><input type="hidden" name="photo_id" value="<?= (int)$photo['id'] ?>"><input type="hidden" name="action" value="approve"><button class="photo-btn photo-btn-green" type="submit">Approve</button></form><?php endif; ?>
               <?php if ($status !== 'rejected'): ?><form method="post"><input type="hidden" name="photo_id" value="<?= (int)$photo['id'] ?>"><input type="hidden" name="action" value="reject"><button class="photo-btn photo-btn-red" type="submit">Reject</button></form><?php endif; ?>
