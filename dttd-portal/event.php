@@ -668,44 +668,6 @@ function public_event_share_url($event) {
     return rtrim($base, '/') . '/event/' . rawurlencode(public_event_slug($event));
 }
 
-function public_absolute_url($url) {
-    $url = trim((string)$url);
-    if ($url === '') {
-        return '';
-    }
-
-    if (preg_match('~^https?://~i', $url)) {
-        return $url;
-    }
-
-    $base = function_exists('dttd_public_request_base_url') ? dttd_public_request_base_url('https://dancethruthedecades.co.uk') : 'https://dancethruthedecades.co.uk';
-    return rtrim($base, '/') . '/' . ltrim($url, '/');
-}
-
-function public_event_share_text($event) {
-    $eventTitle = trim((string)($event['event_name'] ?? $event['name'] ?? 'this Dance Thru The Decades event'));
-    $venue = trim((string)($event['venue_name'] ?? $event['venue'] ?? ''));
-    $date = trim((string)dttd_public_event_date($event));
-
-    $lines = [];
-    $firstLine = 'I’m thinking of going to ' . $eventTitle . ' with Dance Thru The Decades 🎶';
-    $lines[] = $firstLine;
-    $lines[] = '';
-
-    if ($date !== '') {
-        $lines[] = $date;
-    }
-
-    if ($venue !== '') {
-        $lines[] = $venue;
-    }
-
-    $lines[] = '';
-    $lines[] = 'Fancy joining me?';
-
-    return implode("\n", $lines);
-}
-
 function public_played_share_text($played, $event) {
     $title = trim((string)($played['song_title'] ?? ''));
     $artist = trim((string)($played['artist'] ?? ''));
@@ -881,14 +843,6 @@ if ($event) {
     $requestCloseIso = dttd_event_request_close_iso($event);
     $requestTimerLabel = dttd_event_request_timer_label($event);
     $requestCloseClock = dttd_event_request_close_clock_label($event);
-    $eventShareText = public_event_share_text($event);
-    $eventOgDescription = $description ?: trim($title . ($venue ? ' at ' . $venue : '') . '. Dance Thru The Decades event details.');
-    $eventOgImage = public_absolute_url($imageUrl ?: '/assets/dttd-logo-inner.png?v=152');
-} else {
-    $eventShareUrl = function_exists('dttd_public_request_base_url') ? dttd_public_request_base_url('https://dancethruthedecades.co.uk') : 'https://dancethruthedecades.co.uk';
-    $eventShareText = 'Dance Thru The Decades Events 🎶';
-    $eventOgDescription = 'Dance Thru The Decades event portal.';
-    $eventOgImage = public_absolute_url('/assets/dttd-logo-inner.png?v=152');
 }
 ?>
 <!DOCTYPE html>
@@ -897,18 +851,8 @@ if ($event) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : ($notFound ? 'Event Not Found' : 'Join Event') ?> | Dance Thru the Decades</title>
-  <meta name="description" content="<?= public_h($eventOgDescription) ?>">
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Dance Thru The Decades Events">
-  <meta property="og:title" content="<?= public_h($event ? $title . ' | Dance Thru The Decades' : ($notFound ? 'Event Not Found | Dance Thru The Decades' : 'Join Event | Dance Thru The Decades')) ?>">
-  <meta property="og:description" content="<?= public_h($eventOgDescription) ?>">
-  <meta property="og:url" content="<?= public_h($eventShareUrl) ?>">
-  <meta property="og:image" content="<?= public_h($eventOgImage) ?>">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="<?= public_h($event ? $title . ' | Dance Thru The Decades' : 'Dance Thru The Decades Events') ?>">
-  <meta name="twitter:description" content="<?= public_h($eventOgDescription) ?>">
-  <meta name="twitter:image" content="<?= public_h($eventOgImage) ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=281">
+  <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event portal.' ?>">
+  <link rel="stylesheet" href="/assets/public-site.css?v=270">
 </head>
 <body class="homepage-option-one public-event-detail-page public-event-portal-page">
   <main class="home-option-one">
@@ -1158,19 +1102,7 @@ if ($event) {
               <span class="public-status-pill cancelled">Cancelled</span>
             <?php endif; ?>
 
-            <div class="public-event-title-row">
-              <h2><?= public_h($title) ?></h2>
-              <button class="public-event-share-btn" type="button" data-event-share data-share-title="<?= public_h($title . ' | Dance Thru The Decades') ?>" data-share-text="<?= public_h($eventShareText) ?>" data-share-url="<?= public_h($eventShareUrl) ?>" aria-label="Share this event" title="Share this event">
-                <span class="public-sr-only">Share this event</span>
-                <svg class="public-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <circle cx="18" cy="5" r="3"></circle>
-                  <circle cx="6" cy="12" r="3"></circle>
-                  <circle cx="18" cy="19" r="3"></circle>
-                  <path d="M8.7 10.7l6.6-3.5"></path>
-                  <path d="M8.7 13.3l6.6 3.5"></path>
-                </svg>
-              </button>
-            </div>
+            <h2><?= public_h($title) ?></h2>
 
             <?php if ($description): ?>
               <div class="public-event-description">
@@ -1206,6 +1138,12 @@ if ($event) {
               <?php endif; ?>
             </div>
 
+            <?php if (!$hasEventAccess && !$isCancelled): ?>
+              <div class="public-qr-only-note">
+                <strong>At the event?</strong>
+                <span>Song requests and guest photo uploads open after you scan the venue QR code or enter the event code.</span>
+              </div>
+            <?php endif; ?>
           </div>
         </article>
 
@@ -1267,10 +1205,10 @@ if ($event) {
       });
     });
 
-    document.querySelectorAll('[data-track-share], [data-event-share]').forEach(function(btn){
+    document.querySelectorAll('[data-track-share]').forEach(function(btn){
       btn.addEventListener('click', function(){
         var title = btn.getAttribute('data-share-title') || 'Dance Thru The Decades';
-        var text = btn.getAttribute('data-share-text') || 'I’m thinking of going to a Dance Thru The Decades event 🎶';
+        var text = btn.getAttribute('data-share-text') || 'I am at a Dance Thru The Decades event 🎶';
         var url = btn.getAttribute('data-share-url') || window.location.href;
         var payload = { title: title, text: text, url: url };
 
