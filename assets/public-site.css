@@ -2642,90 +2642,6 @@ body.homepage-option-one::after{
   line-height:1;
 }
 
-/* Event detail share button: scoped to the public event detail card. */
-.public-event-title-row{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:18px;
-  margin:0 0 12px;
-}
-
-.public-event-title-row h2{
-  margin:0;
-  min-width:0;
-  flex:1 1 auto;
-}
-
-.public-event-share-btn{
-  width:46px;
-  height:46px;
-  flex:0 0 46px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  border-radius:999px;
-  border:1px solid rgba(255,79,216,.62);
-  color:#fff;
-  background:
-    radial-gradient(circle at 35% 28%, rgba(255,255,255,.20), transparent 32%),
-    linear-gradient(180deg, rgba(92,25,105,.82), rgba(40,5,55,.92));
-  box-shadow:
-    0 0 18px rgba(255,79,216,.20),
-    inset 0 1px 0 rgba(255,255,255,.12);
-  appearance:none;
-  -webkit-appearance:none;
-  cursor:pointer;
-  padding:0;
-  margin:2px 0 0 12px;
-  transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
-}
-
-.public-event-share-btn:hover,
-.public-event-share-btn:focus-visible{
-  transform:translateY(-1px);
-  border-color:rgba(255,213,74,.78);
-  box-shadow:
-    0 0 22px rgba(255,79,216,.38),
-    0 0 12px rgba(255,213,74,.20),
-    inset 0 1px 0 rgba(255,255,255,.16);
-  outline:none;
-}
-
-.public-event-share-btn .public-action-icon{
-  width:22px;
-  height:22px;
-  display:block;
-  fill:none;
-  stroke:currentColor;
-  stroke-width:2;
-  stroke-linecap:round;
-  stroke-linejoin:round;
-}
-
-.public-event-share-btn .public-share-copied{
-  font-size:.66rem;
-  font-weight:900;
-  letter-spacing:.02em;
-}
-
-@media (max-width: 720px){
-  .public-event-title-row{
-    align-items:flex-start;
-    gap:12px;
-  }
-  .public-event-share-btn{
-    width:42px;
-    height:42px;
-    flex-basis:42px;
-    margin-top:0;
-  }
-  .public-event-share-btn .public-action-icon{
-    width:20px;
-    height:20px;
-  }
-}
-
 .public-event-detail-body p{
   color:#f3e8ff;
   font-size:1.05rem;
@@ -3960,55 +3876,18 @@ body.public-request-page .public-request-card{
 }
 
 
-/* Upload submit progress feedback - scoped to the public photo upload form */
-.public-upload-form .upload-submit-btn {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
+/* Homepage public/event action split: avoid duplicate rows when no event is live. */
+.home-public-links-section .home-info-link-card{
+  display:block;
+  color:inherit;
+  text-decoration:none;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
 }
-
-.public-upload-form .upload-submit-btn:disabled,
-.public-upload-form .upload-submit-btn.is-uploading {
-  cursor: wait;
-  opacity: 0.72;
-  filter: saturate(0.8);
-}
-
-.public-upload-form .upload-submit-btn.is-uploading::before {
-  content: "";
-  width: 16px;
-  height: 16px;
-  border-radius: 999px;
-  border: 2px solid rgba(255,255,255,0.45);
-  border-top-color: #fff;
-  animation: dttd-upload-spin 0.8s linear infinite;
-}
-
-.public-upload-form .upload-progress-note {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  color: #ffe66d;
-  font-weight: 800;
-  line-height: 1.35;
-}
-
-.public-upload-form .upload-progress-note[hidden] {
-  display: none !important;
-}
-
-.public-upload-form .upload-progress-spinner {
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  border: 2px solid rgba(255,230,109,0.35);
-  border-top-color: #ffe66d;
-  animation: dttd-upload-spin 0.8s linear infinite;
-  flex: 0 0 auto;
-}
-
-@keyframes dttd-upload-spin {
-  to { transform: rotate(360deg); }
+.home-public-links-section .home-info-link-card:hover,
+.home-public-links-section .home-info-link-card:focus-visible{
+  transform: translateY(-2px);
+  border-color: rgba(255, 77, 232, .72);
+  box-shadow: 0 0 28px rgba(255, 77, 232, .22);
+  background: rgba(107, 20, 118, .58);
+  outline: none;
 }

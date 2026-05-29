@@ -177,67 +177,29 @@ $public_current = 'home';
         <?php endif; ?>
       </div>
     </section>
-<section class="home-info-section" id="memories">
+<?php if ($homepage_state !== 'no-event'): ?>
+<section class="home-info-section home-public-links-section" id="memories" aria-label="General public links">
       <div class="home-info-grid">
-        <?php if ($homepage_state === 'no-event'): ?>
-          <article class="home-info-card">
+          <a class="home-info-card home-info-link-card" href="/events.php">
             <span>📅</span>
-            <h2>Public Nights</h2>
-            <p>See upcoming Dance Thru The Decades events that are open to the public.</p>
-          </article>
+            <h2>Upcoming Events</h2>
+            <p>See public nights, future dates and event details.</p>
+          </a>
 
-          <article class="home-info-card">
+          <a class="home-info-card home-info-link-card" href="/gallery.php">
             <span>📸</span>
             <h2>Photos & Memories</h2>
-            <p>Gallery uploads will be reviewed before they appear publicly on the site.</p>
-          </article>
+            <p>View approved event photos and shared memories.</p>
+          </a>
 
-          <article class="home-info-card">
+          <a class="home-info-card home-info-link-card" href="<?= htmlspecialchars($facebookUrl) ?>" target="_blank" rel="noopener">
             <span>👍</span>
             <h2>Follow Us</h2>
-            <p>Keep up with upcoming nights, event photos, playlists and announcements.</p>
-          </article>
-
-        <?php elseif ($homepage_state === 'public-event'): ?>
-          <article class="home-info-card">
-            <span>🎵</span>
-            <h2>Request Songs</h2>
-            <p>Requests are open for the current event. Send your song request to the DJ queue.</p>
-          </article>
-
-          <article class="home-info-card">
-            <span>📍</span>
-            <h2>Check In</h2>
-            <p>At the event? Tag us and let your friends know where the party is happening.</p>
-          </article>
-
-          <article class="home-info-card">
-            <span>📸</span>
-            <h2>Upload Photos</h2>
-            <p>Share dancefloor memories. Uploads are moderated before they go live.</p>
-          </article>
-
-        <?php else: ?>
-          <article class="home-info-card">
-            <span>🎵</span>
-            <h2>Guest Requests</h2>
-            <p>Guests can request songs using the private event QR or event link.</p>
-          </article>
-
-          <article class="home-info-card">
-            <span>📸</span>
-            <h2>Private Memories</h2>
-            <p>Photos can be uploaded for the event and reviewed before display.</p>
-          </article>
-
-          <article class="home-info-card">
-            <span>🔐</span>
-            <h2>Guest Access</h2>
-            <p>Future Wi-Fi and guest access features can link to this private event flow.</p>
-          </article>
-        <?php endif; ?>
+            <p>Keep up with upcoming nights, event photos and announcements.</p>
+          </a>
       </div>
     </section>
+<?php endif; ?>
       <?php require __DIR__ . '/includes/public-footer.php'; ?>
   </main>
 </body>
