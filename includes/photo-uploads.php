@@ -735,6 +735,58 @@ function photo_render_thumb($sourcePath, $destPath, $size = 480) {
     return $saved;
 }
 
+
+function photo_detect_upload_orientation($path) {
+    $orientation = 'portrait';
+
+    if (extension_loaded('imagick')) {
+        try {
+            $im = new Imagick($path);
+            if (method_exists($im, 'autoOrient')) {
+                $im->autoOrient();
+            } elseif (method_exists($im, 'autoOrientImage')) {
+                $im->autoOrientImage();
+            }
+            $w = (int)$im->getImageWidth();
+            $h = (int)$im->getImageHeight();
+            $im->clear();
+            $im->destroy();
+            if ($w > 0 && $h > 0) {
+                return ($w > ($h * 1.15)) ? 'landscape' : 'portrait';
+            }
+        } catch (Throwable $e) {
+            photo_overlay_log('Orientation detect via Imagick failed: ' . $e->getMessage());
+        }
+    }
+
+    $info = @getimagesize($path);
+    if ($info && !empty($info[0]) && !empty($info[1])) {
+        $w = (int)$info[0];
+        $h = (int)$info[1];
+
+        // Some phone portraits are stored sideways with an EXIF orientation flag.
+        // If EXIF says rotate 90/270, swap dimensions before deciding template.
+        if (function_exists('exif_read_data')) {
+            try {
+                $exif = @exif_read_data($path);
+                $exifOrientation = (int)($exif['Orientation'] ?? 0);
+                if (in_array($exifOrientation, [5, 6, 7, 8], true)) {
+                    $tmp = $w;
+                    $w = $h;
+                    $h = $tmp;
+                }
+            } catch (Throwable $e) {
+                // Ignore EXIF read errors; use getimagesize dimensions.
+            }
+        }
+
+        $orientation = ($w > ($h * 1.15)) ? 'landscape' : 'portrait';
+    }
+
+    return $orientation;
+}
+
+
 function photo_process_uploaded_file($tmpPath, $originalName, $event, $guestName = '') {
     $dirs = photo_storage_directories();
 
@@ -754,9 +806,9 @@ function photo_process_uploaded_file($tmpPath, $originalName, $event, $guestName
         throw new RuntimeException('Please upload a JPG, PNG, WEBP or GIF image.');
     }
 
-    $srcW = (int)($info[0] ?? 0);
-    $srcH = (int)($info[1] ?? 0);
-    $orientation = ($srcW > ($srcH * 1.15)) ? 'landscape' : 'portrait';
+    // Determine visual orientation after allowing for phone EXIF rotation.
+    // getimagesize() alone can report a portrait phone photo as landscape.
+    $orientation = photo_detect_upload_orientation($tmpPath);
 
     $base = 'photo-' . date('Ymd-His') . '-' . bin2hex(random_bytes(4));
     $originalExt = $allowed[$mime] === 'jpg' ? strtolower(pathinfo($originalName, PATHINFO_EXTENSION) ?: 'jpg') : $allowed[$mime];
