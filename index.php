@@ -6,6 +6,66 @@ $active_event_is_public = false;
 $active_event_is_private = false;
 $homepage_state = 'no-event';
 
+function home_public_slugify($value) {
+    $value = strtolower(trim((string)$value));
+    $value = preg_replace('/[^a-z0-9]+/i', '-', $value);
+    $value = trim($value, '-');
+    return $value ?: 'event';
+}
+
+function home_public_event_slug($event) {
+    if (!empty($event['public_slug'])) {
+        return home_public_slugify($event['public_slug']);
+    }
+
+    if (!empty($event['slug'])) {
+        return home_public_slugify($event['slug']);
+    }
+
+    $parts = [
+        $event['event_name'] ?? $event['name'] ?? 'event',
+        $event['venue_name'] ?? $event['venue'] ?? '',
+    ];
+
+    if (!empty($event['event_date'])) {
+        try {
+            $parts[] = (new DateTime($event['event_date']))->format('Y-m-d');
+        } catch (Throwable $e) {
+            $parts[] = (string)$event['event_date'];
+        }
+    }
+
+    return home_public_slugify(implode(' ', array_filter($parts)));
+}
+
+function home_public_event_url($event) {
+    return '/event/' . rawurlencode(home_public_event_slug($event));
+}
+
+function home_public_event_title($event) {
+    return trim((string)($event['event_name'] ?? $event['name'] ?? 'Event')) ?: 'Event';
+}
+
+function home_public_event_venue($event) {
+    return trim((string)($event['venue_name'] ?? $event['venue'] ?? ''));
+}
+
+function home_event_is_private($event) {
+    $visibility = strtolower((string)($event['queue_visibility'] ?? $event['visibility'] ?? 'public'));
+    $eventType = strtolower((string)($event['event_type'] ?? ''));
+    $status = strtolower((string)($event['status'] ?? ''));
+
+    return (
+        $status === 'private'
+        || $visibility === 'private'
+        || str_contains($eventType, 'private')
+        || str_contains($eventType, 'wedding')
+        || str_contains($eventType, 'birthday')
+    );
+}
+
+$homepage_events = [];
+
 try {
     /*
      * Important:
@@ -57,6 +117,24 @@ try {
 } catch (Throwable $e) {
     $active_event = null;
     $homepage_state = 'no-event';
+}
+
+try {
+    $stmt = db()->query("
+        SELECT *
+        FROM events
+        WHERE is_active = 1
+          AND event_date IS NOT NULL
+          AND event_date >= DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+        ORDER BY event_date ASC, start_time ASC, id ASC
+        LIMIT 8
+    "
+    );
+    $homepage_events = array_values(array_filter($stmt->fetchAll() ?: [], function ($event) {
+        return !home_event_is_private($event);
+    }));
+} catch (Throwable $e) {
+    $homepage_events = [];
 }
 
 $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
@@ -178,66 +256,90 @@ $public_current = 'home';
       </div>
     </section>
 <section class="home-info-section" id="memories">
-      <div class="home-info-grid">
+      <div class="home-info-grid <?= $homepage_state === 'no-event' ? '' : 'home-info-grid-secondary' ?>">
         <?php if ($homepage_state === 'no-event'): ?>
-          <article class="home-info-card">
+          <a class="home-info-card" href="/events.php">
             <span>📅</span>
             <h2>Public Nights</h2>
             <p>See upcoming Dance Thru The Decades events that are open to the public.</p>
-          </article>
+          </a>
 
-          <article class="home-info-card">
+          <a class="home-info-card" href="/gallery.php">
             <span>📸</span>
             <h2>Photos & Memories</h2>
             <p>Gallery uploads will be reviewed before they appear publicly on the site.</p>
-          </article>
+          </a>
 
-          <article class="home-info-card">
+          <a class="home-info-card" href="<?= htmlspecialchars($facebookUrl) ?>" target="_blank" rel="noopener">
             <span>👍</span>
             <h2>Follow Us</h2>
             <p>Keep up with upcoming nights, event photos, playlists and announcements.</p>
-          </article>
-
-        <?php elseif ($homepage_state === 'public-event'): ?>
-          <article class="home-info-card">
-            <span>🎵</span>
-            <h2>Request Songs</h2>
-            <p>Requests are open for the current event. Send your song request to the DJ queue.</p>
-          </article>
-
-          <article class="home-info-card">
-            <span>📍</span>
-            <h2>Check In</h2>
-            <p>At the event? Tag us and let your friends know where the party is happening.</p>
-          </article>
-
-          <article class="home-info-card">
-            <span>📸</span>
-            <h2>Upload Photos</h2>
-            <p>Share dancefloor memories. Uploads are moderated before they go live.</p>
-          </article>
+          </a>
 
         <?php else: ?>
-          <article class="home-info-card">
-            <span>🎵</span>
-            <h2>Guest Requests</h2>
-            <p>Guests can request songs using the private event QR or event link.</p>
-          </article>
+          <a class="home-info-card" href="/events.php">
+            <span>📅</span>
+            <h2>Upcoming Events</h2>
+            <p>See public nights, future dates and event details.</p>
+          </a>
 
-          <article class="home-info-card">
+          <a class="home-info-card" href="/gallery.php">
             <span>📸</span>
-            <h2>Private Memories</h2>
-            <p>Photos can be uploaded for the event and reviewed before display.</p>
-          </article>
+            <h2>Photo Gallery</h2>
+            <p>View approved event photos and shared memories.</p>
+          </a>
 
-          <article class="home-info-card">
-            <span>🔐</span>
-            <h2>Guest Access</h2>
-            <p>Future Wi-Fi and guest access features can link to this private event flow.</p>
-          </article>
+          <?php
+            $nextEvent = null;
+            foreach ($homepage_events as $candidate) {
+                if (!$active_event || (int)($candidate['id'] ?? 0) !== (int)($active_event['id'] ?? 0)) {
+                    $nextEvent = $candidate;
+                    break;
+                }
+            }
+          ?>
+          <a class="home-info-card" href="<?= $nextEvent ? htmlspecialchars(home_public_event_url($nextEvent)) : '/events.php' ?>">
+            <span>✨</span>
+            <h2>Next Event</h2>
+            <p><?= $nextEvent ? htmlspecialchars(home_public_event_title($nextEvent)) . ' — ' . htmlspecialchars(dttd_public_event_date($nextEvent)) : 'See what is coming up next.' ?></p>
+          </a>
+
+          <a class="home-info-card" href="<?= htmlspecialchars($facebookUrl) ?>" target="_blank" rel="noopener">
+            <span>👍</span>
+            <h2>Follow Us</h2>
+            <p>Updates, photos, playlists and announcements.</p>
+          </a>
         <?php endif; ?>
       </div>
     </section>
+
+    <?php if ($homepage_state !== 'no-event' && !empty($homepage_events)): ?>
+      <section class="home-coming-up" aria-label="Coming up events">
+        <div class="home-coming-up-head">
+          <span>Coming up</span>
+          <h2>What’s happening</h2>
+        </div>
+        <div class="home-coming-up-track">
+          <?php for ($loop = 0; $loop < 2; $loop++): ?>
+            <?php foreach ($homepage_events as $i => $event): ?>
+              <?php
+                $isLive = $active_event && (int)($event['id'] ?? 0) === (int)($active_event['id'] ?? 0);
+                $label = $isLive ? 'Live now' : ($i === 0 ? 'Next event' : 'Coming soon');
+                $title = home_public_event_title($event);
+                $venue = home_public_event_venue($event);
+                $date = dttd_public_event_date($event);
+                $time = dttd_public_event_time_range($event);
+              ?>
+              <a class="home-coming-up-card <?= $isLive ? 'is-live' : '' ?>" href="<?= htmlspecialchars(home_public_event_url($event)) ?>" <?= $loop ? 'aria-hidden="true" tabindex="-1"' : '' ?>>
+                <strong><?= htmlspecialchars($label) ?></strong>
+                <span><?= htmlspecialchars($title) ?></span>
+                <em><?= htmlspecialchars(trim($date . ($time ? ' · ' . $time : '') . ($venue ? ' · ' . $venue : ''))) ?></em>
+              </a>
+            <?php endforeach; ?>
+          <?php endfor; ?>
+        </div>
+      </section>
+    <?php endif; ?>
       <?php require __DIR__ . '/includes/public-footer.php'; ?>
   </main>
 </body>
