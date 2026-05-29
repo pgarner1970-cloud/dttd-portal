@@ -631,21 +631,21 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
         $canvas->compositeImage($overlay, Imagick::COMPOSITE_OVER, 0, 0);
 
         $logo = new Imagick($logoPath);
-        $logoSize = $landscape ? 108 : 108;
+        $logoSize = $landscape ? 100 : 100;
         $logo->resizeImage($logoSize, $logoSize, Imagick::FILTER_LANCZOS, 1, true);
-        $logoX = $landscape ? 33 : 32;
-        $logoY = $landscape ? 29 : 26;
+        $logoX = $landscape ? 38 : 36;
+        $logoY = $landscape ? 38 : 36;
         $canvas->compositeImage($logo, Imagick::COMPOSITE_OVER, $logoX, $logoY);
 
         $qr = new Imagick($qrPath);
-        $qrSize = $landscape ? 74 : 68;
+        $qrSize = $landscape ? 72 : 68;
         $qr->resizeImage($qrSize, $qrSize, Imagick::FILTER_POINT, 1, true);
         $qrPad = 6;
         $qrHolder = new Imagick();
         $qrHolder->newImage($qrSize + ($qrPad * 2), $qrSize + ($qrPad * 2), new ImagickPixel('white'));
         $qrHolder->compositeImage($qr, Imagick::COMPOSITE_OVER, $qrPad, $qrPad);
-        $qrX = $landscape ? 1480 : 962;
-        $qrY = $landscape ? 1086 : 1216;
+        $qrX = $landscape ? 1474 : 961;
+        $qrY = $landscape ? 1078 : 1234;
         $canvas->compositeImage($qrHolder, Imagick::COMPOSITE_OVER, $qrX, $qrY);
 
         $fontBold = photo_imagick_font_path(true);
@@ -657,40 +657,40 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
         $dateLine = photo_event_date_long($event['event_date'] ?? '');
 
         if ($landscape) {
-            $titleX = 158;
-            $titleY = 78;
-            $titleMaxW = 460;
-            $titleSize = photo_imagick_fit_font_size($canvas, $eventName, $fontBold, 38, $titleMaxW, 24);
+            $titleX = 146;
+            $titleY = 76;
+            $titleMaxW = 430;
+            $titleSize = photo_imagick_fit_font_size($canvas, $eventName, $fontBold, 37, $titleMaxW, 24);
             photo_imagick_draw_text($canvas, $eventName, $titleX, $titleY, $fontBold, $titleSize, '#ffcf40', 'rgba(80,0,40,0.75)', 1, $titleMaxW);
 
             $venueText = 'Venue: ' . ($venueLine !== '' ? $venueLine : 'Dance Thru The Decades');
             $dateText = 'Date: ' . ($dateLine !== '' ? $dateLine : 'TBA');
-            photo_imagick_draw_text($canvas, $venueText, 760, 68, $fontRegular, 18, 'rgba(245,245,255,0.96)', null, 0, 320);
-            photo_imagick_draw_text($canvas, $dateText, 1120, 68, $fontRegular, 18, 'rgba(245,245,255,0.96)', null, 0, 270);
+            photo_imagick_draw_text($canvas, $venueText, 758, 66, $fontRegular, 18, 'rgba(245,245,255,0.96)', null, 0, 310);
+            photo_imagick_draw_text($canvas, $dateText, 1110, 66, $fontRegular, 18, 'rgba(245,245,255,0.96)', null, 0, 255);
 
-            photo_imagick_draw_pill($canvas, 'EVENT PHOTO', 160, 76, $fontBold, 16, 'white', '#f7aaff', 'rgba(12,0,20,0.72)', 22, 34, 175);
+            photo_imagick_draw_pill($canvas, 'EVENT PHOTO', 144, 64, $fontBold, 16, 'white', '#f7aaff', 'rgba(12,0,20,0.72)', 22, 32, 170);
             $creditName = trim((string)$creditName);
             if ($creditName !== '') {
-                photo_imagick_draw_pill($canvas, 'Photo by ' . $creditName, 1238, 76, $fontRegular, 15, 'white', '#f7aaff', 'rgba(12,0,20,0.72)', 18, 34, 190);
+                photo_imagick_draw_pill($canvas, 'Photo by ' . $creditName, 1228, 64, $fontRegular, 15, 'white', '#f7aaff', 'rgba(12,0,20,0.72)', 18, 32, 186);
             }
 
-            photo_imagick_draw_text($canvas, 'Dance Thru The Decades', 698, 1123, $fontBold, 31, '#ffcf40', 'rgba(80,0,40,0.75)', 1, 0, Imagick::ALIGN_CENTER);
-            photo_imagick_draw_text($canvas, '60s  •  70s  •  80s  •  90s  •  00s', 698, 1149, $fontRegular, 17, '#ffcf40', null, 0, 0, Imagick::ALIGN_CENTER);
+            photo_imagick_draw_text($canvas, 'Dance Thru The Decades', 700, 1115, $fontBold, 30, '#ffcf40', 'rgba(80,0,40,0.75)', 1, 0, Imagick::ALIGN_CENTER);
+            photo_imagick_draw_text($canvas, '60s  •  70s  •  80s  •  90s  •  00s', 700, 1143, $fontRegular, 16, '#ffcf40', null, 0, 0, Imagick::ALIGN_CENTER);
         } else {
-            $titleX = 158;
-            $titleY = 84;
-            $titleMaxW = 585;
-            $titleSize = photo_imagick_fit_font_size($canvas, $eventName, $fontBold, 34, $titleMaxW, 22);
+            $titleX = 146;
+            $titleY = 76;
+            $titleMaxW = 565;
+            $titleSize = photo_imagick_fit_font_size($canvas, $eventName, $fontBold, 33, $titleMaxW, 22);
             photo_imagick_draw_text($canvas, $eventName, $titleX, $titleY, $fontBold, $titleSize, '#ffcf40', 'rgba(80,0,40,0.75)', 1, $titleMaxW);
-            photo_imagick_draw_text($canvas, 'Venue: ' . ($venueLine !== '' ? $venueLine : 'Dance Thru The Decades'), 158, 116, $fontRegular, 18, 'rgba(245,245,255,0.96)', null, 0, 585);
-            photo_imagick_draw_text($canvas, 'Date: ' . ($dateLine !== '' ? $dateLine : 'TBA'), 158, 140, $fontRegular, 18, 'rgba(245,245,255,0.96)', null, 0, 585);
-            photo_imagick_draw_pill($canvas, 'EVENT PHOTO', 158, 144, $fontBold, 15, 'white', '#f7aaff', 'rgba(12,0,20,0.72)', 20, 34, 175);
+            photo_imagick_draw_text($canvas, 'Venue: ' . ($venueLine !== '' ? $venueLine : 'Dance Thru The Decades'), 158, 108, $fontRegular, 18, 'rgba(245,245,255,0.96)', null, 0, 565);
+            photo_imagick_draw_text($canvas, 'Date: ' . ($dateLine !== '' ? $dateLine : 'TBA'), 158, 132, $fontRegular, 18, 'rgba(245,245,255,0.96)', null, 0, 565);
+            photo_imagick_draw_pill($canvas, 'EVENT PHOTO', 158, 144, $fontBold, 15, 'white', '#f7aaff', 'rgba(12,0,20,0.72)', 20, 32, 170);
             $creditName = trim((string)$creditName);
             if ($creditName !== '') {
-                photo_imagick_draw_pill($canvas, 'Photo by ' . $creditName, 706, 144, $fontRegular, 14, 'white', '#f7aaff', 'rgba(12,0,20,0.72)', 16, 34, 190);
+                photo_imagick_draw_pill($canvas, 'Photo by ' . $creditName, 700, 144, $fontRegular, 14, 'white', '#f7aaff', 'rgba(12,0,20,0.72)', 16, 32, 186);
             }
-            photo_imagick_draw_text($canvas, 'Dance Thru The Decades', 455, 1250, $fontBold, 28, '#ffcf40', 'rgba(80,0,40,0.75)', 1, 0, Imagick::ALIGN_CENTER);
-            photo_imagick_draw_text($canvas, '60s  •  70s  •  80s  •  90s  •  00s', 455, 1275, $fontRegular, 15, '#ffcf40', null, 0, 0, Imagick::ALIGN_CENTER);
+            photo_imagick_draw_text($canvas, 'Dance Thru The Decades', 462, 1270, $fontBold, 27, '#ffcf40', 'rgba(80,0,40,0.75)', 1, 0, Imagick::ALIGN_CENTER);
+            photo_imagick_draw_text($canvas, '60s  •  70s  •  80s  •  90s  •  00s', 462, 1292, $fontRegular, 14, '#ffcf40', null, 0, 0, Imagick::ALIGN_CENTER);
         }
 
         $canvas->setImageFormat('jpeg');
