@@ -746,7 +746,11 @@ function public_render_played_track_item($played, $event, $eventShareUrl) {
 function public_event_photo_table_ready() {
     return dttd_table_exists('event_photo_uploads')
         && dttd_table_column_exists('event_photo_uploads', 'event_id')
-        && dttd_table_column_exists('event_photo_uploads', 'file_path');
+        && (
+            dttd_table_column_exists('event_photo_uploads', 'file_path')
+            || dttd_table_column_exists('event_photo_uploads', 'framed_path')
+            || dttd_table_column_exists('event_photo_uploads', 'thumb_path')
+        );
 }
 
 function public_event_approved_photos($event_id, $limit = 12) {
@@ -755,6 +759,14 @@ function public_event_approved_photos($event_id, $limit = 12) {
 
     if (public_event_photo_table_ready()) {
         try {
+            $selectColumns = ['event_id'];
+            foreach (['id', 'file_path', 'framed_path', 'thumb_path', 'original_path', 'guest_name'] as $column) {
+                if (dttd_table_column_exists('event_photo_uploads', $column)) {
+                    $selectColumns[] = $column;
+                }
+            }
+            $selectSql = implode(', ', array_unique($selectColumns));
+
             $statusFilter = dttd_table_column_exists('event_photo_uploads', 'status') ? "AND status = 'approved'" : '';
             $orderParts = [];
             if (dttd_table_column_exists('event_photo_uploads', 'approved_at')) {
@@ -766,18 +778,28 @@ function public_event_approved_photos($event_id, $limit = 12) {
             if (dttd_table_column_exists('event_photo_uploads', 'created_at')) {
                 $orderParts[] = 'created_at DESC';
             }
-            $orderParts[] = 'id DESC';
+            if (dttd_table_column_exists('event_photo_uploads', 'id')) {
+                $orderParts[] = 'id DESC';
+            }
             $orderSql = implode(', ', array_unique($orderParts));
 
-            $stmt = db()->prepare("SELECT file_path, guest_name FROM event_photo_uploads WHERE event_id = ? $statusFilter ORDER BY $orderSql LIMIT ?");
+            $stmt = db()->prepare("SELECT $selectSql FROM event_photo_uploads WHERE event_id = ? $statusFilter" . ($orderSql ? " ORDER BY $orderSql" : "") . " LIMIT ?");
             $stmt->execute([(int)$event_id, $limit]);
             foreach ($stmt->fetchAll() as $row) {
-                $path = trim((string)($row['file_path'] ?? ''));
-                if ($path === '') {
+                $paths = function_exists('photo_row_display_paths') ? photo_row_display_paths($row) : [
+                    'display' => $row['framed_path'] ?? ($row['file_path'] ?? ''),
+                    'thumb' => $row['thumb_path'] ?? ($row['framed_path'] ?? ($row['file_path'] ?? '')),
+                ];
+
+                $display = trim((string)($paths['display'] ?? ''));
+                $thumb = trim((string)($paths['thumb'] ?? $display));
+                if ($display === '') {
                     continue;
                 }
+
                 $photos[] = [
-                    'path' => ltrim($path, '/'),
+                    'path' => ltrim($display, '/'),
+                    'thumb' => ltrim($thumb ?: $display, '/'),
                     'guest_name' => trim((string)($row['guest_name'] ?? '')),
                 ];
             }
@@ -792,6 +814,7 @@ function public_event_approved_photos($event_id, $limit = 12) {
             foreach (glob($approvedDir . '/event-' . (int)$event_id . '-*.{jpg,jpeg,png,webp,gif}', GLOB_BRACE) ?: [] as $file) {
                 $photos[] = [
                     'path' => 'uploads/event-photos/approved/' . basename($file),
+                    'thumb' => 'uploads/event-photos/approved/' . basename($file),
                     'guest_name' => '',
                 ];
                 if (count($photos) >= $limit) {
@@ -1054,19 +1077,15 @@ if ($event) {
             </div>
 
             <?php if (!empty($eventPhotos)): ?>
-              <div class="public-photo-carousel" data-public-carousel>
-                <button class="public-carousel-btn public-carousel-prev" type="button" aria-label="Previous photo">‹</button>
-                <div class="public-photo-carousel-track">
-                  <?php foreach ($eventPhotos as $photo): ?>
-                    <a class="public-photo-carousel-slide" href="/<?= public_h($photo['path']) ?>" target="_blank" rel="noopener">
-                      <img src="/<?= public_h($photo['path']) ?>" alt="Approved photo from <?= public_h($title) ?>">
-                      <?php if (!empty($photo['guest_name'])): ?>
-                        <span>Shared by <?= public_h($photo['guest_name']) ?></span>
-                      <?php endif; ?>
-                    </a>
-                  <?php endforeach; ?>
-                </div>
-                <button class="public-carousel-btn public-carousel-next" type="button" aria-label="Next photo">›</button>
+              <div class="public-event-photo-grid">
+                <?php foreach ($eventPhotos as $photo): ?>
+                  <a class="public-event-photo-grid-item" href="/<?= public_h($photo['path']) ?>" target="_blank" rel="noopener">
+                    <img src="/<?= public_h($photo['thumb'] ?? $photo['path']) ?>" alt="Approved photo from <?= public_h($title) ?>">
+                    <?php if (!empty($photo['guest_name'])): ?>
+                      <span>Shared by <?= public_h($photo['guest_name']) ?></span>
+                    <?php endif; ?>
+                  </a>
+                <?php endforeach; ?>
               </div>
             <?php else: ?>
               <div class="public-photo-carousel public-placeholder-carousel" data-public-carousel>

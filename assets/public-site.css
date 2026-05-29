@@ -4355,3 +4355,63 @@ body.homepage-option-one .home-coming-up-card.is-live{
   }
 }
 
+/* v307 event portal photos grid
+   Scoped to the logged-in event portal photos section only. */
+.public-event-portal-page .public-event-photo-carousel-card .public-placeholder-carousel{
+  display:grid;
+  gap:8px;
+}
+
+.public-event-portal-page .public-event-photo-grid{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  gap:14px;
+  margin-top:18px;
+}
+
+.public-event-portal-page .public-event-photo-grid-item{
+  display:grid;
+  gap:8px;
+  min-width:0;
+  color:#fff;
+  text-decoration:none;
+  border:1px solid rgba(255,125,243,.28);
+  border-radius:18px;
+  background:rgba(255,255,255,.045);
+  padding:10px;
+  overflow:hidden;
+}
+
+.public-event-portal-page .public-event-photo-grid-item img{
+  width:100%;
+  aspect-ratio:1 / 1;
+  object-fit:contain;
+  display:block;
+  border-radius:12px;
+  background:rgba(7,0,12,.72);
+  border:1px solid rgba(255,125,243,.18);
+}
+
+.public-event-portal-page .public-event-photo-grid-item span{
+  display:block;
+  color:#ffd84f;
+  font-size:.85rem;
+  font-weight:900;
+  line-height:1.2;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+@media (max-width: 900px){
+  .public-event-portal-page .public-event-photo-grid{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px){
+  .public-event-portal-page .public-event-photo-grid{
+    grid-template-columns:1fr;
+  }
+}
+
