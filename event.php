@@ -700,7 +700,7 @@ function public_played_share_text($played, $event) {
         return 'I am at ' . $eventTitle . ' with Dance Thru The Decades.';
     }
 
-    return 'I’m currently at ' . $eventTitle . ' with Dance Thru The Decades, listening to “' . $title . '”' . ($artist !== '' ? ' by ' . $artist : '') . ' 🎶';
+    return 'I am at ' . $eventTitle . ' with Dance Thru The Decades, listening to ' . $track . ' 🎶';
 }
 
 
@@ -1171,6 +1171,12 @@ if ($event) {
               <?php endif; ?>
             </div>
 
+            <?php if (!$hasEventAccess && !$isCancelled): ?>
+              <div class="public-qr-only-note">
+                <strong>At the event?</strong>
+                <span>Song requests and guest photo uploads open after you scan the venue QR code or enter the event code.</span>
+              </div>
+            <?php endif; ?>
           </div>
         </article>
 
