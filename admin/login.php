@@ -2,6 +2,7 @@
 session_start();
 
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/_auth_cookie.php';
 
 if (!defined('ADMIN_PASSWORD')) {
     define('ADMIN_PASSWORD', 'changeme');
@@ -9,11 +10,20 @@ if (!defined('ADMIN_PASSWORD')) {
 
 $error = '';
 
+if (!empty($_SESSION['dttd_admin']) || dttd_admin_auth_cookie_valid()) {
+    $_SESSION['dttd_admin'] = true;
+    header('Location: index.php');
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
 
     if (hash_equals((string)ADMIN_PASSWORD, (string)$password)) {
+        session_regenerate_id(true);
         $_SESSION['dttd_admin'] = true;
+        dttd_admin_set_auth_cookie();
+        session_write_close();
         header('Location: index.php');
         exit;
     }

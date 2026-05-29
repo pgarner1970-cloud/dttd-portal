@@ -2,6 +2,7 @@
 session_start();
 
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/_auth_cookie.php';
 
 if (!defined('ADMIN_PASSWORD')) {
     define('ADMIN_PASSWORD', 'changeme');
@@ -9,13 +10,18 @@ if (!defined('ADMIN_PASSWORD')) {
 
 if (isset($_GET['logout'])) {
     unset($_SESSION['dttd_admin']);
+    dttd_admin_clear_auth_cookie();
     header('Location: login.php');
     exit;
 }
 
 if (empty($_SESSION['dttd_admin'])) {
-    header('Location: login.php');
-    exit;
+    if (dttd_admin_auth_cookie_valid()) {
+        $_SESSION['dttd_admin'] = true;
+    } else {
+        header('Location: login.php');
+        exit;
+    }
 }
 
 function admin_url($path = '') {
