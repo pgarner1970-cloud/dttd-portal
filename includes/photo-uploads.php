@@ -59,16 +59,17 @@ function photo_storage_directories() {
 }
 
 function photo_current_upload_event() {
+    // Prefer an event taking place today. Do not trust is_active alone, because
+    // future public events may also be marked active for display on the website.
     try {
         $stmt = db()->query("
             SELECT *
             FROM events
-            WHERE is_active = 1
-              AND event_date IS NOT NULL
-              AND event_date <= CURDATE()
-              AND (portal_available_from IS NULL OR portal_available_from <= NOW())
-              AND (portal_available_until IS NULL OR portal_available_until >= NOW())
-            ORDER BY event_date DESC, start_time DESC, id DESC
+            WHERE event_date = CURDATE()
+            ORDER BY
+                CASE WHEN is_active = 1 THEN 0 ELSE 1 END,
+                COALESCE(start_time, '00:00:00') ASC,
+                id DESC
             LIMIT 1
         ");
         $event = $stmt->fetch();
@@ -80,8 +81,12 @@ function photo_current_upload_event() {
 
     try {
         $event = active_event();
-        if ($event && photo_can_select_event($event) && !empty($event['event_date']) && strtotime((string)$event['event_date']) <= time()) {
-            return $event;
+        if ($event && !empty($event['event_date'])) {
+            $eventDate = new DateTime($event['event_date']);
+            $today = new DateTime(date('Y-m-d'));
+            if ($eventDate <= $today) {
+                return $event;
+            }
         }
     } catch (Throwable $e) {
     }
@@ -98,13 +103,13 @@ function photo_selectable_events() {
             SELECT *
             FROM events
             WHERE event_date IS NOT NULL
-              AND event_date <= CURDATE()
               AND event_date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
-            ORDER BY event_date ASC, start_time ASC, id ASC
+              AND event_date <= CURDATE()
+            ORDER BY event_date ASC, COALESCE(start_time, '00:00:00') ASC, id ASC
         ");
         foreach ($stmt->fetchAll() as $event) {
             $id = (int)($event['id'] ?? 0);
-            if ($id && !isset($seen[$id]) && photo_can_select_event($event)) {
+            if ($id && !isset($seen[$id])) {
                 $events[] = $event;
                 $seen[$id] = true;
             }
@@ -153,19 +158,17 @@ function photo_event_label($event) {
 }
 
 function photo_can_select_event($event) {
-    if (!$event) {
+    if (!$event || empty($event['event_date'])) {
         return false;
     }
-    if (!empty($event['event_date'])) {
-        try {
-            $eventDate = new DateTime($event['event_date']);
-            $today = new DateTime(date('Y-m-d'));
-            return $eventDate <= $today || event_is_available($event);
-        } catch (Throwable $e) {
-            return true;
-        }
+
+    try {
+        $eventDate = new DateTime($event['event_date']);
+        $today = new DateTime(date('Y-m-d'));
+        return $eventDate <= $today;
+    } catch (Throwable $e) {
+        return false;
     }
-    return true;
 }
 
 function photo_load_image_resource($path, &$mime = null) {

@@ -10,6 +10,15 @@ $currentEvent = null;
 $rememberedEvent = null;
 
 try {
+    $candidate = function_exists('photo_current_upload_event') ? photo_current_upload_event() : active_event();
+    if ($candidate && photo_can_select_event($candidate)) {
+        $currentEvent = $candidate;
+    }
+} catch (Throwable $e) {
+    $currentEvent = null;
+}
+
+try {
     if (function_exists('dttd_event_from_access_cookie')) {
         $candidate = dttd_event_from_access_cookie(false);
         if ($candidate && photo_can_select_event($candidate)) {
@@ -20,18 +29,14 @@ try {
     $rememberedEvent = null;
 }
 
-try {
-    $candidate = active_event();
-    if ($candidate && photo_can_select_event($candidate)) {
-        $currentEvent = $candidate;
-    }
-} catch (Throwable $e) {
-    $currentEvent = null;
+// Default to the actual current event before any remembered/scanned event. This
+// stops an old access cookie from overriding tonight's event on the upload form.
+$defaultEvent = $currentEvent ?: $rememberedEvent;
+if (!$defaultEvent && !empty($events)) {
+    $defaultEvent = end($events) ?: null;
+    reset($events);
 }
 
-// Always prefer the actual current/live event over an older remembered/scanned event.
-// The remembered event is only a fallback when no current event is live.
-$defaultEvent = $currentEvent ?: $rememberedEvent;
 $selectedEventId = 0;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $selectedEventId = (int)($_POST['event_id'] ?? 0);
@@ -40,7 +45,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 } elseif ($defaultEvent) {
     $selectedEventId = (int)$defaultEvent['id'];
 }
+
 $selectedEvent = $selectedEventId ? photo_get_event($selectedEventId) : $defaultEvent;
+if (!$selectedEvent || !photo_can_select_event($selectedEvent)) {
+    $selectedEvent = $defaultEvent;
+    $selectedEventId = $selectedEvent ? (int)$selectedEvent['id'] : 0;
+}
+
 if (!$currentEvent && $rememberedEvent) {
     $currentEvent = $rememberedEvent;
 }
@@ -78,9 +89,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upload Photos | Dance Thru The Decades</title>
   <meta name="description" content="Upload your event photos for moderation and inclusion in the public gallery.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=260">
+  <link rel="stylesheet" href="/assets/public-site.css?v=282">
 </head>
-<body class="homepage-option-one public-gallery-page">
+<body class="homepage-option-one public-gallery-page public-upload-page">
   <main class="home-option-one">
     <?php require __DIR__ . '/includes/public-nav.php'; ?>
 
@@ -132,33 +143,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <p class="upload-help-copy">Landscape and portrait photos are both supported. We keep the original image and create a branded display version automatically.</p>
 
           <div class="public-upload-actions">
-            <button class="public-neon-btn public-upload-submit" type="submit" data-upload-submit>Upload Photo</button>
-            <span class="public-upload-progress" data-upload-progress hidden><span class="public-upload-spinner" aria-hidden="true"></span>Uploading your photo… please don’t close this page.</span>
+            <button class="public-neon-btn public-upload-submit" type="submit">Upload Photo</button>
+            <span class="public-upload-progress" hidden aria-live="polite">
+              <span class="public-upload-spinner" aria-hidden="true"></span>
+              Uploading your photo… please don’t close this page.
+            </span>
           </div>
         </form>
+
+        <script>
+          (function () {
+            var form = document.querySelector('.public-upload-form');
+            if (!form) return;
+            var button = form.querySelector('.public-upload-submit');
+            var progress = form.querySelector('.public-upload-progress');
+            form.addEventListener('submit', function () {
+              if (!form.checkValidity()) return;
+              if (button) {
+                button.disabled = true;
+                button.classList.add('is-uploading');
+                button.textContent = 'Uploading…';
+              }
+              if (progress) progress.hidden = false;
+            });
+          })();
+        </script>
       </article>
     </section>
 
     <?php require __DIR__ . '/includes/public-footer.php'; ?>
   </main>
-
-  <script>
-    (function(){
-      var form = document.querySelector('.public-upload-form');
-      if (!form) return;
-      form.addEventListener('submit', function(){
-        var btn = form.querySelector('[data-upload-submit]');
-        var progress = form.querySelector('[data-upload-progress]');
-        if (btn) {
-          btn.disabled = true;
-          btn.classList.add('is-uploading');
-          btn.textContent = 'Uploading…';
-        }
-        if (progress) {
-          progress.hidden = false;
-        }
-      });
-    })();
-  </script>
 </body>
 </html>
