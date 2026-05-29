@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upload Photos | Dance Thru The Decades</title>
   <meta name="description" content="Upload your event photos for moderation and inclusion in the public gallery.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=260">
+  <link rel="stylesheet" href="/assets/public-site.css?v=281">
 </head>
 <body class="homepage-option-one public-gallery-page public-upload-page">
   <main class="home-option-one">
@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="public-form-error"><?= photo_h($error) ?></div>
         <?php endif; ?>
 
-        <form class="public-upload-form" id="publicPhotoUploadForm" method="post" enctype="multipart/form-data">
+        <form class="public-upload-form" method="post" enctype="multipart/form-data">
           <div class="public-filter-grid upload-grid">
             <label>
               <span>Event</span>
@@ -106,13 +106,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <p class="upload-help-copy">Landscape and portrait photos are both supported. We keep the original image and create a branded display version automatically.</p>
 
           <div class="public-upload-actions">
-            <button class="public-neon-btn upload-submit-btn" type="submit">
-              <span class="upload-btn-text">Upload Photo</span>
-            </button>
-            <span class="upload-progress-note" id="uploadProgressNote" aria-live="polite" hidden>
-              <span class="upload-progress-spinner" aria-hidden="true"></span>
-              Uploading your photo… please don't close this page.
-            </span>
+            <button class="public-neon-btn public-upload-submit" type="submit">Upload Photo</button>
+            <span class="public-upload-progress" hidden aria-live="polite"><span class="public-upload-spinner" aria-hidden="true"></span>Uploading your photo… please don’t close this page.</span>
           </div>
         </form>
       </article>
@@ -120,29 +115,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <?php require __DIR__ . '/includes/public-footer.php'; ?>
   </main>
-
   <script>
-    (function () {
-      var form = document.getElementById('publicPhotoUploadForm');
+    (function(){
+      var form = document.querySelector('.public-upload-form');
       if (!form) return;
-
-      form.addEventListener('submit', function (event) {
-        if (!form.checkValidity || form.checkValidity()) {
-          var button = form.querySelector('.upload-submit-btn');
-          var buttonText = form.querySelector('.upload-btn-text');
-          var progressNote = document.getElementById('uploadProgressNote');
-
-          if (button) {
-            button.disabled = true;
-            button.classList.add('is-uploading');
-            button.setAttribute('aria-busy', 'true');
-          }
-          if (buttonText) {
-            buttonText.textContent = 'Uploading…';
-          }
-          if (progressNote) {
-            progressNote.hidden = false;
-          }
+      form.addEventListener('submit', function(){
+        var btn = form.querySelector('.public-upload-submit');
+        var progress = form.querySelector('.public-upload-progress');
+        if (btn) {
+          btn.disabled = true;
+          btn.classList.add('is-uploading');
+          btn.textContent = 'Uploading…';
+        }
+        if (progress) {
+          progress.hidden = false;
         }
       });
     })();
