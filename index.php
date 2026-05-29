@@ -125,7 +125,13 @@ try {
         FROM events
         WHERE is_active = 1
           AND event_date IS NOT NULL
-          AND event_date >= DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+          AND start_time IS NOT NULL
+          AND start_time <> ''
+          AND CASE
+                WHEN end_time IS NULL OR end_time = '' THEN DATE_ADD(TIMESTAMP(event_date, start_time), INTERVAL 6 HOUR)
+                WHEN end_time < start_time THEN TIMESTAMP(DATE_ADD(event_date, INTERVAL 1 DAY), end_time)
+                ELSE TIMESTAMP(event_date, end_time)
+              END >= NOW()
         ORDER BY event_date ASC, start_time ASC, id ASC
         LIMIT 8
     "
@@ -136,6 +142,30 @@ try {
 } catch (Throwable $e) {
     $homepage_events = [];
 }
+
+$homepage_fallback_cards = [
+    [
+        'label' => 'More events soon',
+        'title' => 'New dates coming',
+        'text' => 'Keep an eye on this page for upcoming Dance Thru The Decades events.',
+        'href' => '/events.php',
+    ],
+    [
+        'label' => 'Book us',
+        'title' => 'Planning a party?',
+        'text' => 'Contact us to bring Dance Thru The Decades to your venue or event.',
+        'href' => 'https://www.facebook.com/profile.php?id=61579454050951',
+    ],
+    [
+        'label' => 'Follow us',
+        'title' => 'Stay updated',
+        'text' => 'Follow us for new dates, photos and announcements.',
+        'href' => 'https://www.facebook.com/profile.php?id=61579454050951',
+    ],
+];
+
+$homepage_fallback_needed = max(0, 3 - count($homepage_events));
+$homepage_fallback_cards = array_slice($homepage_fallback_cards, 0, $homepage_fallback_needed);
 
 $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
 $public_current = 'home';
@@ -298,7 +328,7 @@ $public_current = 'home';
       </div>
     </section>
 
-    <?php if (!empty($homepage_events)): ?>
+    <?php if (!empty($homepage_events) || !empty($homepage_fallback_cards)): ?>
       <section class="home-coming-up" aria-label="Coming up events">
         <div class="home-coming-up-head">
           <span>Coming up</span>
@@ -319,6 +349,14 @@ $public_current = 'home';
                 <strong><?= htmlspecialchars($label) ?></strong>
                 <span><?= htmlspecialchars($title) ?></span>
                 <em><?= htmlspecialchars(trim($date . ($time ? ' · ' . $time : '') . ($venue ? ' · ' . $venue : ''))) ?></em>
+              </a>
+            <?php endforeach; ?>
+
+            <?php foreach ($homepage_fallback_cards as $fallback): ?>
+              <a class="home-coming-up-card is-fallback" href="<?= htmlspecialchars($fallback['href']) ?>" <?= $loop ? 'aria-hidden="true" tabindex="-1"' : '' ?><?= str_starts_with($fallback['href'], 'http') ? ' target="_blank" rel="noopener"' : '' ?>>
+                <strong><?= htmlspecialchars($fallback['label']) ?></strong>
+                <span><?= htmlspecialchars($fallback['title']) ?></span>
+                <em><?= htmlspecialchars($fallback['text']) ?></em>
               </a>
             <?php endforeach; ?>
           <?php endfor; ?>
