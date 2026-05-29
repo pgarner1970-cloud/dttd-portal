@@ -3839,3 +3839,46 @@ body.homepage-option-one .home-coming-up-card.is-live{
   background:#7b1cff !important;
   color:#fff !important;
 }
+
+/* v303 gallery filter polish: scoped to public gallery only */
+.public-gallery-page .public-gallery-filter-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  margin-bottom:18px;
+}
+
+.public-gallery-page .public-gallery-filter-head .option-one-eyebrow{
+  margin-top:0;
+}
+
+.public-gallery-page .public-gallery-upload-btn{
+  flex:0 0 auto;
+  margin-top:18px;
+  white-space:nowrap;
+}
+
+.public-gallery-page .public-filter-grid select,
+.public-gallery-page .public-filter-grid select option{
+  background:#15001f;
+  color:#fff;
+}
+
+.public-gallery-page .public-filter-grid select option:checked{
+  background:#3a0054;
+  color:#fff;
+}
+
+@media (max-width: 760px){
+  .public-gallery-page .public-gallery-filter-head{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .public-gallery-page .public-gallery-upload-btn{
+    margin-top:0;
+    width:100%;
+  }
+}
+

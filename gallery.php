@@ -91,8 +91,13 @@ try {
 
     <section class="public-gallery-shell">
       <article class="public-filter-card">
-        <p class="option-one-eyebrow">Browse Gallery</p>
-        <h1 class="public-gallery-title">Find photos</h1>
+        <div class="public-gallery-filter-head">
+          <div>
+            <p class="option-one-eyebrow">Browse Gallery</p>
+            <h1 class="public-gallery-title">Find photos</h1>
+          </div>
+          <a class="public-neon-btn public-gallery-upload-btn" href="/upload.php">Upload Photos</a>
+        </div>
         <form class="public-filter-grid" method="get">
           <label>
             <span>Event</span>
