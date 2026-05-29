@@ -427,190 +427,227 @@ function photo_draw_neon_line($im, $x1, $y1, $x2, $y2, $color, $glowColor, $thic
     imagesetthickness($im, 1);
 }
 
-function photo_render_framed_image($sourcePath, $destPath, $event, $orientation = 'portrait', $creditName = '') {
-    // Preferred renderer: Imagick + pre-rendered transparent template assets.
-    // This is much closer to the approved mock-up than drawing the whole frame with GD lines.
-    if (extension_loaded('imagick') && class_exists('Imagick')) {
-        try {
-            if (photo_render_framed_image_imagick($sourcePath, $destPath, $event, $orientation, $creditName)) {
-                return true;
-            }
-        } catch (Throwable $e) {
-            // Fall through to the existing upload fallback behaviour.
+
+function photo_imagick_font_path($bold = false) {
+    $candidates = $bold
+        ? ['/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', '/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf']
+        : ['/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', '/usr/share/fonts/dejavu/DejaVuSans.ttf'];
+    foreach ($candidates as $path) {
+        if (is_file($path)) {
+            return $path;
         }
     }
-
-    // If Imagick is ever unavailable, fail gracefully so the caller keeps the original upload.
-    return false;
+    return $candidates[0];
 }
 
-function photo_overlay_clean_text($value, $fallback = '') {
-    $text = trim((string)$value);
+function photo_imagick_text_width(Imagick $canvas, ImagickDraw $draw, $text) {
+    $metrics = $canvas->queryFontMetrics($draw, (string)$text, false);
+    return (float)($metrics['textWidth'] ?? 0);
+}
+
+function photo_imagick_fit_font_size(Imagick $canvas, $text, $fontPath, $startSize, $maxWidth, $minSize = 12) {
+    $size = (int)$startSize;
+    while ($size > (int)$minSize) {
+        $draw = new ImagickDraw();
+        $draw->setFont($fontPath);
+        $draw->setFontSize($size);
+        $width = photo_imagick_text_width($canvas, $draw, $text);
+        if ($width <= $maxWidth) {
+            break;
+        }
+        $size -= 2;
+    }
+    return max((int)$minSize, $size);
+}
+
+function photo_imagick_truncate_text(Imagick $canvas, ImagickDraw $draw, $text, $maxWidth) {
+    $text = trim((string)$text);
     if ($text === '') {
-        $text = $fallback;
+        return '';
     }
-    $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    $text = str_replace(["\r", "\n", "\t"], ' ', $text);
-    $text = preg_replace('/\s+/u', ' ', $text);
-    // Keep these overlays simple and avoid mojibake-prone symbols in generated artwork.
-    $text = str_replace(['–', '—', '•', '…'], ['-', '-', '-', '...'], $text);
-    return trim($text);
-}
-
-function photo_overlay_font($bold = false) {
-    $candidates = $bold ? [
-        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
-        '/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf',
-    ] : [
-        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-        '/usr/share/fonts/dejavu/DejaVuSans.ttf',
-        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
-    ];
-    foreach ($candidates as $font) {
-        if (is_file($font)) {
-            return $font;
+    if (photo_imagick_text_width($canvas, $draw, $text) <= $maxWidth) {
+        return $text;
+    }
+    $chars = preg_split('//u', $text, -1, PREG_SPLIT_NO_EMPTY);
+    if (!$chars) {
+        return $text;
+    }
+    $ellipsis = '…';
+    while (count($chars) > 1) {
+        array_pop($chars);
+        $trial = rtrim(implode('', $chars)) . $ellipsis;
+        if (photo_imagick_text_width($canvas, $draw, $trial) <= $maxWidth) {
+            return $trial;
         }
     }
-    return '';
+    return $ellipsis;
 }
 
-function photo_imagick_cover_to_canvas($path, $canvasW, $canvasH) {
-    $img = new Imagick($path);
-    if (method_exists($img, 'autoOrient')) {
-        $img->autoOrient();
-    } elseif (method_exists($img, 'autoOrientImage')) {
-        $img->autoOrientImage();
-    }
-    $img->setImageColorspace(Imagick::COLORSPACE_SRGB);
-    $img->setImageAlphaChannel(Imagick::ALPHACHANNEL_REMOVE);
-    $img->setImageBackgroundColor(new ImagickPixel('black'));
-    $img->cropThumbnailImage($canvasW, $canvasH);
-    $img->setImagePage(0, 0, 0, 0);
-    return $img;
-}
-
-function photo_imagick_text_width($img, $text, $font, $size, $bold = false) {
-    $draw = new ImagickDraw();
-    if ($font !== '') { $draw->setFont($font); }
-    $draw->setFontSize($size);
-    $draw->setFontWeight($bold ? 700 : 400);
-    $metrics = $img->queryFontMetrics($draw, (string)$text);
-    return isset($metrics['textWidth']) ? (float)$metrics['textWidth'] : 0.0;
-}
-
-function photo_imagick_draw_text($img, $text, $x, $baselineY, $size, $font, $fill, $maxW = null, $bold = false, $stroke = null, $strokeWidth = 0, $minSize = 12) {
-    $text = photo_overlay_clean_text($text);
-    if ($text === '') { return; }
-    $size = (int)$size;
-    if ($maxW !== null) {
-        while ($size > $minSize && photo_imagick_text_width($img, $text, $font, $size, $bold) > $maxW) {
-            $size -= 2;
-        }
-        while ($size <= $minSize && photo_imagick_text_width($img, $text, $font, $size, $bold) > $maxW && strlen($text) > 6) {
-            $text = rtrim(substr($text, 0, -4)) . '...';
-        }
+function photo_imagick_draw_text(Imagick $canvas, $text, $x, $y, $fontPath, $fontSize, $fill, $stroke = null, $strokeWidth = 0, $maxWidth = 0, $align = Imagick::ALIGN_LEFT) {
+    $text = trim((string)$text);
+    if ($text === '') {
+        return 0;
     }
     $draw = new ImagickDraw();
-    if ($font !== '') { $draw->setFont($font); }
-    $draw->setFontSize($size);
-    $draw->setFontWeight($bold ? 700 : 400);
+    $draw->setFont($fontPath);
+    $draw->setFontSize($fontSize);
+    $draw->setTextAntialias(true);
     $draw->setFillColor(new ImagickPixel($fill));
-    if ($stroke && $strokeWidth > 0) {
+    $draw->setTextAlignment($align);
+    if ($stroke !== null && $strokeWidth > 0) {
         $draw->setStrokeColor(new ImagickPixel($stroke));
         $draw->setStrokeWidth($strokeWidth);
-        $draw->setStrokeAntialias(true);
+    } else {
+        $draw->setStrokeOpacity(0);
     }
-    $draw->setTextAntialias(true);
-    $img->annotateImage($draw, (int)$x, (int)$baselineY, 0, $text);
-}
-
-function photo_imagick_draw_centered_text($img, $text, $centerX, $baselineY, $size, $font, $fill, $maxW, $bold = false, $stroke = null, $strokeWidth = 0) {
-    $text = photo_overlay_clean_text($text);
-    if ($text === '') { return; }
-    $actualSize = (int)$size;
-    while ($actualSize > 12 && photo_imagick_text_width($img, $text, $font, $actualSize, $bold) > $maxW) {
-        $actualSize -= 2;
+    if ($maxWidth > 0) {
+        $text = photo_imagick_truncate_text($canvas, $draw, $text, $maxWidth);
     }
-    $w = photo_imagick_text_width($img, $text, $font, $actualSize, $bold);
-    photo_imagick_draw_text($img, $text, (int)round($centerX - ($w / 2)), $baselineY, $actualSize, $font, $fill, $maxW, $bold, $stroke, $strokeWidth);
+    $canvas->annotateImage($draw, (float)$x, (float)$y, 0, $text);
+    return photo_imagick_text_width($canvas, $draw, $text);
 }
 
-function photo_imagick_draw_pill($img, $text, $x, $y, $fontSize, $font, $padX = 22) {
-    $text = photo_overlay_clean_text($text);
-    if ($text === '') { return; }
-    $w = (int)ceil(photo_imagick_text_width($img, $text, $font, $fontSize, false)) + ($padX * 2);
-    $h = max(36, $fontSize + 18);
-    $draw = new ImagickDraw();
-    $draw->setFillColor(new ImagickPixel('rgba(10,0,18,0.72)'));
-    $draw->setStrokeColor(new ImagickPixel('rgba(255,145,255,0.88)'));
-    $draw->setStrokeWidth(2);
-    $draw->roundRectangle($x, $y, $x + $w, $y + $h, (int)($h / 2), (int)($h / 2));
-    $img->drawImage($draw);
-    photo_imagick_draw_text($img, $text, $x + $padX, $y + $fontSize + 7, $fontSize, $font, '#ffffff', null, false);
+function photo_imagick_draw_pill(Imagick $canvas, $text, $x, $y, $fontPath, $fontSize, $textColor, $strokeColor, $fillColor, $paddingX = 24, $height = 42, $maxWidth = 0) {
+    $probe = new ImagickDraw();
+    $probe->setFont($fontPath);
+    $probe->setFontSize($fontSize);
+    $label = trim((string)$text);
+    if ($label === '') {
+        return 0;
+    }
+    if ($maxWidth > 0) {
+        $label = photo_imagick_truncate_text($canvas, $probe, $label, max(10, $maxWidth - ($paddingX * 2)));
+    }
+    $textWidth = photo_imagick_text_width($canvas, $probe, $label);
+    $width = (int)ceil($textWidth + ($paddingX * 2));
+    if ($maxWidth > 0) {
+        $width = min($width, (int)$maxWidth);
+    }
+    $radius = (int)floor($height / 2);
+    $shape = new ImagickDraw();
+    $shape->setStrokeColor(new ImagickPixel($strokeColor));
+    $shape->setStrokeWidth(2);
+    $shape->setFillColor(new ImagickPixel($fillColor));
+    $shape->roundRectangle($x, $y, $x + $width, $y + $height, $radius, $radius);
+    $canvas->drawImage($shape);
+    photo_imagick_draw_text($canvas, $label, $x + $paddingX, $y + ($height * 0.69), $fontPath, $fontSize, $textColor, null, 0, 0, Imagick::ALIGN_LEFT);
+    return $width;
 }
 
-function photo_render_framed_image_imagick($sourcePath, $destPath, $event, $orientation = 'portrait', $creditName = '') {
-    $landscape = ($orientation === 'landscape');
-    $canvasW = $landscape ? 1600 : 1080;
-    $canvasH = $landscape ? 1200 : 1350;
-
-    $assetName = $landscape ? 'dttd-overlay-landscape.png' : 'dttd-overlay-portrait.png';
-    $overlayPath = dirname(__DIR__) . '/assets/' . $assetName;
-    if (!is_file($overlayPath)) {
+function photo_render_framed_image($sourcePath, $destPath, $event, $orientation = 'portrait', $creditName = '') {
+    if (!extension_loaded('imagick')) {
         return false;
     }
 
-    $img = photo_imagick_cover_to_canvas($sourcePath, $canvasW, $canvasH);
-    $overlay = new Imagick($overlayPath);
-    $overlay->setImagePage(0, 0, 0, 0);
-    if ($overlay->getImageWidth() !== $canvasW || $overlay->getImageHeight() !== $canvasH) {
-        $overlay->resizeImage($canvasW, $canvasH, Imagick::FILTER_LANCZOS, 1);
+    $landscape = ($orientation === 'landscape');
+    $canvasW = $landscape ? 1600 : 1080;
+    $canvasH = $landscape ? 1200 : 1350;
+    $overlayPath = dirname(__DIR__) . '/assets/' . ($landscape ? 'dttd-overlay-landscape.png' : 'dttd-overlay-portrait.png');
+    $logoPath = dirname(__DIR__) . '/assets/dttd-logo-inner.png';
+    if (!is_file($logoPath)) {
+        $logoPath = dirname(__DIR__) . '/assets/dttd-neon-logo.png';
     }
-    $img->compositeImage($overlay, Imagick::COMPOSITE_OVER, 0, 0);
-    $overlay->clear();
-    $overlay->destroy();
-
-    $fontBold = photo_overlay_font(true);
-    $fontRegular = photo_overlay_font(false);
-
-    $eventName = photo_overlay_clean_text($event['event_name'] ?? $event['name'] ?? '', 'Dance Thru The Decades');
-    $venueLine = photo_overlay_clean_text($event['venue_name'] ?? $event['venue'] ?? '', 'Dance Thru The Decades Events');
-    $dateLine = photo_overlay_clean_text(photo_event_date_long($event['event_date'] ?? ''), '');
-
-    if ($landscape) {
-        photo_imagick_draw_text($img, $eventName, 270, 118, 64, $fontBold, '#ffda48', 555, true, 'rgba(110,0,90,0.75)', 2, 28);
-        photo_imagick_draw_text($img, 'Venue: ' . $venueLine, 838, 105, 25, $fontRegular, '#f5ebff', 370, false, null, 0, 16);
-        if ($dateLine !== '') {
-            photo_imagick_draw_text($img, 'Date: ' . $dateLine, 1240, 105, 24, $fontRegular, '#f5ebff', 300, false, null, 0, 16);
-        }
-        $creditName = photo_overlay_clean_text($creditName);
-        if ($creditName !== '') {
-            $creditText = 'Photo by ' . $creditName;
-            $creditW = min(320, (int)photo_imagick_text_width($img, $creditText, $fontRegular, 21) + 44);
-            photo_imagick_draw_pill($img, $creditText, $canvasW - 44 - $creditW - 50, 166, 21, $fontRegular, 22);
-        }
-    } else {
-        photo_imagick_draw_text($img, $eventName, 238, 112, 46, $fontBold, '#ffda48', 765, true, 'rgba(110,0,90,0.75)', 2, 24);
-        photo_imagick_draw_text($img, $venueLine, 238, 152, 24, $fontRegular, '#f5ebff', 755, false, null, 0, 15);
-        if ($dateLine !== '') {
-            photo_imagick_draw_text($img, $dateLine, 238, 186, 22, $fontRegular, '#ffda48', 755, false, null, 0, 15);
-        }
-        $creditName = photo_overlay_clean_text($creditName);
-        if ($creditName !== '') {
-            photo_imagick_draw_pill($img, 'Photo by ' . $creditName, 650, 206, 18, $fontRegular, 18);
-        }
+    $qrPath = dirname(__DIR__) . '/assets/dttd-website-qr.png';
+    if (!is_file($overlayPath) || !is_file($logoPath) || !is_file($qrPath)) {
+        return false;
     }
 
-    $img->setImageFormat('jpeg');
-    $img->setImageCompression(Imagick::COMPRESSION_JPEG);
-    $img->setImageCompressionQuality(94);
-    if (!is_dir(dirname($destPath))) {
-        @mkdir(dirname($destPath), 0775, true);
+    try {
+        $photo = new Imagick($sourcePath);
+        if (method_exists($photo, 'autoOrient')) {
+            $photo->autoOrient();
+        }
+        $photo->setImageColorspace(Imagick::COLORSPACE_SRGB);
+        $photo->cropThumbnailImage($canvasW, $canvasH);
+        $photo->setImagePage(0, 0, 0, 0);
+
+        $canvas = new Imagick();
+        $canvas->newImage($canvasW, $canvasH, new ImagickPixel('black'));
+        $canvas->setImageColorspace(Imagick::COLORSPACE_SRGB);
+        $canvas->compositeImage($photo, Imagick::COMPOSITE_OVER, 0, 0);
+
+        $overlay = new Imagick($overlayPath);
+        $canvas->compositeImage($overlay, Imagick::COMPOSITE_OVER, 0, 0);
+
+        $logo = new Imagick($logoPath);
+        $logoSize = $landscape ? 128 : 144;
+        $logo->resizeImage($logoSize, $logoSize, Imagick::FILTER_LANCZOS, 1, true);
+        $logoX = $landscape ? 26 : 18;
+        $logoY = $landscape ? 26 : 18;
+        $canvas->compositeImage($logo, Imagick::COMPOSITE_OVER, $logoX, $logoY);
+
+        $qr = new Imagick($qrPath);
+        $qrSize = $landscape ? 92 : 86;
+        $qr->resizeImage($qrSize, $qrSize, Imagick::FILTER_POINT, 1, true);
+        $qrPad = 6;
+        $qrHolder = new Imagick();
+        $qrHolder->newImage($qrSize + ($qrPad * 2), $qrSize + ($qrPad * 2), new ImagickPixel('white'));
+        $qrHolder->compositeImage($qr, Imagick::COMPOSITE_OVER, $qrPad, $qrPad);
+        $qrX = $landscape ? 1452 : 942;
+        $qrY = $landscape ? 1042 : 1182;
+        $canvas->compositeImage($qrHolder, Imagick::COMPOSITE_OVER, $qrX, $qrY);
+
+        $fontBold = photo_imagick_font_path(true);
+        $fontRegular = photo_imagick_font_path(false);
+
+        $eventName = trim((string)($event['event_name'] ?? $event['name'] ?? 'Dance Thru The Decades'));
+        if ($eventName === '') { $eventName = 'Dance Thru The Decades'; }
+        $venueLine = trim((string)($event['venue_name'] ?? $event['venue'] ?? ''));
+        $dateLine = photo_event_date_long($event['event_date'] ?? '');
+
+        if ($landscape) {
+            $titleX = 215;
+            $titleY = 86;
+            $titleMaxW = 530;
+            $titleSize = photo_imagick_fit_font_size($canvas, $eventName, $fontBold, 44, $titleMaxW, 28);
+            photo_imagick_draw_text($canvas, $eventName, $titleX, $titleY, $fontBold, $titleSize, '#ffcf40', 'rgba(80,0,40,0.75)', 1, $titleMaxW);
+
+            $venueText = 'Venue: ' . ($venueLine !== '' ? $venueLine : 'Dance Thru The Decades');
+            $dateText = 'Date: ' . ($dateLine !== '' ? $dateLine : 'TBA');
+            photo_imagick_draw_text($canvas, $venueText, 770, 78, $fontRegular, 20, 'rgba(245,245,255,0.96)', null, 0, 330);
+            photo_imagick_draw_text($canvas, $dateText, 1160, 78, $fontRegular, 20, 'rgba(245,245,255,0.96)', null, 0, 300);
+
+            photo_imagick_draw_pill($canvas, 'EVENT PHOTO', 205, 98, $fontBold, 18, 'white', '#f7aaff', 'rgba(12,0,20,0.72)', 26, 42, 210);
+            $creditName = trim((string)$creditName);
+            if ($creditName !== '') {
+                photo_imagick_draw_pill($canvas, 'Photo by ' . $creditName, 1252, 96, $fontRegular, 17, 'white', '#f7aaff', 'rgba(12,0,20,0.72)', 22, 42, 210);
+            }
+
+            photo_imagick_draw_text($canvas, 'Dance Thru The Decades', 800, 1048, $fontBold, 40, '#ffcf40', 'rgba(80,0,40,0.75)', 1, 0, Imagick::ALIGN_CENTER);
+            photo_imagick_draw_text($canvas, '60s  •  70s  •  80s  •  90s  •  00s', 800, 1094, $fontRegular, 20, '#ffcf40', null, 0, 0, Imagick::ALIGN_CENTER);
+        } else {
+            $titleX = 186;
+            $titleY = 96;
+            $titleMaxW = 670;
+            $titleSize = photo_imagick_fit_font_size($canvas, $eventName, $fontBold, 40, $titleMaxW, 24);
+            photo_imagick_draw_text($canvas, $eventName, $titleX, $titleY, $fontBold, $titleSize, '#ffcf40', 'rgba(80,0,40,0.75)', 1, $titleMaxW);
+            photo_imagick_draw_text($canvas, 'Venue: ' . ($venueLine !== '' ? $venueLine : 'Dance Thru The Decades'), 186, 132, $fontRegular, 20, 'rgba(245,245,255,0.96)', null, 0, 620);
+            photo_imagick_draw_text($canvas, 'Date: ' . ($dateLine !== '' ? $dateLine : 'TBA'), 186, 162, $fontRegular, 20, 'rgba(245,245,255,0.96)', null, 0, 620);
+            photo_imagick_draw_pill($canvas, 'EVENT PHOTO', 186, 186, $fontBold, 16, 'white', '#f7aaff', 'rgba(12,0,20,0.72)', 22, 38, 190);
+            $creditName = trim((string)$creditName);
+            if ($creditName !== '') {
+                photo_imagick_draw_pill($canvas, 'Photo by ' . $creditName, 700, 186, $fontRegular, 16, 'white', '#f7aaff', 'rgba(12,0,20,0.72)', 20, 38, 220);
+            }
+            photo_imagick_draw_text($canvas, 'Dance Thru The Decades', 540, 1194, $fontBold, 36, '#ffcf40', 'rgba(80,0,40,0.75)', 1, 0, Imagick::ALIGN_CENTER);
+            photo_imagick_draw_text($canvas, '60s  •  70s  •  80s  •  90s  •  00s', 540, 1238, $fontRegular, 18, '#ffcf40', null, 0, 0, Imagick::ALIGN_CENTER);
+        }
+
+        $canvas->setImageFormat('jpeg');
+        $canvas->setImageCompression(Imagick::COMPRESSION_JPEG);
+        $canvas->setImageCompressionQuality(92);
+        $canvas->stripImage();
+        $written = $canvas->writeImage($destPath);
+
+        foreach ([$photo, $overlay, $logo, $qr, $qrHolder, $canvas] as $obj) {
+            if ($obj instanceof Imagick) {
+                $obj->clear();
+                $obj->destroy();
+            }
+        }
+        return (bool)$written;
+    } catch (Throwable $e) {
+        return false;
     }
-    $ok = $img->writeImage($destPath);
-    $img->clear();
-    $img->destroy();
-    return (bool)$ok;
 }
 
 function photo_render_thumb($sourcePath, $destPath, $size = 480) {
