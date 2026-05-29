@@ -298,7 +298,7 @@ $public_current = 'home';
       </div>
     </section>
 
-    <?php if ($homepage_state !== 'no-event' && !empty($homepage_events)): ?>
+    <?php if (!empty($homepage_events)): ?>
       <section class="home-coming-up" aria-label="Coming up events">
         <div class="home-coming-up-head">
           <span>Coming up</span>
