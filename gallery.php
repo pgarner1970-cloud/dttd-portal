@@ -131,11 +131,6 @@ try {
 
           <div class="public-filter-actions">
             <button class="public-neon-btn" type="submit">Filter Photos</button>
-            <?php if ($currentEvent): ?>
-              <a class="public-secondary-btn" href="/upload.php?event_id=<?= (int)$currentEvent['id'] ?>">Upload to Current Event</a>
-            <?php else: ?>
-              <a class="public-secondary-btn" href="/upload.php">Upload a Photo</a>
-            <?php endif; ?>
           </div>
         </form>
       </article>
