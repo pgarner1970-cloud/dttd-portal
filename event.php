@@ -1171,12 +1171,6 @@ if ($event) {
               <?php endif; ?>
             </div>
 
-            <?php if (!$hasEventAccess && !$isCancelled): ?>
-              <div class="public-qr-only-note">
-                <strong>At the event?</strong>
-                <span>Song requests and guest photo uploads open after you scan the venue QR code or enter the event code.</span>
-              </div>
-            <?php endif; ?>
           </div>
         </article>
 

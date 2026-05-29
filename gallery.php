@@ -169,7 +169,7 @@ try {
             ?>
               <article class="public-photo-tile" data-lightbox-item="<?= (int)$index ?>" data-lightbox-image="<?= photo_h($displayUrl) ?>" data-lightbox-title="<?= photo_h((string)($photo['event_name'] ?? 'Event photo')) ?>" data-lightbox-meta="<?= photo_h($caption) ?>">
                 <button class="public-photo-thumb" type="button">
-                  <img src="<?= photo_h($thumbUrl) ?>" alt="<?= photo_h((string)($photo['event_name'] ?? 'Event photo')) ?>">
+                  <img src="<?= photo_h($displayUrl) ?>" alt="<?= photo_h((string)($photo['event_name'] ?? 'Event photo')) ?>">
                 </button>
                 <div class="public-photo-meta">
                   <h3><?= photo_h((string)($photo['event_name'] ?? 'Event')) ?></h3>
