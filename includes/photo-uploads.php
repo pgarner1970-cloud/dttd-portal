@@ -293,6 +293,37 @@ function photo_draw_star($im, $cx, $cy, $r, $color) {
     imagefilledpolygon($im, $pts, 8, $color);
 }
 
+
+function photo_draw_text_glow($im, $text, $size, $x, $y, $color, $font, $glowColor = null, $glowRadius = 2) {
+    $text = (string)$text;
+    if ($text === '') { return; }
+    if (!is_file($font) || !function_exists('imagettftext')) {
+        imagestring($im, 5, (int)$x, (int)$y - 14, $text, $color);
+        return;
+    }
+    if ($glowColor !== null && $glowRadius > 0) {
+        for ($dx = -$glowRadius; $dx <= $glowRadius; $dx++) {
+            for ($dy = -$glowRadius; $dy <= $glowRadius; $dy++) {
+                if ($dx === 0 && $dy === 0) { continue; }
+                imagettftext($im, $size, 0, (int)$x + $dx, (int)$y + $dy, $glowColor, $font, $text);
+            }
+        }
+    }
+    imagettftext($im, $size, 0, (int)$x, (int)$y, $color, $font, $text);
+}
+
+function photo_copy_contain_to_rect($src, $dest, $srcW, $srcH, $destX, $destY, $destW, $destH, $bgColor = null) {
+    if ($bgColor !== null) {
+        imagefilledrectangle($dest, (int)$destX, (int)$destY, (int)($destX + $destW), (int)($destY + $destH), $bgColor);
+    }
+    $scale = min($destW / max(1, $srcW), $destH / max(1, $srcH));
+    $drawW = (int)round($srcW * $scale);
+    $drawH = (int)round($srcH * $scale);
+    $drawX = (int)round($destX + (($destW - $drawW) / 2));
+    $drawY = (int)round($destY + (($destH - $drawH) / 2));
+    imagecopyresampled($dest, $src, $drawX, $drawY, 0, 0, $drawW, $drawH, $srcW, $srcH);
+}
+
 function photo_copy_cover_to_rect($src, $dest, $srcW, $srcH, $destX, $destY, $destW, $destH) {
     $scale = max($destW / max(1, $srcW), $destH / max(1, $srcH));
     $cropW = (int)round($destW / $scale);
@@ -317,7 +348,7 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
     $portraitSource = $srcH >= $srcW;
     $landscape = ($orientation === 'landscape' || (!$portraitSource && $srcW > $srcH * 1.10));
 
-    // Two fixed social-share templates. Portrait photos get a 4:5 card; landscape photos get a wider card.
+    // Branded artwork output. Portrait is close to a social 4:5 card; landscape keeps a wider event-card layout.
     $canvasW = $landscape ? 1600 : 1080;
     $canvasH = $landscape ? 1200 : 1350;
 
@@ -326,72 +357,73 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
     imagesavealpha($im, true);
     imageantialias($im, true);
 
-    $black = photo_allocate($im, [5, 0, 12]);
+    $black = photo_allocate($im, [4, 0, 10]);
     imagefilledrectangle($im, 0, 0, $canvasW, $canvasH, $black);
-    photo_draw_gradient($im, 0, 0, $canvasW, $canvasH, [21, 0, 35], [57, 2, 78]);
+    photo_draw_gradient($im, 0, 0, $canvasW, $canvasH, [16, 0, 29], [50, 0, 72]);
 
-    // Disco radial rays in the background.
-    $ray = photo_allocate($im, [128, 28, 174], 108);
+    // Subtle disco rays.
     $cx = (int)($canvasW / 2);
     $cy = (int)($canvasH * 0.52);
-    for ($i = 0; $i < 32; $i += 2) {
-        $a1 = deg2rad($i * 360 / 32 - 92);
-        $a2 = deg2rad(($i + 1) * 360 / 32 - 92);
+    $rayA = photo_allocate($im, [126, 38, 168], 112);
+    $rayB = photo_allocate($im, [255, 75, 236], 121);
+    for ($i = 0; $i < 36; $i += 2) {
+        $a1 = deg2rad($i * 360 / 36 - 90);
+        $a2 = deg2rad(($i + 1) * 360 / 36 - 90);
         $pts = [$cx, $cy,
-            (int)round($cx + cos($a1) * $canvasW), (int)round($cy + sin($a1) * $canvasW),
-            (int)round($cx + cos($a2) * $canvasW), (int)round($cy + sin($a2) * $canvasW)
+            (int)round($cx + cos($a1) * $canvasW * 1.2), (int)round($cy + sin($a1) * $canvasW * 1.2),
+            (int)round($cx + cos($a2) * $canvasW * 1.2), (int)round($cy + sin($a2) * $canvasW * 1.2)
         ];
-        imagefilledpolygon($im, $pts, 3, $ray);
+        imagefilledpolygon($im, $pts, 3, ($i % 4 === 0) ? $rayA : $rayB);
     }
 
-    $pink = photo_allocate($im, [247, 64, 255]);
-    $pinkSoft = photo_allocate($im, [247, 64, 255], 70);
-    $pinkGlow1 = photo_allocate($im, [247, 64, 255], 98);
-    $pinkGlow2 = photo_allocate($im, [247, 64, 255], 113);
-    $panelBg = photo_allocate($im, [18, 0, 28], 12);
-    $photoShade = photo_allocate($im, [0, 0, 0], 76);
+    $pink = photo_allocate($im, [249, 63, 255]);
+    $pinkLight = photo_allocate($im, [255, 145, 255]);
+    $pinkSoft = photo_allocate($im, [249, 63, 255], 76);
+    $pinkGlow = photo_allocate($im, [249, 63, 255], 104);
+    $panelBg = photo_allocate($im, [16, 0, 27], 4);
+    $photoBg = photo_allocate($im, [6, 3, 14]);
     $white = photo_allocate($im, [255, 255, 255]);
-    $gold = photo_allocate($im, [255, 220, 76]);
-    $footerPink = photo_allocate($im, [251, 90, 255]);
+    $whiteGlow = photo_allocate($im, [255, 154, 255], 92);
+    $gold = photo_allocate($im, [255, 222, 75]);
+    $footerPink = photo_allocate($im, [252, 89, 255]);
 
-    $margin = $landscape ? 80 : 70;
-    $panelX = $margin;
-    $panelY = $landscape ? 55 : 60;
-    $panelW = $canvasW - ($margin * 2);
+    $panelX = $landscape ? 82 : 82;
+    $panelY = $landscape ? 62 : 66;
+    $panelW = $canvasW - ($panelX * 2);
     $panelH = $canvasH - ($panelY * 2);
-    $radius = $landscape ? 44 : 58;
+    $radius = $landscape ? 56 : 58;
 
-    // Neon glow and main card.
-    for ($i = 18; $i >= 4; $i -= 4) {
-        photo_stroke_rounded_rect($im, $panelX - $i, $panelY - $i, $panelX + $panelW + $i, $panelY + $panelH + $i, $radius + $i, $pinkGlow2, 3);
+    // Glowing outer frame.
+    for ($i = 22; $i >= 5; $i -= 4) {
+        photo_stroke_rounded_rect($im, $panelX - $i, $panelY - $i, $panelX + $panelW + $i, $panelY + $panelH + $i, $radius + $i, $pinkGlow, 3);
     }
     photo_fill_rounded_rect($im, $panelX, $panelY, $panelX + $panelW, $panelY + $panelH, $radius, $panelBg);
     photo_stroke_rounded_rect($im, $panelX, $panelY, $panelX + $panelW, $panelY + $panelH, $radius, $pink, 5);
-    photo_stroke_rounded_rect($im, $panelX + 7, $panelY + 7, $panelX + $panelW - 7, $panelY + $panelH - 7, $radius - 8, $pinkSoft, 1);
+    photo_stroke_rounded_rect($im, $panelX + 8, $panelY + 8, $panelX + $panelW - 8, $panelY + $panelH - 8, $radius - 10, $pinkLight, 1);
 
-    $headerH = $landscape ? 140 : 145;
-    $footerH = $landscape ? 230 : 300;
-    $innerPad = $landscape ? 55 : 45;
+    // Layout measurements designed to keep logo/header/footer inside the final artwork.
+    $innerPad = $landscape ? 58 : 48;
+    $headerH = $landscape ? 128 : 145;
+    $footerH = $landscape ? 255 : 285;
     $photoX = $panelX + $innerPad;
     $photoY = $panelY + $headerH;
     $photoW = $panelW - ($innerPad * 2);
     $photoH = $panelH - $headerH - $footerH;
 
-    // Polished angled divider lines like the mock-up.
-    imagesetthickness($im, $landscape ? 5 : 4);
-    imageline($im, $photoX, $photoY - 6, $photoX + $photoW, $photoY + ($landscape ? 20 : 28), $pink);
-    imageline($im, $photoX, $photoY + $photoH - ($landscape ? 18 : 30), $photoX + $photoW, $photoY + $photoH + 8, $pink);
-    imagesetthickness($im, 1);
-
-    // Photo panel with dark base, then cover-cropped image.
-    imagefilledrectangle($im, $photoX, $photoY, $photoX + $photoW, $photoY + $photoH, photo_allocate($im, [7, 7, 14]));
+    imagefilledrectangle($im, $photoX, $photoY, $photoX + $photoW, $photoY + $photoH, $photoBg);
     photo_copy_cover_to_rect($src, $im, $srcW, $srcH, $photoX, $photoY, $photoW, $photoH);
 
-    // Subtle top/bottom shading over the photo for depth and readability.
-    imagefilledrectangle($im, $photoX, $photoY, $photoX + $photoW, $photoY + (int)($photoH * 0.10), $photoShade);
-    imagefilledrectangle($im, $photoX, $photoY + (int)($photoH * 0.86), $photoX + $photoW, $photoY + $photoH, photo_allocate($im, [0, 0, 0], 92));
+    // Dramatic angled neon separators, similar to the mock-up.
+    imagesetthickness($im, $landscape ? 6 : 5);
+    imageline($im, $photoX, $photoY - 7, $photoX + $photoW, $photoY + ($landscape ? 20 : 28), $pink);
+    imageline($im, $photoX, $photoY + $photoH - ($landscape ? 18 : 28), $photoX + $photoW, $photoY + $photoH + 8, $pink);
+    imagesetthickness($im, 1);
 
-    // Header logo and label.
+    // Top/bottom photo shading for a more premium composite.
+    imagefilledrectangle($im, $photoX, $photoY, $photoX + $photoW, $photoY + (int)($photoH * 0.11), photo_allocate($im, [0, 0, 0], 86));
+    imagefilledrectangle($im, $photoX, $photoY + (int)($photoH * 0.86), $photoX + $photoW, $photoY + $photoH, photo_allocate($im, [0, 0, 0], 91));
+
+    // Logo.
     $logoPath = dirname(__DIR__) . '/assets/dttd-logo-inner.png';
     if (!is_file($logoPath)) {
         $logoPath = dirname(__DIR__) . '/assets/dttd-neon-logo.png';
@@ -401,22 +433,18 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
         if ($logo) {
             $logoW = imagesx($logo);
             $logoH = imagesy($logo);
-            $targetH = $landscape ? 105 : 118;
+            $targetH = $landscape ? 108 : 125;
             $targetW = (int)round($logoW * ($targetH / max(1, $logoH)));
-            imagecopyresampled($im, $logo, $panelX + ($landscape ? 45 : 32), $panelY + ($landscape ? 18 : 18), 0, 0, $targetW, $targetH, $logoW, $logoH);
+            imagecopyresampled($im, $logo, $panelX + ($landscape ? 42 : 34), $panelY + ($landscape ? 18 : 18), 0, 0, $targetW, $targetH, $logoW, $logoH);
             imagedestroy($logo);
         }
     }
 
     $fontBold = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
     $fontRegular = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf';
-    $fontMono = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf';
 
-    $label = 'EVENT PHOTO';
-    if (is_file($fontBold)) {
-        $box = imagettfbbox($landscape ? 25 : 23, 0, $fontBold, str_replace(' ', '', $label));
-        photo_draw_letterspaced_text($im, $label, $landscape ? 25 : 23, $panelX + $panelW - ($landscape ? 370 : 330), $panelY + ($landscape ? 72 : 82), $gold, $fontBold, 8);
-    }
+    // Header label.
+    photo_draw_letterspaced_text($im, 'EVENT PHOTO', $landscape ? 25 : 23, $panelX + $panelW - ($landscape ? 395 : 330), $panelY + ($landscape ? 76 : 86), $gold, $fontBold, 8);
 
     $eventName = trim((string)($event['event_name'] ?? 'Dance Thru The Decades'));
     $venueLine = trim((string)($event['venue_name'] ?? ''));
@@ -429,30 +457,28 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
         }
     }
 
-    // Footer panel and typography.
-    $footerTop = $photoY + $photoH + ($landscape ? 24 : 40);
-    imagefilledrectangle($im, $panelX + 35, $footerTop - 10, $panelX + $panelW - 35, $panelY + $panelH - 34, photo_allocate($im, [25, 0, 36], 32));
+    $footerTop = $photoY + $photoH + ($landscape ? 35 : 40);
+    imagefilledrectangle($im, $panelX + 30, $footerTop - 10, $panelX + $panelW - 30, $panelY + $panelH - 35, photo_allocate($im, [25, 0, 38], 36));
 
-    if (is_file($fontBold) && function_exists('imagettftext')) {
-        // Soft glow behind the title.
-        photo_draw_centered_text($im, $eventName, $landscape ? 47 : 50, $footerTop + ($landscape ? 62 : 92), photo_allocate($im, [255, 95, 255], 78), $fontBold, $panelW - 240, $cx + 3);
-        photo_draw_centered_text($im, $eventName, $landscape ? 46 : 49, $footerTop + ($landscape ? 60 : 90), $white, $fontBold, $panelW - 240, $cx);
-        photo_draw_centered_text($im, $venueLine ?: 'Dance Thru The Decades Events', $landscape ? 30 : 30, $footerTop + ($landscape ? 108 : 145), $gold, $fontRegular, $panelW - 260, $cx);
-        photo_draw_centered_text($im, $dateLine, $landscape ? 28 : 29, $footerTop + ($landscape ? 152 : 198), $white, $fontBold, $panelW - 260, $cx);
-        photo_draw_letterspaced_text($im, 'DANCE THRU THE DECADES EVENTS', $landscape ? 15 : 15, $cx - ($landscape ? 205 : 202), $panelY + $panelH - 38, $footerPink, $fontBold, 5);
-    }
+    // Event footer text inside the branded artwork.
+    photo_draw_centered_text($im, $eventName, $landscape ? 48 : 52, $footerTop + ($landscape ? 78 : 92), $whiteGlow, $fontBold, $panelW - 230, $cx + 2);
+    photo_draw_centered_text($im, $eventName, $landscape ? 47 : 51, $footerTop + ($landscape ? 76 : 90), $white, $fontBold, $panelW - 230, $cx);
+    photo_draw_centered_text($im, $venueLine ?: 'Dance Thru The Decades Events', $landscape ? 31 : 31, $footerTop + ($landscape ? 127 : 146), $gold, $fontRegular, $panelW - 260, $cx);
+    photo_draw_centered_text($im, $dateLine, $landscape ? 29 : 30, $footerTop + ($landscape ? 176 : 199), $white, $fontBold, $panelW - 260, $cx);
 
-    // Decorative stars.
-    $starY = $footerTop + ($landscape ? 126 : 173);
-    foreach ([-390, -310, 310, 390] as $offset) {
-        if (!$landscape && abs($offset) > 330) { continue; }
+    // Decorative stars around the footer, but avoid overlapping text on narrower portrait cards.
+    $starY = $footerTop + ($landscape ? 158 : 174);
+    foreach ([-420, -330, 330, 420] as $offset) {
+        if (!$landscape && abs($offset) > 340) { continue; }
         photo_draw_star($im, $cx + $offset, $starY + (($offset % 2) ? 0 : 18), $landscape ? 17 : 16, $footerPink);
     }
-    photo_draw_star($im, $cx - ($landscape ? 120 : 135), $starY + ($landscape ? 33 : 34), $landscape ? 16 : 16, $footerPink);
-    photo_draw_star($im, $cx + ($landscape ? 120 : 135), $starY + ($landscape ? 33 : 34), $landscape ? 16 : 16, $footerPink);
+    photo_draw_star($im, $cx - ($landscape ? 145 : 142), $starY + ($landscape ? 34 : 35), $landscape ? 16 : 16, $footerPink);
+    photo_draw_star($im, $cx + ($landscape ? 145 : 142), $starY + ($landscape ? 34 : 35), $landscape ? 16 : 16, $footerPink);
 
-    // Mask corners outside panel back to background-ish shade to soften hard square edges left by filled shapes.
-    photo_stroke_rounded_rect($im, $panelX + 1, $panelY + 1, $panelX + $panelW - 1, $panelY + $panelH - 1, $radius - 1, photo_allocate($im, [255, 156, 255], 25), 1);
+    // Footer brand line.
+    $brandText = 'DANCE THRU THE DECADES EVENTS';
+    $brandX = $cx - ($landscape ? 225 : 205);
+    photo_draw_letterspaced_text($im, $brandText, 15, $brandX, $panelY + $panelH - 40, $footerPink, $fontBold, 5);
 
     $saved = photo_save_image_resource($im, $destPath, 92);
     imagedestroy($src);
@@ -468,37 +494,14 @@ function photo_render_thumb($sourcePath, $destPath, $size = 480) {
 
     $srcW = imagesx($src);
     $srcH = imagesy($src);
-
-    // These thumbnails are not raw photos: they are finished branded artwork.
-    // Do not centre-crop them, otherwise the Dance Thru The Decades logo,
-    // neon border and footer/event details can be chopped off in the gallery.
     $thumb = imagecreatetruecolor($size, $size);
-    imagealphablending($thumb, true);
-    imagesavealpha($thumb, true);
+    imageantialias($thumb, true);
+    $bg = photo_allocate($thumb, [19, 0, 30]);
+    imagefilledrectangle($thumb, 0, 0, $size, $size, $bg);
 
-    // Dark branded backdrop for any letterbox space around landscape/portrait art.
-    $bg1 = imagecolorallocate($thumb, 16, 0, 25);
-    $bg2 = imagecolorallocate($thumb, 55, 2, 77);
-    imagefilledrectangle($thumb, 0, 0, $size, $size, $bg1);
-    for ($y = 0; $y < $size; $y++) {
-        $t = $y / max(1, $size - 1);
-        $r = (int)round(16 + (55 - 16) * $t);
-        $g = (int)round(0 + (2 - 0) * $t);
-        $b = (int)round(25 + (77 - 25) * $t);
-        imageline($thumb, 0, $y, $size, $y, imagecolorallocate($thumb, $r, $g, $b));
-    }
-
-    $scale = min($size / max(1, $srcW), $size / max(1, $srcH));
-    $destW = (int)max(1, floor($srcW * $scale));
-    $destH = (int)max(1, floor($srcH * $scale));
-    $destX = (int)floor(($size - $destW) / 2);
-    $destY = (int)floor(($size - $destH) / 2);
-
-    imagecopyresampled($thumb, $src, $destX, $destY, 0, 0, $destW, $destH, $srcW, $srcH);
-
-    // Subtle branded outline so contained artwork still looks intentional.
-    $border = imagecolorallocate($thumb, 235, 55, 245);
-    imagerectangle($thumb, 0, 0, $size - 1, $size - 1, $border);
+    // Do not crop branded artwork: the logo, border and event footer are part of the image.
+    $pad = max(10, (int)round($size * 0.035));
+    photo_copy_contain_to_rect($src, $thumb, $srcW, $srcH, $pad, $pad, $size - ($pad * 2), $size - ($pad * 2), $bg);
 
     $saved = imagejpeg($thumb, $destPath, 88);
     imagedestroy($src);
