@@ -3338,7 +3338,8 @@ a:hover .venue-facebook-icon{
 
 /* v14 public gallery + uploads */
 .public-gallery-page .home-option-one { overflow: visible; }
-.public-gallery-shell { width:min(1320px, calc(100% - 48px)); margin:0 auto 64px; display:grid; gap:28px; }
+/* Keep the gallery panels aligned with the fixed-width public header/navigation. */
+.public-gallery-shell { width:min(1180px, calc(100% - 48px)); margin:0 auto 64px; display:grid; gap:28px; }
 .public-gallery-hero { text-align:center; padding:22px 24px 0; }
 .public-gallery-title { margin:0; font-size:clamp(2.5rem, 7vw, 4.8rem); line-height:0.95; }
 .public-filter-card, .public-photo-grid-card, .upload-card { background:rgba(33,0,55,.74); border:1px solid rgba(255,61,236,.45); border-radius:28px; padding:28px; box-shadow:0 16px 50px rgba(0,0,0,.28); }
