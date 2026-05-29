@@ -3631,3 +3631,69 @@ body.public-event-detail-page .public-event-share-button .public-sr-only{
 @media (min-width: 900px){
   .public-gallery-page .public-photo-thumb{ min-height:300px !important; }
 }
+
+/* v320 scoped homepage ticker and gallery artwork containment fixes */
+.home-info-grid.home-info-grid-secondary{
+  grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+}
+.home-info-grid.home-info-grid-secondary .home-info-card,
+.home-info-grid.home-info-grid-secondary .home-info-card:link,
+.home-info-grid.home-info-grid-secondary .home-info-card:visited{
+  text-decoration:none !important;
+}
+.home-info-grid.home-info-grid-secondary .home-info-card *{
+  text-decoration:none !important;
+}
+.home-coming-up{
+  overflow:hidden !important;
+}
+.home-coming-up-track{
+  display:flex !important;
+  grid-template-columns:none !important;
+  gap:14px !important;
+  width:max-content !important;
+  min-width:100% !important;
+  animation:dttd-home-coming-up-scroll 34s linear infinite;
+  will-change:transform;
+}
+.home-coming-up:hover .home-coming-up-track{
+  animation-play-state:paused;
+}
+.home-coming-up-track .home-coming-up-card,
+.home-coming-up-track .home-coming-up-card[aria-hidden="true"]{
+  display:grid !important;
+  flex:0 0 348px !important;
+  width:348px !important;
+  text-decoration:none !important;
+}
+@keyframes dttd-home-coming-up-scroll{
+  from{ transform:translateX(0); }
+  to{ transform:translateX(calc(-50% - 7px)); }
+}
+@media (max-width: 920px){
+  .home-info-grid.home-info-grid-secondary{ grid-template-columns:1fr !important; }
+  .home-coming-up-track{ animation-duration:42s; }
+  .home-coming-up-track .home-coming-up-card,
+  .home-coming-up-track .home-coming-up-card[aria-hidden="true"]{
+    flex-basis:285px !important;
+    width:285px !important;
+  }
+}
+@media (prefers-reduced-motion: reduce){
+  .home-coming-up-track{ animation:none !important; transform:none !important; flex-wrap:wrap; width:auto !important; }
+}
+.public-gallery-page .public-photo-thumb{
+  min-height:0 !important;
+  height:auto !important;
+  aspect-ratio:4 / 5 !important;
+  overflow:hidden !important;
+}
+.public-gallery-page .public-photo-thumb img{
+  width:auto !important;
+  height:auto !important;
+  max-width:100% !important;
+  max-height:100% !important;
+  object-fit:contain !important;
+  object-position:center center !important;
+  display:block !important;
+}

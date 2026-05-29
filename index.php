@@ -289,21 +289,6 @@ $public_current = 'home';
             <p>View approved event photos and shared memories.</p>
           </a>
 
-          <?php
-            $nextEvent = null;
-            foreach ($homepage_events as $candidate) {
-                if (!$active_event || (int)($candidate['id'] ?? 0) !== (int)($active_event['id'] ?? 0)) {
-                    $nextEvent = $candidate;
-                    break;
-                }
-            }
-          ?>
-          <a class="home-info-card" href="<?= $nextEvent ? htmlspecialchars(home_public_event_url($nextEvent)) : '/events.php' ?>">
-            <span>✨</span>
-            <h2>Next Event</h2>
-            <p><?= $nextEvent ? htmlspecialchars(home_public_event_title($nextEvent)) . ' — ' . htmlspecialchars(dttd_public_event_date($nextEvent)) : 'See what is coming up next.' ?></p>
-          </a>
-
           <a class="home-info-card" href="<?= htmlspecialchars($facebookUrl) ?>" target="_blank" rel="noopener">
             <span>👍</span>
             <h2>Follow Us</h2>
