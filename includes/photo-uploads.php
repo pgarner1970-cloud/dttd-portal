@@ -5,6 +5,11 @@ function photo_h($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
+
+function photo_overlay_log($message) {
+    error_log('[DTTD overlay] ' . (string)$message);
+}
+
 function photo_column_exists($table, $column) {
     static $cache = [];
     $key = $table . '.' . $column;
@@ -167,6 +172,7 @@ function photo_can_select_event($event) {
         $today = new DateTime(date('Y-m-d'));
         return $eventDate <= $today;
     } catch (Throwable $e) {
+        photo_overlay_log('Render failed: ' . $e->getMessage());
         return false;
     }
 }
@@ -483,6 +489,28 @@ function photo_imagick_truncate_text(Imagick $canvas, ImagickDraw $draw, $text, 
     return $ellipsis;
 }
 
+
+function photo_imagick_apply_draw_color(ImagickDraw $draw, $target, $spec) {
+    $spec = trim((string)$spec);
+    $opacity = 1.0;
+    if (preg_match('/^rgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*([0-9.]+)\s*\)$/i', $spec, $m)) {
+        $spec = sprintf('rgb(%d,%d,%d)', (int)$m[1], (int)$m[2], (int)$m[3]);
+        $opacity = max(0.0, min(1.0, (float)$m[4]));
+    }
+    $pixel = new ImagickPixel($spec !== '' ? $spec : 'white');
+    if ($target === 'stroke') {
+        $draw->setStrokeColor($pixel);
+        if (method_exists($draw, 'setStrokeOpacity')) {
+            $draw->setStrokeOpacity($opacity);
+        }
+    } else {
+        $draw->setFillColor($pixel);
+        if (method_exists($draw, 'setFillOpacity')) {
+            $draw->setFillOpacity($opacity);
+        }
+    }
+}
+
 function photo_imagick_draw_text(Imagick $canvas, $text, $x, $y, $fontPath, $fontSize, $fill, $stroke = null, $strokeWidth = 0, $maxWidth = 0, $align = Imagick::ALIGN_LEFT) {
     $text = trim((string)$text);
     if ($text === '') {
@@ -492,13 +520,15 @@ function photo_imagick_draw_text(Imagick $canvas, $text, $x, $y, $fontPath, $fon
     $draw->setFont($fontPath);
     $draw->setFontSize($fontSize);
     $draw->setTextAntialias(true);
-    $draw->setFillColor(new ImagickPixel($fill));
+    photo_imagick_apply_draw_color($draw, 'fill', $fill);
     $draw->setTextAlignment($align);
     if ($stroke !== null && $strokeWidth > 0) {
-        $draw->setStrokeColor(new ImagickPixel($stroke));
+        photo_imagick_apply_draw_color($draw, 'stroke', $stroke);
         $draw->setStrokeWidth($strokeWidth);
     } else {
-        $draw->setStrokeOpacity(0);
+        if (method_exists($draw, 'setStrokeOpacity')) {
+            $draw->setStrokeOpacity(0);
+        }
     }
     if ($maxWidth > 0) {
         $text = photo_imagick_truncate_text($canvas, $draw, $text, $maxWidth);
@@ -525,9 +555,9 @@ function photo_imagick_draw_pill(Imagick $canvas, $text, $x, $y, $fontPath, $fon
     }
     $radius = (int)floor($height / 2);
     $shape = new ImagickDraw();
-    $shape->setStrokeColor(new ImagickPixel($strokeColor));
+    photo_imagick_apply_draw_color($shape, 'stroke', $strokeColor);
     $shape->setStrokeWidth(2);
-    $shape->setFillColor(new ImagickPixel($fillColor));
+    photo_imagick_apply_draw_color($shape, 'fill', $fillColor);
     $shape->roundRectangle($x, $y, $x + $width, $y + $height, $radius, $radius);
     $canvas->drawImage($shape);
     photo_imagick_draw_text($canvas, $label, $x + $paddingX, $y + ($height * 0.69), $fontPath, $fontSize, $textColor, null, 0, 0, Imagick::ALIGN_LEFT);
@@ -549,6 +579,7 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
     }
     $qrPath = dirname(__DIR__) . '/assets/dttd-website-qr.png';
     if (!is_file($overlayPath) || !is_file($logoPath) || !is_file($qrPath)) {
+        photo_overlay_log('Missing overlay asset(s): overlay=' . (is_file($overlayPath) ? 'yes' : 'no') . ', logo=' . (is_file($logoPath) ? 'yes' : 'no') . ', qr=' . (is_file($qrPath) ? 'yes' : 'no'));
         return false;
     }
 
@@ -646,6 +677,7 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
         }
         return (bool)$written;
     } catch (Throwable $e) {
+        photo_overlay_log('Render failed: ' . $e->getMessage());
         return false;
     }
 }
@@ -715,6 +747,7 @@ function photo_process_uploaded_file($tmpPath, $originalName, $event, $guestName
     }
 
     if (!photo_render_framed_image($originalAbs, $framedAbs, $event, $orientation, $guestName)) {
+        photo_overlay_log('Falling back to original image copy for ' . basename($originalAbs));
         copy($originalAbs, $framedAbs);
     }
 
