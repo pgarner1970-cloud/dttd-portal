@@ -21,11 +21,7 @@ try {
 }
 
 try {
-    if (function_exists('photo_current_upload_event')) {
-        $candidate = photo_current_upload_event();
-    } else {
-        $candidate = active_event();
-    }
+    $candidate = active_event();
     if ($candidate && photo_can_select_event($candidate)) {
         $currentEvent = $candidate;
     }
@@ -33,8 +29,8 @@ try {
     $currentEvent = null;
 }
 
-// Default uploads to the actual live/current event first.
-// A remembered cookie must not override this, as it may point at an older event.
+// Always prefer the actual current/live event over an older remembered/scanned event.
+// The remembered event is only a fallback when no current event is live.
 $defaultEvent = $currentEvent ?: $rememberedEvent;
 $selectedEventId = 0;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -82,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upload Photos | Dance Thru The Decades</title>
   <meta name="description" content="Upload your event photos for moderation and inclusion in the public gallery.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=282">
+  <link rel="stylesheet" href="/assets/public-site.css?v=260">
 </head>
 <body class="homepage-option-one public-gallery-page">
   <main class="home-option-one">
@@ -110,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="public-form-error"><?= photo_h($error) ?></div>
         <?php endif; ?>
 
-        <form class="public-upload-form" method="post" enctype="multipart/form-data" data-upload-form>
+        <form class="public-upload-form" method="post" enctype="multipart/form-data">
           <div class="public-filter-grid upload-grid">
             <label>
               <span>Event</span>
@@ -137,11 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
           <div class="public-upload-actions">
             <button class="public-neon-btn public-upload-submit" type="submit" data-upload-submit>Upload Photo</button>
-            <div class="public-upload-progress" data-upload-progress hidden aria-live="polite">
-              <span class="public-upload-spinner" aria-hidden="true"></span>
-              <span>Uploading your photo… please don’t close this page.</span>
-            </div>
-            <div class="public-upload-progressbar" data-upload-progressbar hidden aria-hidden="true"><span></span></div>
+            <span class="public-upload-progress" data-upload-progress hidden><span class="public-upload-spinner" aria-hidden="true"></span>Uploading your photo… please don’t close this page.</span>
           </div>
         </form>
       </article>
@@ -149,34 +141,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <?php require __DIR__ . '/includes/public-footer.php'; ?>
   </main>
-  <script>
-    (function () {
-      var form = document.querySelector('[data-upload-form]');
-      if (!form) return;
-      var submit = form.querySelector('[data-upload-submit]');
-      var progress = form.querySelector('[data-upload-progress]');
-      var progressBar = form.querySelector('[data-upload-progressbar]');
-      var submitted = false;
 
-      form.addEventListener('submit', function (event) {
-        if (submitted) {
-          event.preventDefault();
-          return;
+  <script>
+    (function(){
+      var form = document.querySelector('.public-upload-form');
+      if (!form) return;
+      form.addEventListener('submit', function(){
+        var btn = form.querySelector('[data-upload-submit]');
+        var progress = form.querySelector('[data-upload-progress]');
+        if (btn) {
+          btn.disabled = true;
+          btn.classList.add('is-uploading');
+          btn.textContent = 'Uploading…';
         }
-        if (typeof form.checkValidity === 'function' && !form.checkValidity()) {
-          return;
+        if (progress) {
+          progress.hidden = false;
         }
-        submitted = true;
-        form.setAttribute('aria-busy', 'true');
-        if (submit) {
-          submit.disabled = true;
-          submit.classList.add('is-uploading');
-          submit.textContent = 'Uploading…';
-        }
-        if (progress) progress.hidden = false;
-        if (progressBar) progressBar.hidden = false;
       });
-    }());
+    })();
   </script>
 </body>
 </html>
