@@ -908,7 +908,7 @@ if ($event) {
   <meta name="twitter:title" content="<?= public_h($event ? $title . ' | Dance Thru The Decades' : 'Dance Thru The Decades Events') ?>">
   <meta name="twitter:description" content="<?= public_h($eventOgDescription) ?>">
   <meta name="twitter:image" content="<?= public_h($eventOgImage) ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=281">
+  <link rel="stylesheet" href="/assets/public-site.css?v=282">
 </head>
 <body class="homepage-option-one public-event-detail-page public-event-portal-page">
   <main class="home-option-one">
