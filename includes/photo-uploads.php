@@ -58,29 +58,66 @@ function photo_storage_directories() {
     return $dirs;
 }
 
-function photo_selectable_events() {
-    $events = [];
-    $seen = [];
-
+function photo_current_upload_event() {
     try {
-        $current = active_event();
-        if ($current) {
-            $events[] = $current;
-            $seen[(int)$current['id']] = true;
+        $stmt = db()->query("
+            SELECT *
+            FROM events
+            WHERE is_active = 1
+              AND event_date IS NOT NULL
+              AND event_date <= CURDATE()
+              AND (portal_available_from IS NULL OR portal_available_from <= NOW())
+              AND (portal_available_until IS NULL OR portal_available_until >= NOW())
+            ORDER BY event_date DESC, start_time DESC, id DESC
+            LIMIT 1
+        ");
+        $event = $stmt->fetch();
+        if ($event) {
+            return $event;
         }
     } catch (Throwable $e) {
     }
 
     try {
-        $stmt = db()->query("\n            SELECT *\n            FROM events\n            WHERE event_date IS NOT NULL\n              AND event_date <= CURDATE()\n            ORDER BY event_date DESC, start_time DESC, id DESC\n        ");
+        $event = active_event();
+        if ($event && photo_can_select_event($event) && !empty($event['event_date']) && strtotime((string)$event['event_date']) <= time()) {
+            return $event;
+        }
+    } catch (Throwable $e) {
+    }
+
+    return null;
+}
+
+function photo_selectable_events() {
+    $events = [];
+    $seen = [];
+
+    try {
+        $stmt = db()->query("
+            SELECT *
+            FROM events
+            WHERE event_date IS NOT NULL
+              AND event_date <= CURDATE()
+              AND event_date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+            ORDER BY event_date ASC, start_time ASC, id ASC
+        ");
         foreach ($stmt->fetchAll() as $event) {
             $id = (int)($event['id'] ?? 0);
-            if ($id && !isset($seen[$id])) {
+            if ($id && !isset($seen[$id]) && photo_can_select_event($event)) {
                 $events[] = $event;
                 $seen[$id] = true;
             }
         }
     } catch (Throwable $e) {
+    }
+
+    $current = photo_current_upload_event();
+    if ($current) {
+        $id = (int)($current['id'] ?? 0);
+        if ($id && !isset($seen[$id])) {
+            $events[] = $current;
+        }
     }
 
     return $events;
