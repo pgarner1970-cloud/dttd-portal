@@ -71,7 +71,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $paths = photo_process_uploaded_file(
                 $_FILES['photo_upload']['tmp_name'],
                 $_FILES['photo_upload']['name'] ?? 'upload.jpg',
-                $selectedEvent
+                $selectedEvent,
+                $guestName
             );
             photo_insert_upload($selectedEvent, $guestName, $_FILES['photo_upload']['name'] ?? '', $paths);
             $success = 'Thanks — your photo has been uploaded and is now waiting for moderation.';

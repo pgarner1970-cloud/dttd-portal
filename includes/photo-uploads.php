@@ -428,214 +428,189 @@ function photo_draw_neon_line($im, $x1, $y1, $x2, $y2, $color, $glowColor, $thic
 }
 
 function photo_render_framed_image($sourcePath, $destPath, $event, $orientation = 'portrait', $creditName = '') {
-    if (!extension_loaded('gd')) {
-        return false;
+    // Preferred renderer: Imagick + pre-rendered transparent template assets.
+    // This is much closer to the approved mock-up than drawing the whole frame with GD lines.
+    if (extension_loaded('imagick') && class_exists('Imagick')) {
+        try {
+            if (photo_render_framed_image_imagick($sourcePath, $destPath, $event, $orientation, $creditName)) {
+                return true;
+            }
+        } catch (Throwable $e) {
+            // Fall through to the existing upload fallback behaviour.
+        }
     }
 
-    $src = photo_load_image_resource($sourcePath, $mime);
-    if (!$src) {
-        return false;
+    // If Imagick is ever unavailable, fail gracefully so the caller keeps the original upload.
+    return false;
+}
+
+function photo_overlay_clean_text($value, $fallback = '') {
+    $text = trim((string)$value);
+    if ($text === '') {
+        $text = $fallback;
     }
+    $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $text = str_replace(["\r", "\n", "\t"], ' ', $text);
+    $text = preg_replace('/\s+/u', ' ', $text);
+    // Keep these overlays simple and avoid mojibake-prone symbols in generated artwork.
+    $text = str_replace(['–', '—', '•', '…'], ['-', '-', '-', '...'], $text);
+    return trim($text);
+}
 
-    $srcW = imagesx($src);
-    $srcH = imagesy($src);
-    $portraitSource = $srcH >= $srcW;
-    $landscape = ($orientation === 'landscape' || (!$portraitSource && $srcW > $srcH * 1.10));
+function photo_overlay_font($bold = false) {
+    $candidates = $bold ? [
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+        '/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf',
+    ] : [
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        '/usr/share/fonts/dejavu/DejaVuSans.ttf',
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+    ];
+    foreach ($candidates as $font) {
+        if (is_file($font)) {
+            return $font;
+        }
+    }
+    return '';
+}
 
-    // Final artwork sizes: landscape = event-card ratio, portrait = social 4:5 style.
+function photo_imagick_cover_to_canvas($path, $canvasW, $canvasH) {
+    $img = new Imagick($path);
+    if (method_exists($img, 'autoOrient')) {
+        $img->autoOrient();
+    } elseif (method_exists($img, 'autoOrientImage')) {
+        $img->autoOrientImage();
+    }
+    $img->setImageColorspace(Imagick::COLORSPACE_SRGB);
+    $img->setImageAlphaChannel(Imagick::ALPHACHANNEL_REMOVE);
+    $img->setImageBackgroundColor(new ImagickPixel('black'));
+    $img->cropThumbnailImage($canvasW, $canvasH);
+    $img->setImagePage(0, 0, 0, 0);
+    return $img;
+}
+
+function photo_imagick_text_width($img, $text, $font, $size, $bold = false) {
+    $draw = new ImagickDraw();
+    if ($font !== '') { $draw->setFont($font); }
+    $draw->setFontSize($size);
+    $draw->setFontWeight($bold ? 700 : 400);
+    $metrics = $img->queryFontMetrics($draw, (string)$text);
+    return isset($metrics['textWidth']) ? (float)$metrics['textWidth'] : 0.0;
+}
+
+function photo_imagick_draw_text($img, $text, $x, $baselineY, $size, $font, $fill, $maxW = null, $bold = false, $stroke = null, $strokeWidth = 0, $minSize = 12) {
+    $text = photo_overlay_clean_text($text);
+    if ($text === '') { return; }
+    $size = (int)$size;
+    if ($maxW !== null) {
+        while ($size > $minSize && photo_imagick_text_width($img, $text, $font, $size, $bold) > $maxW) {
+            $size -= 2;
+        }
+        while ($size <= $minSize && photo_imagick_text_width($img, $text, $font, $size, $bold) > $maxW && strlen($text) > 6) {
+            $text = rtrim(substr($text, 0, -4)) . '...';
+        }
+    }
+    $draw = new ImagickDraw();
+    if ($font !== '') { $draw->setFont($font); }
+    $draw->setFontSize($size);
+    $draw->setFontWeight($bold ? 700 : 400);
+    $draw->setFillColor(new ImagickPixel($fill));
+    if ($stroke && $strokeWidth > 0) {
+        $draw->setStrokeColor(new ImagickPixel($stroke));
+        $draw->setStrokeWidth($strokeWidth);
+        $draw->setStrokeAntialias(true);
+    }
+    $draw->setTextAntialias(true);
+    $img->annotateImage($draw, (int)$x, (int)$baselineY, 0, $text);
+}
+
+function photo_imagick_draw_centered_text($img, $text, $centerX, $baselineY, $size, $font, $fill, $maxW, $bold = false, $stroke = null, $strokeWidth = 0) {
+    $text = photo_overlay_clean_text($text);
+    if ($text === '') { return; }
+    $actualSize = (int)$size;
+    while ($actualSize > 12 && photo_imagick_text_width($img, $text, $font, $actualSize, $bold) > $maxW) {
+        $actualSize -= 2;
+    }
+    $w = photo_imagick_text_width($img, $text, $font, $actualSize, $bold);
+    photo_imagick_draw_text($img, $text, (int)round($centerX - ($w / 2)), $baselineY, $actualSize, $font, $fill, $maxW, $bold, $stroke, $strokeWidth);
+}
+
+function photo_imagick_draw_pill($img, $text, $x, $y, $fontSize, $font, $padX = 22) {
+    $text = photo_overlay_clean_text($text);
+    if ($text === '') { return; }
+    $w = (int)ceil(photo_imagick_text_width($img, $text, $font, $fontSize, false)) + ($padX * 2);
+    $h = max(36, $fontSize + 18);
+    $draw = new ImagickDraw();
+    $draw->setFillColor(new ImagickPixel('rgba(10,0,18,0.72)'));
+    $draw->setStrokeColor(new ImagickPixel('rgba(255,145,255,0.88)'));
+    $draw->setStrokeWidth(2);
+    $draw->roundRectangle($x, $y, $x + $w, $y + $h, (int)($h / 2), (int)($h / 2));
+    $img->drawImage($draw);
+    photo_imagick_draw_text($img, $text, $x + $padX, $y + $fontSize + 7, $fontSize, $font, '#ffffff', null, false);
+}
+
+function photo_render_framed_image_imagick($sourcePath, $destPath, $event, $orientation = 'portrait', $creditName = '') {
+    $landscape = ($orientation === 'landscape');
     $canvasW = $landscape ? 1600 : 1080;
     $canvasH = $landscape ? 1200 : 1350;
 
-    $im = imagecreatetruecolor($canvasW, $canvasH);
-    imagealphablending($im, true);
-    imagesavealpha($im, true);
-    imageantialias($im, true);
-
-    $fontBold = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
-    $fontRegular = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf';
-    if (!is_file($fontBold)) { $fontBold = __DIR__ . '/../assets/DejaVuSans-Bold.ttf'; }
-    if (!is_file($fontRegular)) { $fontRegular = $fontBold; }
-
-    $black = photo_allocate($im, [4, 0, 10]);
-    $deep = photo_allocate($im, [10, 0, 22]);
-    $pink = photo_allocate($im, [252, 64, 255]);
-    $pinkLight = photo_allocate($im, [255, 155, 255]);
-    $pinkGlow = photo_allocate($im, [252, 64, 255], 92);
-    $panelBg = photo_allocate($im, [10, 0, 18], 12);
-    $headerBg = photo_allocate($im, [8, 0, 16], 42);
-    $footerBg = photo_allocate($im, [14, 0, 23], 18);
-    $white = photo_allocate($im, [255, 255, 255]);
-    $softWhite = photo_allocate($im, [245, 235, 255]);
-    $whiteGlow = photo_allocate($im, [255, 178, 255], 96);
-    $gold = photo_allocate($im, [255, 218, 72]);
-    $goldDark = photo_allocate($im, [255, 160, 44]);
-    $muted = photo_allocate($im, [232, 214, 245]);
-
-    imagefilledrectangle($im, 0, 0, $canvasW, $canvasH, $black);
-    photo_draw_gradient($im, 0, 0, $canvasW, $canvasH, [8, 0, 17], [32, 0, 54]);
-
-    $panelX = $landscape ? 46 : 48;
-    $panelY = $landscape ? 52 : 58;
-    $panelW = $canvasW - ($panelX * 2);
-    $panelH = $canvasH - ($panelY * 2);
-    $panelR = $landscape ? 52 : 58;
-
-    // Place the uploaded photo as the hero image under the graphic frame.
-    $photoPad = $landscape ? 18 : 22;
-    $photoX = $panelX + $photoPad;
-    $photoY = $panelY + $photoPad;
-    $photoW = $panelW - ($photoPad * 2);
-    $photoH = $panelH - ($photoPad * 2);
-    photo_copy_cover_to_rect($src, $im, $srcW, $srcH, $photoX, $photoY, $photoW, $photoH);
-
-    // Global dark/purple treatment so uploaded photos look consistent with the site.
-    imagefilledrectangle($im, $photoX, $photoY, $photoX + $photoW, $photoY + $photoH, photo_allocate($im, [18, 0, 42], $landscape ? 58 : 64));
-    imagefilledrectangle($im, $photoX, $photoY, $photoX + $photoW, $photoY + (int)($photoH * .18), photo_allocate($im, [0, 0, 0], 72));
-    imagefilledrectangle($im, $photoX, $photoY + (int)($photoH * .78), $photoX + $photoW, $photoY + $photoH, photo_allocate($im, [0, 0, 0], 78));
-
-    // Faint disco rays / sparkle texture.
-    $cx = (int)($canvasW / 2);
-    $cy = (int)($canvasH * .48);
-    $rayA = photo_allocate($im, [126, 38, 168], 114);
-    for ($i = 0; $i < 22; $i += 2) {
-        $a1 = deg2rad($i * 360 / 22 - 92);
-        $a2 = deg2rad(($i + 1) * 360 / 22 - 92);
-        $pts = [$cx, $cy,
-            (int)round($cx + cos($a1) * $canvasW * 1.15), (int)round($cy + sin($a1) * $canvasW * 1.15),
-            (int)round($cx + cos($a2) * $canvasW * 1.15), (int)round($cy + sin($a2) * $canvasW * 1.15)
-        ];
-        imagefilledpolygon($im, $pts, 3, $rayA);
-    }
-    foreach ([[90, 985, 18], [1400, 92, 14], [118, 885, 11], [1340, 930, 11], [1180, 150, 9], [420, 142, 8]] as $s) {
-        if (!$landscape && $s[0] > 1000) { continue; }
-        photo_draw_star($im, $s[0], $s[1], $s[2], $gold);
+    $assetName = $landscape ? 'dttd-overlay-landscape.png' : 'dttd-overlay-portrait.png';
+    $overlayPath = dirname(__DIR__) . '/assets/' . $assetName;
+    if (!is_file($overlayPath)) {
+        return false;
     }
 
-    // Header and footer glass panels.
-    $headerH = $landscape ? 132 : 182;
-    imagefilledrectangle($im, $panelX + 14, $panelY + 14, $panelX + $panelW - 14, $panelY + $headerH, $headerBg);
-    photo_draw_neon_line($im, $panelX + 160, $panelY + $headerH, $panelX + $panelW - 34, $panelY + $headerH, $pinkLight, $pinkGlow, 2);
-
-    // Outer frame: draw after photo, then draw custom logo/QR pockets so they appear merged into the border.
-    for ($i = 24; $i >= 6; $i -= 5) {
-        photo_stroke_rounded_rect($im, $panelX - $i, $panelY - $i, $panelX + $panelW + $i, $panelY + $panelH + $i, $panelR + $i, $pinkGlow, 3);
+    $img = photo_imagick_cover_to_canvas($sourcePath, $canvasW, $canvasH);
+    $overlay = new Imagick($overlayPath);
+    $overlay->setImagePage(0, 0, 0, 0);
+    if ($overlay->getImageWidth() !== $canvasW || $overlay->getImageHeight() !== $canvasH) {
+        $overlay->resizeImage($canvasW, $canvasH, Imagick::FILTER_LANCZOS, 1);
     }
-    photo_stroke_rounded_rect($im, $panelX, $panelY, $panelX + $panelW, $panelY + $panelH, $panelR, $pink, 5);
-    photo_stroke_rounded_rect($im, $panelX + 8, $panelY + 8, $panelX + $panelW - 8, $panelY + $panelH - 8, $panelR - 9, $pinkLight, 1);
+    $img->compositeImage($overlay, Imagick::COMPOSITE_OVER, 0, 0);
+    $overlay->clear();
+    $overlay->destroy();
 
-    // Logo merged into the border.
-    $logoSize = $landscape ? 172 : 176;
-    $logoX = $panelX + ($landscape ? 24 : 20);
-    $logoY = $panelY - ($landscape ? 34 : 30);
-    imagefilledellipse($im, $logoX + (int)($logoSize / 2), $logoY + (int)($logoSize / 2), $logoSize + 30, $logoSize + 30, photo_allocate($im, [8, 0, 16], 5));
-    for ($i = 16; $i >= 4; $i -= 4) {
-        imagesetthickness($im, 3);
-        imagearc($im, $logoX + (int)($logoSize / 2), $logoY + (int)($logoSize / 2), $logoSize + $i, $logoSize + $i, 0, 360, $pinkGlow);
-    }
-    imagesetthickness($im, 4);
-    imagearc($im, $logoX + (int)($logoSize / 2), $logoY + (int)($logoSize / 2), $logoSize, $logoSize, 0, 360, $pink);
-    imagesetthickness($im, 1);
+    $fontBold = photo_overlay_font(true);
+    $fontRegular = photo_overlay_font(false);
 
-    $logoPath = dirname(__DIR__) . '/assets/dttd-logo-inner.png';
-    if (!is_file($logoPath)) { $logoPath = dirname(__DIR__) . '/assets/dttd-neon-logo.png'; }
-    if (is_file($logoPath)) {
-        $logo = photo_load_image_resource($logoPath, $logoMime);
-        if ($logo) {
-            photo_copy_circle($im, $logo, $logoX + 10, $logoY + 10, $logoSize - 20);
-            imagedestroy($logo);
-        }
-    }
-    // Smooth-looking connectors from the circular logo pocket back into the top/left frame.
-    photo_draw_neon_line($im, $logoX + $logoSize - 12, $panelY, $panelX + $panelW - $panelR, $panelY, $pink, $pinkGlow, 3);
-    photo_draw_neon_line($im, $panelX, $logoY + $logoSize - 18, $panelX, $panelY + $panelH - $panelR, $pink, $pinkGlow, 3);
-
-    $eventName = trim((string)($event['event_name'] ?? $event['name'] ?? 'Back To The 80s'));
-    $venueLine = trim((string)($event['venue_name'] ?? $event['venue'] ?? ''));
-    $dateLine = photo_event_date_long($event['event_date'] ?? '');
-    if ($eventName === '') { $eventName = 'Dance Thru The Decades'; }
-    if ($venueLine === '') { $venueLine = 'Dance Thru The Decades Events'; }
-
-    // Top header text row.
-    $titleX = $logoX + $logoSize + ($landscape ? 42 : 20);
-    $titleY = $panelY + ($landscape ? 72 : 96);
-    $headerRight = $panelX + $panelW - 44;
-    $titleMaxW = $landscape ? 570 : ($headerRight - $titleX - 20);
-    photo_draw_fit_text($im, $eventName, $landscape ? 57 : 48, $titleX + 2, $titleY + 2, $whiteGlow, $fontBold, $titleMaxW, null, 26);
-    photo_draw_fit_text($im, $eventName, $landscape ? 56 : 47, $titleX, $titleY, $gold, $fontBold, $titleMaxW, photo_allocate($im, [120, 0, 100], 88), 26);
+    $eventName = photo_overlay_clean_text($event['event_name'] ?? $event['name'] ?? '', 'Dance Thru The Decades');
+    $venueLine = photo_overlay_clean_text($event['venue_name'] ?? $event['venue'] ?? '', 'Dance Thru The Decades Events');
+    $dateLine = photo_overlay_clean_text(photo_event_date_long($event['event_date'] ?? ''), '');
 
     if ($landscape) {
-        $metaY = $panelY + 74;
-        $metaX = $titleX + $titleMaxW + 38;
-        photo_draw_text_glow($im, '|', 30, $metaX - 28, $metaY, $goldDark, $fontRegular, null, 0);
-        photo_draw_text_glow($im, 'Venue: ' . photo_ellipsis_text($venueLine, $fontRegular, 22, 360), 22, $metaX, $metaY, $softWhite, $fontRegular, null, 0);
-        $dateX = $metaX + 395;
-        photo_draw_text_glow($im, '|', 30, $dateX - 24, $metaY, $goldDark, $fontRegular, null, 0);
-        photo_draw_text_glow($im, 'Date: ' . photo_ellipsis_text($dateLine, $fontRegular, 21, 280), 21, $dateX, $metaY, $softWhite, $fontRegular, null, 0);
+        photo_imagick_draw_text($img, $eventName, 270, 118, 64, $fontBold, '#ffda48', 555, true, 'rgba(110,0,90,0.75)', 2, 28);
+        photo_imagick_draw_text($img, 'Venue: ' . $venueLine, 838, 105, 25, $fontRegular, '#f5ebff', 370, false, null, 0, 16);
+        if ($dateLine !== '') {
+            photo_imagick_draw_text($img, 'Date: ' . $dateLine, 1240, 105, 24, $fontRegular, '#f5ebff', 300, false, null, 0, 16);
+        }
+        $creditName = photo_overlay_clean_text($creditName);
+        if ($creditName !== '') {
+            $creditText = 'Photo by ' . $creditName;
+            $creditW = min(320, (int)photo_imagick_text_width($img, $creditText, $fontRegular, 21) + 44);
+            photo_imagick_draw_pill($img, $creditText, $canvasW - 44 - $creditW - 50, 166, 21, $fontRegular, 22);
+        }
     } else {
-        photo_draw_fit_text($im, $venueLine, 24, $titleX, $panelY + 132, $softWhite, $fontRegular, $headerRight - $titleX, null, 16);
-        photo_draw_fit_text($im, $dateLine, 22, $titleX, $panelY + 165, $gold, $fontRegular, $headerRight - $titleX, null, 15);
-    }
-
-    // EVENT PHOTO pill.
-    photo_draw_pill($im, 'EVENT PHOTO', $titleX, $panelY + ($landscape ? 96 : 188), 22, $landscape ? 42 : 40, $fontBold, $landscape ? 18 : 16, $softWhite, $pinkLight, photo_allocate($im, [20, 0, 30], 24), 230);
-
-    // Optional photographer/uploader credit.
-    $creditName = trim((string)$creditName);
-    if ($creditName !== '') {
-        $creditText = 'Photo by ' . $creditName;
-        $creditW = min($landscape ? 310 : 290, photo_text_width($creditText, $landscape ? 19 : 17, $fontRegular) + 42);
-        $creditX = $headerRight - $creditW;
-        $creditY = $panelY + ($landscape ? 92 : 198);
-        photo_draw_pill($im, $creditText, $creditX, $creditY, 18, $landscape ? 38 : 36, $fontRegular, $landscape ? 19 : 17, $softWhite, $pinkLight, photo_allocate($im, [20, 0, 30], 32), $creditW);
-    }
-
-    // Bottom brand strip.
-    $footerW = $landscape ? 820 : 720;
-    $footerH = $landscape ? 118 : 132;
-    $footerX = (int)round(($canvasW - $footerW) / 2) - ($landscape ? 45 : 0);
-    $footerY = $panelY + $panelH - $footerH - 34;
-    for ($i = 12; $i >= 4; $i -= 4) {
-        photo_stroke_rounded_rect($im, $footerX - $i, $footerY - $i, $footerX + $footerW + $i, $footerY + $footerH + $i, 34 + $i, $pinkGlow, 3);
-    }
-    photo_fill_rounded_rect($im, $footerX, $footerY, $footerX + $footerW, $footerY + $footerH, 34, $footerBg);
-    photo_stroke_rounded_rect($im, $footerX, $footerY, $footerX + $footerW, $footerY + $footerH, 34, $pinkLight, 2);
-    photo_draw_centered_text($im, 'Dance Thru The Decades', $landscape ? 47 : 44, $footerY + ($landscape ? 62 : 70), $gold, $fontBold, $footerW - 80, $footerX + (int)($footerW / 2));
-    photo_draw_centered_text($im, '60s   •   70s   •   80s   •   90s   •   00s', $landscape ? 23 : 21, $footerY + ($landscape ? 98 : 108), $gold, $fontRegular, $footerW - 120, $footerX + (int)($footerW / 2));
-
-    // QR pocket integrated into the bottom/right frame. Keep it smaller and high contrast.
-    $qrPocketW = $landscape ? 170 : 150;
-    $qrPocketH = $landscape ? 190 : 170;
-    $qrPocketX = $panelX + $panelW - $qrPocketW - ($landscape ? 28 : 22);
-    $qrPocketY = $panelY + $panelH - $qrPocketH - ($landscape ? 28 : 24);
-    photo_fill_rounded_rect($im, $qrPocketX, $qrPocketY, $qrPocketX + $qrPocketW, $qrPocketY + $qrPocketH, 24, photo_allocate($im, [10, 0, 18], 12));
-    for ($i = 10; $i >= 4; $i -= 3) {
-        photo_stroke_rounded_rect($im, $qrPocketX - $i, $qrPocketY - $i, $qrPocketX + $qrPocketW + $i, $qrPocketY + $qrPocketH + $i, 24 + $i, $pinkGlow, 2);
-    }
-    photo_stroke_rounded_rect($im, $qrPocketX, $qrPocketY, $qrPocketX + $qrPocketW, $qrPocketY + $qrPocketH, 24, $pinkLight, 3);
-    // Connect pocket to the border to make it look like an intentional border feature.
-    photo_draw_neon_line($im, $qrPocketX + $qrPocketW, $qrPocketY + 34, $panelX + $panelW, $qrPocketY + 34, $pink, $pinkGlow, 3);
-    photo_draw_neon_line($im, $qrPocketX + 34, $qrPocketY + $qrPocketH, $qrPocketX + 34, $panelY + $panelH, $pink, $pinkGlow, 3);
-
-    $qrPath = dirname(__DIR__) . '/assets/dttd-website-qr.png';
-    if (is_file($qrPath)) {
-        $qr = photo_load_image_resource($qrPath, $qrMime);
-        if ($qr) {
-            $qrSize = $landscape ? 116 : 102;
-            $qrX = $qrPocketX + (int)(($qrPocketW - $qrSize) / 2);
-            $qrY = $qrPocketY + ($landscape ? 43 : 40);
-            $whiteBg = photo_allocate($im, [255, 255, 255]);
-            imagefilledrectangle($im, $qrX - 6, $qrY - 6, $qrX + $qrSize + 6, $qrY + $qrSize + 6, $whiteBg);
-            imagecopyresampled($im, $qr, $qrX, $qrY, 0, 0, $qrSize, $qrSize, imagesx($qr), imagesy($qr));
-            imagedestroy($qr);
+        photo_imagick_draw_text($img, $eventName, 238, 112, 46, $fontBold, '#ffda48', 765, true, 'rgba(110,0,90,0.75)', 2, 24);
+        photo_imagick_draw_text($img, $venueLine, 238, 152, 24, $fontRegular, '#f5ebff', 755, false, null, 0, 15);
+        if ($dateLine !== '') {
+            photo_imagick_draw_text($img, $dateLine, 238, 186, 22, $fontRegular, '#ffda48', 755, false, null, 0, 15);
+        }
+        $creditName = photo_overlay_clean_text($creditName);
+        if ($creditName !== '') {
+            photo_imagick_draw_pill($img, 'Photo by ' . $creditName, 650, 206, 18, $fontRegular, 18);
         }
     }
-    photo_draw_centered_text($im, 'Scan', $landscape ? 16 : 14, $qrPocketY + 29, $softWhite, $fontBold, $qrPocketW - 20, $qrPocketX + (int)($qrPocketW / 2));
-    photo_draw_centered_text($im, 'Website', $landscape ? 16 : 14, $qrPocketY + $qrPocketH - 22, $softWhite, $fontRegular, $qrPocketW - 20, $qrPocketX + (int)($qrPocketW / 2));
 
-    $saved = photo_save_image_resource($im, $destPath, 95);
-    imagedestroy($src);
-    imagedestroy($im);
-    return $saved;
+    $img->setImageFormat('jpeg');
+    $img->setImageCompression(Imagick::COMPRESSION_JPEG);
+    $img->setImageCompressionQuality(94);
+    if (!is_dir(dirname($destPath))) {
+        @mkdir(dirname($destPath), 0775, true);
+    }
+    $ok = $img->writeImage($destPath);
+    $img->clear();
+    $img->destroy();
+    return (bool)$ok;
 }
 
 function photo_render_thumb($sourcePath, $destPath, $size = 480) {
@@ -661,7 +636,7 @@ function photo_render_thumb($sourcePath, $destPath, $size = 480) {
     return $saved;
 }
 
-function photo_process_uploaded_file($tmpPath, $originalName, $event) {
+function photo_process_uploaded_file($tmpPath, $originalName, $event, $guestName = '') {
     $dirs = photo_storage_directories();
 
     $info = @getimagesize($tmpPath);
@@ -702,7 +677,7 @@ function photo_process_uploaded_file($tmpPath, $originalName, $event) {
         throw new RuntimeException('The uploaded file could not be saved.');
     }
 
-    if (!photo_render_framed_image($originalAbs, $framedAbs, $event, $orientation, $guestName ?? '')) {
+    if (!photo_render_framed_image($originalAbs, $framedAbs, $event, $orientation, $guestName)) {
         copy($originalAbs, $framedAbs);
     }
 
