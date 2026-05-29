@@ -627,8 +627,8 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
     if (!is_file($logoPath)) {
         $logoPath = dirname(__DIR__) . '/assets/dttd-neon-logo.png';
     }
-    if (!is_file($overlayPath) || !is_file($logoPath) || !is_file($qrPath)) {
-        photo_overlay_log('Missing overlay asset(s): overlay=' . (is_file($overlayPath) ? 'yes' : 'no') . ', logo=' . (is_file($logoPath) ? 'yes' : 'no') . ', qr=' . (is_file($qrPath) ? 'yes' : 'no'));
+    if (!is_file($overlayPath) || !is_file($logoPath)) {
+        photo_overlay_log('Missing overlay asset(s): overlay=' . (is_file($overlayPath) ? 'yes' : 'no') . ', logo=' . (is_file($logoPath) ? 'yes' : 'no'));
         return false;
     }
 
