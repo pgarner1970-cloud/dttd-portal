@@ -55,6 +55,19 @@ if (!$selectedEvent || !photo_can_select_event($selectedEvent)) {
 if (!$currentEvent && $rememberedEvent) {
     $currentEvent = $rememberedEvent;
 }
+
+/*
+ * If the visitor has accessed an event through the event QR/code, lock uploads
+ * to that event. This prevents guests at a live event from accidentally changing
+ * the upload target to another public or past event.
+ */
+$uploadEventLocked = false;
+if ($rememberedEvent && !empty($rememberedEvent['id']) && photo_can_select_event($rememberedEvent)) {
+    $selectedEvent = $rememberedEvent;
+    $selectedEventId = (int)$rememberedEvent['id'];
+    $uploadEventLocked = true;
+}
+
 $guestName = trim((string)($_POST['guest_name'] ?? ''));
 $success = '';
 $error = '';
@@ -102,13 +115,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
       <p class="option-one-eyebrow">Event Photos</p>
       <h1 class="public-gallery-title">Upload Photos</h1>
-      <p class="option-one-subtitle"><?= $currentEvent ? 'You can upload straight to the current event, or choose a recent past event if you are sharing later.' : 'Choose a recent past event to upload your photos. All uploads are moderated before going live.' ?></p>
+      <p class="option-one-subtitle"><?= $uploadEventLocked ? 'You are connected to this event, so your photos will upload directly to it.' : ($currentEvent ? 'You can upload straight to the current event, or choose a recent past event if you are sharing later.' : 'Choose a recent past event to upload your photos. All uploads are moderated before going live.') ?></p>
     </section>
 
     <section class="public-gallery-shell">
       <article class="public-filter-card upload-card">
         <p class="option-one-eyebrow">Photo Upload</p>
-        <h2><?= $currentEvent ? 'Share your event memories' : 'Choose an event and upload' ?></h2>
+        <h2><?= $uploadEventLocked ? 'Share photos from this event' : ($currentEvent ? 'Share your event memories' : 'Choose an event and upload') ?></h2>
         <p>Uploads are reviewed first, then approved photos appear in the public gallery and event photo sections.</p>
 
         <?php if ($success): ?>
@@ -120,15 +133,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form class="public-upload-form" method="post" enctype="multipart/form-data">
           <div class="public-filter-grid upload-grid">
-            <label>
-              <span>Event</span>
-              <select name="event_id" required>
-                <option value="">Choose event</option>
-                <?php foreach ($events as $event): ?>
-                  <option value="<?= (int)$event['id'] ?>" <?= $selectedEvent && (int)$selectedEvent['id'] === (int)$event['id'] ? 'selected' : '' ?>><?= photo_h(photo_event_label($event)) ?></option>
-                <?php endforeach; ?>
-              </select>
-            </label>
+            <?php if ($uploadEventLocked && $selectedEvent): ?>
+              <label>
+                <span>Event</span>
+                <input type="text" value="<?= photo_h(photo_event_label($selectedEvent)) ?>" readonly aria-readonly="true">
+                <input type="hidden" name="event_id" value="<?= (int)$selectedEvent['id'] ?>">
+              </label>
+            <?php else: ?>
+              <label>
+                <span>Event</span>
+                <select name="event_id" required>
+                  <option value="">Choose event</option>
+                  <?php foreach ($events as $event): ?>
+                    <option value="<?= (int)$event['id'] ?>" <?= $selectedEvent && (int)$selectedEvent['id'] === (int)$event['id'] ? 'selected' : '' ?>><?= photo_h(photo_event_label($event)) ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </label>
+            <?php endif; ?>
 
             <label>
               <span>Your name (optional)</span>
