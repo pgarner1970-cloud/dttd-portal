@@ -83,7 +83,7 @@ try {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gallery | Dance Thru The Decades</title>
   <meta name="description" content="Browse approved photos from Dance Thru The Decades events.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=271">
+  <link rel="stylesheet" href="/assets/public-site.css?v=282">
 </head>
 <body class="homepage-option-one public-gallery-page">
   <main class="home-option-one">
