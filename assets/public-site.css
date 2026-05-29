@@ -4415,3 +4415,48 @@ body.homepage-option-one .home-coming-up-card.is-live{
   }
 }
 
+/* v308 event portal photos lookup/layout repair */
+.public-event-portal-page .public-event-photo-placeholder-grid{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:14px;
+  margin-top:18px;
+}
+
+.public-event-portal-page .public-event-photo-placeholder-card{
+  display:grid;
+  gap:7px;
+  min-height:132px;
+  border:1px solid rgba(255,125,243,.28);
+  border-radius:18px;
+  background:rgba(255,255,255,.045);
+  padding:16px;
+  color:#fff;
+}
+
+.public-event-portal-page .public-event-photo-placeholder-card .public-placeholder-icon{
+  font-size:1.55rem;
+}
+
+.public-event-portal-page .public-event-photo-placeholder-card strong{
+  color:#fff;
+  font-weight:950;
+  line-height:1.2;
+}
+
+.public-event-portal-page .public-event-photo-placeholder-card em{
+  color:#f3e8ff;
+  font-style:normal;
+  line-height:1.35;
+}
+
+.public-event-portal-page .public-carousel-empty-actions{
+  margin-top:16px;
+}
+
+@media (max-width: 900px){
+  .public-event-portal-page .public-event-photo-placeholder-grid{
+    grid-template-columns:1fr;
+  }
+}
+

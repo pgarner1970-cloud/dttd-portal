@@ -750,75 +750,110 @@ function public_event_photo_table_ready() {
             dttd_table_column_exists('event_photo_uploads', 'file_path')
             || dttd_table_column_exists('event_photo_uploads', 'framed_path')
             || dttd_table_column_exists('event_photo_uploads', 'thumb_path')
+            || dttd_table_column_exists('event_photo_uploads', 'original_path')
         );
 }
 
 function public_event_approved_photos($event_id, $limit = 12) {
     $photos = [];
     $limit = max(1, min(30, (int)$limit));
+    $event_id = (int)$event_id;
 
     if (public_event_photo_table_ready()) {
         try {
             $selectColumns = ['event_id'];
-            foreach (['id', 'file_path', 'framed_path', 'thumb_path', 'original_path', 'guest_name'] as $column) {
+            foreach (['id', 'file_path', 'framed_path', 'thumb_path', 'original_path', 'guest_name', 'status'] as $column) {
                 if (dttd_table_column_exists('event_photo_uploads', $column)) {
                     $selectColumns[] = $column;
                 }
             }
             $selectSql = implode(', ', array_unique($selectColumns));
 
-            $statusFilter = dttd_table_column_exists('event_photo_uploads', 'status') ? "AND status = 'approved'" : '';
+            $statusFilter = dttd_table_column_exists('event_photo_uploads', 'status') ? "AND LOWER(status) = 'approved'" : '';
             $orderParts = [];
-            if (dttd_table_column_exists('event_photo_uploads', 'approved_at')) {
-                $orderParts[] = 'approved_at DESC';
-            }
-            if (dttd_table_column_exists('event_photo_uploads', 'uploaded_at')) {
-                $orderParts[] = 'uploaded_at DESC';
-            }
-            if (dttd_table_column_exists('event_photo_uploads', 'created_at')) {
-                $orderParts[] = 'created_at DESC';
+            foreach (['approved_at', 'uploaded_at', 'created_at'] as $dateColumn) {
+                if (dttd_table_column_exists('event_photo_uploads', $dateColumn)) {
+                    $orderParts[] = $dateColumn . ' DESC';
+                }
             }
             if (dttd_table_column_exists('event_photo_uploads', 'id')) {
                 $orderParts[] = 'id DESC';
             }
-            $orderSql = implode(', ', array_unique($orderParts));
+            $orderSql = $orderParts ? ' ORDER BY ' . implode(', ', array_unique($orderParts)) : '';
 
-            $stmt = db()->prepare("SELECT $selectSql FROM event_photo_uploads WHERE event_id = ? $statusFilter" . ($orderSql ? " ORDER BY $orderSql" : "") . " LIMIT ?");
-            $stmt->execute([(int)$event_id, $limit]);
+            // Keep LIMIT as an integer in SQL for better compatibility on shared hosts.
+            $stmt = db()->prepare("SELECT $selectSql FROM event_photo_uploads WHERE event_id = ? $statusFilter $orderSql LIMIT $limit");
+            $stmt->execute([$event_id]);
+
             foreach ($stmt->fetchAll() as $row) {
-                $paths = function_exists('photo_row_display_paths') ? photo_row_display_paths($row) : [
-                    'display' => $row['framed_path'] ?? ($row['file_path'] ?? ''),
-                    'thumb' => $row['thumb_path'] ?? ($row['framed_path'] ?? ($row['file_path'] ?? '')),
-                ];
+                $display = '';
+                $thumb = '';
 
-                $display = trim((string)($paths['display'] ?? ''));
-                $thumb = trim((string)($paths['thumb'] ?? $display));
+                if (function_exists('photo_row_display_paths')) {
+                    $paths = photo_row_display_paths($row);
+                    $display = trim((string)($paths['display'] ?? ''));
+                    $thumb = trim((string)($paths['thumb'] ?? $display));
+                }
+
+                if ($display === '') {
+                    foreach (['framed_path', 'file_path', 'original_path', 'thumb_path'] as $pathColumn) {
+                        $candidate = trim((string)($row[$pathColumn] ?? ''));
+                        if ($candidate !== '') {
+                            $display = $candidate;
+                            break;
+                        }
+                    }
+                }
+
+                if ($thumb === '') {
+                    foreach (['thumb_path', 'framed_path', 'file_path', 'original_path'] as $pathColumn) {
+                        $candidate = trim((string)($row[$pathColumn] ?? ''));
+                        if ($candidate !== '') {
+                            $thumb = $candidate;
+                            break;
+                        }
+                    }
+                }
+
                 if ($display === '') {
                     continue;
                 }
 
                 $photos[] = [
                     'path' => ltrim($display, '/'),
-                    'thumb' => ltrim($thumb ?: $display, '/'),
+                    'thumb' => ltrim(($thumb ?: $display), '/'),
                     'guest_name' => trim((string)($row['guest_name'] ?? '')),
                 ];
             }
         } catch (Throwable $e) {
+            error_log('[DTTD event photos] Approved photo lookup failed: ' . $e->getMessage());
             $photos = [];
         }
     }
 
     if (!$photos) {
-        $approvedDir = __DIR__ . '/uploads/event-photos/approved';
-        if (is_dir($approvedDir)) {
-            foreach (glob($approvedDir . '/event-' . (int)$event_id . '-*.{jpg,jpeg,png,webp,gif}', GLOB_BRACE) ?: [] as $file) {
+        $fallbackDirs = [
+            __DIR__ . '/uploads/event-photos/framed' => 'uploads/event-photos/framed/',
+            __DIR__ . '/uploads/event-photos/approved' => 'uploads/event-photos/approved/',
+            __DIR__ . '/uploads/event-photos' => 'uploads/event-photos/',
+        ];
+
+        foreach ($fallbackDirs as $dir => $urlPrefix) {
+            if (!is_dir($dir)) {
+                continue;
+            }
+            foreach (glob($dir . '/*.{jpg,jpeg,png,webp,gif}', GLOB_BRACE) ?: [] as $file) {
+                $base = basename($file);
+                if (!str_contains($base, 'event-' . $event_id . '-') && !str_contains($base, '-' . $event_id . '-')) {
+                    continue;
+                }
                 $photos[] = [
-                    'path' => 'uploads/event-photos/approved/' . basename($file),
-                    'thumb' => 'uploads/event-photos/approved/' . basename($file),
+                    'path' => $urlPrefix . $base,
+                    'thumb' => $urlPrefix . $base,
                     'guest_name' => '',
                 ];
                 if (count($photos) >= $limit) {
-                    break;
+                    break 2;
                 }
             }
         }
@@ -1088,26 +1123,22 @@ if ($event) {
                 <?php endforeach; ?>
               </div>
             <?php else: ?>
-              <div class="public-photo-carousel public-placeholder-carousel" data-public-carousel>
-                <button class="public-carousel-btn public-carousel-prev" type="button" aria-label="Previous photo placeholder">‹</button>
-                <div class="public-photo-carousel-track">
-                  <div class="public-photo-carousel-slide public-photo-placeholder-slide">
-                    <span class="public-placeholder-icon">📸</span>
-                    <strong>Photos from tonight will appear here</strong>
-                    <em>Once approved, guest uploads become part of the event memories.</em>
-                  </div>
-                  <div class="public-photo-carousel-slide public-photo-placeholder-slide">
-                    <span class="public-placeholder-icon">✨</span>
-                    <strong>Share your best dancefloor moment</strong>
-                    <em>Upload photos from your phone and we will check them before they go live.</em>
-                  </div>
-                  <div class="public-photo-carousel-slide public-photo-placeholder-slide">
-                    <span class="public-placeholder-icon">🎶</span>
-                    <strong>Keep the memories together</strong>
-                    <em>Approved photos will build into tonight’s gallery.</em>
-                  </div>
+              <div class="public-event-photo-placeholder-grid">
+                <div class="public-event-photo-placeholder-card">
+                  <span class="public-placeholder-icon">📸</span>
+                  <strong>Photos from tonight will appear here</strong>
+                  <em>Once approved, guest uploads become part of the event memories.</em>
                 </div>
-                <button class="public-carousel-btn public-carousel-next" type="button" aria-label="Next photo placeholder">›</button>
+                <div class="public-event-photo-placeholder-card">
+                  <span class="public-placeholder-icon">✨</span>
+                  <strong>Share your best dancefloor moment</strong>
+                  <em>Upload photos from your phone and we will check them before they go live.</em>
+                </div>
+                <div class="public-event-photo-placeholder-card">
+                  <span class="public-placeholder-icon">🎶</span>
+                  <strong>Keep the memories together</strong>
+                  <em>Approved photos will build into tonight’s gallery.</em>
+                </div>
               </div>
               <div class="public-carousel-empty public-carousel-empty-actions">
                 <strong>No approved photos yet.</strong>
