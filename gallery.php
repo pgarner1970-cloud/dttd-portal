@@ -69,6 +69,79 @@ $venueOptions = db()->query("\n    SELECT DISTINCT e.venue_name\n    FROM event_
 
 $dateOptions = db()->query("\n    SELECT DISTINCT DATE_FORMAT(e.event_date, '%Y-%m') AS month_key, DATE_FORMAT(e.event_date, '%b %Y') AS month_label\n    FROM event_photo_uploads p\n    INNER JOIN events e ON e.id = p.event_id\n    WHERE p.status = 'approved'\n      AND e.event_date IS NOT NULL\n    ORDER BY month_key DESC\n")->fetchAll();
 
+$sharePhotoId = max(0, (int)($_GET['photo'] ?? 0));
+$sharePhoto = null;
+if ($sharePhotoId > 0) {
+    foreach ($photos as $candidatePhoto) {
+        if ((int)($candidatePhoto['id'] ?? 0) === $sharePhotoId) {
+            $sharePhoto = $candidatePhoto;
+            break;
+        }
+    }
+
+    if (!$sharePhoto) {
+        $sharePieces = $selectPieces;
+        $shareSql = 'SELECT ' . implode(', ', $sharePieces) . ' FROM event_photo_uploads p INNER JOIN events e ON e.id = p.event_id WHERE p.status = ? AND p.id = ? LIMIT 1';
+        $shareStmt = db()->prepare($shareSql);
+        $shareStmt->execute(['approved', $sharePhotoId]);
+        $sharePhoto = $shareStmt->fetch() ?: null;
+    }
+}
+
+function gallery_absolute_url($path) {
+    $path = trim((string)$path);
+    if ($path === '') {
+        return '';
+    }
+    if (preg_match('~^https?://~i', $path)) {
+        return $path;
+    }
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'] ?? 'dancethruthedecades.co.uk';
+    return $scheme . '://' . $host . '/' . ltrim($path, '/');
+}
+
+function gallery_photo_share_url($photoId) {
+    return gallery_absolute_url('/gallery.php?photo=' . (int)$photoId);
+}
+
+function gallery_photo_caption($photo) {
+    $dateLabel = '';
+    if (!empty($photo['event_date'])) {
+        try {
+            $dateLabel = (new DateTime($photo['event_date']))->format('D j M Y');
+        } catch (Throwable $e) {
+            $dateLabel = (string)$photo['event_date'];
+        }
+    }
+    return trim(implode(' · ', array_filter([$photo['venue_name'] ?? '', $dateLabel])));
+}
+
+function gallery_photo_share_text($photo) {
+    $title = trim((string)($photo['event_name'] ?? 'Dance Thru The Decades photo'));
+    $caption = gallery_photo_caption($photo);
+    return trim($title . ($caption !== '' ? "\n" . $caption : '') . "\nDance Thru The Decades");
+}
+
+$metaTitle = 'Gallery | Dance Thru The Decades';
+$metaDescription = 'Browse approved photos from Dance Thru The Decades events.';
+$metaImage = gallery_absolute_url('/assets/dttd-logo-inner.png?v=152');
+$metaUrl = gallery_absolute_url('/gallery.php');
+
+if ($sharePhoto) {
+    $sharePaths = photo_row_display_paths($sharePhoto);
+    $shareDisplayUrl = photo_public_url($sharePaths['display']);
+    $shareTitle = trim((string)($sharePhoto['event_name'] ?? 'Dance Thru The Decades photo'));
+    $shareCaption = gallery_photo_caption($sharePhoto);
+
+    $metaTitle = ($shareTitle !== '' ? $shareTitle : 'Dance Thru The Decades photo') . ' | Dance Thru The Decades';
+    $metaDescription = trim(($shareCaption !== '' ? $shareCaption . ' · ' : '') . 'Shared from Dance Thru The Decades.');
+    if ($shareDisplayUrl !== '') {
+        $metaImage = gallery_absolute_url($shareDisplayUrl);
+    }
+    $metaUrl = gallery_photo_share_url($sharePhotoId);
+}
+
 $currentEvent = null;
 try {
     $currentEvent = active_event();
@@ -81,9 +154,19 @@ try {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gallery | Dance Thru The Decades</title>
-  <meta name="description" content="Browse approved photos from Dance Thru The Decades events.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=302">
+  <title><?= photo_h($metaTitle) ?></title>
+  <meta name="description" content="<?= photo_h($metaDescription) ?>">
+  <meta property="og:title" content="<?= photo_h($metaTitle) ?>">
+  <meta property="og:description" content="<?= photo_h($metaDescription) ?>">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="<?= photo_h($metaUrl) ?>">
+  <meta property="og:image" content="<?= photo_h($metaImage) ?>">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="<?= photo_h($metaTitle) ?>">
+  <meta name="twitter:description" content="<?= photo_h($metaDescription) ?>">
+  <meta name="twitter:image" content="<?= photo_h($metaImage) ?>">
+  <link rel="canonical" href="<?= photo_h($metaUrl) ?>">
+  <link rel="stylesheet" href="/assets/public-site.css?v=304">
 </head>
 <body class="homepage-option-one public-gallery-page">
   <main class="home-option-one">
@@ -172,7 +255,11 @@ try {
               $caption = trim(implode(' · ', array_filter([$photo['venue_name'] ?? '', $dateLabel])));
               $credit = trim((string)($photo['guest_name'] ?? ''));
             ?>
-              <article class="public-photo-tile" data-lightbox-item="<?= (int)$index ?>" data-lightbox-image="<?= photo_h($displayUrl) ?>" data-lightbox-title="<?= photo_h((string)($photo['event_name'] ?? 'Event photo')) ?>" data-lightbox-meta="<?= photo_h($caption) ?>">
+              <?php
+                $shareUrl = gallery_photo_share_url((int)($photo['id'] ?? 0));
+                $shareText = gallery_photo_share_text($photo);
+              ?>
+              <article class="public-photo-tile" data-lightbox-item="<?= (int)$index ?>" data-lightbox-image="<?= photo_h($displayUrl) ?>" data-lightbox-title="<?= photo_h((string)($photo['event_name'] ?? 'Event photo')) ?>" data-lightbox-meta="<?= photo_h($caption) ?>" data-lightbox-share-url="<?= photo_h($shareUrl) ?>" data-lightbox-share-text="<?= photo_h($shareText) ?>" data-lightbox-id="<?= (int)($photo['id'] ?? 0) ?>">
                 <button class="public-photo-thumb" type="button">
                   <img src="<?= photo_h($displayUrl) ?>" alt="<?= photo_h((string)($photo['event_name'] ?? 'Event photo')) ?>">
                 </button>
@@ -198,6 +285,12 @@ try {
         <figcaption>
           <strong id="publicLightboxTitle"></strong>
           <span id="publicLightboxMeta"></span>
+          <div class="public-lightbox-actions">
+            <button class="public-lightbox-share" type="button">Share photo</button>
+            <button class="public-lightbox-copy" type="button">Copy link</button>
+            <a class="public-lightbox-download" href="#" download>Download image</a>
+          </div>
+          <small id="publicLightboxNotice" class="public-lightbox-notice" aria-live="polite"></small>
         </figcaption>
       </figure>
       <button class="public-lightbox-nav next" type="button" aria-label="Next photo">›</button>
@@ -215,25 +308,74 @@ try {
     const image = document.getElementById('publicLightboxImage');
     const title = document.getElementById('publicLightboxTitle');
     const meta = document.getElementById('publicLightboxMeta');
+    const notice = document.getElementById('publicLightboxNotice');
     const closeBtn = lightbox.querySelector('.public-lightbox-close');
     const prevBtn = lightbox.querySelector('.public-lightbox-nav.prev');
     const nextBtn = lightbox.querySelector('.public-lightbox-nav.next');
+    const shareBtn = lightbox.querySelector('.public-lightbox-share');
+    const copyBtn = lightbox.querySelector('.public-lightbox-copy');
+    const downloadLink = lightbox.querySelector('.public-lightbox-download');
     let index = 0;
+    let currentShareUrl = '';
+    let currentShareText = '';
 
-    function render(i){
+    function absoluteUrl(url){
+      try {
+        return new URL(url, window.location.origin).toString();
+      } catch (e) {
+        return window.location.href;
+      }
+    }
+
+    function showNotice(message){
+      if (!notice) return;
+      notice.textContent = message || '';
+      if (message) {
+        window.clearTimeout(showNotice.timer);
+        showNotice.timer = window.setTimeout(() => { notice.textContent = ''; }, 2400);
+      }
+    }
+
+    async function copyShareLink(){
+      if (!currentShareUrl) return;
+      try {
+        await navigator.clipboard.writeText(currentShareUrl);
+        showNotice('Link copied');
+      } catch (e) {
+        window.prompt('Copy this link', currentShareUrl);
+      }
+    }
+
+    function render(i, updateUrl){
       const item = items[i];
       if (!item) return;
       index = i;
+      currentShareUrl = item.dataset.lightboxShareUrl || window.location.href;
+      currentShareText = item.dataset.lightboxShareText || item.dataset.lightboxTitle || 'Dance Thru The Decades photo';
+
       image.src = item.dataset.lightboxImage || '';
       image.alt = item.dataset.lightboxTitle || 'Event photo';
       title.textContent = item.dataset.lightboxTitle || '';
       meta.textContent = item.dataset.lightboxMeta || '';
+
+      if (downloadLink) {
+        downloadLink.href = item.dataset.lightboxImage || '#';
+      }
+
+      if (updateUrl !== false && currentShareUrl) {
+        try {
+          const shareLocation = new URL(currentShareUrl);
+          window.history.replaceState(null, '', shareLocation.pathname + shareLocation.search);
+        } catch (e) {}
+      }
+
       lightbox.hidden = false;
       document.body.classList.add('lightbox-open');
+      showNotice('');
     }
 
     items.forEach((item, i) => {
-      item.addEventListener('click', () => render(i));
+      item.addEventListener('click', () => render(i, true));
     });
 
     closeBtn.addEventListener('click', () => {
@@ -241,9 +383,43 @@ try {
       document.body.classList.remove('lightbox-open');
     });
 
-    prevBtn.addEventListener('click', () => render((index - 1 + items.length) % items.length));
-    nextBtn.addEventListener('click', () => render((index + 1) % items.length));
+    prevBtn.addEventListener('click', () => render((index - 1 + items.length) % items.length, true));
+    nextBtn.addEventListener('click', () => render((index + 1) % items.length, true));
+
+    if (shareBtn) {
+      shareBtn.addEventListener('click', async () => {
+        const shareData = {
+          title: title.textContent || 'Dance Thru The Decades photo',
+          text: currentShareText,
+          url: currentShareUrl
+        };
+
+        if (navigator.share) {
+          try {
+            await navigator.share(shareData);
+            return;
+          } catch (e) {
+            if (e && e.name === 'AbortError') return;
+          }
+        }
+
+        copyShareLink();
+      });
+    }
+
+    if (copyBtn) {
+      copyBtn.addEventListener('click', copyShareLink);
+    }
+
     lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeBtn.click(); });
+
+    const initialPhotoId = new URLSearchParams(window.location.search).get('photo');
+    if (initialPhotoId) {
+      const initialIndex = items.findIndex((item) => item.dataset.lightboxId === initialPhotoId);
+      if (initialIndex >= 0) {
+        render(initialIndex, false);
+      }
+    }
   })();
   </script>
 </body>

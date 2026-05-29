@@ -3840,7 +3840,7 @@ body.homepage-option-one .home-coming-up-card.is-live{
   color:#fff !important;
 }
 
-/* v303 gallery filter polish: scoped to public gallery only */
+/* v304 gallery sharing and scoped controls */
 .public-gallery-page .public-gallery-filter-head{
   display:flex;
   align-items:flex-start;
@@ -3868,6 +3868,46 @@ body.homepage-option-one .home-coming-up-card.is-live{
 .public-gallery-page .public-filter-grid select option:checked{
   background:#3a0054;
   color:#fff;
+}
+
+.public-gallery-page .public-lightbox figcaption{
+  display:grid;
+  gap:8px;
+}
+
+.public-gallery-page .public-lightbox-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  justify-content:center;
+  margin-top:6px;
+}
+
+.public-gallery-page .public-lightbox-actions button,
+.public-gallery-page .public-lightbox-actions a{
+  border:1px solid rgba(255,125,243,.55);
+  border-radius:999px;
+  background:rgba(18,0,32,.78);
+  color:#fff;
+  min-height:38px;
+  padding:8px 14px;
+  font:inherit;
+  font-weight:900;
+  text-decoration:none;
+  cursor:pointer;
+  box-shadow:0 0 16px rgba(255,79,216,.18);
+}
+
+.public-gallery-page .public-lightbox-actions button:hover,
+.public-gallery-page .public-lightbox-actions a:hover{
+  background:rgba(255,79,216,.18);
+}
+
+.public-gallery-page .public-lightbox-notice{
+  min-height:1.2em;
+  color:#ffd84f;
+  font-weight:800;
+  text-align:center;
 }
 
 @media (max-width: 760px){
