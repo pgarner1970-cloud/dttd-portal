@@ -680,7 +680,7 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
         $siteUrlText = 'dancethruthedecades.co.uk';
 
         if ($landscape) {
-            $rightInset = 62;
+            $rightInset = 86;
             $pillGap = 14;
             $eventMaxW = 220;
             $eventW = photo_imagick_measure_pill_width($canvas, 'EVENT PHOTO', $fontBold, 15, 20, $eventMaxW);
@@ -715,10 +715,10 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
             }
             photo_imagick_draw_pill($canvas, 'EVENT PHOTO', $eventX, $pillTopY, $fontBold, 15, 'white', '#f7aaff', 'rgba(12,0,20,0.78)', 20, 30, $eventMaxW);
 
-            photo_imagick_draw_text($canvas, 'Dance Thru The Decades', 800, 1115, $fontBold, 32, '#ffcf40', 'rgba(80,0,40,0.78)', 1, 0, Imagick::ALIGN_CENTER);
-            photo_imagick_draw_text($canvas, '60s  •  70s  •  80s  •  90s  •  00s', 800, 1148, $fontBold, 17, '#ffcf40', null, 0, 0, Imagick::ALIGN_CENTER);
+            photo_imagick_draw_text($canvas, 'Dance Thru The Decades', 750, 1115, $fontBold, 32, '#ffcf40', 'rgba(80,0,40,0.78)', 1, 0, Imagick::ALIGN_CENTER);
+            photo_imagick_draw_text($canvas, '60s  •  70s  •  80s  •  90s  •  00s', 750, 1148, $fontBold, 17, '#ffcf40', null, 0, 0, Imagick::ALIGN_CENTER);
         } else {
-            $rightInset = 48;
+            $rightInset = 72;
             $pillGap = 12;
             $eventMaxW = 210;
             $eventW = photo_imagick_measure_pill_width($canvas, 'EVENT PHOTO', $fontBold, 15, 20, $eventMaxW);
@@ -733,8 +733,8 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
             }
 
             $siteRightX = $canvasW - $rightInset;
-            $siteMaxW = 360;
-            photo_imagick_draw_text($canvas, $siteUrlText, $siteRightX, 56, $fontBold, 20, '#f7aaff', 'rgba(110,0,170,0.92)', 1, $siteMaxW, Imagick::ALIGN_RIGHT);
+            $siteMaxW = 420;
+            photo_imagick_draw_text($canvas, $siteUrlText, $siteRightX, 56, $fontBold, 22, '#f7aaff', 'rgba(110,0,170,0.92)', 1, $siteMaxW, Imagick::ALIGN_RIGHT);
 
             $titleX = 178;
             $titleY = 86;
