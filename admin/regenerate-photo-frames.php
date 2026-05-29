@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'event_date' => $row['event_date'] ?? '',
         ];
 
-        if (!photo_render_framed_image($originalAbs, $framedAbs, $event, $orientation)) {
+        if (!photo_render_framed_image($originalAbs, $framedAbs, $event, $orientation, $row['guest_name'] ?? '')) {
             $errors[] = 'Photo #' . (int)$row['id'] . ': could not regenerate framed image.';
             continue;
         }
