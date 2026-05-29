@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <label>
               <span>Your name (optional)</span>
-              <input type="text" name="guest_name" maxlength="120" value="<?= photo_h($guestName) ?>" placeholder="How should we credit this photo?">
+              <input type="text" name="guest_name" maxlength="120" value="<?= photo_h($guestName) ?>" placeholder="Name to display with this photo">
             </label>
           </div>
 
@@ -107,7 +107,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
           <div class="public-upload-actions">
             <button class="public-neon-btn" type="submit">Upload Photo</button>
-            <a class="public-secondary-btn" href="/gallery.php">View Public Gallery</a>
           </div>
         </form>
       </article>

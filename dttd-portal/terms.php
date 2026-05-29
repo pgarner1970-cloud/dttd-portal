@@ -1,7 +1,0 @@
-<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Guest Wi‑Fi Terms</title><link rel="stylesheet" href="/assets/style.css"></head>
-<body>
-    <a class="public-dj-login public-home-link" href="/">
-      <span class="login-icon">⌂</span>
-      <span>Home</span>
-    </a><main class="container"><div class="card"><h1>Guest Wi‑Fi Terms</h1><p>Guest Wi‑Fi is provided as a limited convenience at selected events. Access may be restricted, filtered or withdrawn. Guests should not use the service for illegal, harmful or excessive activity.</p><p>When the captive portal router is added, access rules and bandwidth limits can be enforced by the event network.</p><p><a href="/">Back to portal</a></p></div></main></body></html>
