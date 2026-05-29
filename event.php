@@ -950,7 +950,7 @@ if ($event) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : ($notFound ? 'Event Not Found' : 'Join Event') ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event portal.' ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=311">
+  <link rel="stylesheet" href="/assets/public-site.css?v=315">
 </head>
 <body class="homepage-option-one public-event-detail-page public-event-portal-page">
   <main class="home-option-one">
@@ -1056,7 +1056,7 @@ if ($event) {
                 <strong>Upload Photos</strong>
                 <em>Uploads wait for moderation</em>
               </a>
-              <a class="public-event-action-tile public-mobile-selfie-action" href="/upload.php?selfie=1">
+              <a class="public-event-action-tile public-mobile-selfie-action" href="/upload.php?selfie=1" data-mobile-selfie-action>
                 <span>🤳</span>
                 <strong>Take a Selfie</strong>
                 <em>Use your phone camera</em>
@@ -1410,6 +1410,24 @@ if ($event) {
             });
           }
         });
+      })();
+    </script>
+
+
+    <script>
+      (function(){
+        var action = document.querySelector('[data-mobile-selfie-action]');
+        if (!action) return;
+
+        var ua = navigator.userAgent || '';
+        var hasTouch = (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window;
+        var mobileUa = /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(ua);
+        var narrowScreen = window.matchMedia && window.matchMedia('(max-width: 760px)').matches;
+        var coarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+
+        if ((mobileUa || (hasTouch && coarsePointer)) && narrowScreen) {
+          document.documentElement.classList.add('can-show-selfie-action');
+        }
       })();
     </script>
 
