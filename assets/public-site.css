@@ -4012,141 +4012,54 @@ body.public-gallery-page .public-upload-form select[name="event_id"] option:hove
   text-decoration:none !important;
 }
 
-/* v282 isolated regression guard: event share button, upload select, access-code input */
-.public-event-title-row{
-  display:flex !important;
-  align-items:flex-start !important;
-  justify-content:space-between !important;
-  gap:18px !important;
+/* v282 photo upload submit feedback: scoped to public upload form only */
+.public-upload-form[aria-busy="true"] .public-upload-submit,
+.public-upload-submit:disabled,
+.public-upload-submit.is-uploading{
+  opacity:.72 !important;
+  cursor:progress !important;
+  filter:saturate(.85) !important;
+  pointer-events:none !important;
 }
-.public-event-title-main{
-  min-width:0 !important;
-  flex:1 1 auto !important;
-}
-.public-event-share-button{
-  width:48px !important;
-  height:48px !important;
-  min-width:48px !important;
-  padding:0 !important;
-  margin:0 !important;
-  border-radius:50% !important;
-  border:1px solid rgba(255,125,243,.64) !important;
-  background:rgba(255,255,255,.08) !important;
-  color:#fff !important;
-  display:grid !important;
-  place-items:center !important;
-  cursor:pointer !important;
-  box-shadow:0 0 22px rgba(255,79,216,.18), inset 0 1px 0 rgba(255,255,255,.12) !important;
-  transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease !important;
-  text-decoration:none !important;
-  font-size:0 !important;
-  line-height:0 !important;
-}
-.public-event-share-button:hover,
-.public-event-share-button:focus-visible{
-  transform:translateY(-1px) !important;
-  border-color:#ffe35a !important;
-  background:rgba(255,79,216,.16) !important;
-  box-shadow:0 0 30px rgba(255,79,216,.34), 0 0 0 3px rgba(255,227,90,.12) !important;
-  outline:none !important;
-}
-.public-event-share-button .public-action-icon{
-  width:24px !important;
-  height:24px !important;
-  display:block !important;
-  fill:none !important;
-  stroke:currentColor !important;
-  stroke-width:2 !important;
-  stroke-linecap:round !important;
-  stroke-linejoin:round !important;
-}
-.public-sr-only{
-  position:absolute !important;
-  width:1px !important;
-  height:1px !important;
-  padding:0 !important;
-  margin:-1px !important;
-  overflow:hidden !important;
-  clip:rect(0,0,0,0) !important;
-  white-space:nowrap !important;
-  border:0 !important;
-}
-.public-access-card .public-access-form{
-  display:flex !important;
-  justify-content:center !important;
-  align-items:flex-end !important;
-  gap:14px !important;
-  flex-wrap:wrap !important;
-  margin:24px auto 16px !important;
-}
-.public-access-card .public-access-form label{
-  color:#ffe35a !important;
-  font-weight:950 !important;
-  margin:0 !important;
-  text-shadow:0 0 10px rgba(255,227,90,.25) !important;
-}
-.public-access-card .public-access-form input#event_access_code{
-  width:min(300px, 76vw) !important;
-  min-height:54px !important;
-  box-sizing:border-box !important;
-  border:1px solid rgba(255,125,243,.62) !important;
-  border-radius:18px !important;
-  background:rgba(255,255,255,.08) !important;
-  color:#fff !important;
-  padding:14px 16px !important;
-  font:inherit !important;
-  font-weight:900 !important;
-  letter-spacing:.08em !important;
-  text-transform:uppercase !important;
-  outline:none !important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 0 18px rgba(255,79,216,.10) !important;
-}
-.public-access-card .public-access-form input#event_access_code::placeholder{
-  color:rgba(255,255,255,.50) !important;
-  text-transform:none !important;
-  letter-spacing:0 !important;
-}
-.public-access-card .public-access-form input#event_access_code:focus{
-  border-color:#ffe35a !important;
-  box-shadow:0 0 0 3px rgba(255,227,90,.16), 0 0 24px rgba(255,79,216,.28) !important;
-}
-body.public-gallery-page .public-upload-form select[name="event_id"]{
-  appearance:none !important;
-  -webkit-appearance:none !important;
-  background-color:rgba(36,5,48,.98) !important;
-  background-image:linear-gradient(45deg, transparent 50%, #ffe35a 50%), linear-gradient(135deg, #ffe35a 50%, transparent 50%) !important;
-  background-position:calc(100% - 24px) 50%, calc(100% - 16px) 50% !important;
-  background-size:8px 8px, 8px 8px !important;
-  background-repeat:no-repeat !important;
-  border-color:rgba(255,125,243,.70) !important;
-  color:#fff !important;
-  padding-right:48px !important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 0 20px rgba(255,79,216,.10) !important;
-}
-body.public-gallery-page .public-upload-form select[name="event_id"] option{
-  background:#240530 !important;
+.public-upload-progress{
+  display:inline-flex !important;
+  align-items:center !important;
+  gap:10px !important;
   color:#fff !important;
   font-weight:800 !important;
+  background:rgba(255,255,255,.07) !important;
+  border:1px solid rgba(255,125,243,.32) !important;
+  border-radius:999px !important;
+  padding:11px 15px !important;
 }
-body.public-gallery-page .public-upload-form select[name="event_id"] option:checked{
-  background:#5a1473 !important;
-  color:#ffe35a !important;
+.public-upload-progress[hidden],
+.public-upload-progressbar[hidden]{
+  display:none !important;
 }
-@media (max-width: 760px){
-  .public-event-title-row{
-    align-items:flex-start !important;
-  }
-  .public-event-share-button{
-    width:44px !important;
-    height:44px !important;
-    min-width:44px !important;
-  }
-  .public-access-card .public-access-form{
-    align-items:stretch !important;
-  }
-  .public-access-card .public-access-form label,
-  .public-access-card .public-access-form input#event_access_code,
-  .public-access-card .public-access-form .public-neon-btn{
-    width:100% !important;
-  }
+.public-upload-spinner{
+  width:18px !important;
+  height:18px !important;
+  border-radius:999px !important;
+  border:3px solid rgba(255,255,255,.25) !important;
+  border-top-color:#ffe35a !important;
+  animation:dttdUploadSpin .8s linear infinite !important;
 }
+.public-upload-progressbar{
+  flex:1 1 220px !important;
+  min-width:220px !important;
+  height:10px !important;
+  border-radius:999px !important;
+  overflow:hidden !important;
+  background:rgba(255,255,255,.10) !important;
+  border:1px solid rgba(255,125,243,.28) !important;
+}
+.public-upload-progressbar span{
+  display:block !important;
+  width:45% !important;
+  height:100% !important;
+  border-radius:999px !important;
+  background:linear-gradient(90deg,#a525ff,#ff4fd8,#ffe35a) !important;
+  animation:dttdUploadBar 1.1s ease-in-out infinite !important;
+}
+@keyframes dttdUploadSpin{to{transform:rotate(360deg)}}
+@keyframes dttdUploadBar{0%{transform:translateX(-110%)}100%{transform:translateX(260%)}}
