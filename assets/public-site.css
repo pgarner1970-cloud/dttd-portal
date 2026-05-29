@@ -4460,3 +4460,114 @@ body.homepage-option-one .home-coming-up-card.is-live{
   }
 }
 
+/* v309 event portal photo lightbox and section spacing */
+.public-event-portal-page .public-event-photo-carousel-card{
+  margin-bottom:28px;
+}
+
+.public-event-portal-page .public-event-photo-lightbox[hidden]{
+  display:none !important;
+}
+
+.public-event-portal-page .public-event-photo-lightbox{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  display:grid;
+  place-items:center;
+  padding:24px;
+  background:rgba(6,0,12,.86);
+  backdrop-filter:blur(8px);
+}
+
+.public-event-portal-page .public-event-photo-lightbox figure{
+  width:min(960px, 100%);
+  max-height:92vh;
+  margin:0;
+  display:grid;
+  gap:14px;
+  justify-items:center;
+}
+
+.public-event-portal-page .public-event-photo-lightbox img{
+  max-width:100%;
+  max-height:70vh;
+  object-fit:contain;
+  display:block;
+  border-radius:18px;
+  background:rgba(0,0,0,.45);
+  border:1px solid rgba(255,125,243,.38);
+  box-shadow:0 0 35px rgba(255,79,216,.24);
+}
+
+.public-event-portal-page .public-event-photo-lightbox figcaption{
+  display:grid;
+  gap:8px;
+  justify-items:center;
+  color:#fff;
+  text-align:center;
+}
+
+.public-event-portal-page .public-event-photo-lightbox figcaption strong{
+  font-size:1.25rem;
+  line-height:1.15;
+}
+
+.public-event-portal-page .public-event-photo-lightbox figcaption span{
+  color:#f3e8ff;
+}
+
+.public-event-portal-page .public-event-photo-lightbox-close{
+  position:absolute;
+  top:18px;
+  right:18px;
+  width:44px;
+  height:44px;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(255,125,243,.52);
+  border-radius:50%;
+  background:rgba(18,0,32,.86);
+  color:#fff;
+  font-size:1.8rem;
+  font-weight:900;
+  line-height:1;
+  cursor:pointer;
+  box-shadow:0 0 20px rgba(255,79,216,.24);
+}
+
+.public-event-portal-page .public-event-photo-lightbox-actions{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:10px;
+  margin-top:4px;
+}
+
+.public-event-portal-page .public-event-photo-lightbox-actions button,
+.public-event-portal-page .public-event-photo-lightbox-actions a{
+  border:1px solid rgba(255,125,243,.55);
+  border-radius:999px;
+  background:rgba(18,0,32,.78);
+  color:#fff;
+  min-height:38px;
+  padding:8px 14px;
+  font:inherit;
+  font-weight:900;
+  text-decoration:none;
+  cursor:pointer;
+  box-shadow:0 0 16px rgba(255,79,216,.18);
+}
+
+.public-event-portal-page .public-event-photo-lightbox-actions button:hover,
+.public-event-portal-page .public-event-photo-lightbox-actions a:hover{
+  background:rgba(255,79,216,.18);
+}
+
+.public-event-portal-page .public-event-photo-lightbox-notice{
+  min-height:1.2em;
+  color:#ffd84f;
+  font-weight:800;
+  text-align:center;
+}
+

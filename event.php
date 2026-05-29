@@ -754,6 +754,27 @@ function public_event_photo_table_ready() {
         );
 }
 
+function public_absolute_url($path) {
+    $path = trim((string)$path);
+    if ($path === '') {
+        return '';
+    }
+    if (preg_match('~^https?://~i', $path)) {
+        return $path;
+    }
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'] ?? 'dancethruthedecades.co.uk';
+    return $scheme . '://' . $host . '/' . ltrim($path, '/');
+}
+
+function public_event_photo_share_text($event, $photo = []) {
+    $title = trim((string)($event['event_name'] ?? $event['name'] ?? 'Dance Thru The Decades event'));
+    $venue = trim((string)($event['venue_name'] ?? $event['venue'] ?? ''));
+    $date = function_exists('dttd_public_event_date') ? dttd_public_event_date($event) : trim((string)($event['event_date'] ?? ''));
+
+    return trim($title . ($venue || $date ? "\n" . trim($venue . ($venue && $date ? ' · ' : '') . $date) : '') . "\nDance Thru The Decades");
+}
+
 function public_event_approved_photos($event_id, $limit = 12) {
     $photos = [];
     $limit = max(1, min(30, (int)$limit));
@@ -820,6 +841,7 @@ function public_event_approved_photos($event_id, $limit = 12) {
                 }
 
                 $photos[] = [
+                    'id' => (int)($row['id'] ?? 0),
                     'path' => ltrim($display, '/'),
                     'thumb' => ltrim(($thumb ?: $display), '/'),
                     'guest_name' => trim((string)($row['guest_name'] ?? '')),
@@ -1114,8 +1136,22 @@ if ($event) {
             <?php if (!empty($eventPhotos)): ?>
               <div class="public-event-photo-grid">
                 <?php foreach ($eventPhotos as $photo): ?>
-                  <a class="public-event-photo-grid-item" href="/<?= public_h($photo['path']) ?>" target="_blank" rel="noopener">
-                    <img src="/<?= public_h($photo['thumb'] ?? $photo['path']) ?>" alt="Approved photo from <?= public_h($title) ?>">
+                  <?php
+                    $eventPhotoUrl = '/' . ltrim((string)$photo['path'], '/');
+                    $eventPhotoThumb = '/' . ltrim((string)($photo['thumb'] ?? $photo['path']), '/');
+                    $eventPhotoShareUrl = !empty($photo['id']) ? public_absolute_url('/gallery.php?photo=' . (int)$photo['id']) : public_absolute_url($eventPhotoUrl);
+                    $eventPhotoShareText = public_event_photo_share_text($event, $photo);
+                    $eventPhotoMeta = trim(($venue ? $venue : '') . (($venue && $dateLabel) ? ' · ' : '') . ($dateLabel ? $dateLabel : ''));
+                  ?>
+                  <a class="public-event-photo-grid-item"
+                     href="<?= public_h($eventPhotoUrl) ?>"
+                     data-event-photo-lightbox
+                     data-lightbox-image="<?= public_h($eventPhotoUrl) ?>"
+                     data-lightbox-title="<?= public_h($title) ?>"
+                     data-lightbox-meta="<?= public_h($eventPhotoMeta) ?>"
+                     data-lightbox-share-url="<?= public_h($eventPhotoShareUrl) ?>"
+                     data-lightbox-share-text="<?= public_h($eventPhotoShareText) ?>">
+                    <img src="<?= public_h($eventPhotoThumb) ?>" alt="Approved photo from <?= public_h($title) ?>">
                     <?php if (!empty($photo['guest_name'])): ?>
                       <span>Shared by <?= public_h($photo['guest_name']) ?></span>
                     <?php endif; ?>
@@ -1238,6 +1274,123 @@ if ($event) {
         <?php endif; ?>
       </section>
     <?php endif; ?>
+
+
+    <div class="public-event-photo-lightbox" id="eventPhotoLightbox" hidden>
+      <button class="public-event-photo-lightbox-close" type="button" aria-label="Close photo">×</button>
+      <figure>
+        <img id="eventPhotoLightboxImage" src="" alt="">
+        <figcaption>
+          <strong id="eventPhotoLightboxTitle"></strong>
+          <span id="eventPhotoLightboxMeta"></span>
+          <div class="public-event-photo-lightbox-actions">
+            <button class="public-event-photo-copy" type="button">Copy preview link</button>
+            <button class="public-event-photo-share" type="button">Quick share</button>
+            <a class="public-event-photo-download" href="#" download>Download image</a>
+          </div>
+          <small id="eventPhotoLightboxNotice" class="public-event-photo-lightbox-notice" aria-live="polite"></small>
+        </figcaption>
+      </figure>
+    </div>
+
+    <script>
+      (function(){
+        const items = Array.from(document.querySelectorAll('[data-event-photo-lightbox]'));
+        const lightbox = document.getElementById('eventPhotoLightbox');
+        if (!items.length || !lightbox) return;
+
+        const image = document.getElementById('eventPhotoLightboxImage');
+        const title = document.getElementById('eventPhotoLightboxTitle');
+        const meta = document.getElementById('eventPhotoLightboxMeta');
+        const notice = document.getElementById('eventPhotoLightboxNotice');
+        const closeBtn = lightbox.querySelector('.public-event-photo-lightbox-close');
+        const copyBtn = lightbox.querySelector('.public-event-photo-copy');
+        const shareBtn = lightbox.querySelector('.public-event-photo-share');
+        const downloadLink = lightbox.querySelector('.public-event-photo-download');
+
+        let currentShareUrl = '';
+        let currentShareText = '';
+
+        function showNotice(message){
+          if (!notice) return;
+          notice.textContent = message || '';
+          if (message) {
+            window.clearTimeout(showNotice.timer);
+            showNotice.timer = window.setTimeout(() => { notice.textContent = ''; }, 2400);
+          }
+        }
+
+        function openItem(item){
+          currentShareUrl = item.dataset.lightboxShareUrl || item.href || window.location.href;
+          currentShareText = item.dataset.lightboxShareText || item.dataset.lightboxTitle || 'Dance Thru The Decades photo';
+
+          image.src = item.dataset.lightboxImage || item.href || '';
+          image.alt = item.dataset.lightboxTitle || 'Event photo';
+          title.textContent = item.dataset.lightboxTitle || '';
+          meta.textContent = item.dataset.lightboxMeta || '';
+          if (downloadLink) downloadLink.href = item.dataset.lightboxImage || item.href || '#';
+
+          lightbox.hidden = false;
+          document.body.classList.add('lightbox-open');
+          showNotice('');
+        }
+
+        async function copyLink(){
+          if (!currentShareUrl) return;
+          try {
+            await navigator.clipboard.writeText(currentShareUrl);
+            showNotice('Preview link copied');
+          } catch (e) {
+            window.prompt('Copy this link', currentShareUrl);
+          }
+        }
+
+        items.forEach((item) => {
+          item.addEventListener('click', function(e){
+            e.preventDefault();
+            openItem(item);
+          });
+        });
+
+        if (closeBtn) {
+          closeBtn.addEventListener('click', function(){
+            lightbox.hidden = true;
+            document.body.classList.remove('lightbox-open');
+          });
+        }
+
+        lightbox.addEventListener('click', function(e){
+          if (e.target === lightbox && closeBtn) closeBtn.click();
+        });
+
+        document.addEventListener('keydown', function(e){
+          if (e.key === 'Escape' && !lightbox.hidden && closeBtn) closeBtn.click();
+        });
+
+        if (copyBtn) copyBtn.addEventListener('click', copyLink);
+
+        if (shareBtn) {
+          shareBtn.addEventListener('click', async function(){
+            const shareData = {
+              title: title.textContent || 'Dance Thru The Decades photo',
+              text: currentShareText,
+              url: currentShareUrl
+            };
+
+            if (navigator.share) {
+              try {
+                await navigator.share(shareData);
+                return;
+              } catch (e) {
+                if (e && e.name === 'AbortError') return;
+              }
+            }
+
+            copyLink();
+          });
+        }
+      })();
+    </script>
 
     <?php require __DIR__ . '/includes/public-footer.php'; ?>
   </main>
