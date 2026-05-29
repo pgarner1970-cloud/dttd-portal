@@ -3990,3 +3990,24 @@ body.public-gallery-page .public-upload-form select[name="event_id"] option:hove
     width:100% !important;
   }
 }
+
+
+/* v281 homepage info card link underline fix
+   Keep lower homepage cards visually consistent even when the whole card is a link. */
+.home-info-card,
+.home-info-card:link,
+.home-info-card:visited,
+.home-info-card:hover,
+.home-info-card:focus,
+.home-info-card *{
+  text-decoration:none !important;
+}
+.home-info-card h2,
+.home-info-card p,
+.home-info-card span{
+  text-decoration:none !important;
+}
+.home-info-card:hover h2,
+.home-info-card:hover p{
+  text-decoration:none !important;
+}
