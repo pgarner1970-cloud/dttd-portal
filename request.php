@@ -157,7 +157,7 @@ $requestCloseClock = $event ? dttd_event_request_close_clock_label($event) : '';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= public_h($title) ?> | Dance Thru the Decades</title>
   <meta name="description" content="Request a song at a Dance Thru the Decades event using the venue QR code or event code.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=260">
+  <link rel="stylesheet" href="/assets/public-site.css?v=271">
 </head>
 <body class="homepage-option-one public-event-feature-page public-request-page">
   <main class="home-option-one">
