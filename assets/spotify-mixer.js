@@ -179,7 +179,10 @@ document.head.appendChild(overviewStyle);
     const bBlocked = !deckCanLoad('b');
     let html = '';
     html += choiceButton('+ Add to DJ playlist', 'green full', 'playlist');
-    if(source !== 'crate') html += crateSaveControls();
+    // Only raw Spotify search results should offer saving to a DJ crate.
+    // Public requests and existing crate tracks are already managed elsewhere, so
+    // showing the crate selector here is confusing and can duplicate requests.
+    if(source === 'track') html += crateSaveControls();
     html += choiceButton('Load to A', 'orange', 'load_a', aBlocked);
     html += choiceButton('Load to B', 'blue', 'load_b', bBlocked);
     html += choiceButton('▶ Play on A now', 'green', 'play_a', aBlocked);
