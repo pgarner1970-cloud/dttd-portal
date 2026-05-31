@@ -4195,3 +4195,113 @@ body.homepage-option-one .home-coming-up-card.is-live{
   font-style:normal;
   font-size:13px;
 }
+
+
+/* Final Spotify request search tidy */
+.public-request-form-clean label{
+  font-family:inherit;
+  font-size:15px;
+  letter-spacing:0;
+}
+.public-request-form-clean .spotify-results[hidden],
+.public-request-form-clean .spotify-selected[hidden]{
+  display:none !important;
+}
+.public-request-form-clean .spotify-results{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:9px;
+  margin-top:10px;
+}
+.public-request-form-clean .spotify-result{
+  font-family:inherit;
+  display:grid;
+  grid-template-columns:56px minmax(0,1fr);
+  gap:14px;
+  align-items:center;
+  width:100%;
+  min-height:72px;
+  padding:8px 12px;
+  border:1px solid rgba(82,154,255,.28);
+  border-radius:14px;
+  background:#0d1a2c;
+  color:#fff;
+  text-align:left;
+  box-shadow:none;
+  cursor:pointer;
+}
+.public-request-form-clean .spotify-result:hover{
+  border-color:rgba(106,183,255,.58);
+  background:#10233b;
+}
+.public-request-form-clean .spotify-result img,
+.public-request-form-clean .spotify-selected img{
+  width:56px;
+  height:56px;
+  object-fit:cover;
+  border-radius:10px;
+}
+.public-request-form-clean .spotify-result span,
+.public-request-form-clean .spotify-result-text{
+  display:flex !important;
+  flex-direction:column;
+  gap:4px;
+  min-width:0;
+}
+.public-request-form-clean .spotify-result strong,
+.public-request-form-clean .spotify-result-text strong{
+  display:block;
+  font-family:inherit;
+  font-size:16px;
+  line-height:1.22;
+  font-weight:900;
+  white-space:normal;
+  word-break:normal;
+}
+.public-request-form-clean .spotify-result small,
+.public-request-form-clean .spotify-result-text small{
+  display:block;
+  font-family:inherit;
+  color:rgba(255,255,255,.76);
+  font-size:13px;
+  line-height:1.28;
+  font-weight:700;
+  white-space:normal;
+}
+.public-request-form-clean .spotify-selected{
+  font-family:inherit;
+  display:grid;
+  grid-template-columns:56px minmax(0,1fr);
+  gap:14px;
+  align-items:center;
+  margin-top:10px;
+  padding:10px 12px;
+  border:1px solid rgba(34,197,94,.45);
+  border-radius:14px;
+  background:rgba(10,60,42,.72);
+  color:#fff;
+}
+.public-request-form-clean .spotify-selected-label{
+  display:block;
+  color:#80ffb3;
+  font-size:12px;
+  line-height:1.2;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  margin-bottom:3px;
+}
+.public-request-form-clean .spotify-selected strong{
+  display:block;
+  font-size:16px;
+  line-height:1.22;
+}
+.public-request-form-clean .spotify-selected small,
+.public-request-form-clean .spotify-selected em{
+  display:block;
+  color:rgba(255,255,255,.76);
+  font-size:13px;
+  line-height:1.28;
+  font-style:normal;
+  font-weight:700;
+}
