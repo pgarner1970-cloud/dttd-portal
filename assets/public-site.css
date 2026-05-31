@@ -5152,3 +5152,111 @@ body.public-event-detail-page .public-event-photo-meta strong{
   font-size:.82rem !important;
   line-height:1.25 !important;
 }
+
+/* v325 event photo cards + spacing cumulative fix
+   Keep the event page photo section visually aligned with the main gallery,
+   and make the gap before the event detail card non-negotiable. */
+body.public-event-detail-page .public-event-photo-carousel-card,
+body.public-event-detail-page.event-detail-safe .public-event-photo-carousel-card{
+  display:block !important;
+  margin:0 0 34px 0 !important;
+  padding-bottom:26px !important;
+}
+
+body.public-event-detail-page .public-event-photo-carousel-card + .public-event-detail-card,
+body.public-event-detail-page.event-detail-safe .public-event-photo-carousel-card + .public-event-detail-card{
+  margin-top:34px !important;
+}
+
+body.public-event-detail-page .public-event-photo-grid,
+body.public-event-detail-page.event-detail-safe .public-event-photo-grid{
+  display:grid !important;
+  grid-template-columns:repeat(auto-fill, minmax(250px, 250px)) !important;
+  gap:22px !important;
+  align-items:start !important;
+  justify-content:start !important;
+  margin-top:22px !important;
+}
+
+body.public-event-detail-page .public-event-photo-tile.public-photo-tile,
+body.public-event-detail-page.event-detail-safe .public-event-photo-tile.public-photo-tile{
+  display:flex !important;
+  flex-direction:column !important;
+  min-width:0 !important;
+  overflow:hidden !important;
+  border:1px solid rgba(255,125,243,.34) !important;
+  border-radius:24px !important;
+  background:rgba(255,255,255,.045) !important;
+  color:#fff !important;
+}
+
+body.public-event-detail-page .public-event-photo-tile .public-event-photo-thumb,
+body.public-event-detail-page .public-event-photo-tile .public-photo-thumb,
+body.public-event-detail-page.event-detail-safe .public-event-photo-tile .public-event-photo-thumb,
+body.public-event-detail-page.event-detail-safe .public-event-photo-tile .public-photo-thumb{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:100% !important;
+  aspect-ratio:4 / 5 !important;
+  padding:10px !important;
+  border:0 !important;
+  border-radius:0 !important;
+  border-bottom:1px solid rgba(255,61,236,.35) !important;
+  background:linear-gradient(180deg, rgba(12,0,22,.85), rgba(36,0,52,.92)) !important;
+  overflow:hidden !important;
+  cursor:pointer !important;
+}
+
+body.public-event-detail-page .public-event-photo-tile .public-event-photo-thumb img,
+body.public-event-detail-page .public-event-photo-tile .public-photo-thumb img,
+body.public-event-detail-page.event-detail-safe .public-event-photo-tile .public-event-photo-thumb img,
+body.public-event-detail-page.event-detail-safe .public-event-photo-tile .public-photo-thumb img{
+  width:100% !important;
+  height:100% !important;
+  aspect-ratio:auto !important;
+  object-fit:contain !important;
+  object-position:center center !important;
+  display:block !important;
+  border-radius:14px !important;
+  background:transparent !important;
+}
+
+body.public-event-detail-page .public-event-photo-meta,
+body.public-event-detail-page.event-detail-safe .public-event-photo-meta{
+  display:block !important;
+  padding:14px 16px 18px !important;
+  background:linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,.04)) !important;
+}
+
+body.public-event-detail-page .public-event-photo-meta h3,
+body.public-event-detail-page.event-detail-safe .public-event-photo-meta h3{
+  margin:0 0 7px !important;
+  font-size:1.35rem !important;
+  line-height:1.05 !important;
+  color:#fff !important;
+}
+
+body.public-event-detail-page .public-event-photo-meta p,
+body.public-event-detail-page.event-detail-safe .public-event-photo-meta p{
+  margin:0 0 10px !important;
+  color:#ddd3eb !important;
+  font-size:.9rem !important;
+  line-height:1.35 !important;
+}
+
+body.public-event-detail-page .public-event-photo-meta strong,
+body.public-event-detail-page.event-detail-safe .public-event-photo-meta strong{
+  display:block !important;
+  color:#ffe257 !important;
+  font-size:.9rem !important;
+  line-height:1.25 !important;
+  font-weight:950 !important;
+}
+
+@media(max-width:640px){
+  body.public-event-detail-page .public-event-photo-grid,
+  body.public-event-detail-page.event-detail-safe .public-event-photo-grid{
+    grid-template-columns:1fr !important;
+  }
+}
