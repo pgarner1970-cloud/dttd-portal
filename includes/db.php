@@ -281,6 +281,8 @@ function dttd_public_request_base_url($fallback = '') {
 
     $host = strtolower((string)(parse_url($base, PHP_URL_HOST) ?: ''));
     $portalHosts = [
+        'dj.dancethruthedecades.co.uk',
+        'www.dj.dancethruthedecades.co.uk',
         'djdancethruthedecades.co.uk',
         'www.djdancethruthedecades.co.uk',
     ];
@@ -305,6 +307,8 @@ function dttd_redirect_public_feature_to_primary_domain() {
     // public guest pages to the main public site so the access cookie is stored
     // where guests naturally browse later.
     $portalHosts = [
+        'dj.dancethruthedecades.co.uk',
+        'www.dj.dancethruthedecades.co.uk',
         'djdancethruthedecades.co.uk',
         'www.djdancethruthedecades.co.uk',
     ];
