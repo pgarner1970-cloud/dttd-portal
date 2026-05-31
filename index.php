@@ -88,7 +88,6 @@ try {
             END AS live_end_at
         FROM events
         WHERE is_active = 1
-          AND (event_type IS NULL OR LOWER(event_type) = 'public')
           AND event_date IS NOT NULL
           AND start_time IS NOT NULL
           AND start_time <> ''
@@ -141,6 +140,11 @@ try {
 }
 
 $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
+$privateEventName = ($homepage_state === 'private-event' && $active_event) ? home_public_event_title($active_event) : '';
+$privateEventCode = ($homepage_state === 'private-event' && $active_event) ? trim((string)($active_event['event_code'] ?? '')) : '';
+$privateEventRequestUrl = $privateEventCode !== '' ? '/request.php?code=' . rawurlencode($privateEventCode) : '/request.php';
+$privateEventUploadUrl = !empty($active_event['id']) ? '/upload.php?event_id=' . rawurlencode((string)$active_event['id']) : '/upload.php';
+$privateEventInfoUrl = $privateEventCode !== '' ? '/event.php?code=' . rawurlencode($privateEventCode) : '/event.php';
 $public_current = 'home';
 ?>
 <!DOCTYPE html>
@@ -177,7 +181,7 @@ $public_current = 'home';
 
         <div class="option-one-action-strip dynamic-action-strip" data-homepage-state="<?= htmlspecialchars($homepage_state) ?>" aria-label="Event actions">
           <?php if ($homepage_state === 'public-event' && $active_event && !empty($active_event['event_code'])): ?>
-            <a class="option-one-action-card primary-action" href="/request.php">
+            <a class="option-one-action-card primary-action" href="<?= htmlspecialchars($privateEventRequestUrl) ?>">
               <span class="option-one-icon">♪</span>
               <span>
                 <strong>Request a Song</strong>
@@ -185,7 +189,7 @@ $public_current = 'home';
               </span>
             </a>
 
-            <a class="option-one-action-card" href="/event.php">
+            <a class="option-one-action-card" href="<?= htmlspecialchars($privateEventInfoUrl) ?>">
               <span class="option-one-icon">▣</span>
               <span>
                 <strong>This Event</strong>
@@ -193,7 +197,7 @@ $public_current = 'home';
               </span>
             </a>
 
-            <a class="option-one-action-card" href="/upload.php">
+            <a class="option-one-action-card" href="<?= htmlspecialchars($privateEventUploadUrl) ?>">
               <span class="option-one-icon">▧</span>
               <span>
                 <strong>Upload Photos</strong>
@@ -253,7 +257,12 @@ $public_current = 'home';
           <?php endif; ?>
         </div>
 
-        <?php if ($homepage_state === 'no-event'): ?>
+        <?php if ($homepage_state === 'private-event' && $active_event): ?>
+          <p class="homepage-state-note private-event-note">
+            Tonight we are hosting a private event<?= $privateEventName !== '' ? ' for ' . htmlspecialchars($privateEventName) : '' ?>.
+            <a href="<?= htmlspecialchars($privateEventRequestUrl) ?>">Guests can access requests and event options here.</a>
+          </p>
+        <?php elseif ($homepage_state === 'no-event'): ?>
           <p class="homepage-state-note">Song requests open automatically when an event is live.</p>
         <?php endif; ?>
       </div>
