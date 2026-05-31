@@ -3,6 +3,15 @@ require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/photo-uploads.php';
 dttd_redirect_public_feature_to_primary_domain();
 
+// Public event pages show live queue, played and photo data. Do not let the browser
+// or an intermediate cache reuse old HTML after a DJ action/moderation change.
+if (!headers_sent()) {
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private');
+    header('Pragma: no-cache');
+    header('Expires: Thu, 01 Jan 1970 00:00:00 GMT');
+    header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
+}
+
 if (!function_exists('public_h')) {
     function public_h($value) {
         return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
@@ -1039,7 +1048,10 @@ if ($event) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : ($notFound ? 'Event Not Found' : 'Join Event') ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event portal.' ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=326">
+  <link rel="stylesheet" href="/assets/public-site.css?v=327">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
 </head>
 <body class="homepage-option-one public-event-detail-page public-event-portal-page event-detail-safe">
   <main class="home-option-one">
@@ -1352,6 +1364,17 @@ if ($event) {
     <?php require __DIR__ . '/includes/public-footer.php'; ?>
   </main>
   <script>
+    (function(){
+      // If the browser restores this PHP page from back/forward memory cache,
+      // force a normal server request so current requests/played/photos are shown.
+      window.addEventListener('pageshow', function(event){
+        var nav = performance && performance.getEntriesByType ? performance.getEntriesByType('navigation')[0] : null;
+        if (event.persisted || (nav && nav.type === 'back_forward')) {
+          window.location.reload();
+        }
+      });
+    })();
+
     (function(){
       function labelFor(ms){
         if(ms <= 0) return 'Requests closed';
