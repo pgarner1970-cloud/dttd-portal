@@ -243,6 +243,8 @@ function mx_clean_track($track) {
         'resume_locked' => !empty($track['resume_locked']),
         'end_seen_ms' => isset($track['end_seen_ms']) ? max(0, (int)$track['end_seen_ms']) : null,
         'end_armed_at' => isset($track['end_armed_at']) ? (int)$track['end_armed_at'] : null,
+        'history_logged' => !empty($track['history_logged']),
+        'history_logged_at' => (string)($track['history_logged_at'] ?? ''),
     ];
 }
 function mx_request_select_columns($extra = []) {
@@ -723,7 +725,7 @@ function mx_estimated_loaded_position($loaded) {
 function mx_played_threshold_ms($duration_ms) {
     $duration_ms = (int)$duration_ms;
     if ($duration_ms <= 0) return 90000;
-    return (int)min(max(1, $duration_ms), max(1, (int)round($duration_ms * 0.60)), 90000);
+    return (int)min(max(1, $duration_ms), max(1, (int)round($duration_ms * 0.50)), 90000);
 }
 function mx_loaded_track_progress_ms($track) {
     if (!is_array($track)) return 0;
@@ -748,6 +750,14 @@ function mx_mark_loaded_played_if_threshold($deck, &$track) {
     if (!mx_track_reached_played_threshold($track)) return false;
     $track['played_qualified'] = true;
     if (!empty($track['request_id'])) mx_mark_request_played((int)$track['request_id']);
+    // Once a deck has passed the played threshold, write it to mixer history immediately.
+    // Do not wait for Spotify Connect to report a perfect end-of-track state, as some
+    // devices keep the loaded card visible or briefly stop reporting progress at the end.
+    if (empty($track['history_logged'])) {
+        mx_add_history($deck, $track);
+        $track['history_logged'] = true;
+        $track['history_logged_at'] = date('Y-m-d H:i:s');
+    }
     mx_store_loaded_track($deck, $track);
     return true;
 }
@@ -1032,7 +1042,7 @@ function mx_auto_unload_finished_deck($deck, $loaded, $device_id, $playback) {
     if ($finished) {
         $loaded['played_qualified'] = true;
         if (!empty($loaded['request_id'])) mx_mark_request_played((int)$loaded['request_id']);
-        mx_add_history($deck, $loaded);
+        if (empty($loaded['history_logged'])) mx_add_history($deck, $loaded);
         mx_set('spotify_mixer_loaded_' . $deck, '');
         return [];
     }
@@ -1162,6 +1172,8 @@ function mx_load_track_to_deck($track, $deck, $playback = null, &$playlist = nul
     if (!$device) throw new RuntimeException('Player ' . strtoupper($deck) . ' has no assigned Spotify device.');
     if (mx_device_playing($device, $playback)) throw new RuntimeException('Player ' . strtoupper($deck) . ' is currently playing. Loading is blocked.');
     $clean = mx_clean_track($track);
+    $currentEventId = mx_current_event_id();
+    if ($currentEventId > 0) $clean['event_id'] = $currentEventId;
     $clean['loaded_origin'] = $loadedOrigin !== '' ? (string)$loadedOrigin : ($removeFromPlaylist ? 'dj_playlist' : (string)($clean['source'] ?? 'search'));
     if (is_array($playlist)) {
         mx_return_loaded_if_unplayed($deck, $playlist, $clean);
@@ -1176,6 +1188,8 @@ function mx_load_track_to_deck($track, $deck, $playback = null, &$playlist = nul
     $clean['resume_locked'] = false;
     $clean['end_seen_ms'] = null;
     $clean['end_armed_at'] = null;
+    $clean['history_logged'] = false;
+    $clean['history_logged_at'] = '';
     mx_store_loaded_track($deck, $clean);
     return $deck;
 }
@@ -1237,7 +1251,7 @@ function mx_unload_loaded_as_played($deck) {
     if (mx_device_playing($device, mx_playback($deck))) throw new RuntimeException('Pause Player ' . strtoupper($deck) . ' before manually marking it played.');
     $loaded['played_qualified'] = true;
     if (!empty($loaded['request_id'])) mx_mark_request_played((int)$loaded['request_id']);
-    mx_add_history($deck, $loaded);
+    if (empty($loaded['history_logged'])) mx_add_history($deck, $loaded);
     mx_set('spotify_mixer_loaded_' . $deck, '');
 }
 
@@ -1419,6 +1433,19 @@ try {
         mx_flag_request_group_in_playlist($requestId, $requestGroupId, 'loaded_' . $deck);
         $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
         mx_play_track($device, $track['id'] ?? '', null, $deck);
+        $playedTrack = mx_json('spotify_mixer_loaded_' . $deck, []);
+        if (is_array($playedTrack) && !empty($playedTrack['id'])) {
+            $playedTrack['played_on_deck'] = true;
+            $playedTrack['position_base_ms'] = 0;
+            $playedTrack['position_updated_at'] = time();
+            $playedTrack['paused_position_ms'] = null;
+            $playedTrack['resume_locked'] = false;
+            $playedTrack['end_seen_ms'] = 0;
+            $playedTrack['end_armed_at'] = time();
+            $currentEventId = mx_current_event_id();
+            if ($currentEventId > 0) $playedTrack['event_id'] = $currentEventId;
+            mx_store_loaded_track($deck, $playedTrack);
+        }
         mx_json_out(['ok' => true, 'message' => 'Public request group loaded and played on Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
     }
 
