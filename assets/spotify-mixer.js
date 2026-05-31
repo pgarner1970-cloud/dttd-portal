@@ -179,7 +179,7 @@ document.head.appendChild(overviewStyle);
     const bBlocked = !deckCanLoad('b');
     let html = '';
     html += choiceButton('+ Add to DJ playlist', 'green full', 'playlist');
-    if(source !== 'crate' && source !== 'request') html += crateSaveControls();
+    if(source !== 'crate') html += crateSaveControls();
     html += choiceButton('Load to A', 'orange', 'load_a', aBlocked);
     html += choiceButton('Load to B', 'blue', 'load_b', bBlocked);
     html += choiceButton('▶ Play on A now', 'green', 'play_a', aBlocked);
@@ -431,14 +431,19 @@ renderAccountStatus();
     if(!list.length){ els.djPlaylist.innerHTML = '<div class="empty">DJ playlist is empty.</div>'; return; }
     els.djPlaylist.innerHTML = list.map((t,i)=>{
       const count = Number(t.request_count || 0);
-      const requestSummary = t.source === 'request' ? renderRequestNotesList(t, 'mixer-request-note-list playlist-request-note-list') : '';
+      const requestSummary = t.source === 'request' ? `
+          <div class="playlist-request-summary mini">
+            <span>${esc(count > 1 ? count + ' requests grouped' : '1 request')}</span>
+            ${Array.isArray(t.requesters) && t.requesters.length ? `<span>${esc(t.requesters.join(', '))}</span>` : ''}
+          </div>
+          ${renderRequestNotesList(t, 'mixer-request-note-list playlist-request-note-list')}` : '';
       return `
       <div class="playlist-row${t.source === 'request' && count > 1 ? ' grouped-playlist-row' : ''}">
         <img src="${esc(image(t.image))}" alt="">
         <div>
           <strong>${esc(t.title)}</strong><br>
           <span class="mini muted">${esc(t.artist)}${duration(t.duration_ms) ? ' • ' + duration(t.duration_ms) : ''}${t.source === 'request' ? ' • public request' : ''}</span>
-          ${t.source === 'request' ? '' : `<div class="workflow-row">${workflowBadge(sourceLabel(t), 'source')}</div>`}
+          <div class="workflow-row">${workflowBadge('DJ Playlist', 'queued')}${t.source === 'request' ? workflowBadge(count > 1 ? count + ' Requests' : 'Request', 'source') : workflowBadge(sourceLabel(t), 'source')}</div>
           ${requestSummary}
         </div>
         <div class="row-actions">
@@ -464,7 +469,9 @@ renderAccountStatus();
         <img src="${esc(image(r.image))}" alt="">
         <div>
           <strong>${esc(r.title)}</strong> <span class="muted">— ${esc(r.artist)}</span>
+          <div class="request-detail mini"><span class="request-time">${esc(requestTime(r.created_at))}</span><span><strong>${esc(people)}</strong></span></div>
           ${renderRequestNotesList(r, 'mixer-request-note-list public-request-note-list')}
+          <div class="request-source">${workflowBadge('Waiting review', 'waiting')}${countLabel}${r.queue_status ? workflowBadge(r.queue_status.replace(/_/g, ' '), 'source') : ''}</div>
         </div>
         <div class="row-actions quick-actions">
           <button class="mixer-btn green wide" data-select-request='${esc(JSON.stringify(r))}'>Choose action</button>
