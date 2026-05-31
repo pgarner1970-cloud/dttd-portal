@@ -3990,3 +3990,131 @@ body.homepage-option-one .home-coming-up-card.is-live{
     grid-template-columns:1fr;
   }
 }
+
+
+/* Modern request page rebuild */
+.request-modern-layout{
+  width:min(1180px,calc(100% - 32px));
+  margin:0 auto;
+  padding:26px 0 70px;
+}
+.request-modern-layout .public-request-card,
+.request-modern-layout .request-form-card{
+  background:linear-gradient(135deg,rgba(61,9,82,.74),rgba(28,3,52,.72));
+  border:1px solid rgba(255,58,220,.32);
+  border-radius:28px;
+  padding:28px;
+  box-shadow:0 0 28px rgba(255,58,220,.12);
+}
+.request-modern-layout .public-request-form,
+.request-modern-layout .request-form{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:18px;
+  align-items:start;
+}
+.request-modern-layout label{
+  display:grid;
+  gap:8px;
+  font-weight:900;
+  color:#fff;
+}
+.request-modern-layout input,
+.request-modern-layout textarea{
+  width:100%;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(242,245,252,.95);
+  color:#241330;
+  padding:14px 16px;
+  min-height:52px;
+  font-size:17px;
+}
+.request-modern-layout textarea{
+  min-height:120px;
+  resize:vertical;
+}
+.request-modern-layout .full{
+  grid-column:1/-1;
+}
+.request-modern-layout .spotify-search-results,
+.request-modern-layout .spotify-results,
+.request-modern-layout .spotify-search-list{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+  margin-top:16px;
+}
+.request-modern-layout .spotify-result,
+.request-modern-layout .spotify-search-item,
+.request-modern-layout .spotify-match{
+  display:grid;
+  grid-template-columns:72px 1fr;
+  gap:14px;
+  align-items:center;
+  padding:10px;
+  border-radius:20px;
+  background:linear-gradient(135deg,#b315ff,#ff4fd8);
+  color:#fff;
+  text-decoration:none;
+  box-shadow:0 0 18px rgba(179,21,255,.26);
+}
+.request-modern-layout .spotify-result img,
+.request-modern-layout .spotify-search-item img,
+.request-modern-layout .spotify-match img{
+  width:72px;
+  height:72px;
+  object-fit:cover;
+  border-radius:14px;
+}
+.request-modern-layout .spotify-result strong,
+.request-modern-layout .spotify-search-item strong,
+.request-modern-layout .spotify-match strong{
+  display:block;
+  font-size:18px;
+  line-height:1.2;
+}
+.request-modern-layout .spotify-result span,
+.request-modern-layout .spotify-search-item span,
+.request-modern-layout .spotify-match span{
+  display:block;
+  margin-top:4px;
+  opacity:.92;
+  font-weight:700;
+}
+.request-modern-layout .request-submit-row{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:20px;
+}
+.request-modern-layout button[type="submit"],
+.request-modern-layout .public-neon-btn{
+  min-width:220px;
+  min-height:54px;
+  border-radius:18px;
+  border:0;
+  background:linear-gradient(135deg,#b315ff,#ff4fd8);
+  color:#fff;
+  font-size:18px;
+  font-weight:950;
+  box-shadow:0 0 20px rgba(179,21,255,.28);
+}
+.request-modern-layout .event-info-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:44px;
+  padding:0 16px;
+  border-radius:16px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.12);
+}
+@media(max-width:860px){
+  .request-modern-layout .public-request-form,
+  .request-modern-layout .request-form,
+  .request-modern-layout .spotify-search-results,
+  .request-modern-layout .spotify-results,
+  .request-modern-layout .spotify-search-list{
+    grid-template-columns:1fr;
+  }
+}
