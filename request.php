@@ -157,7 +157,7 @@ $requestCloseClock = $event ? dttd_event_request_close_clock_label($event) : '';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= public_h($title) ?> | Dance Thru the Decades</title>
   <meta name="description" content="Request a song at a Dance Thru the Decades event using the venue QR code or event code.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=286">
+  <link rel="stylesheet" href="/assets/public-site.css?v=287">
 </head>
 <body class="homepage-option-one public-event-feature-page public-request-page">
   <main class="home-option-one">
@@ -276,14 +276,12 @@ $requestCloseClock = $event ? dttd_event_request_close_clock_label($event) : '';
               <button class="public-neon-btn public-submit-btn" type="submit">Send Request</button>
             </div>
           </form>
-
-          <p class="public-small-note">Your request is linked to this event only.</p>
         </article>
       <?php endif; ?>
     </section>
 
     <?php require __DIR__ . '/includes/public-footer.php'; ?>
   </main>
-  <script src="/assets/spotify-request-search.js?v=2"></script>
+  <script src="/assets/spotify-request-search.js?v=3"></script>
 </body>
 </html>

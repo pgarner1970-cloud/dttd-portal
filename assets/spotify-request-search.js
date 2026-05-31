@@ -45,7 +45,7 @@
         button.className = 'spotify-result';
         button.innerHTML =
           (track.image ? '<img src="' + track.image.replace(/"/g, '&quot;') + '" alt="">' : '<span class="spotify-art-placeholder">♫</span>') +
-          '<span class="spotify-result-copy"><strong>' + escapeHtml(track.title || '') + '</strong><small><b>' + escapeHtml(track.artist || '') + '</b>' + (track.album ? '<em>' + escapeHtml(track.album) + '</em>' : '') + '</small></span>';
+          '<span class="spotify-result-text"><strong>' + escapeHtml(track.title || '') + '</strong><small>' + escapeHtml(track.artist || '') + (track.album ? ' · ' + escapeHtml(track.album) : '') + '</small></span>';
 
         button.addEventListener('click', function () {
           titleInput.value = track.title || '';
@@ -64,13 +64,15 @@
             if (input) input.value = fields[name];
           });
 
+          results.innerHTML = '';
+          results.hidden = true;
+
           if (selected) {
             selected.hidden = false;
             selected.innerHTML =
               (track.image ? '<img src="' + track.image.replace(/"/g, '&quot;') + '" alt="">' : '<span class="spotify-art-placeholder">♫</span>') +
-              '<span class="spotify-result-copy"><span class="spotify-selected-label">Spotify match selected</span><strong>' + escapeHtml(track.title || '') + '</strong><small><b>' + escapeHtml(track.artist || '') + '</b></small></span>';
+              '<span class="spotify-selected-text"><small>Selected Spotify match</small><strong>' + escapeHtml(track.title || '') + '</strong><em>' + escapeHtml(track.artist || '') + '</em></span>';
           }
-          results.hidden = true;
           setStatus('');
         });
 
