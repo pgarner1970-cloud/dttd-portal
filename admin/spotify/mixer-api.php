@@ -80,32 +80,7 @@ function mx_spotify_playlist_tracks($playlist_id) {
 }
 function mx_history() {
     $history = mx_json('spotify_mixer_history', []);
-    $history = is_array($history) ? $history : [];
-
-    $eventId = mx_current_event_id();
-    $cutoff = time() - 86400;
-    $filtered = [];
-
-    foreach ($history as $item) {
-        if (!is_array($item)) continue;
-
-        if ($eventId > 0) {
-            // When an event is active, the mixer history panel must only show
-            // tracks logged against that event. Older global history rows have
-            // no event_id and are deliberately hidden from private event views.
-            if ((int)($item['event_id'] ?? 0) !== $eventId) continue;
-        } else {
-            // Outside an event, keep the mixer usable without showing an
-            // ever-growing global history list.
-            $playedAt = strtotime((string)($item['played_at'] ?? ''));
-            if ($playedAt && $playedAt < $cutoff) continue;
-        }
-
-        $filtered[] = $item;
-        if (count($filtered) >= 80) break;
-    }
-
-    return array_values(array_map('mx_track_output', $filtered));
+    return array_values(array_map('mx_track_output', array_slice((array)$history, 0, 80)));
 }
 
 function mx_crates() {
@@ -197,8 +172,6 @@ function mx_add_history($deck, $track) {
     if (!is_array($track) || empty($track['id'])) return;
     $item = mx_clean_track($track);
     $item['history_deck'] = strtoupper($deck === 'b' ? 'b' : 'a');
-    $eventId = !empty($item['event_id']) ? (int)$item['event_id'] : mx_current_event_id();
-    if ($eventId > 0) $item['event_id'] = $eventId;
     $item['played_at'] = date('Y-m-d H:i:s');
     $history = mx_json('spotify_mixer_history', []);
     array_unshift($history, $item);
@@ -228,7 +201,6 @@ function mx_clean_track($track) {
         'duration_ms' => isset($track['duration_ms']) ? (int)$track['duration_ms'] : null,
         'source' => (string)($track['source'] ?? 'search'),
         'request_id' => !empty($track['request_id']) ? (int)$track['request_id'] : null,
-        'event_id' => !empty($track['event_id']) ? (int)$track['event_id'] : null,
         'request_group_id' => (string)($track['request_group_id'] ?? ''),
         'request_count' => isset($track['request_count']) ? (int)$track['request_count'] : null,
         'requesters' => is_array($track['requesters'] ?? null) ? array_values($track['requesters']) : [],
@@ -331,7 +303,6 @@ function mx_track_from_request_group($request_id, $request_group_id = '') {
         'url' => $r['spotify_track_url'] ?? '',
         'source' => 'request',
         'request_id' => (int)$r['id'],
-        'event_id' => isset($r['event_id']) ? (int)$r['event_id'] : null,
         'request_group_id' => (string)($r['request_group_id'] ?? $request_group_id),
         'request_count' => $requestCount,
         'requesters' => $requesters,
@@ -601,45 +572,53 @@ function mx_play_track($device_id, $track_id, $position_ms = null, $deck = null)
     $playUrl = 'https://api.spotify.com/v1/me/player/play?device_id=' . rawurlencode($device_id);
     $position = is_numeric($position_ms) ? max(0, (int)$position_ms) : null;
 
-    // Spotify Connect can briefly restore the account-wide active track on slower tablet clients
-    // during handover. Stage the handover before sending the explicit track play command.
+    // Spotify Connect handover should be as close to single-shot as possible.
+    // Do not pause the destination before playing: on the Pi/Connect clients this can be
+    // heard as play -> pause -> play when using "Play on A/B now" from crates/search.
     try {
         mx_transfer_playback_to_device($device_id, false, $deck);
-        mx_wait_for_active_device($device_id, 1800, $deck);
-        // A quiet pause after transfer helps stop flaky clients from audibly resuming the old context.
-        try { mx_pause($device_id, $deck); } catch (Throwable $ignoredPause) {}
-        usleep(250000);
+        mx_wait_for_active_device($device_id, 1200, $deck);
+        usleep(120000);
     } catch (Throwable $ignored) {
         // If transfer fails because the device is already active, still try the direct play below.
-        usleep(250000);
+        usleep(120000);
     }
 
     $payload = ['uris' => [$uri]];
     if ($position !== null) $payload['position_ms'] = $position;
     mx_spotify_put($playUrl, json_encode($payload), $deck);
 
+    // For fresh "play now" actions there is no resume position to protect, so avoid a
+    // second verification/play command. The extra command was the likely audible glitch.
+    if ($position === null) {
+        return;
+    }
+
     // Some Android/tablet clients ignore position_ms during Connect handover. Follow with an
     // explicit seek to make pause/resume consistent across Lenovo-style devices.
-    if ($position !== null && $position > 0) {
+    if ($position > 0) {
         usleep(250000);
         try { mx_seek($device_id, $position, $deck); } catch (Throwable $ignoredSeek) {}
     }
 
-    // Verify and enforce the intended track after Connect has had time to settle.
+    // Verify and enforce resumed/positioned playback only. If telemetry is stale but the
+    // wanted track is already playing, do not re-issue play just because the device field lags.
     usleep(900000);
     try {
-        $pb = mx_playback($source);
+        $pb = mx_playback($deck);
         $activeDevice = (string)($pb['device']['id'] ?? '');
         $isPlaying = !empty($pb['is_playing']);
         $currentId = (string)($pb['item']['id'] ?? '');
         $progress = isset($pb['progress_ms']) ? (int)$pb['progress_ms'] : null;
-        $resumeDrifted = ($position !== null && $position > 0 && $progress !== null && $progress < max(0, $position - 2500));
-        if ($activeDevice !== $device_id || !$isPlaying || ($currentId !== '' && $wantedId !== '' && $currentId !== $wantedId) || $resumeDrifted) {
+        $sameTrack = ($currentId !== '' && $wantedId !== '' && mx_track_ids_match($currentId, $wantedId));
+        $wrongTrack = ($currentId !== '' && $wantedId !== '' && !$sameTrack);
+        $resumeDrifted = ($position > 0 && $progress !== null && $progress < max(0, $position - 2500));
+        if ($wrongTrack || (!$isPlaying && !$sameTrack) || (!$sameTrack && $activeDevice !== $device_id) || $resumeDrifted) {
             mx_transfer_playback_to_device($device_id, false, $deck);
-            mx_wait_for_active_device($device_id, 1200);
+            mx_wait_for_active_device($device_id, 1200, $deck);
             usleep(200000);
             mx_spotify_put($playUrl, json_encode($payload), $deck);
-            if ($position !== null && $position > 0) {
+            if ($position > 0) {
                 usleep(250000);
                 try { mx_seek($device_id, $position, $deck); } catch (Throwable $ignoredSeek2) {}
             }
@@ -850,7 +829,6 @@ function mx_track_output($t) {
     if ($t['image'] === '') $t['image'] = 'https://dancethruthedecades.co.uk/assets/glitter-ball-clean.png';
     if (isset($raw['played_at'])) $t['played_at'] = (string)$raw['played_at'];
     if (isset($raw['history_deck'])) $t['history_deck'] = (string)$raw['history_deck'];
-    if (isset($raw['event_id'])) $t['event_id'] = (int)$raw['event_id'];
     return $t;
 }
 function mx_requests($playlist) {
