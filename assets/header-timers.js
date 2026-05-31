@@ -32,10 +32,29 @@
 
     function formatRemaining(ms){
       if (ms <= 0) return '00:00:00';
+
       const totalSeconds = Math.floor(ms / 1000);
-      const hours = Math.floor(totalSeconds / 3600);
+      const days = Math.floor(totalSeconds / 86400);
+      const hours = Math.floor((totalSeconds % 86400) / 3600);
       const minutes = Math.floor((totalSeconds % 3600) / 60);
       const seconds = totalSeconds % 60;
+
+      // Long range: keep it readable for future events.
+      if (days >= 2) {
+        return days + 'd ' + hours + 'h ' + minutes + 'm';
+      }
+
+      // Tomorrow / next-day range.
+      if (days === 1) {
+        return '1d ' + hours + 'h ' + minutes + 'm';
+      }
+
+      // Same day but still a while away: no seconds needed.
+      if (hours >= 2) {
+        return hours + 'h ' + minutes + 'm';
+      }
+
+      // Final two hours: show live countdown seconds.
       return pad(hours) + ':' + pad(minutes) + ':' + pad(seconds);
     }
 
