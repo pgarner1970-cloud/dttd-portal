@@ -5048,3 +5048,109 @@ body.public-event-detail-page .public-event-share-button .public-sr-only{
     grid-template-columns:54px minmax(0,1fr) auto !important;
   }
 }
+
+
+/* Event page polish: status pills and neon-outline played actions */
+body.public-event-detail-page .public-request-status{
+  border:1px solid rgba(255,255,255,.18) !important;
+  background:rgba(255,255,255,.08) !important;
+  color:rgba(255,255,255,.9) !important;
+  font-weight:900 !important;
+  letter-spacing:.01em !important;
+  box-shadow:none !important;
+}
+
+body.public-event-detail-page .public-request-status.played{
+  border-color:rgba(34,197,94,.72) !important;
+  background:linear-gradient(135deg,rgba(22,163,74,.96),rgba(34,197,94,.82)) !important;
+  color:#ffffff !important;
+  box-shadow:0 0 14px rgba(34,197,94,.24) !important;
+}
+
+body.public-event-detail-page .public-request-status.queued{
+  border-color:rgba(250,204,21,.68) !important;
+  background:rgba(250,204,21,.15) !important;
+  color:#fde68a !important;
+}
+
+body.public-event-detail-page .public-request-status.review,
+body.public-event-detail-page .public-request-status.waiting{
+  border-color:rgba(255,58,220,.48) !important;
+  background:rgba(255,58,220,.12) !important;
+  color:#ffd6fb !important;
+}
+
+body.public-event-detail-page .public-request-status.unable{
+  border-color:rgba(248,113,113,.62) !important;
+  background:rgba(248,113,113,.14) !important;
+  color:#fecaca !important;
+}
+
+body.public-event-detail-page .public-request-status.duplicate{
+  border-color:rgba(168,85,247,.55) !important;
+  background:rgba(168,85,247,.14) !important;
+  color:#e9d5ff !important;
+}
+
+body.public-event-detail-page .public-played-track-actions{
+  gap:8px !important;
+  align-items:center !important;
+}
+
+body.public-event-detail-page .public-track-icon-action{
+  width:36px !important;
+  height:36px !important;
+  min-height:36px !important;
+  flex:0 0 36px !important;
+  border:1px solid rgba(255,58,220,.72) !important;
+  background:rgba(255,58,220,.08) !important;
+  color:#fff !important;
+  box-shadow:0 0 14px rgba(255,58,220,.18), inset 0 0 12px rgba(255,255,255,.04) !important;
+}
+
+body.public-event-detail-page .public-track-icon-action:hover,
+body.public-event-detail-page .public-track-icon-action:focus-visible{
+  border-color:rgba(255,255,255,.85) !important;
+  background:rgba(255,58,220,.18) !important;
+  box-shadow:0 0 20px rgba(255,58,220,.32), inset 0 0 12px rgba(255,255,255,.08) !important;
+}
+
+body.public-event-detail-page .public-track-icon-action .public-action-icon{
+  width:18px !important;
+  height:18px !important;
+  color:#fff !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon circle{
+  fill:none !important;
+  stroke:currentColor !important;
+  stroke-width:1.9 !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon path{
+  fill:none !important;
+  stroke:currentColor !important;
+  stroke-width:1.7 !important;
+  stroke-linecap:round !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.share .public-action-icon circle{
+  fill:none !important;
+  stroke:currentColor !important;
+  stroke-width:1.9 !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.share .public-action-icon path{
+  stroke:currentColor !important;
+  stroke-width:1.9 !important;
+}
+
+body.public-event-detail-page .public-played-track-row{
+  overflow:visible !important;
+}
+
+body.public-event-detail-page .public-request-board-item.is-grouped .public-request-member-list{
+  margin-top:6px !important;
+  padding-top:5px !important;
+  border-top:1px solid rgba(255,255,255,.08) !important;
+}
