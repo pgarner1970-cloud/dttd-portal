@@ -121,7 +121,7 @@ $sql = "
         last_seen = NOW()
 ";
 
-$stmt = $db->prepare($sql);
+$stmt = $db()->prepare($sql);
 
 $stmt->execute([
     ':node_key' => $nodeKey,
