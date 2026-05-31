@@ -80,32 +80,39 @@ function mx_spotify_playlist_tracks($playlist_id) {
 }
 function mx_history() {
     $history = mx_json('spotify_mixer_history', []);
-    $unique = [];
+    $eventId = mx_current_event_id();
+    $cutoff = time() - 86400;
+    $filtered = [];
     $seen = [];
 
     foreach ((array)$history as $row) {
         if (!is_array($row)) continue;
 
-        $track_id = trim((string)($row['id'] ?? ''));
-        $track_url = trim((string)($row['url'] ?? ''));
-        $title = strtolower(trim((string)($row['title'] ?? '')));
-        $artist = strtolower(trim((string)($row['artist'] ?? '')));
+        $playedAtRaw = (string)($row['played_at'] ?? '');
+        $playedAt = $playedAtRaw !== '' ? strtotime($playedAtRaw) : false;
+        if (!$playedAt || $playedAt < $cutoff) continue;
 
-        if ($track_id !== '') {
-            $key = 'id:' . $track_id;
-        } elseif ($track_url !== '') {
-            $key = 'url:' . $track_url;
-        } else {
-            $key = 'text:' . $title . '|' . $artist;
+        $rowEventId = isset($row['event_id']) ? (int)$row['event_id'] : 0;
+        if ($eventId > 0) {
+            if ($rowEventId !== $eventId) continue;
+        } elseif ($rowEventId > 0) {
+            // If there is no current event, keep the mixer history global and recent only.
+            continue;
         }
 
+        $trackId = trim((string)($row['id'] ?? ''));
+        $url = trim((string)($row['url'] ?? ''));
+        $titleArtist = strtolower(trim((string)($row['title'] ?? '')) . '|' . trim((string)($row['artist'] ?? '')));
+        $key = $trackId !== '' ? ('id:' . $trackId) : ($url !== '' ? ('url:' . $url) : ('text:' . $titleArtist));
+        if ($key === 'text:|') continue;
         if (isset($seen[$key])) continue;
         $seen[$key] = true;
-        $unique[] = $row;
-        if (count($unique) >= 80) break;
+
+        $filtered[] = $row;
+        if (count($filtered) >= 80) break;
     }
 
-    return array_values(array_map('mx_track_output', $unique));
+    return array_values(array_map('mx_track_output', $filtered));
 }
 
 function mx_crates() {
@@ -196,6 +203,10 @@ function mx_remove_track_from_crate($crate_id, $track_id) {
 function mx_add_history($deck, $track) {
     if (!is_array($track) || empty($track['id'])) return;
     $item = mx_clean_track($track);
+    if (empty($item['event_id'])) {
+        $eventId = mx_current_event_id();
+        if ($eventId > 0) $item['event_id'] = $eventId;
+    }
     $item['history_deck'] = strtoupper($deck === 'b' ? 'b' : 'a');
     $item['played_at'] = date('Y-m-d H:i:s');
     $history = mx_json('spotify_mixer_history', []);
@@ -227,6 +238,7 @@ function mx_clean_track($track) {
         'source' => (string)($track['source'] ?? 'search'),
         'request_id' => !empty($track['request_id']) ? (int)$track['request_id'] : null,
         'request_group_id' => (string)($track['request_group_id'] ?? ''),
+        'event_id' => !empty($track['event_id']) ? (int)$track['event_id'] : null,
         'request_count' => isset($track['request_count']) ? (int)$track['request_count'] : null,
         'requesters' => is_array($track['requesters'] ?? null) ? array_values($track['requesters']) : [],
         'request_notes' => is_array($track['request_notes'] ?? null) ? array_values($track['request_notes']) : [],
@@ -329,6 +341,7 @@ function mx_track_from_request_group($request_id, $request_group_id = '') {
         'source' => 'request',
         'request_id' => (int)$r['id'],
         'request_group_id' => (string)($r['request_group_id'] ?? $request_group_id),
+        'event_id' => !empty($r['event_id']) ? (int)$r['event_id'] : null,
         'request_count' => $requestCount,
         'requesters' => $requesters,
         'request_notes' => $notes,
@@ -713,7 +726,7 @@ function mx_estimated_loaded_position($loaded) {
 function mx_played_threshold_ms($duration_ms) {
     $duration_ms = (int)$duration_ms;
     if ($duration_ms <= 0) return 90000;
-    return (int)min(max(1, $duration_ms), max(1, (int)round($duration_ms * 0.50)), 90000);
+    return (int)min(max(1, $duration_ms), max(1, (int)round($duration_ms * 0.60)), 90000);
 }
 function mx_loaded_track_progress_ms($track) {
     if (!is_array($track)) return 0;
@@ -753,14 +766,6 @@ function mx_sync_loaded_position_from_playback($deck, $loaded, $device_id, $play
         $loaded['position_base_ms'] = max(0, (int)$playback['progress_ms']);
         $loaded['position_updated_at'] = time();
         if (!empty($playback['is_playing'])) {
-            // If Spotify confirms that this loaded track is actually playing on this
-            // deck's assigned device, treat the deck as started even when the track
-            // was launched by a direct public-request "play now" path. Without this,
-            // finished tracks can be marked played but never auto-unloaded.
-            $loaded['played_on_deck'] = true;
-            if (!empty($playback['item']['duration_ms']) && empty($loaded['duration_ms'])) {
-                $loaded['duration_ms'] = (int)$playback['item']['duration_ms'];
-            }
             $loaded['paused_position_ms'] = null;
             $loaded['resume_locked'] = false;
             // Arm automatic unload only after this exact loaded track has been observed
@@ -854,6 +859,7 @@ function mx_track_output($t) {
     if ($t['image'] === '') $t['image'] = 'https://dancethruthedecades.co.uk/assets/glitter-ball-clean.png';
     if (isset($raw['played_at'])) $t['played_at'] = (string)$raw['played_at'];
     if (isset($raw['history_deck'])) $t['history_deck'] = (string)$raw['history_deck'];
+    if (!empty($raw['event_id'])) $t['event_id'] = (int)$raw['event_id'];
     return $t;
 }
 function mx_requests($playlist) {
@@ -1000,8 +1006,6 @@ function mx_auto_unload_finished_deck($deck, $loaded, $device_id, $playback) {
     $nearEnd = $durationMs && $progressMs !== null && $progressMs >= max(0, $durationMs - 5000);
     $estimatedMs = mx_estimated_loaded_position($loaded);
     $estimatedEnded = $durationMs && $estimatedMs !== null && $estimatedMs >= max(0, $durationMs - 2500);
-    $startedAt = isset($loaded['position_updated_at']) ? (int)$loaded['position_updated_at'] : 0;
-    $elapsedEnded = $durationMs && $startedAt > 0 && empty($loaded['resume_locked']) && ((time() - $startedAt) * 1000 + (int)($loaded['position_base_ms'] ?? 0)) >= max(0, $durationMs - 2500);
 
     $seenMs = isset($loaded['end_seen_ms']) ? (int)$loaded['end_seen_ms'] : 0;
     $armed = !empty($loaded['end_armed_at']) || ($durationMs && $seenMs >= max(0, (int)($durationMs * 0.25)));
@@ -1016,7 +1020,7 @@ function mx_auto_unload_finished_deck($deck, $loaded, $device_id, $playback) {
 
     // Fallback: the mixer keeps its own progress clock while a deck is playing. This
     // catches Spotify Connect devices that stop reporting cleanly right at track end.
-    if ($armed && ($estimatedEnded || $elapsedEnded) && empty($loaded['resume_locked'])) $finished = true;
+    if ($armed && $estimatedEnded && empty($loaded['resume_locked'])) $finished = true;
 
     // If Spotify has moved on to another track on the same device, only treat that as
     // finished when we had already seen the loaded track near its end. A mid-track
@@ -1418,17 +1422,6 @@ try {
         mx_flag_request_group_in_playlist($requestId, $requestGroupId, 'loaded_' . $deck);
         $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
         mx_play_track($device, $track['id'] ?? '', null, $deck);
-        $loaded = mx_json('spotify_mixer_loaded_' . $deck, []);
-        if (is_array($loaded) && !empty($loaded['id'])) {
-            $loaded['played_on_deck'] = true;
-            $loaded['position_base_ms'] = 0;
-            $loaded['position_updated_at'] = time();
-            $loaded['paused_position_ms'] = null;
-            $loaded['resume_locked'] = false;
-            $loaded['end_seen_ms'] = 0;
-            $loaded['end_armed_at'] = time();
-            mx_store_loaded_track($deck, $loaded);
-        }
         mx_json_out(['ok' => true, 'message' => 'Public request group loaded and played on Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
     }
 
