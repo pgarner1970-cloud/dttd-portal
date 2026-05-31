@@ -311,6 +311,9 @@ if ($is_edit) {
 
     if ($loaded) {
         $event = array_merge($event, $loaded);
+        if (($event['event_type'] ?? '') === 'private') {
+            $event['event_type'] = 'private_party';
+        }
     } else {
         $error = 'Event not found.';
         $is_edit = false;
@@ -351,6 +354,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $venue_ticket_url = trim((string)($_POST['venue_ticket_url'] ?? ''));
     $venue_social_label = trim((string)($_POST['venue_social_label'] ?? ''));
     $event_type = trim((string)($_POST['event_type'] ?? 'public'));
+    if ($event_type === 'private') {
+        $event_type = 'private_party';
+    }
+    $allowed_event_types = ['public', 'private_party', 'wedding', 'corporate'];
+    if (!in_array($event_type, $allowed_event_types, true)) {
+        $event_type = 'public';
+    }
     $notes = trim((string)($_POST['notes'] ?? ''));
     $event_date = trim((string)($_POST['event_date'] ?? ''));
     $start_time = trim((string)($_POST['start_time'] ?? ''));
@@ -538,7 +548,9 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
             <span>Event type</span>
             <select name="event_type">
               <option value="public" <?= ($event['event_type'] ?? '') === 'public' ? 'selected' : '' ?>>Public Night</option>
-              <option value="private" <?= ($event['event_type'] ?? '') === 'private' ? 'selected' : '' ?>>Private Party</option>
+              <option value="private_party" <?= in_array(($event['event_type'] ?? ''), ['private_party', 'private'], true) ? 'selected' : '' ?>>Private Party</option>
+              <option value="wedding" <?= ($event['event_type'] ?? '') === 'wedding' ? 'selected' : '' ?>>Wedding</option>
+              <option value="corporate" <?= ($event['event_type'] ?? '') === 'corporate' ? 'selected' : '' ?>>Corporate Event</option>
             </select>
           </label>
 
