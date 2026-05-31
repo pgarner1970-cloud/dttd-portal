@@ -171,6 +171,10 @@ function mx_remove_track_from_crate($crate_id, $track_id) {
 function mx_add_history($deck, $track) {
     if (!is_array($track) || empty($track['id'])) return;
     $item = mx_clean_track($track);
+    $eventId = mx_current_event_id();
+    if ($eventId > 0) {
+        $item['event_id'] = $eventId;
+    }
     $item['history_deck'] = strtoupper($deck === 'b' ? 'b' : 'a');
     $item['played_at'] = date('Y-m-d H:i:s');
     $history = mx_json('spotify_mixer_history', []);
