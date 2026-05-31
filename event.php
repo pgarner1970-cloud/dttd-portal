@@ -875,9 +875,9 @@ if ($event) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : ($notFound ? 'Event Not Found' : 'Join Event') ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event portal.' ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=290">
+  <link rel="stylesheet" href="/assets/public-site.css?v=292">
 </head>
-<body class="homepage-option-one public-event-detail-page public-event-portal-page event-detail-safe">
+<body class="homepage-option-one public-event-detail-page public-event-portal-page event-detail-safe event-page-restored">
   <main class="home-option-one">
     <?php require __DIR__ . '/includes/public-nav.php'; ?>
 
