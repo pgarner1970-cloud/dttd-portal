@@ -4305,3 +4305,130 @@ body.homepage-option-one .home-coming-up-card.is-live{
   font-style:normal;
   font-weight:700;
 }
+
+
+/* Scoped public event detail page repair
+   Keep this under event-detail-safe so request page work cannot affect it. */
+.event-detail-safe .public-event-detail-wrap,
+.event-detail-safe .public-event-page,
+.event-detail-safe .event-detail-wrap{
+  width:min(1120px,calc(100% - 32px));
+  margin:0 auto;
+  padding:34px 0 80px;
+}
+.event-detail-safe .public-event-hero,
+.event-detail-safe .public-feature-card,
+.event-detail-safe .public-empty-card,
+.event-detail-safe .public-access-card{
+  border:1px solid rgba(255,58,220,.38);
+  border-radius:26px;
+  background:linear-gradient(135deg,rgba(61,9,82,.78),rgba(28,3,52,.74));
+  box-shadow:0 0 30px rgba(255,58,220,.13);
+  padding:26px;
+  color:#fff;
+}
+.event-detail-safe .public-event-actions,
+.event-detail-safe .public-centred-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  align-items:center;
+  margin:18px 0 22px;
+}
+.event-detail-safe .public-neon-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:46px;
+  padding:0 18px;
+  border-radius:16px;
+  border:1px solid rgba(255,58,220,.38);
+  background:linear-gradient(135deg,rgba(179,21,255,.85),rgba(255,79,216,.78));
+  color:#fff;
+  font-weight:950;
+  text-decoration:none;
+  box-shadow:0 0 18px rgba(179,21,255,.25);
+}
+.event-detail-safe .public-neon-btn.subtle{
+  background:rgba(255,255,255,.06);
+}
+.event-detail-safe .public-event-actions a,
+.event-detail-safe .public-centred-actions a{
+  text-decoration:none;
+}
+.event-detail-safe .public-event-grid,
+.event-detail-safe .public-detail-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr);
+  gap:22px;
+  align-items:start;
+}
+.event-detail-safe .event-action-grid,
+.event-detail-safe .public-action-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+  margin:20px 0;
+}
+.event-detail-safe .event-action-card,
+.event-detail-safe .public-action-card{
+  display:block;
+  padding:18px;
+  border:1px solid rgba(255,58,220,.28);
+  border-radius:20px;
+  background:rgba(255,255,255,.055);
+  color:#fff;
+  text-decoration:none;
+}
+.event-detail-safe .public-request-list,
+.event-detail-safe .public-photo-list,
+.event-detail-safe .public-played-list{
+  display:grid;
+  gap:12px;
+  margin:14px 0 24px;
+  padding:0;
+  list-style:none;
+}
+.event-detail-safe .public-request-item,
+.event-detail-safe .public-played-item,
+.event-detail-safe .public-photo-card{
+  display:grid;
+  grid-template-columns:72px 1fr;
+  gap:14px;
+  align-items:center;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:18px;
+  background:rgba(10,20,36,.72);
+  padding:12px;
+}
+.event-detail-safe .public-request-item img,
+.event-detail-safe .public-played-item img,
+.event-detail-safe .public-photo-card img{
+  width:72px;
+  height:72px;
+  object-fit:cover;
+  border-radius:12px;
+}
+.event-detail-safe h1,
+.event-detail-safe h2,
+.event-detail-safe h3{
+  color:#fff;
+  margin-top:0;
+}
+.event-detail-safe p{
+  color:rgba(255,255,255,.9);
+}
+.event-detail-safe ul{
+  padding-left:0;
+}
+.event-detail-safe li{
+  color:#fff;
+}
+@media(max-width:860px){
+  .event-detail-safe .public-event-grid,
+  .event-detail-safe .public-detail-grid,
+  .event-detail-safe .event-action-grid,
+  .event-detail-safe .public-action-grid{
+    grid-template-columns:1fr;
+  }
+}
