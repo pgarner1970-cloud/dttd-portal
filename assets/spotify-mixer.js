@@ -17,6 +17,7 @@ document.head.appendChild(overviewStyle);
   const app = document.querySelector('.spotify-mixer-app');
   if(!app) return;
   const api = app.dataset.api || 'mixer-api.php';
+  const searchApi = app.dataset.searchApi || '/api/spotify-search.php';
   let state = null;
   let searchTimer = null;
   let pollTimer = null;
@@ -575,7 +576,7 @@ renderAccountStatus();
     if(!q || q.trim().length < 3){ els.searchResults.innerHTML=''; els.searchStatus.textContent=''; return; }
     els.searchStatus.innerHTML = '<span class="spinner"></span> Searching…';
     try{
-      const res = await fetch('/api/spotify-search.php?q=' + encodeURIComponent(q), {cache:'no-store'});
+      const res = await fetch(searchApi + '?q=' + encodeURIComponent(q), {cache:'no-store'});
       const data = await res.json();
       if(data.ok){
         const sourceLabel = data.rate_limited ? 'Spotify cooling down — cached matches shown' : (data.source === 'cache' ? 'Cached matches shown' : '');
