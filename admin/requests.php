@@ -983,18 +983,20 @@ admin_header('DJ Portal');
   }
 
   function formatRemaining(ms){
-    if (ms <= 0) return '00:00:00';
+    if (ms <= 0) return '0m';
 
     const totalSeconds = Math.floor(ms / 1000);
-
     const days = Math.floor(totalSeconds / 86400);
     const hours = Math.floor((totalSeconds % 86400) / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
 
-    const totalHours = (days * 24) + hours;
-
-    return pad(totalHours) + ':' + pad(minutes) + ':' + pad(seconds);
+    // Match the main header countdown style: future events are readable,
+    // near-live events switch to a proper seconds countdown.
+    if (days >= 2) return days + 'd ' + hours + 'h ' + minutes + 'm';
+    if (days === 1) return '1d ' + hours + 'h ' + minutes + 'm';
+    if (hours >= 2) return hours + 'h ' + minutes + 'm';
+    return pad(hours) + ':' + pad(minutes) + ':' + pad(seconds);
   }
 
   function setState(el, state){
