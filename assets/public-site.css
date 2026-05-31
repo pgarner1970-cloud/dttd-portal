@@ -4957,3 +4957,77 @@ body.public-event-detail-page .public-lightbox-nav.next{right:18px !important}
     height:44px !important;
   }
 }
+
+/* v320 event gallery card spacing + metadata consistency */
+body.public-event-detail-page .public-event-photo-carousel-card{
+  margin-top:22px !important;
+  margin-bottom:22px !important;
+}
+
+body.public-event-detail-page .public-event-photo-grid{
+  display:grid !important;
+  grid-template-columns:repeat(auto-fill,minmax(170px,220px)) !important;
+  gap:18px !important;
+  margin-top:18px !important;
+  align-items:start !important;
+}
+
+body.public-event-detail-page .public-event-photo-tile{
+  display:block !important;
+  overflow:hidden !important;
+  background:rgba(255,255,255,.04) !important;
+  border:1px solid rgba(255,125,243,.28) !important;
+  border-radius:24px !important;
+  color:#fff !important;
+}
+
+body.public-event-detail-page .public-event-photo-thumb{
+  display:block !important;
+  width:100% !important;
+  aspect-ratio:1 / 1 !important;
+  border:0 !important;
+  border-radius:0 !important;
+  overflow:hidden !important;
+  background:rgba(10,20,36,.72) !important;
+  padding:0 !important;
+  cursor:pointer !important;
+}
+
+body.public-event-detail-page .public-event-photo-thumb img{
+  display:block !important;
+  width:100% !important;
+  height:100% !important;
+  object-fit:contain !important;
+  background:#080012 !important;
+}
+
+body.public-event-detail-page .public-event-photo-meta{
+  display:block !important;
+  padding:12px 13px 14px !important;
+}
+
+body.public-event-detail-page .public-event-photo-meta h3{
+  margin:0 0 5px !important;
+  font-size:1rem !important;
+  line-height:1.15 !important;
+}
+
+body.public-event-detail-page .public-event-photo-meta p{
+  margin:0 0 7px !important;
+  font-size:.82rem !important;
+  line-height:1.25 !important;
+  color:#ddd3eb !important;
+}
+
+body.public-event-detail-page .public-event-photo-meta strong{
+  display:block !important;
+  font-size:.82rem !important;
+  line-height:1.2 !important;
+  color:#ffe257 !important;
+}
+
+@media(max-width:640px){
+  body.public-event-detail-page .public-event-photo-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  }
+}
