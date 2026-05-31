@@ -431,19 +431,13 @@ renderAccountStatus();
     if(!list.length){ els.djPlaylist.innerHTML = '<div class="empty">DJ playlist is empty.</div>'; return; }
     els.djPlaylist.innerHTML = list.map((t,i)=>{
       const count = Number(t.request_count || 0);
-      const requestSummary = t.source === 'request' ? `
-          <div class="playlist-request-summary mini">
-            <span>${esc(count > 1 ? count + ' requests grouped' : '1 request')}</span>
-            ${Array.isArray(t.requesters) && t.requesters.length ? `<span>${esc(t.requesters.join(', '))}</span>` : ''}
-          </div>
-          ${renderRequestNotesList(t, 'mixer-request-note-list playlist-request-note-list')}` : '';
+      const requestSummary = t.source === 'request' ? renderRequestNotesList(t, 'mixer-request-note-list playlist-request-note-list') : '';
       return `
       <div class="playlist-row${t.source === 'request' && count > 1 ? ' grouped-playlist-row' : ''}">
         <img src="${esc(image(t.image))}" alt="">
         <div>
           <strong>${esc(t.title)}</strong><br>
           <span class="mini muted">${esc(t.artist)}${duration(t.duration_ms) ? ' • ' + duration(t.duration_ms) : ''}${t.source === 'request' ? ' • public request' : ''}</span>
-          <div class="workflow-row">${workflowBadge('DJ Playlist', 'queued')}${t.source === 'request' ? workflowBadge(count > 1 ? count + ' Requests' : 'Request', 'source') : workflowBadge(sourceLabel(t), 'source')}</div>
           ${requestSummary}
         </div>
         <div class="row-actions">

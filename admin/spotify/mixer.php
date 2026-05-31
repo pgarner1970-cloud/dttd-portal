@@ -144,5 +144,5 @@ admin_header('Spotify Mixer - DJ Portal');
   </div>
   
 </main>
-<script src="<?= h(admin_url('assets/spotify-mixer.js')) ?>?v=20260531-direct-play-autounload"></script>
+<script src="<?= h(admin_url('assets/spotify-mixer.js')) ?>?v=20260531-live-baseline-autounload-history-compact"></script>
 <?php admin_footer(); ?>
