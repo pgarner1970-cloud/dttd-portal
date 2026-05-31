@@ -796,6 +796,25 @@ function mx_pause($device_id, $deck = null) {
     if ($device_id === '') throw new RuntimeException('No Spotify device selected for this player.');
     mx_spotify_put('https://api.spotify.com/v1/me/player/pause?device_id=' . rawurlencode($device_id), '', $deck);
 }
+
+function mx_resume_current_device($device_id, $deck = null) {
+    $device_id = trim((string)$device_id);
+    if ($device_id === '') throw new RuntimeException('No Spotify device selected for this player.');
+    // Lightweight resume: do not send a new track context, transfer, pause or seek.
+    // This avoids the audible Connect hiccup caused by the heavier mx_play_track() path.
+    mx_spotify_put('https://api.spotify.com/v1/me/player/play?device_id=' . rawurlencode($device_id), '{}', $deck);
+}
+
+function mx_can_lightweight_resume($device_id, $track, $playback) {
+    $device_id = trim((string)$device_id);
+    $track_id = (string)($track['id'] ?? '');
+    if ($device_id === '' || $track_id === '' || !is_array($playback)) return false;
+    $activeDevice = (string)($playback['device']['id'] ?? '');
+    $currentId = (string)($playback['item']['id'] ?? '');
+    if ($activeDevice !== $device_id) return false;
+    if ($currentId === '') return false;
+    return mx_track_ids_match($currentId, $track_id);
+}
 function mx_track_output($t) {
     $raw = is_array($t) ? $t : [];
     $t = mx_clean_track($raw);
@@ -1406,16 +1425,26 @@ try {
         }
         $resumePosition = mx_resume_position_for_track($deck, $track['id'] ?? '');
         if ($resumePosition === null) $resumePosition = mx_loaded_position_fallback($track);
-        mx_play_track($device, $track['id'] ?? '', $resumePosition, $deck);
+
+        $usedLightweightResume = false;
+        if (mx_can_lightweight_resume($device, $track, $pb)) {
+            mx_resume_current_device($device, $deck);
+            $usedLightweightResume = true;
+        } else {
+            mx_play_track($device, $track['id'] ?? '', $resumePosition, $deck);
+        }
+
         mx_set('spotify_mixer_resume_' . $deck, '');
         if (is_array($track) && !empty($track['id'])) {
             $track['played_on_deck'] = true;
-            $track['position_base_ms'] = $resumePosition !== null ? max(0, (int)$resumePosition) : 0;
+            $track['position_base_ms'] = $resumePosition !== null ? max(0, (int)$resumePosition) : mx_loaded_position_fallback($track);
+            if ($track['position_base_ms'] === null) $track['position_base_ms'] = 0;
             $track['position_updated_at'] = time();
             $track['paused_position_ms'] = null;
             $track['resume_locked'] = false;
-            $track['end_seen_ms'] = $resumePosition !== null ? max(0, (int)$resumePosition) : 0;
+            $track['end_seen_ms'] = max(0, (int)$track['position_base_ms']);
             $track['end_armed_at'] = time();
+            $track['resume_mode'] = $usedLightweightResume ? 'native_resume' : 'explicit_play';
             mx_store_loaded_track($deck, $track);
         }
         mx_mark_loaded_played_if_threshold($deck, $track);
