@@ -103,6 +103,32 @@ try {
     $fingerprint = sha1(implode("\n", $fingerprint_parts));
     $actionable_fingerprint = sha1(implode("\n", $actionable_parts));
 
+    $photo_pending_count = 0;
+    $photo_newest_id = 0;
+    $photo_fingerprint = '';
+    try {
+        $photo_stmt = db()->prepare("\n            SELECT id, status, event_id, guest_name, uploaded_at, created_at\n            FROM event_photo_uploads\n            WHERE event_id = ? AND LOWER(COALESCE(status, 'pending')) = 'pending'\n            ORDER BY id ASC\n        ");
+        $photo_stmt->execute([$event_id]);
+        $photo_parts = [];
+        foreach ($photo_stmt->fetchAll(PDO::FETCH_ASSOC) as $photo_row) {
+            $photo_pending_count++;
+            $photo_newest_id = max($photo_newest_id, (int)($photo_row['id'] ?? 0));
+            $photo_parts[] = implode('|', [
+                (string)($photo_row['id'] ?? ''),
+                (string)($photo_row['event_id'] ?? ''),
+                strtolower((string)($photo_row['status'] ?? 'pending')),
+                (string)($photo_row['guest_name'] ?? ''),
+                (string)($photo_row['uploaded_at'] ?? ''),
+                (string)($photo_row['created_at'] ?? ''),
+            ]);
+        }
+        $photo_fingerprint = sha1(implode("\n", $photo_parts));
+    } catch (Throwable $photo_error) {
+        $photo_pending_count = 0;
+        $photo_newest_id = 0;
+        $photo_fingerprint = '';
+    }
+
     echo json_encode([
         'ok' => true,
         'event_id' => $event_id,
@@ -112,6 +138,9 @@ try {
         'actionable_fingerprint' => $actionable_fingerprint,
         'actionable_count' => $actionable_count,
         'actionable_newest_id' => $actionable_newest_id,
+        'photo_pending_count' => $photo_pending_count,
+        'photo_newest_id' => $photo_newest_id,
+        'photo_fingerprint' => $photo_fingerprint,
         'checked_at' => date('H:i:s')
     ]);
 } catch (Throwable $e) {

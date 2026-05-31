@@ -6289,3 +6289,23 @@ button.action-tile:disabled{
   .photo-card-grid { grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); }
   .photo-moderation-card { width:100%; }
 }
+
+/* v20260531 compact Spotify mixer request rows + photo alert hook */
+.spotify-mixer .playlist-row .workflow-row,
+.spotify-mixer .playlist-row .playlist-request-summary,
+.spotify-mixer .request-row .request-detail,
+.spotify-mixer .request-row .request-source{
+  display:none !important;
+}
+.spotify-mixer .playlist-row,
+.spotify-mixer .request-row.compact-public-request-row{
+  align-items:center;
+  gap:14px;
+}
+.spotify-mixer .playlist-row .mixer-request-note-list,
+.spotify-mixer .compact-public-request-row .mixer-request-note-list{
+  margin-top:8px;
+}
+.header-admin-nav-btn.photo-alert-pulse{border-color:rgba(255,70,85,.9)!important;box-shadow:0 0 0 1px rgba(255,70,85,.4),0 0 22px rgba(255,70,85,.72)!important;animation:dttdRequestPulse 1.05s ease-in-out infinite;}
+.header-admin-nav-btn.photo-alert-pulse .admin-nav-icon{color:#ff6b75!important;}
+.header-admin-nav-btn.photo-alert-pulse::after{content:'NEW';position:absolute;right:-6px;top:-6px;border-radius:999px;background:#ff3346;color:#fff;font-size:10px;font-weight:1000;line-height:1;padding:4px 6px;border:1px solid rgba(255,255,255,.36);box-shadow:0 0 16px rgba(255,51,70,.8);}

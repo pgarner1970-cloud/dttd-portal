@@ -431,14 +431,14 @@ renderAccountStatus();
     if(!list.length){ els.djPlaylist.innerHTML = '<div class="empty">DJ playlist is empty.</div>'; return; }
     els.djPlaylist.innerHTML = list.map((t,i)=>{
       const count = Number(t.request_count || 0);
-      const requestSummary = t.source === 'request' ? renderRequestNotesList(t, 'mixer-request-note-list playlist-request-note-list') : '';
+      const requestNotes = t.source === 'request' ? renderRequestNotesList(t, 'mixer-request-note-list playlist-request-note-list') : '';
       return `
       <div class="playlist-row${t.source === 'request' && count > 1 ? ' grouped-playlist-row' : ''}">
         <img src="${esc(image(t.image))}" alt="">
         <div>
           <strong>${esc(t.title)}</strong><br>
           <span class="mini muted">${esc(t.artist)}${duration(t.duration_ms) ? ' • ' + duration(t.duration_ms) : ''}${t.source === 'request' ? ' • public request' : ''}</span>
-          ${requestSummary}
+          ${requestNotes}
         </div>
         <div class="row-actions">
           <button class="mixer-btn green auto-btn mixer-mini-action" data-action="auto_load" data-idx="${i}" title="Auto-load to the first empty standby player" aria-label="Auto-load to the first empty standby player">⇄</button>
@@ -456,16 +456,12 @@ renderAccountStatus();
     if(!reqs.length){ els.publicRequests.innerHTML = '<div class="empty">No new Spotify-matched public requests waiting.</div>'; return; }
     els.publicRequests.innerHTML = reqs.map(r => {
       const count = Number(r.request_count || 1);
-      const people = Array.isArray(r.requesters) && r.requesters.length ? r.requesters.join(', ') : (r.guest_name || 'Guest');
-      const countLabel = count > 1 ? workflowBadge(count + ' requests', 'source') : '';
       return `
-      <div class="request-row grouped-request-row${count > 1 ? ' has-multiple-requests' : ''}">
+      <div class="request-row grouped-request-row compact-public-request-row${count > 1 ? ' has-multiple-requests' : ''}">
         <img src="${esc(image(r.image))}" alt="">
         <div>
           <strong>${esc(r.title)}</strong> <span class="muted">— ${esc(r.artist)}</span>
-          <div class="request-detail mini"><span class="request-time">${esc(requestTime(r.created_at))}</span><span><strong>${esc(people)}</strong></span></div>
           ${renderRequestNotesList(r, 'mixer-request-note-list public-request-note-list')}
-          <div class="request-source">${workflowBadge('Waiting review', 'waiting')}${countLabel}${r.queue_status ? workflowBadge(r.queue_status.replace(/_/g, ' '), 'source') : ''}</div>
         </div>
         <div class="row-actions quick-actions">
           <button class="mixer-btn green wide" data-select-request='${esc(JSON.stringify(r))}'>Choose action</button>

@@ -191,7 +191,7 @@ function admin_header($title = 'DJ Portal') {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= h($title) ?></title>
-<link rel="stylesheet" href="https://dancethruthedecades.co.uk/assets/admin-touch.css?v=20260528-photos2">
+<link rel="stylesheet" href="https://dancethruthedecades.co.uk/assets/admin-touch.css?v=20260531-photo-alert-compact">
 <link rel="stylesheet" href="https://dancethruthedecades.co.uk/assets/admin-topbar-icons.css?v=20260522-1810">
 </head>
 <body class="admin-body">
@@ -262,7 +262,7 @@ function admin_header($title = 'DJ Portal') {
           </span>
           <span class="admin-nav-text">Venues</span>
         </a>
-        <a class="header-admin-nav-btn <?= admin_nav_active('photos') ?>" href="<?= h(admin_url('event-photos.php')) ?>" title="Photos" aria-label="Photos">
+        <a id="adminPhotosNavBtn" class="header-admin-nav-btn <?= admin_nav_active('photos') ?>" href="<?= h(admin_url('event-photos.php')) ?>" title="Photos" aria-label="Photos">
           <span class="admin-nav-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" focusable="false"><path d="M5 5h4l1.2-2h3.6L15 5h4a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm7 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0-2.1a1.9 1.9 0 1 1 0-3.8 1.9 1.9 0 0 1 0 3.8Z"/></svg>
           </span>
@@ -322,8 +322,9 @@ function admin_footer() {
 window.DTTD_REQUEST_PING_URL = "<?= h(admin_url('request-ping.php')) ?>";
 window.DTTD_REQUESTS_URL = "<?= h(admin_url('requests.php')) ?>";
 window.DTTD_IS_REQUESTS_PAGE = <?= basename($_SERVER['SCRIPT_NAME']) === 'requests.php' ? 'true' : 'false' ?>;
+window.DTTD_IS_PHOTOS_PAGE = <?= basename($_SERVER['SCRIPT_NAME']) === 'event-photos.php' ? 'true' : 'false' ?>;
 </script>
-<script src="https://dancethruthedecades.co.uk/assets/request-update-check.js?v=20260523-request-page-seen-baseline"></script>
+<script src="https://dancethruthedecades.co.uk/assets/request-update-check.js?v=20260531-photo-alert-compact"></script>
 <script src="https://dancethruthedecades.co.uk/assets/header-timers.js?v=97"></script>
 <script src="https://dancethruthedecades.co.uk/assets/event-qr.js?v=106"></script>
 <script src="https://dancethruthedecades.co.uk/assets/venue-select.js?v=115"></script>

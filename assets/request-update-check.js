@@ -6,11 +6,13 @@
 
   ready(function(){
     const isRequestsPage = !!window.DTTD_IS_REQUESTS_PAGE;
+    const isPhotosPage = !!window.DTTD_IS_PHOTOS_PAGE;
     const pingUrl = window.DTTD_REQUEST_PING_URL || 'request-ping.php';
     const requestsUrl = window.DTTD_REQUESTS_URL || 'requests.php';
     const storeKey = 'dttd_actionable_request_seen_fingerprint_v2';
     const newestKey = 'dttd_actionable_request_seen_newest_id_v3';
     const alertedKey = 'dttd_actionable_request_alert_fingerprint_v2';
+    const photoNewestKey = 'dttd_pending_photo_seen_newest_id_v1';
 
     function injectStyles(){
       if (document.getElementById('dttd-request-alert-styles')) return;
@@ -70,6 +72,21 @@
           badge.textContent = actionable ? 'NEW REQUESTS • ' + actionable + ' pending' : 'NEW REQUESTS';
         }
       }
+    }
+
+    function setPhotoAlert(on){
+      const nav = document.getElementById('adminPhotosNavBtn') || document.querySelector('a[href$="event-photos.php"]');
+      if (nav) nav.classList.toggle('photo-alert-pulse', !!on);
+    }
+
+    function seenPhotoNewestId(){
+      const value = Number(localStorage.getItem(photoNewestKey) || 0);
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    function markPhotosSeen(newestId){
+      if (Number.isFinite(Number(newestId))) localStorage.setItem(photoNewestKey, String(Number(newestId)));
+      setPhotoAlert(false);
     }
 
     function markSeen(fingerprint, newestId){
@@ -149,6 +166,17 @@
       if (document.hidden) return;
       try {
         const data = await fetchPing();
+        const photoPendingCount = Number(data.photo_pending_count || 0);
+        const photoNewestId = Number(data.photo_newest_id || 0);
+        if (isPhotosPage) {
+          markPhotosSeen(photoNewestId);
+        } else if (!localStorage.getItem(photoNewestKey)) {
+          markPhotosSeen(photoNewestId);
+        } else {
+          setPhotoAlert(photoPendingCount > 0 && photoNewestId > seenPhotoNewestId());
+          if (photoPendingCount === 0) markPhotosSeen(photoNewestId);
+        }
+
         const actionableFingerprint = data.actionable_fingerprint || '';
         const actionableCount = Number(data.actionable_count || 0);
         const actionableNewestId = Number(data.actionable_newest_id || 0);
