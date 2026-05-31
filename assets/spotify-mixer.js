@@ -58,8 +58,8 @@ document.head.appendChild(overviewStyle);
   }
   function playedThresholdLabel(track){
     const ms = Number(track?.duration_ms || 0);
-    if(!ms) return '50% or 90s';
-    const threshold = Math.min(ms * 0.5, 90000);
+    if(!ms) return '60% or 90s';
+    const threshold = Math.min(ms * 0.6, 90000);
     return duration(threshold) + ' / ' + duration(ms);
   }
   function progressStatus(track, deck){
@@ -577,20 +577,41 @@ renderAccountStatus();
 
 
   async function search(q){
-    if(!q || q.trim().length < 3){ els.searchResults.innerHTML=''; els.searchStatus.textContent=''; return; }
+    const term = (q || '').trim();
+    if(term.length < 3){ els.searchResults.innerHTML=''; els.searchStatus.textContent=''; return; }
     els.searchStatus.innerHTML = '<span class="spinner"></span> Searching…';
+
+    let data = null;
+    let lastError = null;
+
     try{
-      const res = await fetch(searchApi + '?q=' + encodeURIComponent(q), {cache:'no-store'});
-      const data = await res.json();
-      if(data.ok){
-        const sourceLabel = data.rate_limited ? 'Spotify cooling down — cached matches shown' : (data.source === 'cache' ? 'Cached matches shown' : '');
-        els.searchStatus.textContent = sourceLabel;
-        renderSearchResults(data.tracks || []);
-      } else {
-        els.searchStatus.textContent = data.error || data.message || 'Search failed';
+      const sep = searchApi.indexOf('?') === -1 ? '?' : '&';
+      const res = await fetch(searchApi + sep + 'q=' + encodeURIComponent(term), {cache:'no-store', credentials:'same-origin'});
+      const text = await res.text();
+      if(!res.ok) throw new Error('Search endpoint returned HTTP ' + res.status);
+      try {
+        data = JSON.parse(text);
+      } catch(parseErr) {
+        throw new Error('Search endpoint returned non-JSON response');
+      }
+    } catch(e){
+      lastError = e;
+      try{
+        data = await apiGet({action:'search', q:term});
+      } catch(fallbackErr){
+        lastError = fallbackErr;
       }
     }
-    catch(e){ els.searchStatus.textContent = 'Search failed'; }
+
+    if(data && data.ok){
+      const sourceLabel = data.rate_limited ? 'Spotify cooling down — cached matches shown' : (data.source === 'cache' ? 'Cached matches shown' : '');
+      els.searchStatus.textContent = sourceLabel;
+      renderSearchResults(data.tracks || []);
+    } else {
+      els.searchResults.innerHTML = '';
+      els.searchStatus.textContent = (data && (data.error || data.message)) || 'Search failed';
+      if(lastError) console.warn('Spotify mixer search failed', lastError);
+    }
   }
   app.addEventListener('click', (e)=>{
     const sourceTab = e.target.closest('[data-source-tab]');
