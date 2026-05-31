@@ -107,6 +107,32 @@ function event_unique_code($current_id = 0) {
     return $code;
 }
 
+function event_slugify($value) {
+    $value = strtolower(trim((string)$value));
+    $value = preg_replace('/[^a-z0-9]+/', '-', $value);
+    $value = trim($value, '-');
+    return $value !== '' ? $value : 'event';
+}
+
+function event_unique_public_slug($base, $current_id = 0) {
+    $base = event_slugify($base);
+    $slug = $base;
+    $suffix = 2;
+
+    do {
+        $stmt = db()->prepare("SELECT id FROM events WHERE public_slug = ? AND id <> ? LIMIT 1");
+        $stmt->execute([$slug, (int)$current_id]);
+        $exists = $stmt->fetch();
+
+        if ($exists) {
+            $slug = $base . '-' . $suffix;
+            $suffix++;
+        }
+    } while ($exists);
+
+    return $slug;
+}
+
 
 function venues_table_exists() {
     static $exists = null;
@@ -336,6 +362,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $queue_visibility = trim((string)($_POST['queue_visibility'] ?? 'public'));
     $status = trim((string)($_POST['status'] ?? 'scheduled'));
     $public_slug = trim((string)($_POST['public_slug'] ?? ''));
+    if ($public_slug === '') {
+        $public_slug = event_unique_public_slug($event_name . '-' . $venue_name . '-' . $event_date, $id);
+    } else {
+        $public_slug = event_unique_public_slug($public_slug, $id);
+    }
 
     if ($event_name === '' || $venue_name === '' || $event_date === '' || $start_time === '') {
         $error = 'Please complete the required event fields.';
@@ -750,7 +781,7 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
 
           <label>
             <span>Public URL slug</span>
-            <input name="public_slug" value="<?= h($event['public_slug'] ?? '') ?>" placeholder="heart-and-soul-may-2026">
+            <input name="public_slug" value="<?= h($event['public_slug'] ?? '') ?>" placeholder="Auto-generated if left blank">
             <small>Optional. Leave blank to auto-generate from event name, venue and date.</small>
           </label>
 
