@@ -33,7 +33,7 @@ document.head.appendChild(overviewStyle);
     toast: $('#mixerToast'),
     deviceA: $('#deviceA'), deviceB: $('#deviceB'),
     deckADevice: $('#deckADevice'), deckBDevice: $('#deckBDevice'),
-    deckAState: $('#deckAState'), deckBState: $('#deckBState'), deckAVu: $('#deckAVu'), deckBVu: $('#deckBVu'), mixerModePill: $('#mixerModePill'), deckAAccount: $('#deckAAccount'), deckBAccount: $('#deckBAccount'), deckAWarning: $('#deckAWarning'), deckBWarning: $('#deckBWarning'),
+    deckAState: $('#deckAState'), deckBState: $('#deckBState'), deckAVu: $('#deckAVu'), deckBVu: $('#deckBVu'), mixerModePill: $('#mixerModePill'), deckAAccount: $('#deckAAccount'), deckBAccount: $('#deckBAccount'), deckANode: $('#deckANode'), deckBNode: $('#deckBNode'), deckAWarning: $('#deckAWarning'), deckBWarning: $('#deckBWarning'),
     loadedA: $('#loadedA'), loadedB: $('#loadedB'), deckANote: $('#deckANote'), deckBNote: $('#deckBNote'),
     spotifyStatus: $('#spotifyStatus'),
     search: $('#spotifySearch'), searchResults: $('#searchResults'), searchStatus: $('#searchStatus'),
@@ -222,6 +222,25 @@ document.head.appendChild(overviewStyle);
     if(src === 'track' && activeSource === 'search') clearSearchUi();
   }
 
+  function deckNode(deck){
+    return deck === 'b' ? state?.deck_nodes?.b : state?.deck_nodes?.a;
+  }
+  function renderDeckNode(deck){
+    const el = deck === 'b' ? els.deckBNode : els.deckANode;
+    if(!el) return;
+    const node = deckNode(deck);
+    if(!node){
+      el.textContent = 'Node: not assigned';
+      el.className = 'deck-node offline';
+      return;
+    }
+    const status = node.live_status || 'offline';
+    const running = node.raspotify_running ? 'Raspotify running' : 'Raspotify stopped';
+    const match = node.matched_device?.name ? `Spotify API sees ${node.matched_device.name}` : 'waiting for Spotify device_id';
+    el.textContent = `Node: ${node.label} · ${status} · ${running} · ${match}`;
+    el.className = 'deck-node ' + status;
+  }
+
   function renderDevices(){
     const devices = state?.devices || [];
     const opts = ['<option value="">Choose device…</option>'].concat(devices.map(d => `<option value="${esc(d.id)}">${esc(d.name)}${d.is_active ? ' — active' : ''}</option>`)).join('');
@@ -229,8 +248,10 @@ document.head.appendChild(overviewStyle);
     if(els.deviceB){ const v = els.deviceB.value || state.device_b || ''; els.deviceB.innerHTML = opts; els.deviceB.value = v; }
     const missingA = !!state?.device_a && !deviceIsOnline(state.device_a);
     const missingB = !!state?.device_b && !deviceIsOnline(state.device_b);
-    if(els.deckADevice) els.deckADevice.textContent = missingA ? 'Assigned device offline' : deviceName(state.device_a);
-    if(els.deckBDevice) els.deckBDevice.textContent = missingB ? 'Assigned device offline' : deviceName(state.device_b);
+    if(els.deckADevice) els.deckADevice.textContent = missingA ? 'Assigned Spotify device offline' : deviceName(state.device_a);
+    if(els.deckBDevice) els.deckBDevice.textContent = missingB ? 'Assigned Spotify device offline' : deviceName(state.device_b);
+    renderDeckNode('a');
+    renderDeckNode('b');
     renderAccountStatus();
     setDeviceAlert('a', missingA || accountHasWarning('a'));
     setDeviceAlert('b', missingB || accountHasWarning('b'));

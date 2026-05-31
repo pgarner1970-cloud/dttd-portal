@@ -335,6 +335,129 @@ function mx_has_column($table, $column) {
         return $cache[$key] = (bool)$stmt->fetch();
     } catch (Throwable $e) { return $cache[$key] = false; }
 }
+function mx_table_exists($table) {
+    static $cache = [];
+    $table = preg_replace('/[^a-zA-Z0-9_]/', '', (string)$table);
+    if ($table === '') return false;
+    if (isset($cache[$table])) return $cache[$table];
+    try {
+        $stmt = db()->prepare("SHOW TABLES LIKE ?");
+        $stmt->execute([$table]);
+        return $cache[$table] = (bool)$stmt->fetch();
+    } catch (Throwable $e) {
+        return $cache[$table] = false;
+    }
+}
+
+function mx_player_node_label($node) {
+    $label = trim((string)($node['display_name'] ?? ''));
+    if ($label === '') $label = trim((string)($node['spotify_name'] ?? ''));
+    if ($label === '') $label = trim((string)($node['hostname'] ?? ''));
+    if ($label === '') $label = trim((string)($node['node_key'] ?? ''));
+    return $label !== '' ? $label : 'Unnamed node';
+}
+
+function mx_player_node_live_status($node) {
+    if (empty($node['last_seen'])) return 'offline';
+    $seen = strtotime((string)$node['last_seen']);
+    if (!$seen) return 'offline';
+    $age = time() - $seen;
+    if ($age < 45) return 'online';
+    if ($age < 90) return 'warning';
+    return 'offline';
+}
+
+function mx_player_node_last_seen_label($node) {
+    if (empty($node['last_seen'])) return 'never';
+    $seen = strtotime((string)$node['last_seen']);
+    if (!$seen) return (string)$node['last_seen'];
+    $age = max(0, time() - $seen);
+    if ($age < 60) return $age . ' sec ago';
+    if ($age < 3600) return floor($age / 60) . ' min ago';
+    if ($age < 86400) return floor($age / 3600) . ' hr ago';
+    return date('d M H:i', $seen);
+}
+
+function mx_player_node_match_terms($node) {
+    $terms = [];
+    foreach (['spotify_name', 'display_name', 'hostname', 'node_key'] as $field) {
+        $value = strtolower(trim((string)($node[$field] ?? '')));
+        if ($value !== '') $terms[] = $value;
+    }
+    return array_values(array_unique($terms));
+}
+
+function mx_device_matches_node($device, $node) {
+    $name = strtolower(trim((string)($device['name'] ?? '')));
+    if ($name === '') return false;
+    foreach (mx_player_node_match_terms($node) as $term) {
+        if ($term !== '' && ($name === $term || str_contains($name, $term) || str_contains($term, $name))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function mx_player_nodes_for_mixer($devices = []) {
+    if (!mx_table_exists('player_nodes')) {
+        return ['all' => [], 'deck_a' => null, 'deck_b' => null];
+    }
+
+    try {
+        $rows = db()->query("
+            SELECT *
+            FROM player_nodes
+            ORDER BY
+              CASE UPPER(COALESCE(assigned_deck, ''))
+                WHEN 'A' THEN 0
+                WHEN 'B' THEN 1
+                ELSE 2
+              END,
+              COALESCE(display_name, spotify_name, hostname, node_key) ASC
+        ")->fetchAll();
+    } catch (Throwable $e) {
+        return ['all' => [], 'deck_a' => null, 'deck_b' => null];
+    }
+
+    $out = [];
+    $deckA = null;
+    $deckB = null;
+
+    foreach ($rows as $row) {
+        $matched = null;
+        foreach ((array)$devices as $device) {
+            if (mx_device_matches_node($device, $row)) {
+                $matched = [
+                    'id' => (string)($device['id'] ?? ''),
+                    'name' => (string)($device['name'] ?? ''),
+                    'is_active' => !empty($device['is_active']),
+                ];
+                break;
+            }
+        }
+
+        $clean = [
+            'node_key' => (string)($row['node_key'] ?? ''),
+            'label' => mx_player_node_label($row),
+            'display_name' => (string)($row['display_name'] ?? ''),
+            'spotify_name' => (string)($row['spotify_name'] ?? ''),
+            'hostname' => (string)($row['hostname'] ?? ''),
+            'ip_address' => (string)($row['ip_address'] ?? ''),
+            'assigned_deck' => strtoupper((string)($row['assigned_deck'] ?? '')),
+            'raspotify_running' => !empty($row['raspotify_running']),
+            'live_status' => mx_player_node_live_status($row),
+            'last_seen_label' => mx_player_node_last_seen_label($row),
+            'matched_device' => $matched,
+        ];
+
+        if ($clean['assigned_deck'] === 'A' && !$deckA) $deckA = $clean;
+        if ($clean['assigned_deck'] === 'B' && !$deckB) $deckB = $clean;
+        $out[] = $clean;
+    }
+
+    return ['all' => $out, 'deck_a' => $deckA, 'deck_b' => $deckB];
+}
+
 function mx_request_group_update_where($request_id, $request_group_id = '') {
     $request_id = (int)$request_id;
     $request_group_id = trim((string)$request_group_id);
@@ -932,6 +1055,14 @@ function mx_state() {
     $images = $item['album']['images'] ?? [];
     $image = '';
     if ($images) { $last = end($images); $image = $last['url'] ?? ($images[0]['url'] ?? ''); }
+    $cleanDevices = array_values(array_map(function($d){ return [
+        'id' => (string)($d['id'] ?? ''),
+        'name' => (string)($d['name'] ?? 'Spotify device'),
+        'type' => (string)($d['type'] ?? ''),
+        'is_active' => !empty($d['is_active']),
+        'deck_account' => (string)($d['deck_account'] ?? '')
+    ]; }, $devices));
+    $playerNodes = mx_player_nodes_for_mixer($cleanDevices);
     return [
         'configured' => dttd_spotify_config_loaded(),
         'connected' => dttd_spotify_queue_connected_for_deck('a') || dttd_spotify_queue_connected_for_deck('b'),
@@ -943,9 +1074,12 @@ function mx_state() {
             'deck_b' => function_exists('dttd_spotify_profile_summary_for_deck') ? dttd_spotify_profile_summary_for_deck('b') : null,
             'public_search' => function_exists('dttd_spotify_profile_summary_for_public_search') ? dttd_spotify_profile_summary_for_public_search() : null,
         ],
-        'devices' => array_values(array_map(function($d){ return [
-            'id' => (string)($d['id'] ?? ''), 'name' => (string)($d['name'] ?? 'Spotify device'), 'type' => (string)($d['type'] ?? ''), 'is_active' => !empty($d['is_active']), 'deck_account' => (string)($d['deck_account'] ?? '')
-        ]; }, $devices)),
+        'devices' => $cleanDevices,
+        'player_nodes' => $playerNodes['all'],
+        'deck_nodes' => [
+            'a' => $playerNodes['deck_a'],
+            'b' => $playerNodes['deck_b'],
+        ],
         'device_a' => $deviceA,
         'device_b' => $deviceB,
         'player_a' => ['state' => ($activeDeviceIdA && $activeDeviceIdA === $deviceA && $isPlayingA) ? 'playing' : 'standby', 'loaded' => mx_track_output($loadedA)],
