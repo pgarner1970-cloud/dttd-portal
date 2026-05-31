@@ -5195,3 +5195,89 @@ body.public-event-detail-page .public-track-icon-action.spotify:focus-visible .p
   fill:#1ed760 !important;
   stroke:#1ed760 !important;
 }
+
+
+/* Event gallery/card polish: keep photo tiles aligned with main gallery and enlarge Spotify brand mark */
+body.public-event-detail-page .public-event-photo-carousel-card{
+  margin-bottom:32px !important;
+}
+
+body.public-event-detail-page .public-event-photo-carousel-card + .public-event-detail-card,
+body.public-event-detail-page .public-feature-card + .public-event-detail-card{
+  margin-top:32px !important;
+}
+
+body.public-event-detail-page .public-event-photo-grid{
+  grid-template-columns:repeat(auto-fill,minmax(180px,220px)) !important;
+  align-items:start !important;
+  gap:18px !important;
+}
+
+body.public-event-detail-page .public-event-photo-tile.public-photo-tile{
+  display:block !important;
+  overflow:hidden !important;
+  background:rgba(255,255,255,.04) !important;
+  border:1px solid rgba(255,125,243,.28) !important;
+  border-radius:24px !important;
+  color:#fff !important;
+}
+
+body.public-event-detail-page .public-event-photo-tile .public-event-photo-thumb,
+body.public-event-detail-page .public-event-photo-tile .public-photo-thumb{
+  border:0 !important;
+  border-radius:0 !important;
+  background:none !important;
+  aspect-ratio:auto !important;
+  overflow:hidden !important;
+}
+
+body.public-event-detail-page .public-event-photo-tile .public-event-photo-thumb img,
+body.public-event-detail-page .public-event-photo-tile .public-photo-thumb img{
+  width:100% !important;
+  aspect-ratio:1 / 1 !important;
+  height:auto !important;
+  object-fit:contain !important;
+  background:rgba(4,3,12,.72) !important;
+  display:block !important;
+}
+
+body.public-event-detail-page .public-event-photo-meta{
+  padding:12px 14px 15px !important;
+}
+
+body.public-event-detail-page .public-event-photo-meta h3{
+  margin:0 0 5px !important;
+  font-size:1.05rem !important;
+  line-height:1.15 !important;
+}
+
+body.public-event-detail-page .public-event-photo-meta p{
+  margin:0 0 7px !important;
+  color:#ddd3eb !important;
+  font-size:.82rem !important;
+  line-height:1.35 !important;
+}
+
+body.public-event-detail-page .public-event-photo-meta strong{
+  color:#ffe257 !important;
+  font-size:.82rem !important;
+  line-height:1.25 !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon{
+  width:26px !important;
+  height:26px !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon circle{
+  fill:#1DB954 !important;
+  stroke:#1DB954 !important;
+  stroke-width:0 !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon path{
+  stroke:#050814 !important;
+  stroke-width:1.45 !important;
+  stroke-linecap:round !important;
+  stroke-linejoin:round !important;
+}

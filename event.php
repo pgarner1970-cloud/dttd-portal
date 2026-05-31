@@ -1098,13 +1098,17 @@ if ($event) {
                     $shareUrl = !empty($photo['id']) ? '/gallery.php?photo=' . (int)$photo['id'] : '/' . ltrim($displayPath, '/');
                     $shareText = $title . ($venue ? ' at ' . $venue : '') . "\nDance Thru The Decades";
                   ?>
-                  <article class="public-event-photo-tile" data-lightbox-item="<?= (int)$index ?>" data-lightbox-image="/<?= public_h($originalPath ?: $displayPath) ?>" data-lightbox-title="<?= public_h($title) ?>" data-lightbox-meta="<?= public_h(($venue ? $venue . ' · ' : '') . dttd_public_event_date($event)) ?>" data-lightbox-share-url="<?= public_h($shareUrl) ?>" data-lightbox-share-text="<?= public_h($shareText) ?>">
-                    <button class="public-event-photo-thumb" type="button">
+                  <article class="public-event-photo-tile public-photo-tile" data-lightbox-item="<?= (int)$index ?>" data-lightbox-image="/<?= public_h($displayPath ?: $thumbPath) ?>" data-lightbox-title="<?= public_h($title) ?>" data-lightbox-meta="<?= public_h(($venue ? $venue . ' · ' : '') . dttd_public_event_date($event)) ?>" data-lightbox-share-url="<?= public_h($shareUrl) ?>" data-lightbox-share-text="<?= public_h($shareText) ?>">
+                    <button class="public-event-photo-thumb public-photo-thumb" type="button">
                       <img src="/<?= public_h($thumbPath ?: $displayPath) ?>" alt="<?= public_h($photoTitle) ?>">
                     </button>
-                    <?php if (!empty($photo['guest_name'])): ?>
-                      <span>Shared by <?= public_h($photo['guest_name']) ?></span>
-                    <?php endif; ?>
+                    <div class="public-photo-meta public-event-photo-meta">
+                      <h3><?= public_h($title) ?></h3>
+                      <p><?= public_h(($venue ? $venue . ' · ' : '') . dttd_public_event_date($event)) ?></p>
+                      <?php if (!empty($photo['guest_name'])): ?>
+                        <strong>Shared by <?= public_h($photo['guest_name']) ?></strong>
+                      <?php endif; ?>
+                    </div>
                   </article>
                 <?php endforeach; ?>
               </div>
