@@ -145,6 +145,7 @@ $privateEventCode = ($homepage_state === 'private-event' && $active_event) ? tri
 $privateEventRequestUrl = $privateEventCode !== '' ? '/request.php?code=' . rawurlencode($privateEventCode) : '/request.php';
 $privateEventUploadUrl = !empty($active_event['id']) ? '/upload.php?event_id=' . rawurlencode((string)$active_event['id']) : '/upload.php';
 $privateEventInfoUrl = $privateEventCode !== '' ? '/event.php?code=' . rawurlencode($privateEventCode) : '/event.php';
+$privateEventType = ($homepage_state === 'private-event' && $active_event) ? strtolower((string)($active_event['event_type'] ?? 'private_party')) : '';
 $public_current = 'home';
 ?>
 <!DOCTYPE html>
@@ -154,7 +155,7 @@ $public_current = 'home';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dance Thru the Decades Events</title>
   <meta name="description" content="Dance Thru the Decades Events — 60s, 70s, 80s, 90s and 00s party nights, DJ events, song requests and Facebook event updates.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=282">
+  <link rel="stylesheet" href="/assets/public-site.css?v=283">
 </head>
 <body class="homepage-option-one">
   <main class="home-option-one">
@@ -258,10 +259,22 @@ $public_current = 'home';
         </div>
 
         <?php if ($homepage_state === 'private-event' && $active_event): ?>
-          <p class="homepage-state-note private-event-note">
-            Tonight we are hosting a private event<?= $privateEventName !== '' ? ' for ' . htmlspecialchars($privateEventName) : '' ?>.
-            <a href="<?= htmlspecialchars($privateEventRequestUrl) ?>">Guests can access requests and event options here.</a>
-          </p>
+          <div class="private-event-access-card <?= $privateEventType === 'wedding' ? 'is-wedding' : ($privateEventType === 'private_party' ? 'is-party' : '') ?>">
+            <div class="private-event-access-decor" aria-hidden="true">
+              <?php if ($privateEventType === 'wedding'): ?>
+                <span>♡</span><span>⚭</span><span>♡</span>
+              <?php elseif ($privateEventType === 'private_party'): ?>
+                <span>✦</span><span>✺</span><span>✦</span>
+              <?php else: ?>
+                <span>✦</span><span>•</span><span>✦</span>
+              <?php endif; ?>
+            </div>
+            <div>
+              <strong>Tonight we are hosting a private event<?= $privateEventName !== '' ? ' for ' . htmlspecialchars($privateEventName) : '' ?>.</strong>
+              <p>Guests can access requests, photos and event options here.</p>
+            </div>
+            <a class="private-event-access-button" href="<?= htmlspecialchars($privateEventRequestUrl) ?>">Guest access</a>
+          </div>
         <?php elseif ($homepage_state === 'no-event'): ?>
           <p class="homepage-state-note">Song requests open automatically when an event is live.</p>
         <?php endif; ?>
