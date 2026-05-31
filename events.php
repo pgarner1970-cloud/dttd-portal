@@ -70,6 +70,7 @@ function public_event_is_private($event) {
         || $visibility === 'private'
         || str_contains($eventType, 'private')
         || str_contains($eventType, 'wedding')
+        || str_contains($eventType, 'corporate')
         || str_contains($eventType, 'birthday')
     );
 }
@@ -151,7 +152,7 @@ if (public_column_exists('events', 'visibility')) {
 }
 
 if (public_column_exists('events', 'event_type')) {
-    $where[] = "(event_type IS NULL OR (LOWER(event_type) NOT LIKE '%private%' AND LOWER(event_type) NOT LIKE '%wedding%' AND LOWER(event_type) NOT LIKE '%birthday%'))";
+    $where[] = "(event_type IS NULL OR (LOWER(event_type) = 'public'))";
 }
 
 $order = public_column_exists('events', 'event_date')

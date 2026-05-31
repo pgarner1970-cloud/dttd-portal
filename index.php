@@ -51,27 +51,16 @@ function home_public_event_venue($event) {
 }
 
 function home_event_is_private($event) {
-    /*
-     * Public homepage/scroller rule:
-     * only genuinely public/promoted events should appear here.
-     * Private parties can still use QR/code access to request songs/upload photos,
-     * but they should not be advertised on the public homepage.
-     */
-    foreach (['is_public', 'public_event', 'show_publicly', 'show_on_site', 'is_listed'] as $flagColumn) {
-        if (array_key_exists($flagColumn, $event) && $event[$flagColumn] !== null && $event[$flagColumn] !== '') {
-            return !((int)$event[$flagColumn] === 1);
-        }
-    }
-
     $visibility = strtolower((string)($event['queue_visibility'] ?? $event['visibility'] ?? 'public'));
     $eventType = strtolower((string)($event['event_type'] ?? ''));
     $status = strtolower((string)($event['status'] ?? ''));
 
     return (
-        in_array($status, ['private', 'hidden', 'draft', 'cancelled'], true)
-        || in_array($visibility, ['private', 'hidden', 'unlisted'], true)
+        $status === 'private'
+        || $visibility === 'private'
         || str_contains($eventType, 'private')
         || str_contains($eventType, 'wedding')
+        || str_contains($eventType, 'corporate')
         || str_contains($eventType, 'birthday')
     );
 }
@@ -99,6 +88,7 @@ try {
             END AS live_end_at
         FROM events
         WHERE is_active = 1
+          AND (event_type IS NULL OR LOWER(event_type) = 'public')
           AND event_date IS NOT NULL
           AND start_time IS NOT NULL
           AND start_time <> ''
@@ -136,14 +126,9 @@ try {
         SELECT *
         FROM events
         WHERE is_active = 1
+          AND (event_type IS NULL OR LOWER(event_type) = 'public')
           AND event_date IS NOT NULL
-          AND start_time IS NOT NULL
-          AND start_time <> ''
-          AND CASE
-                WHEN end_time IS NULL OR end_time = '' THEN DATE_ADD(TIMESTAMP(event_date, start_time), INTERVAL 6 HOUR)
-                WHEN end_time < start_time THEN TIMESTAMP(DATE_ADD(event_date, INTERVAL 1 DAY), end_time)
-                ELSE TIMESTAMP(event_date, end_time)
-              END >= NOW()
+          AND event_date >= DATE_SUB(CURDATE(), INTERVAL 1 DAY)
         ORDER BY event_date ASC, start_time ASC, id ASC
         LIMIT 8
     "
@@ -155,30 +140,6 @@ try {
     $homepage_events = [];
 }
 
-$homepage_fallback_cards = [
-    [
-        'label' => 'More events soon',
-        'title' => 'New dates coming',
-        'text' => 'Keep an eye on this page for upcoming Dance Thru The Decades events.',
-        'href' => '/events.php',
-    ],
-    [
-        'label' => 'Book us',
-        'title' => 'Planning a party?',
-        'text' => 'Contact us to bring Dance Thru The Decades to your venue or event.',
-        'href' => 'https://www.facebook.com/profile.php?id=61579454050951',
-    ],
-    [
-        'label' => 'Follow us',
-        'title' => 'Stay updated',
-        'text' => 'Follow us for new dates, photos and announcements.',
-        'href' => 'https://www.facebook.com/profile.php?id=61579454050951',
-    ],
-];
-
-$homepage_fallback_needed = max(0, 3 - count($homepage_events));
-$homepage_fallback_cards = array_slice($homepage_fallback_cards, 0, $homepage_fallback_needed);
-
 $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
 $public_current = 'home';
 ?>
@@ -189,7 +150,7 @@ $public_current = 'home';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dance Thru the Decades Events</title>
   <meta name="description" content="Dance Thru the Decades Events — 60s, 70s, 80s, 90s and 00s party nights, DJ events, song requests and Facebook event updates.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=316">
+  <link rel="stylesheet" href="/assets/public-site.css?v=282">
 </head>
 <body class="homepage-option-one">
   <main class="home-option-one">
@@ -224,7 +185,7 @@ $public_current = 'home';
               </span>
             </a>
 
-            <a class="option-one-action-card live-event-action" href="/event.php">
+            <a class="option-one-action-card" href="/event.php">
               <span class="option-one-icon">▣</span>
               <span>
                 <strong>This Event</strong>
@@ -257,7 +218,7 @@ $public_current = 'home';
               </span>
             </a>
 
-            <a class="option-one-action-card live-event-action" href="/event.php">
+            <a class="option-one-action-card" href="/event.php">
               <span class="option-one-icon">▣</span>
               <span>
                 <strong>Event Info</strong>
@@ -340,7 +301,7 @@ $public_current = 'home';
       </div>
     </section>
 
-    <?php if (!empty($homepage_events) || !empty($homepage_fallback_cards)): ?>
+    <?php if ($homepage_state !== 'no-event' && !empty($homepage_events)): ?>
       <section class="home-coming-up" aria-label="Coming up events">
         <div class="home-coming-up-head">
           <span>Coming up</span>
@@ -361,14 +322,6 @@ $public_current = 'home';
                 <strong><?= htmlspecialchars($label) ?></strong>
                 <span><?= htmlspecialchars($title) ?></span>
                 <em><?= htmlspecialchars(trim($date . ($time ? ' · ' . $time : '') . ($venue ? ' · ' . $venue : ''))) ?></em>
-              </a>
-            <?php endforeach; ?>
-
-            <?php foreach ($homepage_fallback_cards as $fallback): ?>
-              <a class="home-coming-up-card is-fallback" href="<?= htmlspecialchars($fallback['href']) ?>" <?= $loop ? 'aria-hidden="true" tabindex="-1"' : '' ?><?= str_starts_with($fallback['href'], 'http') ? ' target="_blank" rel="noopener"' : '' ?>>
-                <strong><?= htmlspecialchars($fallback['label']) ?></strong>
-                <span><?= htmlspecialchars($fallback['title']) ?></span>
-                <em><?= htmlspecialchars($fallback['text']) ?></em>
               </a>
             <?php endforeach; ?>
           <?php endfor; ?>

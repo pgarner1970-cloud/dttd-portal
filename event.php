@@ -54,6 +54,7 @@ function public_event_is_private($event) {
         || $visibility === 'private'
         || str_contains($eventType, 'private')
         || str_contains($eventType, 'wedding')
+        || str_contains($eventType, 'corporate')
         || str_contains($eventType, 'birthday')
     );
 }
@@ -115,6 +116,10 @@ function public_find_event_by_slug($slug) {
             $stmt->execute([$slug]);
             $event = $stmt->fetch();
             if ($event) {
+                $status = public_event_status($event);
+                if (in_array($status, ['draft', 'private'], true) || public_event_is_private($event)) {
+                    return null;
+                }
                 return $event;
             }
         }
@@ -746,136 +751,56 @@ function public_render_played_track_item($played, $event, $eventShareUrl) {
 function public_event_photo_table_ready() {
     return dttd_table_exists('event_photo_uploads')
         && dttd_table_column_exists('event_photo_uploads', 'event_id')
-        && (
-            dttd_table_column_exists('event_photo_uploads', 'file_path')
-            || dttd_table_column_exists('event_photo_uploads', 'framed_path')
-            || dttd_table_column_exists('event_photo_uploads', 'thumb_path')
-            || dttd_table_column_exists('event_photo_uploads', 'original_path')
-        );
-}
-
-function public_absolute_url($path) {
-    $path = trim((string)$path);
-    if ($path === '') {
-        return '';
-    }
-    if (preg_match('~^https?://~i', $path)) {
-        return $path;
-    }
-    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'] ?? 'dancethruthedecades.co.uk';
-    return $scheme . '://' . $host . '/' . ltrim($path, '/');
-}
-
-function public_event_photo_share_text($event, $photo = []) {
-    $title = trim((string)($event['event_name'] ?? $event['name'] ?? 'Dance Thru The Decades event'));
-    $venue = trim((string)($event['venue_name'] ?? $event['venue'] ?? ''));
-    $date = function_exists('dttd_public_event_date') ? dttd_public_event_date($event) : trim((string)($event['event_date'] ?? ''));
-
-    return trim($title . ($venue || $date ? "\n" . trim($venue . ($venue && $date ? ' · ' : '') . $date) : '') . "\nDance Thru The Decades");
+        && dttd_table_column_exists('event_photo_uploads', 'file_path');
 }
 
 function public_event_approved_photos($event_id, $limit = 12) {
     $photos = [];
     $limit = max(1, min(30, (int)$limit));
-    $event_id = (int)$event_id;
 
     if (public_event_photo_table_ready()) {
         try {
-            $selectColumns = ['event_id'];
-            foreach (['id', 'file_path', 'framed_path', 'thumb_path', 'original_path', 'guest_name', 'status'] as $column) {
-                if (dttd_table_column_exists('event_photo_uploads', $column)) {
-                    $selectColumns[] = $column;
-                }
-            }
-            $selectSql = implode(', ', array_unique($selectColumns));
-
-            $statusFilter = dttd_table_column_exists('event_photo_uploads', 'status') ? "AND LOWER(status) = 'approved'" : '';
+            $statusFilter = dttd_table_column_exists('event_photo_uploads', 'status') ? "AND status = 'approved'" : '';
             $orderParts = [];
-            foreach (['approved_at', 'uploaded_at', 'created_at'] as $dateColumn) {
-                if (dttd_table_column_exists('event_photo_uploads', $dateColumn)) {
-                    $orderParts[] = $dateColumn . ' DESC';
-                }
+            if (dttd_table_column_exists('event_photo_uploads', 'approved_at')) {
+                $orderParts[] = 'approved_at DESC';
             }
-            if (dttd_table_column_exists('event_photo_uploads', 'id')) {
-                $orderParts[] = 'id DESC';
+            if (dttd_table_column_exists('event_photo_uploads', 'uploaded_at')) {
+                $orderParts[] = 'uploaded_at DESC';
             }
-            $orderSql = $orderParts ? ' ORDER BY ' . implode(', ', array_unique($orderParts)) : '';
+            if (dttd_table_column_exists('event_photo_uploads', 'created_at')) {
+                $orderParts[] = 'created_at DESC';
+            }
+            $orderParts[] = 'id DESC';
+            $orderSql = implode(', ', array_unique($orderParts));
 
-            // Keep LIMIT as an integer in SQL for better compatibility on shared hosts.
-            $stmt = db()->prepare("SELECT $selectSql FROM event_photo_uploads WHERE event_id = ? $statusFilter $orderSql LIMIT $limit");
-            $stmt->execute([$event_id]);
-
+            $stmt = db()->prepare("SELECT file_path, guest_name FROM event_photo_uploads WHERE event_id = ? $statusFilter ORDER BY $orderSql LIMIT ?");
+            $stmt->execute([(int)$event_id, $limit]);
             foreach ($stmt->fetchAll() as $row) {
-                $display = '';
-                $thumb = '';
-
-                if (function_exists('photo_row_display_paths')) {
-                    $paths = photo_row_display_paths($row);
-                    $display = trim((string)($paths['display'] ?? ''));
-                    $thumb = trim((string)($paths['thumb'] ?? $display));
-                }
-
-                if ($display === '') {
-                    foreach (['framed_path', 'file_path', 'original_path', 'thumb_path'] as $pathColumn) {
-                        $candidate = trim((string)($row[$pathColumn] ?? ''));
-                        if ($candidate !== '') {
-                            $display = $candidate;
-                            break;
-                        }
-                    }
-                }
-
-                if ($thumb === '') {
-                    foreach (['thumb_path', 'framed_path', 'file_path', 'original_path'] as $pathColumn) {
-                        $candidate = trim((string)($row[$pathColumn] ?? ''));
-                        if ($candidate !== '') {
-                            $thumb = $candidate;
-                            break;
-                        }
-                    }
-                }
-
-                if ($display === '') {
+                $path = trim((string)($row['file_path'] ?? ''));
+                if ($path === '') {
                     continue;
                 }
-
                 $photos[] = [
-                    'id' => (int)($row['id'] ?? 0),
-                    'path' => ltrim($display, '/'),
-                    'thumb' => ltrim(($thumb ?: $display), '/'),
+                    'path' => ltrim($path, '/'),
                     'guest_name' => trim((string)($row['guest_name'] ?? '')),
                 ];
             }
         } catch (Throwable $e) {
-            error_log('[DTTD event photos] Approved photo lookup failed: ' . $e->getMessage());
             $photos = [];
         }
     }
 
     if (!$photos) {
-        $fallbackDirs = [
-            __DIR__ . '/uploads/event-photos/framed' => 'uploads/event-photos/framed/',
-            __DIR__ . '/uploads/event-photos/approved' => 'uploads/event-photos/approved/',
-            __DIR__ . '/uploads/event-photos' => 'uploads/event-photos/',
-        ];
-
-        foreach ($fallbackDirs as $dir => $urlPrefix) {
-            if (!is_dir($dir)) {
-                continue;
-            }
-            foreach (glob($dir . '/*.{jpg,jpeg,png,webp,gif}', GLOB_BRACE) ?: [] as $file) {
-                $base = basename($file);
-                if (!str_contains($base, 'event-' . $event_id . '-') && !str_contains($base, '-' . $event_id . '-')) {
-                    continue;
-                }
+        $approvedDir = __DIR__ . '/uploads/event-photos/approved';
+        if (is_dir($approvedDir)) {
+            foreach (glob($approvedDir . '/event-' . (int)$event_id . '-*.{jpg,jpeg,png,webp,gif}', GLOB_BRACE) ?: [] as $file) {
                 $photos[] = [
-                    'path' => $urlPrefix . $base,
-                    'thumb' => $urlPrefix . $base,
+                    'path' => 'uploads/event-photos/approved/' . basename($file),
                     'guest_name' => '',
                 ];
                 if (count($photos) >= $limit) {
-                    break 2;
+                    break;
                 }
             }
         }
@@ -950,7 +875,7 @@ if ($event) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : ($notFound ? 'Event Not Found' : 'Join Event') ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event portal.' ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=315">
+  <link rel="stylesheet" href="/assets/public-site.css?v=291">
 </head>
 <body class="homepage-option-one public-event-detail-page public-event-portal-page">
   <main class="home-option-one">
@@ -1056,11 +981,6 @@ if ($event) {
                 <strong>Upload Photos</strong>
                 <em>Uploads wait for moderation</em>
               </a>
-              <a class="public-event-action-tile public-mobile-selfie-action" href="/upload.php?selfie=1" data-mobile-selfie-action>
-                <span>🤳</span>
-                <strong>Take a Selfie</strong>
-                <em>Use your phone camera</em>
-              </a>
               <a class="public-event-action-tile" href="<?= public_h($facebookUrl) ?>" target="_blank" rel="noopener">
                 <span>f</span>
                 <strong>Follow Us</strong>
@@ -1139,50 +1059,41 @@ if ($event) {
             </div>
 
             <?php if (!empty($eventPhotos)): ?>
-              <div class="public-event-photo-grid">
-                <?php foreach ($eventPhotos as $photo): ?>
-                  <?php
-                    $eventPhotoUrl = '/' . ltrim((string)$photo['path'], '/');
-                    $eventPhotoThumb = '/' . ltrim((string)($photo['thumb'] ?? $photo['path']), '/');
-                    $eventPhotoShareUrl = !empty($photo['id']) ? public_absolute_url('/gallery.php?photo=' . (int)$photo['id']) : public_absolute_url($eventPhotoUrl);
-                    $eventPhotoShareText = public_event_photo_share_text($event, $photo);
-                    $eventPhotoDateLabel = function_exists('dttd_public_event_date') ? dttd_public_event_date($event) : '';
-                    $eventPhotoMeta = trim(($venue ? $venue : '') . (($venue && $eventPhotoDateLabel) ? ' · ' : '') . ($eventPhotoDateLabel ? $eventPhotoDateLabel : ''));
-                  ?>
-                  <a class="public-event-photo-grid-item"
-                     href="<?= public_h($eventPhotoUrl) ?>"
-                     target="_blank"
-                     rel="noopener"
-                     data-event-photo-lightbox
-                     data-lightbox-image="<?= public_h($eventPhotoUrl) ?>"
-                     data-lightbox-title="<?= public_h($title) ?>"
-                     data-lightbox-meta="<?= public_h($eventPhotoMeta) ?>"
-                     data-lightbox-share-url="<?= public_h($eventPhotoShareUrl) ?>"
-                     data-lightbox-share-text="<?= public_h($eventPhotoShareText) ?>">
-                    <img src="<?= public_h($eventPhotoThumb) ?>" alt="Approved photo from <?= public_h($title) ?>">
-                    <?php if (!empty($photo['guest_name'])): ?>
-                      <span>Shared by <?= public_h($photo['guest_name']) ?></span>
-                    <?php endif; ?>
-                  </a>
-                <?php endforeach; ?>
+              <div class="public-photo-carousel" data-public-carousel>
+                <button class="public-carousel-btn public-carousel-prev" type="button" aria-label="Previous photo">‹</button>
+                <div class="public-photo-carousel-track">
+                  <?php foreach ($eventPhotos as $photo): ?>
+                    <a class="public-photo-carousel-slide" href="/<?= public_h($photo['path']) ?>" target="_blank" rel="noopener">
+                      <img src="/<?= public_h($photo['path']) ?>" alt="Approved photo from <?= public_h($title) ?>">
+                      <?php if (!empty($photo['guest_name'])): ?>
+                        <span>Shared by <?= public_h($photo['guest_name']) ?></span>
+                      <?php endif; ?>
+                    </a>
+                  <?php endforeach; ?>
+                </div>
+                <button class="public-carousel-btn public-carousel-next" type="button" aria-label="Next photo">›</button>
               </div>
             <?php else: ?>
-              <div class="public-event-photo-placeholder-grid">
-                <div class="public-event-photo-placeholder-card">
-                  <span class="public-placeholder-icon">📸</span>
-                  <strong>Photos from tonight will appear here</strong>
-                  <em>Once approved, guest uploads become part of the event memories.</em>
+              <div class="public-photo-carousel public-placeholder-carousel" data-public-carousel>
+                <button class="public-carousel-btn public-carousel-prev" type="button" aria-label="Previous photo placeholder">‹</button>
+                <div class="public-photo-carousel-track">
+                  <div class="public-photo-carousel-slide public-photo-placeholder-slide">
+                    <span class="public-placeholder-icon">📸</span>
+                    <strong>Photos from tonight will appear here</strong>
+                    <em>Once approved, guest uploads become part of the event memories.</em>
+                  </div>
+                  <div class="public-photo-carousel-slide public-photo-placeholder-slide">
+                    <span class="public-placeholder-icon">✨</span>
+                    <strong>Share your best dancefloor moment</strong>
+                    <em>Upload photos from your phone and we will check them before they go live.</em>
+                  </div>
+                  <div class="public-photo-carousel-slide public-photo-placeholder-slide">
+                    <span class="public-placeholder-icon">🎶</span>
+                    <strong>Keep the memories together</strong>
+                    <em>Approved photos will build into tonight’s gallery.</em>
+                  </div>
                 </div>
-                <div class="public-event-photo-placeholder-card">
-                  <span class="public-placeholder-icon">✨</span>
-                  <strong>Share your best dancefloor moment</strong>
-                  <em>Upload photos from your phone and we will check them before they go live.</em>
-                </div>
-                <div class="public-event-photo-placeholder-card">
-                  <span class="public-placeholder-icon">🎶</span>
-                  <strong>Keep the memories together</strong>
-                  <em>Approved photos will build into tonight’s gallery.</em>
-                </div>
+                <button class="public-carousel-btn public-carousel-next" type="button" aria-label="Next photo placeholder">›</button>
               </div>
               <div class="public-carousel-empty public-carousel-empty-actions">
                 <strong>No approved photos yet.</strong>
@@ -1268,7 +1179,7 @@ if ($event) {
           </div>
         </article>
 
-        <?php if ($mapEmbedUrl && !$hasEventAccess): ?>
+        <?php if ($mapEmbedUrl): ?>
           <section class="public-map-section">
             <h2>Venue Map</h2>
             <div class="public-map-frame">
@@ -1282,154 +1193,6 @@ if ($event) {
         <?php endif; ?>
       </section>
     <?php endif; ?>
-
-
-    <div class="public-event-photo-lightbox" id="eventPhotoLightbox" hidden>
-      <button class="public-event-photo-lightbox-close" type="button" aria-label="Close photo">×</button>
-      <figure>
-        <img id="eventPhotoLightboxImage" src="" alt="">
-        <figcaption>
-          <strong id="eventPhotoLightboxTitle"></strong>
-          <span id="eventPhotoLightboxMeta"></span>
-          <div class="public-event-photo-lightbox-actions">
-            <button class="public-event-photo-copy" type="button">Copy preview link</button>
-            <button class="public-event-photo-share" type="button">Quick share</button>
-            <a class="public-event-photo-download" href="#" download>Download image</a>
-          </div>
-          <small id="eventPhotoLightboxNotice" class="public-event-photo-lightbox-notice" aria-live="polite"></small>
-        </figcaption>
-      </figure>
-    </div>
-
-    <script>
-      (function(){
-        function ready(fn){
-          if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', fn);
-          } else {
-            fn();
-          }
-        }
-
-        ready(function(){
-          var lightbox = document.getElementById('eventPhotoLightbox');
-          if (!lightbox) return;
-
-          var image = document.getElementById('eventPhotoLightboxImage');
-          var title = document.getElementById('eventPhotoLightboxTitle');
-          var meta = document.getElementById('eventPhotoLightboxMeta');
-          var notice = document.getElementById('eventPhotoLightboxNotice');
-          var closeBtn = lightbox.querySelector('.public-event-photo-lightbox-close');
-          var copyBtn = lightbox.querySelector('.public-event-photo-copy');
-          var shareBtn = lightbox.querySelector('.public-event-photo-share');
-          var downloadLink = lightbox.querySelector('.public-event-photo-download');
-          var currentShareUrl = '';
-          var currentShareText = '';
-
-          function setNotice(message){
-            if (!notice) return;
-            notice.textContent = message || '';
-            if (message) {
-              window.clearTimeout(setNotice.timer);
-              setNotice.timer = window.setTimeout(function(){ notice.textContent = ''; }, 2400);
-            }
-          }
-
-          function closeLightbox(){
-            lightbox.hidden = true;
-            lightbox.setAttribute('aria-hidden', 'true');
-            document.body.classList.remove('lightbox-open');
-          }
-
-          function openLightbox(item){
-            if (!image) return false;
-
-            currentShareUrl = item.getAttribute('data-lightbox-share-url') || item.href || window.location.href;
-            currentShareText = item.getAttribute('data-lightbox-share-text') || item.getAttribute('data-lightbox-title') || 'Dance Thru The Decades photo';
-
-            image.src = item.getAttribute('data-lightbox-image') || item.href || '';
-            image.alt = item.getAttribute('data-lightbox-title') || 'Event photo';
-            if (title) title.textContent = item.getAttribute('data-lightbox-title') || '';
-            if (meta) meta.textContent = item.getAttribute('data-lightbox-meta') || '';
-            if (downloadLink) downloadLink.href = item.getAttribute('data-lightbox-image') || item.href || '#';
-
-            lightbox.hidden = false;
-            lightbox.setAttribute('aria-hidden', 'false');
-            document.body.classList.add('lightbox-open');
-            setNotice('');
-            return true;
-          }
-
-          document.querySelectorAll('[data-event-photo-lightbox]').forEach(function(item){
-            item.addEventListener('click', function(e){
-              try {
-                if (openLightbox(item)) {
-                  e.preventDefault();
-                }
-              } catch (err) {
-                // Allow the normal image link to open if anything goes wrong.
-              }
-            });
-          });
-
-          if (closeBtn) closeBtn.addEventListener('click', closeLightbox);
-          lightbox.addEventListener('click', function(e){
-            if (e.target === lightbox) closeLightbox();
-          });
-          document.addEventListener('keydown', function(e){
-            if (e.key === 'Escape' && !lightbox.hidden) closeLightbox();
-          });
-
-          async function copyLink(){
-            if (!currentShareUrl) return;
-            try {
-              await navigator.clipboard.writeText(currentShareUrl);
-              setNotice('Preview link copied');
-            } catch (err) {
-              window.prompt('Copy this link', currentShareUrl);
-            }
-          }
-
-          if (copyBtn) copyBtn.addEventListener('click', copyLink);
-
-          if (shareBtn) {
-            shareBtn.addEventListener('click', async function(){
-              if (navigator.share) {
-                try {
-                  await navigator.share({
-                    title: title ? title.textContent : 'Dance Thru The Decades photo',
-                    text: currentShareText,
-                    url: currentShareUrl
-                  });
-                  return;
-                } catch (err) {
-                  if (err && err.name === 'AbortError') return;
-                }
-              }
-              copyLink();
-            });
-          }
-        });
-      })();
-    </script>
-
-
-    <script>
-      (function(){
-        var action = document.querySelector('[data-mobile-selfie-action]');
-        if (!action) return;
-
-        var ua = navigator.userAgent || '';
-        var hasTouch = (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window;
-        var mobileUa = /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(ua);
-        var narrowScreen = window.matchMedia && window.matchMedia('(max-width: 760px)').matches;
-        var coarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-
-        if ((mobileUa || (hasTouch && coarsePointer)) && narrowScreen) {
-          document.documentElement.classList.add('can-show-selfie-action');
-        }
-      })();
-    </script>
 
     <?php require __DIR__ . '/includes/public-footer.php'; ?>
   </main>
