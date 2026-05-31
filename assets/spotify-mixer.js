@@ -416,8 +416,12 @@ renderAccountStatus();
       b.disabled = !canA && !canB;
       b.title = b.disabled ? 'No standby player is available' : 'Auto-load to a standby player';
     });
-      if(state?.is_playing){ els.spotifyStatus.textContent = `Playing on ${state.active_device_name || 'active device'}${state.track?.title ? ' — ' + state.track.title : ''}`; }
-      else
+    if (els.spotifyStatus) {
+      if (state?.is_playing) {
+        els.spotifyStatus.textContent = `Playing on ${state.active_device_name || 'active device'}${state.track?.title ? ' — ' + state.track.title : ''}`;
+      } else {
+        els.spotifyStatus.textContent = '';
+      }
     }
   }
   function renderPlaylist(){

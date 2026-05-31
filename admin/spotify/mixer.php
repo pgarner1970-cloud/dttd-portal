@@ -144,5 +144,5 @@ admin_header('Spotify Mixer - DJ Portal');
   </div>
   
 </main>
-<script src="<?= h(admin_url('assets/spotify-mixer.js')) ?>?v=20260531-search-api-path-fix"></script>
+<script src="<?= h(admin_url('assets/spotify-mixer.js')) ?>?v=20260531-mixer-js-syntax-fix"></script>
 <?php admin_footer(); ?>
