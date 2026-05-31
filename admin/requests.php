@@ -270,13 +270,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['merge_source_group'],
         $target_is_open = (int)$check->fetchColumn() > 0;
 
         if ($target_is_open) {
+            // Merge means the source requests become part of the destination/prevailing
+            // Spotify track, not just a visual grouping. This prevents alternate
+            // versions/remasters from later being logged separately in history.
+            $targetTrack = null;
+            try {
+                $targetStmt = db()->prepare("
+                    SELECT *
+                    FROM song_requests
+                    WHERE event_id = ?
+                    AND request_group_id = ?
+                    ORDER BY
+                        CASE WHEN spotify_track_id IS NOT NULL AND spotify_track_id <> '' THEN 0 ELSE 1 END,
+                        created_at ASC,
+                        id ASC
+                    LIMIT 1
+                ");
+                $targetStmt->execute([(int)$event['id'], $target_id]);
+                $targetTrack = $targetStmt->fetch(PDO::FETCH_ASSOC) ?: null;
+            } catch (Throwable $e) {
+                $targetTrack = null;
+            }
+
+            $sets = ['request_group_id = ?'];
+            $params = [$target_id];
+
+            if (is_array($targetTrack)) {
+                $mergeColumns = [
+                    'song_title',
+                    'artist',
+                    'spotify_track_id',
+                    'spotify_track_url',
+                    'spotify_album_image',
+                    'spotify_uri',
+                    'spotify_url',
+                    'spotify_album_name',
+                    'spotify_duration_ms',
+                    'track_duration_ms',
+                    'duration_ms',
+                    'album_image',
+                    'artwork_url'
+                ];
+
+                foreach ($mergeColumns as $column) {
+                    if (dttd_song_request_column_exists($column) && array_key_exists($column, $targetTrack)) {
+                        $sets[] = $column . ' = ?';
+                        $params[] = $targetTrack[$column];
+                    }
+                }
+            }
+
+            $params[] = (int)$event['id'];
+            $params[] = $source_id;
+
             $stmt = db()->prepare("
                 UPDATE song_requests
-                SET request_group_id = ?
+                SET " . implode(', ', $sets) . "
                 WHERE event_id = ?
                 AND request_group_id = ?
             ");
-            $stmt->execute([$target_id, (int)$event['id'], $source_id]);
+            $stmt->execute($params);
         }
     }
 
