@@ -223,7 +223,7 @@ $requestCloseClock = $event ? dttd_event_request_close_clock_label($event) : '';
         </article>
 
       <?php else: ?>
-        <article class="public-feature-card public-request-card">
+        <article class="public-feature-card public-request-card compact-request-card">
           <div class="public-feature-card-header">
             <div>
               <span class="public-feature-kicker">Connected to this event</span>
