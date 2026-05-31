@@ -903,7 +903,7 @@ if ($event) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : ($notFound ? 'Event Not Found' : 'Join Event') ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event portal.' ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=293">
+  <link rel="stylesheet" href="/assets/public-site.css?v=294">
 </head>
 <body class="homepage-option-one public-event-detail-page public-event-portal-page event-detail-safe">
   <main class="home-option-one">
@@ -1098,7 +1098,7 @@ if ($event) {
                     $shareUrl = !empty($photo['id']) ? '/gallery.php?photo=' . (int)$photo['id'] : '/' . ltrim($displayPath, '/');
                     $shareText = $title . ($venue ? ' at ' . $venue : '') . "\nDance Thru The Decades";
                   ?>
-                  <article class="public-event-photo-tile" data-lightbox-item="<?= (int)$index ?>" data-lightbox-image="/<?= public_h($originalPath ?: $displayPath) ?>" data-lightbox-title="<?= public_h($photoTitle) ?>" data-lightbox-meta="<?= public_h($photoMeta) ?>" data-lightbox-share-url="<?= public_h($shareUrl) ?>" data-lightbox-share-text="<?= public_h($shareText) ?>">
+                  <article class="public-event-photo-tile" data-lightbox-item="<?= (int)$index ?>" data-lightbox-image="/<?= public_h($originalPath ?: $displayPath) ?>" data-lightbox-title="<?= public_h($title) ?>" data-lightbox-meta="<?= public_h(($venue ? $venue . ' · ' : '') . dttd_public_event_date($event)) ?>" data-lightbox-share-url="<?= public_h($shareUrl) ?>" data-lightbox-share-text="<?= public_h($shareText) ?>">
                     <button class="public-event-photo-thumb" type="button">
                       <img src="/<?= public_h($thumbPath ?: $displayPath) ?>" alt="<?= public_h($photoTitle) ?>">
                     </button>
@@ -1202,6 +1202,7 @@ if ($event) {
               <div class="public-lightbox-actions">
                 <button class="public-lightbox-share" type="button">Share photo</button>
                 <button class="public-lightbox-copy" type="button">Copy link</button>
+                <a class="public-lightbox-download" href="#" download>Download image</a>
               </div>
               <small id="publicLightboxNotice" class="public-lightbox-notice" aria-live="polite"></small>
             </figcaption>
@@ -1297,6 +1298,7 @@ if ($event) {
       var title = document.getElementById('publicLightboxTitle');
       var meta = document.getElementById('publicLightboxMeta');
       var notice = document.getElementById('publicLightboxNotice');
+      var download = lightbox.querySelector('.public-lightbox-download');
       var current = 0;
 
       function absoluteUrl(path){
@@ -1308,20 +1310,26 @@ if ($event) {
         if(notice) notice.textContent = text || '';
       }
 
-      window.openEventPhotoLightbox = function(index){
+      function openEventPhotoLightbox(index){
         current = Math.max(0, Math.min(items.length - 1, index || 0));
         var item = items[current];
         if(!item) return;
 
-        image.src = item.dataset.lightboxImage || '';
+        var imgUrl = item.dataset.lightboxImage || '';
+        image.src = imgUrl;
         image.alt = item.dataset.lightboxTitle || 'Event photo';
         title.textContent = item.dataset.lightboxTitle || 'Event photo';
         meta.textContent = item.dataset.lightboxMeta || '';
+
+        if(download){
+          download.href = imgUrl || '#';
+        }
+
         setNotice('');
         lightbox.hidden = false;
         lightbox.classList.add('is-open');
         document.body.classList.add('public-lightbox-open');
-      };
+      }
 
       function closeLightbox(){
         lightbox.classList.remove('is-open');
@@ -1333,13 +1341,13 @@ if ($event) {
       function move(delta){
         if(!items.length) return;
         current = (current + delta + items.length) % items.length;
-        window.openEventPhotoLightbox(current);
+        openEventPhotoLightbox(current);
       }
 
       items.forEach(function(item, index){
         var button = item.querySelector('button');
         if(button){
-          button.addEventListener('click', function(){ window.openEventPhotoLightbox(index); });
+          button.addEventListener('click', function(){ openEventPhotoLightbox(index); });
         }
       });
 
@@ -1354,6 +1362,7 @@ if ($event) {
       if(shareButton){
         shareButton.addEventListener('click', function(){
           var item = items[current];
+          if(!item) return;
           var url = absoluteUrl(item.dataset.lightboxShareUrl || item.dataset.lightboxImage || window.location.href);
           var text = item.dataset.lightboxShareText || item.dataset.lightboxTitle || document.title;
 
@@ -1368,6 +1377,7 @@ if ($event) {
       if(copyButton){
         copyButton.addEventListener('click', function(){
           var item = items[current];
+          if(!item) return;
           var url = absoluteUrl(item.dataset.lightboxShareUrl || item.dataset.lightboxImage || window.location.href);
           if(navigator.clipboard){
             navigator.clipboard.writeText(url).then(function(){ setNotice('Photo link copied.'); });
