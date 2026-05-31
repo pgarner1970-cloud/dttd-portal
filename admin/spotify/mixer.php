@@ -45,7 +45,7 @@ admin_header('Spotify Mixer - DJ Portal');
   <div class="mixer-grid">
     <section class="mixer-panel mixer-panel-a">
       <div class="panel-head">
-        <div class="deck-heading"><div class="deck-letter">A</div><div><h2>Player A</h2><div class="deck-device" id="deckADevice">Not assigned</div><div class="deck-node" id="deckANode">Node: checking…</div><div class="deck-account" id="deckAAccount">Spotify account: checking…</div></div></div>
+        <div class="deck-heading"><div class="deck-letter">A</div><div><h2>Player A</h2><div class="deck-device" id="deckADevice">Not assigned</div><div class="deck-node" id="deckANode">Player status: checking…</div></div></div>
         <div class="deck-status-wrap"><div class="deck-vu" id="deckAVu" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div><span class="deck-state" id="deckAState">Standby</span></div>
       </div>
       <div class="panel-body">
@@ -114,7 +114,7 @@ admin_header('Spotify Mixer - DJ Portal');
 
     <section class="mixer-panel mixer-panel-b">
       <div class="panel-head">
-        <div class="deck-heading"><div class="deck-letter">B</div><div><h2>Player B</h2><div class="deck-device" id="deckBDevice">Not assigned</div><div class="deck-node" id="deckBNode">Node: checking…</div><div class="deck-account" id="deckBAccount">Spotify account: checking…</div></div></div>
+        <div class="deck-heading"><div class="deck-letter">B</div><div><h2>Player B</h2><div class="deck-device" id="deckBDevice">Not assigned</div><div class="deck-node" id="deckBNode">Player status: checking…</div></div></div>
         <div class="deck-status-wrap"><div class="deck-vu" id="deckBVu" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div><span class="deck-state" id="deckBState">Standby</span></div>
       </div>
       <div class="panel-body">

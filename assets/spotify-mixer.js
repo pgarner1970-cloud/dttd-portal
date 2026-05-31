@@ -228,17 +228,39 @@ document.head.appendChild(overviewStyle);
   function renderDeckNode(deck){
     const el = deck === 'b' ? els.deckBNode : els.deckANode;
     if(!el) return;
+
     const node = deckNode(deck);
+    const selectedDevice = deck === 'b' ? state?.device_b : state?.device_a;
+    const spotifyOnline = !!selectedDevice && deviceIsOnline(selectedDevice);
+
     if(!node){
-      el.textContent = 'Node: not assigned';
+      el.textContent = spotifyOnline ? 'Player status: Spotify device ready' : 'Player status: no Pi assigned';
+      el.className = 'deck-node ' + (spotifyOnline ? 'online' : 'offline');
+      return;
+    }
+
+    const status = node.live_status || 'offline';
+
+    if(status === 'offline'){
+      el.textContent = 'Player status: Pi offline';
       el.className = 'deck-node offline';
       return;
     }
-    const status = node.live_status || 'offline';
-    const running = node.raspotify_running ? 'Raspotify running' : 'Raspotify stopped';
-    const match = node.matched_device?.name ? `Spotify API sees ${node.matched_device.name}` : 'waiting for Spotify device_id';
-    el.textContent = `Node: ${node.label} · ${status} · ${running} · ${match}`;
-    el.className = 'deck-node ' + status;
+
+    if(!node.raspotify_running){
+      el.textContent = 'Player status: Pi online · Spotify stopped';
+      el.className = 'deck-node warning';
+      return;
+    }
+
+    if(spotifyOnline || node.matched_device?.name){
+      el.textContent = 'Player status: online and ready';
+      el.className = 'deck-node online';
+      return;
+    }
+
+    el.textContent = 'Player status: Pi online · waiting for Spotify';
+    el.className = 'deck-node warning';
   }
 
   function renderDevices(){
@@ -261,9 +283,9 @@ document.head.appendChild(overviewStyle);
   function setWarn(el, msg){ if(!el) return; el.textContent = msg || ''; el.classList.toggle('visible', !!msg); }
   function setAccount(el, info, deck){
     if(!el) return;
-    const label = info?.display || 'Primary / legacy Spotify account';
-    el.textContent = 'Spotify account: ' + label;
+    el.textContent = info?.warning ? ('Spotify account warning: ' + info.warning) : '';
     el.classList.toggle('warning', !!(info && info.warning));
+    el.style.display = info?.warning ? '' : 'none';
   }
   function renderAccountStatus(){
     setAccount(els.deckAAccount, state?.accounts?.deck_a, 'a');
