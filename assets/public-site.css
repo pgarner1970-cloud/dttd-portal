@@ -3914,3 +3914,79 @@ body.homepage-option-one .home-coming-up-card.is-live{
     justify-items:center;
   }
 }
+
+
+/* Request page emergency layout repair */
+.public-request-page .public-request-shell,
+.request-page .public-request-shell,
+.request-song-page .public-request-shell{
+  width:min(960px,calc(100% - 32px));
+  margin:0 auto;
+  padding:42px 0 80px;
+}
+.public-request-card,
+.request-form-card{
+  width:min(900px,100%);
+  margin:24px auto;
+  padding:28px;
+  border:1px solid rgba(255,58,220,.45);
+  border-radius:26px;
+  background:linear-gradient(135deg,rgba(61,9,82,.9),rgba(26,4,48,.88));
+  box-shadow:0 0 34px rgba(255,58,220,.16);
+}
+.public-request-form,
+.request-form{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px;
+}
+.public-request-form label,
+.request-form label{
+  display:grid;
+  gap:7px;
+  color:#fff;
+  font-weight:850;
+}
+.public-request-form input,
+.public-request-form textarea,
+.request-form input,
+.request-form textarea{
+  width:100%;
+  min-height:46px;
+  border:1px solid rgba(255,255,255,.22);
+  border-radius:14px;
+  background:rgba(255,255,255,.95);
+  color:#25112d;
+  padding:11px 13px;
+  font:inherit;
+}
+.public-request-form textarea,
+.request-form textarea{
+  min-height:92px;
+}
+.public-request-form .full,
+.request-form .full{
+  grid-column:1/-1;
+}
+.public-request-form button,
+.request-form button,
+.public-neon-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:52px;
+  border:0;
+  border-radius:18px;
+  padding:0 24px;
+  background:linear-gradient(135deg,#b315ff,#ff4fd8);
+  color:#fff;
+  font-weight:950;
+  text-decoration:none;
+  box-shadow:0 0 24px rgba(179,21,255,.35);
+}
+@media(max-width:760px){
+  .public-request-form,
+  .request-form{
+    grid-template-columns:1fr;
+  }
+}

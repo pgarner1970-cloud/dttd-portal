@@ -156,7 +156,7 @@ $public_current = 'home';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dance Thru the Decades Events</title>
   <meta name="description" content="Dance Thru the Decades Events — 60s, 70s, 80s, 90s and 00s party nights, DJ events, song requests and Facebook event updates.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=283">
+  <link rel="stylesheet" href="/assets/public-site.css?v=284">
 </head>
 <body class="homepage-option-one">
   <main class="home-option-one">
@@ -183,7 +183,7 @@ $public_current = 'home';
 
         <div class="option-one-action-strip dynamic-action-strip" data-homepage-state="<?= htmlspecialchars($homepage_state) ?>" aria-label="Event actions">
           <?php if ($homepage_state === 'public-event' && $active_event && !empty($active_event['event_code'])): ?>
-            <a class="option-one-action-card primary-action" href="<?= htmlspecialchars($privateEventRequestUrl) ?>">
+            <a class="option-one-action-card primary-action" href="/request.php">
               <span class="option-one-icon">♪</span>
               <span>
                 <strong>Request a Song</strong>
@@ -191,7 +191,7 @@ $public_current = 'home';
               </span>
             </a>
 
-            <a class="option-one-action-card" href="<?= htmlspecialchars($privateEventInfoUrl) ?>">
+            <a class="option-one-action-card" href="/event.php">
               <span class="option-one-icon">▣</span>
               <span>
                 <strong>This Event</strong>
@@ -199,7 +199,7 @@ $public_current = 'home';
               </span>
             </a>
 
-            <a class="option-one-action-card" href="<?= htmlspecialchars($privateEventUploadUrl) ?>">
+            <a class="option-one-action-card" href="/upload.php">
               <span class="option-one-icon">▧</span>
               <span>
                 <strong>Upload Photos</strong>
@@ -274,7 +274,7 @@ $public_current = 'home';
               <strong>Tonight we are hosting a private event<?= $privateEventName !== '' ? ' for ' . htmlspecialchars($privateEventName) : '' ?>.</strong>
               <p>Guests can enter the venue code or scan the QR code displayed at the event.</p>
             </div>
-            <a class="private-event-access-button" href="<?= htmlspecialchars($privateEventRequestUrl) ?>">Enter event code</a>
+            <a class="private-event-access-button" href="/request.php">Enter event code</a>
           </div>
         <?php elseif ($homepage_state === 'no-event'): ?>
           <p class="homepage-state-note">Song requests open automatically when an event is live.</p>

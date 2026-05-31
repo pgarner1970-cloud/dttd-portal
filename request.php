@@ -157,7 +157,7 @@ $requestCloseClock = $event ? dttd_event_request_close_clock_label($event) : '';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= public_h($title) ?> | Dance Thru the Decades</title>
   <meta name="description" content="Request a song at a Dance Thru the Decades event using the venue QR code or event code.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=313">
+  <link rel="stylesheet" href="/assets/public-site.css?v=284">
 </head>
 <body class="homepage-option-one public-event-feature-page public-request-page">
   <main class="home-option-one">
@@ -239,22 +239,14 @@ $requestCloseClock = $event ? dttd_event_request_close_clock_label($event) : '';
           <form class="public-request-form" method="post" action="/request.php" data-spotify-request-form>
             <input type="hidden" name="event_id" value="<?= (int)$event['id'] ?>">
 
-            <div class="public-request-fields">
-              <label>
-                <span>Your name *</span>
-                <input name="guest_name" required maxlength="120" placeholder="Your name">
-              </label>
+            <label>Your name *</label>
+            <input name="guest_name" required maxlength="120" placeholder="Your name">
 
-              <label>
-                <span>Song title *</span>
-                <input name="song_title" required maxlength="190" placeholder="Example: September">
-              </label>
+            <label>Song title *</label>
+            <input name="song_title" required maxlength="190" placeholder="Example: September">
 
-              <label>
-                <span>Artist *</span>
-                <input name="artist" required maxlength="190" placeholder="Example: Earth, Wind & Fire">
-              </label>
-            </div>
+            <label>Artist *</label>
+            <input name="artist" required maxlength="190" placeholder="Example: Earth, Wind & Fire">
 
             <input type="hidden" name="spotify_track_id">
             <input type="hidden" name="spotify_track_url">
@@ -268,14 +260,10 @@ $requestCloseClock = $event ? dttd_event_request_close_clock_label($event) : '';
               <div class="spotify-selected" data-spotify-selected hidden></div>
             </div>
 
-            <label class="public-request-message">
-              <span>Dedication / message</span>
-              <textarea name="dedication" rows="4" placeholder="Optional message or dedication"></textarea>
-            </label>
+            <label>Dedication / message</label>
+            <textarea name="dedication" rows="4" placeholder="Optional message or dedication"></textarea>
 
-            <div class="public-request-submit-row">
-              <button class="public-neon-btn public-submit-btn" type="submit">Send Request</button>
-            </div>
+            <button class="public-neon-btn public-submit-btn" type="submit">Send Request</button>
           </form>
 
           <p class="public-small-note">Your request is linked to this event only.</p>
@@ -285,6 +273,6 @@ $requestCloseClock = $event ? dttd_event_request_close_clock_label($event) : '';
 
     <?php require __DIR__ . '/includes/public-footer.php'; ?>
   </main>
-  <script src="/assets/spotify-request-search.js?v=3"></script>
+  <script src="/assets/spotify-request-search.js?v=2"></script>
 </body>
 </html>
