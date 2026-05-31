@@ -272,9 +272,7 @@ document.head.appendChild(overviewStyle);
     const missingB = !!state?.device_b && !deviceIsOnline(state.device_b);
     if(els.deckADevice) els.deckADevice.textContent = missingA ? 'Assigned Spotify device offline' : deviceName(state.device_a);
     if(els.deckBDevice) els.deckBDevice.textContent = missingB ? 'Assigned Spotify device offline' : deviceName(state.device_b);
-    renderDeckNode('a');
-    renderDeckNode('b');
-    renderAccountStatus();
+renderAccountStatus();
     setDeviceAlert('a', missingA || accountHasWarning('a'));
     setDeviceAlert('b', missingB || accountHasWarning('b'));
   }
