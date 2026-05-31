@@ -142,6 +142,7 @@ try {
 $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
 $privateEventName = ($homepage_state === 'private-event' && $active_event) ? home_public_event_title($active_event) : '';
 $privateEventType = ($homepage_state === 'private-event' && $active_event) ? strtolower((string)($active_event['event_type'] ?? 'private_party')) : '';
+$privateEventAlreadyConnected = function_exists('dttd_event_from_access_cookie') && $active_event ? ((($cookieEvent = dttd_event_from_access_cookie(false)) && (int)($cookieEvent['id'] ?? 0) === (int)($active_event['id'] ?? 0))) : false;
 // Do not expose the private event code in public homepage links.
 // Guests must enter the event code or scan the QR code shown at the venue.
 $privateEventRequestUrl = '/request.php';
@@ -156,7 +157,7 @@ $public_current = 'home';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dance Thru the Decades Events</title>
   <meta name="description" content="Dance Thru the Decades Events — 60s, 70s, 80s, 90s and 00s party nights, DJ events, song requests and Facebook event updates.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=284">
+  <link rel="stylesheet" href="/assets/public-site.css?v=290">
 </head>
 <body class="homepage-option-one">
   <main class="home-option-one">
@@ -259,7 +260,7 @@ $public_current = 'home';
           <?php endif; ?>
         </div>
 
-        <?php if ($homepage_state === 'private-event' && $active_event): ?>
+        <?php if ($homepage_state === 'private-event' && $active_event && !$privateEventAlreadyConnected): ?>
           <div class="private-event-access-card <?= $privateEventType === 'wedding' ? 'is-wedding' : ($privateEventType === 'private_party' ? 'is-party' : '') ?>">
             <div class="private-event-access-decor" aria-hidden="true">
               <?php if ($privateEventType === 'wedding'): ?>
