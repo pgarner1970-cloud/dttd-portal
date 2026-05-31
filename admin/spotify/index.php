@@ -101,6 +101,17 @@ function dttd_spotify_last_seen_label($node) {
     return date('d M Y H:i', strtotime((string)$node['last_seen']));
 }
 
+
+function dttd_spotify_has_column($table, $column) {
+    try {
+        $stmt = db()->prepare("SHOW COLUMNS FROM `" . str_replace('`', '', $table) . "` LIKE ?");
+        $stmt->execute([$column]);
+        return (bool)$stmt->fetch();
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
 function dttd_spotify_command_label($command) {
     $labels = [
         'restart_raspotify' => 'Restart Spotify',
@@ -578,7 +589,7 @@ admin_header('Spotify Tools - DJ Portal');
                   <form class="pi-volume-actions" method="post">
                     <input type="hidden" name="node_action" value="send_command">
                     <input type="hidden" name="node_key" value="<?= h($node['node_key'] ?? '') ?>">
-                    <input type="number" name="volume" value="85" min="0" max="100" step="1" aria-label="Deck <?= h($deckSlot) ?> volume percent">
+                    <input type="number" name="volume" value="<?= h((string)($node['audio_volume_percent'] ?? 85)) ?>" min="0" max="100" step="1" aria-label="Deck <?= h($deckSlot) ?> volume percent">
                     <button type="submit" name="command" value="set_volume">Set Deck <?= h($deckSlot) ?> Volume</button>
                   </form>
                 </div>
