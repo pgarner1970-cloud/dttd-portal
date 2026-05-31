@@ -4958,76 +4958,93 @@ body.public-event-detail-page .public-lightbox-nav.next{right:18px !important}
   }
 }
 
-/* v320 event gallery card spacing + metadata consistency */
-body.public-event-detail-page .public-event-photo-carousel-card{
-  margin-top:22px !important;
-  margin-bottom:22px !important;
+
+/* Event page request/played list repair: keep compact rows readable and icon-only actions */
+body.public-event-detail-page .public-request-board-list > li.public-request-board-item{
+  display:block !important;
+  grid-template-columns:none !important;
+  width:100% !important;
 }
 
-body.public-event-detail-page .public-event-photo-grid{
+body.public-event-detail-page .public-request-card-shell{
+  width:100% !important;
+}
+
+body.public-event-detail-page .public-request-card-main{
   display:grid !important;
-  grid-template-columns:repeat(auto-fill,minmax(170px,220px)) !important;
-  gap:18px !important;
-  margin-top:18px !important;
-  align-items:start !important;
+  gap:3px !important;
 }
 
-body.public-event-detail-page .public-event-photo-tile{
-  display:block !important;
-  overflow:hidden !important;
-  background:rgba(255,255,255,.04) !important;
-  border:1px solid rgba(255,125,243,.28) !important;
-  border-radius:24px !important;
+body.public-event-detail-page .public-request-row-head{
+  min-width:0 !important;
+}
+
+body.public-event-detail-page .public-request-row-head strong{
+  min-width:0 !important;
+}
+
+body.public-event-detail-page .public-request-status{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  max-width:120px !important;
+  line-height:1 !important;
+  white-space:nowrap !important;
+  text-transform:none !important;
+}
+
+body.public-event-detail-page .public-track-icon-action{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  flex:0 0 34px !important;
   color:#fff !important;
+  text-decoration:none !important;
+  line-height:1 !important;
 }
 
-body.public-event-detail-page .public-event-photo-thumb{
+body.public-event-detail-page .public-track-icon-action .public-action-icon{
   display:block !important;
-  width:100% !important;
-  aspect-ratio:1 / 1 !important;
-  border:0 !important;
-  border-radius:0 !important;
-  overflow:hidden !important;
-  background:rgba(10,20,36,.72) !important;
+  width:19px !important;
+  height:19px !important;
+  fill:none !important;
+  stroke:currentColor !important;
+  stroke-width:2.2 !important;
+  stroke-linecap:round !important;
+  stroke-linejoin:round !important;
+  pointer-events:none !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon circle{
+  fill:currentColor !important;
+  stroke:none !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon path{
+  fill:none !important;
+  stroke:#050814 !important;
+  stroke-width:1.6 !important;
+}
+
+body.public-event-detail-page .public-track-icon-action .public-sr-only,
+body.public-event-detail-page .public-event-share-button .public-sr-only{
+  position:absolute !important;
+  width:1px !important;
+  height:1px !important;
   padding:0 !important;
-  cursor:pointer !important;
-}
-
-body.public-event-detail-page .public-event-photo-thumb img{
-  display:block !important;
-  width:100% !important;
-  height:100% !important;
-  object-fit:contain !important;
-  background:#080012 !important;
-}
-
-body.public-event-detail-page .public-event-photo-meta{
-  display:block !important;
-  padding:12px 13px 14px !important;
-}
-
-body.public-event-detail-page .public-event-photo-meta h3{
-  margin:0 0 5px !important;
-  font-size:1rem !important;
-  line-height:1.15 !important;
-}
-
-body.public-event-detail-page .public-event-photo-meta p{
-  margin:0 0 7px !important;
-  font-size:.82rem !important;
-  line-height:1.25 !important;
-  color:#ddd3eb !important;
-}
-
-body.public-event-detail-page .public-event-photo-meta strong{
-  display:block !important;
-  font-size:.82rem !important;
-  line-height:1.2 !important;
-  color:#ffe257 !important;
+  margin:-1px !important;
+  overflow:hidden !important;
+  clip:rect(0,0,0,0) !important;
+  white-space:nowrap !important;
+  border:0 !important;
 }
 
 @media(max-width:640px){
-  body.public-event-detail-page .public-event-photo-grid{
-    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  body.public-event-detail-page .public-request-row-head{
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) auto !important;
+  }
+  body.public-event-detail-page .public-played-track-row{
+    grid-template-columns:54px minmax(0,1fr) auto !important;
   }
 }
