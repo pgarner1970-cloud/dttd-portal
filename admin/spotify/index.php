@@ -265,6 +265,7 @@ $allowedNodeCommands = [
     'reboot',
     'healthcheck',
     'update_agent',
+    'set_volume',
 ];
 
 $prepareTestTrack = dttd_spotify_prepare_track_id(dttd_spotify_tool_setting('spotify_prepare_test_track_id', ''));
