@@ -39,7 +39,7 @@ admin_header('Spotify Mixer - DJ Portal');
   </div>
 
   <div class="mixer-top-note">
-    <div><h1>Spotify Mixer <span class="mixer-mode-pill" id="mixerModePill">Checking mode…</span></h1><p>Live search and public requests feed the DJ playlist, then load safely to Player A or Player B.</p></div>
+    <div><h1>Spotify Mixer</h1></div>
     <a class="mixer-btn blue" href="<?= h(admin_url('spotify/index.php')) ?>">Spotify Tools</a>
   </div>
   <div class="mixer-grid">
@@ -142,7 +142,7 @@ admin_header('Spotify Mixer - DJ Portal');
       </div>
     </section>
   </div>
-  <div class="mixer-footer"><div><strong>Spotify status:</strong> <span id="spotifyStatus">Checking…</span></div><div class="mini muted">Device status is polled; Spotify can lag briefly, so active players remain protected.</div></div>
+  
 </main>
 <script src="<?= h(admin_url('assets/spotify-mixer.js')) ?>?v=20260527-queue-workflow-v1"></script>
 <?php admin_footer(); ?>

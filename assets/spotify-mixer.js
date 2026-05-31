@@ -290,13 +290,6 @@ renderAccountStatus();
     setAccount(els.deckBAccount, state?.accounts?.deck_b, 'b');
     setWarn(els.deckAWarning, state?.accounts?.deck_a?.warning || '');
     setWarn(els.deckBWarning, state?.accounts?.deck_b?.warning || '');
-    if(els.mixerModePill){
-      const duo = !!state?.duo_mode;
-      const auto = !!state?.auto_start_opposite;
-      els.mixerModePill.textContent = duo ? ('Duo mode' + (auto ? ' · Auto-start on' : ' · Manual handover')) : 'Standard mode';
-      els.mixerModePill.classList.toggle('duo', duo);
-      els.mixerModePill.classList.toggle('warn', !!(state?.accounts?.deck_a?.warning || state?.accounts?.deck_b?.warning));
-    }
   }
   function setDeckState(el, playing, loaded){
     if(!el) return;
@@ -422,9 +415,8 @@ renderAccountStatus();
       b.disabled = !canA && !canB;
       b.title = b.disabled ? 'No standby player is available' : 'Auto-load to a standby player';
     });
-    if(els.spotifyStatus){
       if(state?.is_playing){ els.spotifyStatus.textContent = `Playing on ${state.active_device_name || 'active device'}${state.track?.title ? ' — ' + state.track.title : ''}`; }
-      else els.spotifyStatus.textContent = state?.connected ? 'Standby / no active playback' : 'Spotify is not connected';
+      else
     }
   }
   function renderPlaylist(){
