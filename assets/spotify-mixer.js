@@ -459,16 +459,12 @@ renderAccountStatus();
     if(!reqs.length){ els.publicRequests.innerHTML = '<div class="empty">No new Spotify-matched public requests waiting.</div>'; return; }
     els.publicRequests.innerHTML = reqs.map(r => {
       const count = Number(r.request_count || 1);
-      const people = Array.isArray(r.requesters) && r.requesters.length ? r.requesters.join(', ') : (r.guest_name || 'Guest');
-      const countLabel = count > 1 ? workflowBadge(count + ' requests', 'source') : '';
       return `
-      <div class="request-row grouped-request-row${count > 1 ? ' has-multiple-requests' : ''}">
+      <div class="request-row grouped-request-row public-request-compact${count > 1 ? ' has-multiple-requests' : ''}">
         <img src="${esc(image(r.image))}" alt="">
-        <div>
+        <div class="public-request-main">
           <strong>${esc(r.title)}</strong> <span class="muted">— ${esc(r.artist)}</span>
-          <div class="request-detail mini"><span class="request-time">${esc(requestTime(r.created_at))}</span><span><strong>${esc(people)}</strong></span></div>
-          ${renderRequestNotesList(r, 'mixer-request-note-list public-request-note-list')}
-          <div class="request-source">${workflowBadge('Waiting review', 'waiting')}${countLabel}${r.queue_status ? workflowBadge(r.queue_status.replace(/_/g, ' '), 'source') : ''}</div>
+          ${renderRequestNotesList(r, 'mixer-request-note-list public-request-note-list compact')}
         </div>
         <div class="row-actions quick-actions">
           <button class="mixer-btn green wide" data-select-request='${esc(JSON.stringify(r))}'>Choose action</button>

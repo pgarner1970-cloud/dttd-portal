@@ -30,6 +30,18 @@ admin_header('Spotify Mixer - DJ Portal');
 .playlist-request-note-list.compact .mixer-request-note{padding:6px 8px;border-radius:10px}
 .playlist-request-note-list.compact .mixer-request-note-name{line-height:1}
 .playlist-request-note-list.compact .mixer-request-note-message{font-size:12px;margin-top:2px}
+
+/* Compact public request feed rows: keep the useful dedication card, remove duplicated status/requester chrome. */
+.public-request-compact{align-items:center;padding:8px 11px}
+.public-request-compact .public-request-main{min-width:0}
+.public-request-compact .request-detail,.public-request-compact .request-source{display:none!important}
+.public-request-note-list.compact{margin-top:6px}
+.public-request-note-list.compact .mixer-request-note{padding:6px 8px;border-radius:10px;max-width:100%}
+.public-request-note-list.compact .mixer-request-note-name{line-height:1}
+.public-request-note-list.compact .mixer-request-note-message{font-size:12px;margin-top:2px;line-height:1.2}
+.public-request-compact .quick-actions .mixer-btn{min-height:36px;padding:8px 11px}
+@media(max-width:700px){.public-request-compact{align-items:flex-start}.public-request-compact .quick-actions{grid-column:1/-1;justify-content:flex-start}}
+
 </style>
 <main class="spotify-mixer-app" data-api="<?= h(admin_url('spotify/mixer-api.php')) ?>" data-search-api="/api/spotify-search.php">
   <div class="mixer-toast" id="mixerToast"></div>
@@ -153,5 +165,5 @@ admin_header('Spotify Mixer - DJ Portal');
   </div>
   
 </main>
-<script src="<?= h(admin_url('assets/spotify-mixer.js')) ?>?v=20260531-request-choice-no-crate-save"></script>
+<script src="<?= h(admin_url('assets/spotify-mixer.js')) ?>?v=20260531-compact-public-requests"></script>
 <?php admin_footer(); ?>
