@@ -390,7 +390,7 @@ $recentNodeCommands = dttd_spotify_recent_node_commands(8);
 admin_header('Spotify Tools - DJ Portal');
 ?>
 <style>
-.pi-node-panel{margin-top:22px}.pi-node-toolbar{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}.pi-node-toolbar p{margin:4px 0 0;color:#9fb5cd}.pi-node-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}.pi-node-card{border:1px solid rgba(96,145,205,.32);border-radius:18px;background:linear-gradient(180deg,rgba(14,28,44,.94),rgba(8,18,30,.94));padding:14px;box-shadow:0 14px 36px rgba(0,0,0,.22)}.pi-node-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}.pi-node-head h3{margin:0;font-size:18px}.pi-node-key{display:block;color:#8fa6bd;font-size:12px;margin-top:3px;word-break:break-all}.pi-node-status{border-radius:999px;padding:6px 10px;font-weight:950;font-size:12px;text-transform:uppercase;border:1px solid rgba(148,163,184,.45);color:#cbd5e1;background:rgba(148,163,184,.12)}.pi-node-status.online{border-color:rgba(34,197,94,.65);color:#74ff9b;background:rgba(34,197,94,.12)}.pi-node-status.warning{border-color:rgba(245,158,11,.65);color:#ffc55a;background:rgba(245,158,11,.12)}.pi-node-status.offline{border-color:rgba(239,68,68,.55);color:#ff9ca3;background:rgba(239,68,68,.12)}.pi-node-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.pi-node-meta div{border:1px solid rgba(96,145,205,.18);border-radius:12px;background:rgba(255,255,255,.025);padding:9px}.pi-node-meta span{display:block;color:#8fa6bd;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}.pi-node-meta strong{display:block;color:#fff;margin-top:3px;word-break:break-word}.pi-node-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.pi-maint-actions{grid-template-columns:repeat(2,1fr)}.pi-prepare-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.pi-prepare-actions button{border:1px solid rgba(34,197,94,.55);background:rgba(22,200,116,.13);color:#7dffa8;border-radius:12px;padding:10px 8px;font-weight:950;cursor:pointer}.pi-prepare-actions button.secondary{border-color:rgba(96,145,205,.42);background:rgba(16,28,44,.9);color:#cfe0f4}.pi-assigned-deck{display:inline-flex;align-items:center;gap:8px;border-radius:999px;border:1px solid rgba(34,197,94,.55);background:rgba(34,197,94,.12);color:#7dffa8;font-weight:950;padding:7px 10px;margin-top:8px}.pi-prepare-settings{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:10px;align-items:end;margin:10px 0 16px}.pi-prepare-settings label{display:grid;gap:5px;color:#9fb5cd;font-weight:900;font-size:12px;text-transform:uppercase}.pi-prepare-settings input[type=text]{width:100%;box-sizing:border-box;background:#0b1524;color:#fff;border:1px solid rgba(96,145,205,.38);border-radius:12px;padding:10px 12px;font-weight:800}.pi-prepare-settings .checkline{display:flex;align-items:center;gap:7px;color:#c8d7e8;font-weight:900;text-transform:none;font-size:13px}.pi-node-actions button{border:1px solid rgba(96,145,205,.42);background:rgba(16,28,44,.9);color:#fff;border-radius:12px;padding:10px 8px;font-weight:950;cursor:pointer}.pi-node-actions button:hover{border-color:rgba(52,152,255,.7);color:#9fd1ff}.pi-node-actions button.danger{border-color:rgba(239,68,68,.52);color:#ff9ca3}.pi-node-actions button.update{border-color:rgba(34,197,94,.55);color:#74ff9b}.pi-node-actions button.health{border-color:rgba(52,152,255,.55);color:#9fd1ff}.pi-node-empty{border:1px dashed rgba(96,145,205,.36);border-radius:16px;padding:18px;color:#c8d7e8;background:rgba(255,255,255,.025)}.pi-command-table{width:100%;border-collapse:collapse;margin-top:12px}.pi-command-table th,.pi-command-table td{border-bottom:1px solid rgba(96,145,205,.18);padding:9px 8px;text-align:left;vertical-align:top}.pi-command-table th{color:#9fb5cd;font-size:12px;text-transform:uppercase;letter-spacing:.04em}.pi-command-status{border-radius:999px;padding:3px 8px;font-weight:900;font-size:12px;background:rgba(148,163,184,.12);color:#cbd5e1}.pi-command-status.pending{background:rgba(245,158,11,.12);color:#ffc55a}.pi-command-status.completed{background:rgba(34,197,94,.12);color:#74ff9b}.pi-command-status.failed{background:rgba(239,68,68,.12);color:#ff9ca3}.pi-command-result{max-width:520px;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;font-size:12px;color:#dbeafe}@media(max-width:720px){.pi-node-toolbar{display:block}.pi-node-meta{grid-template-columns:1fr}.pi-node-actions,.pi-prepare-actions,.pi-prepare-settings{grid-template-columns:1fr}.pi-command-table{font-size:13px}}
+.pi-node-panel{margin-top:22px}.pi-node-toolbar{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}.pi-node-toolbar p{margin:4px 0 0;color:#9fb5cd}.pi-node-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;align-items:start}.pi-node-card{border:1px solid rgba(96,145,205,.32);border-radius:18px;background:linear-gradient(180deg,rgba(14,28,44,.96),rgba(8,18,30,.96));padding:16px;box-shadow:0 14px 36px rgba(0,0,0,.22)}.pi-node-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}.pi-node-head h3{margin:0;font-size:22px}.pi-node-subtitle{margin-top:4px;color:#9fd1ff;font-size:13px;font-weight:800}.pi-node-key{display:block;color:#8fa6bd;font-size:12px;margin-top:3px;word-break:break-all}.pi-node-status{border-radius:999px;padding:6px 10px;font-weight:950;font-size:12px;text-transform:uppercase;border:1px solid rgba(148,163,184,.45);color:#cbd5e1;background:rgba(148,163,184,.12)}.pi-node-status.online{border-color:rgba(34,197,94,.65);color:#74ff9b;background:rgba(34,197,94,.12)}.pi-node-status.warning{border-color:rgba(245,158,11,.65);color:#ffc55a;background:rgba(245,158,11,.12)}.pi-node-status.offline{border-color:rgba(239,68,68,.55);color:#ff9ca3;background:rgba(239,68,68,.12)}.pi-node-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.pi-node-meta div{border:1px solid rgba(96,145,205,.18);border-radius:12px;background:rgba(255,255,255,.025);padding:9px}.pi-node-meta span{display:block;color:#8fa6bd;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}.pi-node-meta strong{display:block;color:#fff;margin-top:3px;word-break:break-word}.pi-node-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.pi-maint-actions{grid-template-columns:repeat(2,1fr)}.pi-prepare-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.pi-prepare-actions button{border:1px solid rgba(34,197,94,.55);background:rgba(22,200,116,.13);color:#7dffa8;border-radius:12px;padding:10px 8px;font-weight:950;cursor:pointer}.pi-prepare-actions button.secondary{border-color:rgba(96,145,205,.42);background:rgba(16,28,44,.9);color:#cfe0f4}.pi-assigned-deck{display:inline-flex;align-items:center;gap:8px;border-radius:999px;border:1px solid rgba(34,197,94,.55);background:rgba(34,197,94,.12);color:#7dffa8;font-weight:950;padding:7px 10px;margin:6px 0 2px}.pi-control-block{margin-top:12px}.pi-control-label{display:block;color:#8fa6bd;font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.06em;margin:12px 0 6px}.pi-deck-assign-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pi-deck-assign-actions button{border:1px solid rgba(96,145,205,.42);background:rgba(16,28,44,.9);color:#cfe0f4;border-radius:12px;padding:10px 8px;font-weight:950;cursor:pointer}.pi-deck-assign-actions button.active{border-color:rgba(34,197,94,.55);background:rgba(22,200,116,.13);color:#7dffa8}.pi-prepare-settings{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:10px;align-items:end;margin:10px 0 16px}.pi-prepare-settings label{display:grid;gap:5px;color:#9fb5cd;font-weight:900;font-size:12px;text-transform:uppercase}.pi-prepare-settings input[type=text]{width:100%;box-sizing:border-box;background:#0b1524;color:#fff;border:1px solid rgba(96,145,205,.38);border-radius:12px;padding:10px 12px;font-weight:800}.pi-prepare-settings .checkline{display:flex;align-items:center;gap:7px;color:#c8d7e8;font-weight:900;text-transform:none;font-size:13px}.pi-node-actions button{border:1px solid rgba(96,145,205,.42);background:rgba(16,28,44,.9);color:#fff;border-radius:12px;padding:10px 8px;font-weight:950;cursor:pointer}.pi-node-actions button:hover{border-color:rgba(52,152,255,.7);color:#9fd1ff}.pi-node-actions button.danger{border-color:rgba(239,68,68,.52);color:#ff9ca3}.pi-node-actions button.update{border-color:rgba(34,197,94,.55);color:#74ff9b}.pi-node-actions button.health{border-color:rgba(52,152,255,.55);color:#9fd1ff}.pi-node-empty{border:1px dashed rgba(96,145,205,.36);border-radius:16px;padding:18px;color:#c8d7e8;background:rgba(255,255,255,.025)}.pi-command-table{width:100%;border-collapse:collapse;margin-top:12px}.pi-command-table th,.pi-command-table td{border-bottom:1px solid rgba(96,145,205,.18);padding:9px 8px;text-align:left;vertical-align:top}.pi-command-table th{color:#9fb5cd;font-size:12px;text-transform:uppercase;letter-spacing:.04em}.pi-command-status{border-radius:999px;padding:3px 8px;font-weight:900;font-size:12px;background:rgba(148,163,184,.12);color:#cbd5e1}.pi-command-status.pending{background:rgba(245,158,11,.12);color:#ffc55a}.pi-command-status.completed{background:rgba(34,197,94,.12);color:#74ff9b}.pi-command-status.failed{background:rgba(239,68,68,.12);color:#ff9ca3}.pi-command-result{max-width:520px;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;font-size:12px;color:#dbeafe}@media(max-width:720px){.pi-node-toolbar{display:block}.pi-node-meta{grid-template-columns:1fr}.pi-node-actions,.pi-prepare-actions,.pi-prepare-settings{grid-template-columns:1fr}.pi-command-table{font-size:13px}}
 </style>
 <main class="touch-wrap">
   <section class="touch-panel">
@@ -497,59 +497,80 @@ admin_header('Spotify Tools - DJ Portal');
               $raspotifyRunning = !empty($node['raspotify_running']);
             ?>
             <article class="pi-node-card">
+              <?php
+                $assignedDeck = strtoupper(trim((string)($node['assigned_deck'] ?? '')));
+                $assignedDeck = in_array($assignedDeck, ['A', 'B'], true) ? $assignedDeck : '';
+                $cardTitle = $assignedDeck ? ('Deck ' . $assignedDeck) : 'Unassigned Player';
+                $nodeLabel = dttd_spotify_node_label($node);
+              ?>
+
               <div class="pi-node-head">
                 <div>
-                  <h3><?= h(dttd_spotify_node_label($node)) ?></h3>
+                  <h3><?= h($cardTitle) ?></h3>
+                  <div class="pi-node-subtitle"><?= h($nodeLabel) ?></div>
                   <span class="pi-node-key"><?= h($node['node_key'] ?? '') ?></span>
                 </div>
                 <span class="pi-node-status <?= h($status) ?>"><?= h($status) ?></span>
               </div>
+
+              <?php if ($assignedDeck): ?>
+                <div class="pi-assigned-deck">Assigned to Deck <?= h($assignedDeck) ?></div>
+              <?php endif; ?>
 
               <div class="pi-node-meta">
                 <div><span>IP</span><strong><?= h($node['ip_address'] ?? '—') ?></strong></div>
                 <div><span>Hostname</span><strong><?= h($node['hostname'] ?? '—') ?></strong></div>
                 <div><span>Spotify name</span><strong><?= h($node['spotify_name'] ?? '—') ?></strong></div>
                 <div><span>Raspotify</span><strong><?= $raspotifyRunning ? 'Running' : 'Not running' ?></strong></div>
-                <div><span>Deck</span><strong><?= h($node['assigned_deck'] ?? 'Unassigned') ?></strong></div>
+                <div><span>Assigned deck</span><strong><?= $assignedDeck ? h('Deck ' . $assignedDeck) : 'Unassigned' ?></strong></div>
                 <div><span>Last seen</span><strong><?= h(dttd_spotify_last_seen_label($node)) ?></strong></div>
               </div>
 
-              <?php
-                $assignedDeck = strtoupper(trim((string)($node['assigned_deck'] ?? '')));
-                $assignedDeck = in_array($assignedDeck, ['A', 'B'], true) ? $assignedDeck : '';
-              ?>
+              <div class="pi-control-block">
+                <span class="pi-control-label">Prepare</span>
+                <?php if ($assignedDeck): ?>
+                  <form class="pi-prepare-actions" method="post">
+                    <input type="hidden" name="node_action" value="prepare_player">
+                    <input type="hidden" name="node_key" value="<?= h($node['node_key'] ?? '') ?>">
+                    <button type="submit" name="deck" value="<?= h(strtolower($assignedDeck)) ?>">Prepare Deck <?= h($assignedDeck) ?></button>
+                  </form>
+                <?php else: ?>
+                  <form class="pi-prepare-actions" method="post">
+                    <input type="hidden" name="node_action" value="prepare_player">
+                    <input type="hidden" name="node_key" value="<?= h($node['node_key'] ?? '') ?>">
+                    <button type="submit" name="deck" value="a">Assign / Prepare Deck A</button>
+                    <button type="submit" name="deck" value="b">Assign / Prepare Deck B</button>
+                  </form>
+                <?php endif; ?>
+              </div>
 
-              <?php if ($assignedDeck): ?>
-                <div class="pi-assigned-deck">Assigned to Deck <?= h($assignedDeck) ?></div>
-                <form class="pi-prepare-actions" method="post">
+              <div class="pi-control-block">
+                <span class="pi-control-label">Maintenance</span>
+                <form class="pi-node-actions pi-maint-actions" method="post">
+                  <input type="hidden" name="node_action" value="send_command">
+                  <input type="hidden" name="node_key" value="<?= h($node['node_key'] ?? '') ?>">
+                  <button class="health" type="submit" name="command" value="healthcheck">Health Check</button>
+                  <button class="update" type="submit" name="command" value="update_agent" onclick="return confirm('Update node software on <?= h($nodeLabel) ?> from Git?')">Update Agent</button>
+                </form>
+
+                <form class="pi-node-actions" method="post">
+                  <input type="hidden" name="node_action" value="send_command">
+                  <input type="hidden" name="node_key" value="<?= h($node['node_key'] ?? '') ?>">
+                  <button type="submit" name="command" value="restart_raspotify">Restart Spotify</button>
+                  <button type="submit" name="command" value="restart_agent">Restart Agent</button>
+                  <button class="danger" type="submit" name="command" value="reboot" onclick="return confirm('Reboot <?= h($nodeLabel) ?>?')">Reboot</button>
+                </form>
+              </div>
+
+              <div class="pi-control-block">
+                <span class="pi-control-label">Deck assignment</span>
+                <form class="pi-deck-assign-actions" method="post">
                   <input type="hidden" name="node_action" value="prepare_player">
                   <input type="hidden" name="node_key" value="<?= h($node['node_key'] ?? '') ?>">
-                  <button type="submit" name="deck" value="<?= h(strtolower($assignedDeck)) ?>">Prepare Deck <?= h($assignedDeck) ?></button>
-                  <button class="secondary" type="submit" name="deck" value="<?= h($assignedDeck === 'A' ? 'b' : 'a') ?>">Move to Deck <?= h($assignedDeck === 'A' ? 'B' : 'A') ?></button>
+                  <button class="<?= $assignedDeck === 'A' ? 'active' : '' ?>" type="submit" name="deck" value="a"><?= $assignedDeck === 'A' ? 'Deck A selected' : 'Assign to Deck A' ?></button>
+                  <button class="<?= $assignedDeck === 'B' ? 'active' : '' ?>" type="submit" name="deck" value="b"><?= $assignedDeck === 'B' ? 'Deck B selected' : 'Assign to Deck B' ?></button>
                 </form>
-              <?php else: ?>
-                <form class="pi-prepare-actions" method="post">
-                  <input type="hidden" name="node_action" value="prepare_player">
-                  <input type="hidden" name="node_key" value="<?= h($node['node_key'] ?? '') ?>">
-                  <button type="submit" name="deck" value="a">Assign / Prepare Deck A</button>
-                  <button type="submit" name="deck" value="b">Assign / Prepare Deck B</button>
-                </form>
-              <?php endif; ?>
-
-              <form class="pi-node-actions pi-maint-actions" method="post">
-                <input type="hidden" name="node_action" value="send_command">
-                <input type="hidden" name="node_key" value="<?= h($node['node_key'] ?? '') ?>">
-                <button class="health" type="submit" name="command" value="healthcheck">Health Check</button>
-                <button class="update" type="submit" name="command" value="update_agent" onclick="return confirm('Update node software on <?= h(dttd_spotify_node_label($node)) ?> from Git?')">Update Agent</button>
-              </form>
-
-              <form class="pi-node-actions" method="post">
-                <input type="hidden" name="node_action" value="send_command">
-                <input type="hidden" name="node_key" value="<?= h($node['node_key'] ?? '') ?>">
-                <button type="submit" name="command" value="restart_raspotify">Restart Spotify</button>
-                <button type="submit" name="command" value="restart_agent">Restart Agent</button>
-                <button class="danger" type="submit" name="command" value="reboot" onclick="return confirm('Reboot <?= h(dttd_spotify_node_label($node)) ?>?')">Reboot</button>
-              </form>
+              </div>
             </article>
           <?php endforeach; ?>
         </div>
