@@ -371,9 +371,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['node_action'] ?? '') === '
                 $nodeError = 'Player node was not found.';
             } else {
                 $payload = null;
+                $volume = null;
+
                 if ($command === 'set_volume') {
                     $volume = max(0, min(100, (int)($_POST['volume'] ?? 85)));
                     $payload = json_encode(['volume' => $volume]);
+
+                    if (dttd_spotify_has_column('player_nodes', 'audio_volume_percent')) {
+                        db()->prepare("UPDATE player_nodes SET audio_volume_percent = ? WHERE node_key = ?")->execute([$volume, $nodeKey]);
+                    }
                 }
 
                 $stmt = db()->prepare("
@@ -381,6 +387,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['node_action'] ?? '') === '
                     VALUES (?, ?, ?, 'pending')
                 ");
                 $stmt->execute([$nodeKey, $command, $payload]);
+
                 $nodeFlash = dttd_spotify_command_label($command) . ' command queued for ' . dttd_spotify_node_label($node) . ($command === 'set_volume' ? ' at ' . $volume . '%.' : '.');
             }
         } catch (Throwable $e) {
