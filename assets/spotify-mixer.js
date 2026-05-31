@@ -179,7 +179,7 @@ document.head.appendChild(overviewStyle);
     const bBlocked = !deckCanLoad('b');
     let html = '';
     html += choiceButton('+ Add to DJ playlist', 'green full', 'playlist');
-    if(source !== 'crate') html += crateSaveControls();
+    if(source === 'track') html += crateSaveControls();
     html += choiceButton('Load to A', 'orange', 'load_a', aBlocked);
     html += choiceButton('Load to B', 'blue', 'load_b', bBlocked);
     html += choiceButton('▶ Play on A now', 'green', 'play_a', aBlocked);
@@ -431,19 +431,13 @@ renderAccountStatus();
     if(!list.length){ els.djPlaylist.innerHTML = '<div class="empty">DJ playlist is empty.</div>'; return; }
     els.djPlaylist.innerHTML = list.map((t,i)=>{
       const count = Number(t.request_count || 0);
-      const requestSummary = t.source === 'request' ? `
-          <div class="playlist-request-summary mini">
-            <span>${esc(count > 1 ? count + ' requests grouped' : '1 request')}</span>
-            ${Array.isArray(t.requesters) && t.requesters.length ? `<span>${esc(t.requesters.join(', '))}</span>` : ''}
-          </div>
-          ${renderRequestNotesList(t, 'mixer-request-note-list playlist-request-note-list')}` : '';
+      const requestSummary = t.source === 'request' ? renderRequestNotesList(t, 'mixer-request-note-list playlist-request-note-list') : '';
       return `
       <div class="playlist-row${t.source === 'request' && count > 1 ? ' grouped-playlist-row' : ''}">
         <img src="${esc(image(t.image))}" alt="">
         <div>
           <strong>${esc(t.title)}</strong><br>
           <span class="mini muted">${esc(t.artist)}${duration(t.duration_ms) ? ' • ' + duration(t.duration_ms) : ''}${t.source === 'request' ? ' • public request' : ''}</span>
-          <div class="workflow-row">${workflowBadge('DJ Playlist', 'queued')}${t.source === 'request' ? workflowBadge(count > 1 ? count + ' Requests' : 'Request', 'source') : workflowBadge(sourceLabel(t), 'source')}</div>
           ${requestSummary}
         </div>
         <div class="row-actions">
@@ -462,16 +456,12 @@ renderAccountStatus();
     if(!reqs.length){ els.publicRequests.innerHTML = '<div class="empty">No new Spotify-matched public requests waiting.</div>'; return; }
     els.publicRequests.innerHTML = reqs.map(r => {
       const count = Number(r.request_count || 1);
-      const people = Array.isArray(r.requesters) && r.requesters.length ? r.requesters.join(', ') : (r.guest_name || 'Guest');
-      const countLabel = count > 1 ? workflowBadge(count + ' requests', 'source') : '';
       return `
       <div class="request-row grouped-request-row${count > 1 ? ' has-multiple-requests' : ''}">
         <img src="${esc(image(r.image))}" alt="">
         <div>
           <strong>${esc(r.title)}</strong> <span class="muted">— ${esc(r.artist)}</span>
-          <div class="request-detail mini"><span class="request-time">${esc(requestTime(r.created_at))}</span><span><strong>${esc(people)}</strong></span></div>
           ${renderRequestNotesList(r, 'mixer-request-note-list public-request-note-list')}
-          <div class="request-source">${workflowBadge('Waiting review', 'waiting')}${countLabel}${r.queue_status ? workflowBadge(r.queue_status.replace(/_/g, ' '), 'source') : ''}</div>
         </div>
         <div class="row-actions quick-actions">
           <button class="mixer-btn green wide" data-select-request='${esc(JSON.stringify(r))}'>Choose action</button>
@@ -577,41 +567,20 @@ renderAccountStatus();
 
 
   async function search(q){
-    const term = (q || '').trim();
-    if(term.length < 3){ els.searchResults.innerHTML=''; els.searchStatus.textContent=''; return; }
+    if(!q || q.trim().length < 3){ els.searchResults.innerHTML=''; els.searchStatus.textContent=''; return; }
     els.searchStatus.innerHTML = '<span class="spinner"></span> Searching…';
-
-    let data = null;
-    let lastError = null;
-
     try{
-      const sep = searchApi.indexOf('?') === -1 ? '?' : '&';
-      const res = await fetch(searchApi + sep + 'q=' + encodeURIComponent(term), {cache:'no-store', credentials:'same-origin'});
-      const text = await res.text();
-      if(!res.ok) throw new Error('Search endpoint returned HTTP ' + res.status);
-      try {
-        data = JSON.parse(text);
-      } catch(parseErr) {
-        throw new Error('Search endpoint returned non-JSON response');
-      }
-    } catch(e){
-      lastError = e;
-      try{
-        data = await apiGet({action:'search', q:term});
-      } catch(fallbackErr){
-        lastError = fallbackErr;
+      const res = await fetch(searchApi + '?q=' + encodeURIComponent(q), {cache:'no-store'});
+      const data = await res.json();
+      if(data.ok){
+        const sourceLabel = data.rate_limited ? 'Spotify cooling down — cached matches shown' : (data.source === 'cache' ? 'Cached matches shown' : '');
+        els.searchStatus.textContent = sourceLabel;
+        renderSearchResults(data.tracks || []);
+      } else {
+        els.searchStatus.textContent = data.error || data.message || 'Search failed';
       }
     }
-
-    if(data && data.ok){
-      const sourceLabel = data.rate_limited ? 'Spotify cooling down — cached matches shown' : (data.source === 'cache' ? 'Cached matches shown' : '');
-      els.searchStatus.textContent = sourceLabel;
-      renderSearchResults(data.tracks || []);
-    } else {
-      els.searchResults.innerHTML = '';
-      els.searchStatus.textContent = (data && (data.error || data.message)) || 'Search failed';
-      if(lastError) console.warn('Spotify mixer search failed', lastError);
-    }
+    catch(e){ els.searchStatus.textContent = 'Search failed'; }
   }
   app.addEventListener('click', (e)=>{
     const sourceTab = e.target.closest('[data-source-tab]');
