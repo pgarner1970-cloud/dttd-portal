@@ -459,15 +459,93 @@ function public_group_played_tracks($requests) {
 }
 
 
+
+function public_current_mixer_request_keys($event_id = 0) {
+    $event_id = (int)$event_id;
+    $keys = [];
+    foreach (['a', 'b'] as $deck) {
+        $raw = public_app_setting('spotify_mixer_loaded_' . $deck, '');
+        if ($raw === '') {
+            continue;
+        }
+        $track = json_decode($raw, true);
+        if (!is_array($track) || empty($track['id'])) {
+            continue;
+        }
+
+        $requestId = !empty($track['request_id']) ? (int)$track['request_id'] : 0;
+        $groupId = trim((string)($track['request_group_id'] ?? ''));
+        $trackId = strtolower(trim((string)($track['id'] ?? $track['spotify_track_id'] ?? '')));
+
+        if ($requestId > 0 && $event_id > 0 && dttd_table_exists('song_requests')) {
+            try {
+                $stmt = db()->prepare('SELECT event_id, request_group_id, spotify_track_id FROM song_requests WHERE id = ? LIMIT 1');
+                $stmt->execute([$requestId]);
+                $row = $stmt->fetch();
+                if ($row && (int)($row['event_id'] ?? 0) !== $event_id) {
+                    continue;
+                }
+                if ($row) {
+                    if ($groupId === '') {
+                        $groupId = trim((string)($row['request_group_id'] ?? ''));
+                    }
+                    if ($trackId === '') {
+                        $trackId = strtolower(trim((string)($row['spotify_track_id'] ?? '')));
+                    }
+                }
+            } catch (Throwable $e) {
+                // If the lookup fails, fall back to the stored mixer track keys.
+            }
+        }
+
+        if ($requestId > 0) {
+            $keys['request:' . $requestId] = true;
+        }
+        if ($groupId !== '') {
+            $keys['group:' . strtolower($groupId)] = true;
+        }
+        if ($trackId !== '') {
+            $keys['track:' . $trackId] = true;
+        }
+    }
+
+    return $keys;
+}
+
+function public_request_matches_current_mixer($request, $currentKeys) {
+    if (empty($currentKeys) || !is_array($currentKeys)) {
+        return false;
+    }
+
+    foreach (public_group_rows($request) as $row) {
+        $requestId = !empty($row['id']) ? (int)$row['id'] : 0;
+        $groupId = strtolower(trim((string)($row['request_group_id'] ?? '')));
+        $trackId = strtolower(trim((string)($row['spotify_track_id'] ?? '')));
+
+        if ($requestId > 0 && !empty($currentKeys['request:' . $requestId])) {
+            return true;
+        }
+        if ($groupId !== '' && !empty($currentKeys['group:' . $groupId])) {
+            return true;
+        }
+        if ($trackId !== '' && !empty($currentKeys['track:' . $trackId])) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 function public_request_board_sort_rank($request) {
     $label = public_request_status_label($request);
     $order = [
-        'In DJ queue' => 0,
-        'Waiting' => 1,
-        'Under review' => 2,
-        'Already requested' => 3,
-        'Played' => 4,
-        'Unable to play' => 5,
+        'Currently playing' => 0,
+        'In DJ queue' => 1,
+        'Waiting' => 2,
+        'Under review' => 3,
+        'Already requested' => 4,
+        'Played' => 5,
+        'Unable to play' => 6,
     ];
 
     return $order[$label] ?? 9;
@@ -670,6 +748,7 @@ function public_request_status_label($request) {
 
 function public_request_status_class($label) {
     $key = strtolower((string)$label);
+    if (str_contains($key, 'currently')) return 'current';
     if (str_contains($key, 'played')) return 'played';
     if (str_contains($key, 'unable')) return 'unable';
     if (str_contains($key, 'queue')) return 'queued';
@@ -756,8 +835,8 @@ function public_request_guest_name($request) {
 }
 
 
-function public_render_request_board_item($request) {
-    $requestStatus = public_request_status_label($request);
+function public_render_request_board_item($request, $currentMixerKeys = []) {
+    $requestStatus = public_request_matches_current_mixer($request, $currentMixerKeys) ? 'Currently playing' : public_request_status_label($request);
     $dedicationRows = public_group_rows($request);
     $requestCount = public_group_request_count($request);
     $isUnable = ($requestStatus === 'Unable to play');
@@ -1034,6 +1113,7 @@ if ($event) {
     $playedRequests = $hasEventAccess ? public_recent_played_requests((int)$event['id'], 40) : [];
     $pendingCount = $hasEventAccess ? public_pending_request_count((int)$event['id']) : 0;
     $publicRequests = $hasEventAccess ? public_event_request_board((int)$event['id'], 80) : [];
+    $currentMixerRequestKeys = $hasEventAccess ? public_current_mixer_request_keys((int)$event['id']) : [];
     $eventPhotos = $hasEventAccess ? public_event_approved_photos((int)$event['id'], 12) : [];
     $requestsOpen = $hasEventAccess && !$isCancelled ? event_requests_open($event) : false;
     $requestCloseIso = dttd_event_request_close_iso($event);
@@ -1048,7 +1128,7 @@ if ($event) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : ($notFound ? 'Event Not Found' : 'Join Event') ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event portal.' ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=328">
+  <link rel="stylesheet" href="/assets/public-site.css?v=329">
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -1179,7 +1259,7 @@ if ($event) {
                 <?php $visibleRequests = array_slice($publicRequests, 0, 10); $hiddenRequests = array_slice($publicRequests, 10); ?>
                 <ul class="public-request-board-list">
                   <?php foreach ($visibleRequests as $request): ?>
-                    <?php public_render_request_board_item($request); ?>
+                    <?php public_render_request_board_item($request, $currentMixerRequestKeys); ?>
                   <?php endforeach; ?>
                 </ul>
                 <?php if ($hiddenRequests): ?>
@@ -1187,7 +1267,7 @@ if ($event) {
                     <summary>Show all tonight’s requests</summary>
                     <ul class="public-request-board-list public-request-board-list-extra">
                       <?php foreach ($hiddenRequests as $request): ?>
-                        <?php public_render_request_board_item($request); ?>
+                        <?php public_render_request_board_item($request, $currentMixerRequestKeys); ?>
                       <?php endforeach; ?>
                     </ul>
                   </details>

@@ -5674,3 +5674,18 @@ body.public-event-detail-page .request-status-pill.status-rejected{
   border-color:rgba(255,143,163,.82) !important;
   box-shadow:0 0 12px rgba(255,67,104,.14) !important;
 }
+
+
+/* Event request board: highlight the track currently loaded/playing on the mixer. */
+body.public-event-detail-page .public-request-status.current,
+body.public-event-detail-page .request-status-pill.current{
+  color:#20ff9a !important;
+  background:rgba(32,255,154,.08) !important;
+  border:1px solid rgba(32,255,154,.9) !important;
+  box-shadow:0 0 16px rgba(32,255,154,.24) !important;
+}
+
+body.public-event-detail-page .public-request-board-item:has(.public-request-status.current){
+  border-color:rgba(32,255,154,.48) !important;
+  box-shadow:0 0 22px rgba(32,255,154,.08) !important;
+}
