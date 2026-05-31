@@ -141,11 +141,12 @@ try {
 
 $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
 $privateEventName = ($homepage_state === 'private-event' && $active_event) ? home_public_event_title($active_event) : '';
-$privateEventCode = ($homepage_state === 'private-event' && $active_event) ? trim((string)($active_event['event_code'] ?? '')) : '';
-$privateEventRequestUrl = $privateEventCode !== '' ? '/request.php?code=' . rawurlencode($privateEventCode) : '/request.php';
-$privateEventUploadUrl = !empty($active_event['id']) ? '/upload.php?event_id=' . rawurlencode((string)$active_event['id']) : '/upload.php';
-$privateEventInfoUrl = $privateEventCode !== '' ? '/event.php?code=' . rawurlencode($privateEventCode) : '/event.php';
 $privateEventType = ($homepage_state === 'private-event' && $active_event) ? strtolower((string)($active_event['event_type'] ?? 'private_party')) : '';
+// Do not expose the private event code in public homepage links.
+// Guests must enter the event code or scan the QR code shown at the venue.
+$privateEventRequestUrl = '/request.php';
+$privateEventUploadUrl = '/upload.php';
+$privateEventInfoUrl = '/event.php';
 $public_current = 'home';
 ?>
 <!DOCTYPE html>
@@ -211,7 +212,7 @@ $public_current = 'home';
               <span class="option-one-icon">♪</span>
               <span>
                 <strong>Guest Requests</strong>
-                <em>Use the private event QR/code</em>
+                <em>Enter the venue code or scan the QR</em>
               </span>
             </a>
 
@@ -271,9 +272,9 @@ $public_current = 'home';
             </div>
             <div>
               <strong>Tonight we are hosting a private event<?= $privateEventName !== '' ? ' for ' . htmlspecialchars($privateEventName) : '' ?>.</strong>
-              <p>Guests can access requests, photos and event options here.</p>
+              <p>Guests can enter the venue code or scan the QR code displayed at the event.</p>
             </div>
-            <a class="private-event-access-button" href="<?= htmlspecialchars($privateEventRequestUrl) ?>">Guest access</a>
+            <a class="private-event-access-button" href="<?= htmlspecialchars($privateEventRequestUrl) ?>">Enter event code</a>
           </div>
         <?php elseif ($homepage_state === 'no-event'): ?>
           <p class="homepage-state-note">Song requests open automatically when an event is live.</p>
