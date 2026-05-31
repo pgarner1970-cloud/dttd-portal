@@ -275,7 +275,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['merge_source_group'],
             // versions/remasters from later being logged separately in history.
             $targetTrack = null;
             try {
-                $targetStmt = db()->prepare("
+                $targetStmt = db()->prepare("""
                     SELECT *
                     FROM song_requests
                     WHERE event_id = ?
@@ -285,7 +285,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['merge_source_group'],
                         created_at ASC,
                         id ASC
                     LIMIT 1
-                ");
+                """);
                 $targetStmt->execute([(int)$event['id'], $target_id]);
                 $targetTrack = $targetStmt->fetch(PDO::FETCH_ASSOC) ?: null;
             } catch (Throwable $e) {
