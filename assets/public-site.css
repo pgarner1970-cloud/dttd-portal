@@ -4612,295 +4612,231 @@ body.homepage-option-one .home-coming-up-card.is-live{
 }
 
 
-/* FORCE RESTORE: event portal page layout. Scoped to event.php body classes only. */
-body.public-event-detail-page.event-page-restored .public-event-detail-section,
-body.public-event-portal-page.event-page-restored .public-event-detail-section{
-  width:min(1120px,calc(100% - 32px)) !important;
-  margin:0 auto !important;
-  padding:24px 0 80px !important;
+/* Event page targeted fixes: compact request rows, real photo grid/lightbox, no venue map */
+body.public-event-detail-page .public-map-section{display:none !important}
+
+body.public-event-detail-page .public-request-board-list > li,
+body.public-event-detail-page .public-played-list > li{
+  min-height:0 !important;
+  padding:9px 10px !important;
 }
 
-body.public-event-detail-page.event-page-restored .public-feature-card,
-body.public-event-detail-page.event-page-restored .public-empty-card,
-body.public-event-portal-page.event-page-restored .public-feature-card,
-body.public-event-portal-page.event-page-restored .public-empty-card{
-  display:block !important;
-  border:1px solid rgba(255,58,220,.42) !important;
-  border-radius:26px !important;
-  background:linear-gradient(135deg,rgba(61,9,82,.82),rgba(28,3,52,.80)) !important;
-  box-shadow:0 0 30px rgba(255,58,220,.16) !important;
-  padding:24px !important;
-  color:#fff !important;
-  margin-bottom:22px !important;
-}
-
-body.public-event-detail-page.event-page-restored .public-event-hub-card,
-body.public-event-portal-page.event-page-restored .public-event-hub-card{
-  margin-bottom:22px !important;
-}
-
-body.public-event-detail-page.event-page-restored .public-feature-card-header,
-body.public-event-portal-page.event-page-restored .public-feature-card-header{
-  display:flex !important;
-  align-items:flex-start !important;
-  justify-content:space-between !important;
-  gap:18px !important;
-  margin-bottom:18px !important;
-}
-
-body.public-event-detail-page.event-page-restored .public-feature-kicker,
-body.public-event-portal-page.event-page-restored .public-feature-kicker{
-  display:block !important;
-  color:rgba(255,255,255,.78) !important;
-  font-size:13px !important;
-  font-weight:900 !important;
-  text-transform:uppercase !important;
-  letter-spacing:.08em !important;
-  margin-bottom:6px !important;
-}
-
-body.public-event-detail-page.event-page-restored .public-connected-pill,
-body.public-event-portal-page.event-page-restored .public-connected-pill{
-  display:inline-flex !important;
-  align-items:center !important;
-  padding:8px 12px !important;
-  border-radius:999px !important;
-  background:rgba(34,197,94,.14) !important;
-  border:1px solid rgba(34,197,94,.42) !important;
-  color:#8dffb4 !important;
-  font-weight:900 !important;
-  white-space:nowrap !important;
-}
-
-/* Top action tiles */
-body.public-event-detail-page.event-page-restored .public-event-action-grid,
-body.public-event-portal-page.event-page-restored .public-event-action-grid{
+body.public-event-detail-page .public-request-card-shell{
   display:grid !important;
-  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
-  gap:14px !important;
-  margin-top:14px !important;
+  grid-template-columns:54px minmax(0,1fr) !important;
+  gap:10px !important;
+  align-items:center !important;
 }
 
-body.public-event-detail-page.event-page-restored .public-event-action-tile,
-body.public-event-portal-page.event-page-restored .public-event-action-tile{
-  position:relative !important;
-  display:grid !important;
-  grid-template-columns:58px minmax(0,1fr) !important;
-  grid-template-areas:"icon title" "icon text" "icon meta" !important;
-  gap:3px 14px !important;
-  align-items:center !important;
-  min-height:98px !important;
-  padding:16px !important;
-  border:1px solid rgba(255,58,220,.38) !important;
-  border-radius:22px !important;
-  background:rgba(255,255,255,.065) !important;
-  color:#fff !important;
-  text-decoration:none !important;
+body.public-event-detail-page .public-request-artwork,
+body.public-event-detail-page .public-played-artwork{
+  width:54px !important;
+  height:54px !important;
+  border-radius:10px !important;
   overflow:hidden !important;
 }
 
-body.public-event-detail-page.event-page-restored .public-event-action-tile > span:first-child,
-body.public-event-portal-page.event-page-restored .public-event-action-tile > span:first-child{
-  grid-area:icon !important;
-  width:58px !important;
-  height:58px !important;
-  display:grid !important;
-  place-items:center !important;
-  border-radius:50% !important;
-  border:1px solid rgba(255,58,220,.55) !important;
-  box-shadow:0 0 20px rgba(255,58,220,.38) !important;
-  background:rgba(255,58,220,.12) !important;
-  font-size:24px !important;
-}
-
-body.public-event-detail-page.event-page-restored .public-event-action-tile strong,
-body.public-event-portal-page.event-page-restored .public-event-action-tile strong{
-  grid-area:title !important;
-  display:block !important;
-  font-size:18px !important;
-  line-height:1.18 !important;
-  color:#fff !important;
-}
-
-body.public-event-detail-page.event-page-restored .public-event-action-tile em,
-body.public-event-portal-page.event-page-restored .public-event-action-tile em{
-  grid-area:text !important;
-  display:block !important;
-  color:rgba(255,255,255,.82) !important;
-  font-style:normal !important;
-  font-weight:700 !important;
-  line-height:1.25 !important;
-}
-
-body.public-event-detail-page.event-page-restored .public-event-action-tile small,
-body.public-event-portal-page.event-page-restored .public-event-action-tile small{
-  grid-area:meta !important;
-  color:#fff4a8 !important;
-  font-weight:850 !important;
-}
-
-body.public-event-detail-page.event-page-restored .request-window-card.is-open,
-body.public-event-portal-page.event-page-restored .request-window-card.is-open{
-  border-color:rgba(34,197,94,.68) !important;
-  box-shadow:0 0 24px rgba(34,197,94,.18) !important;
-}
-
-body.public-event-detail-page.event-page-restored .request-window-card.is-open > span:first-child,
-body.public-event-portal-page.event-page-restored .request-window-card.is-open > span:first-child{
-  border-color:rgba(34,197,94,.78) !important;
-  animation:eventPortalGreenPulse 1.8s ease-in-out infinite !important;
-}
-
-@keyframes eventPortalGreenPulse{
-  0%{box-shadow:0 0 0 0 rgba(34,197,94,.45),0 0 18px rgba(34,197,94,.28)}
-  70%{box-shadow:0 0 0 13px rgba(34,197,94,0),0 0 26px rgba(34,197,94,.44)}
-  100%{box-shadow:0 0 0 0 rgba(34,197,94,0),0 0 18px rgba(34,197,94,.28)}
-}
-
-/* Main event page two-column live section */
-body.public-event-detail-page.event-page-restored .public-event-live-grid,
-body.public-event-portal-page.event-page-restored .public-event-live-grid{
-  display:grid !important;
-  grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
-  gap:22px !important;
-  align-items:start !important;
-  margin:22px 0 !important;
-}
-
-body.public-event-detail-page.event-page-restored .public-live-card,
-body.public-event-portal-page.event-page-restored .public-live-card{
-  min-height:260px !important;
-}
-
-/* Request and played cards */
-body.public-event-detail-page.event-page-restored .public-request-board-list,
-body.public-event-detail-page.event-page-restored .public-played-list,
-body.public-event-portal-page.event-page-restored .public-request-board-list,
-body.public-event-portal-page.event-page-restored .public-played-list{
-  display:grid !important;
-  gap:12px !important;
-  margin:14px 0 0 !important;
-  padding:0 !important;
-  list-style:none !important;
-}
-
-body.public-event-detail-page.event-page-restored .public-request-board-list > li,
-body.public-event-detail-page.event-page-restored .public-played-list > li,
-body.public-event-portal-page.event-page-restored .public-request-board-list > li,
-body.public-event-portal-page.event-page-restored .public-played-list > li{
-  display:grid !important;
-  grid-template-columns:68px minmax(0,1fr) !important;
-  gap:12px !important;
-  align-items:center !important;
-  padding:12px !important;
-  border:1px solid rgba(255,255,255,.14) !important;
-  border-radius:18px !important;
-  background:rgba(10,20,36,.72) !important;
-  list-style:none !important;
-}
-
-body.public-event-detail-page.event-page-restored .public-request-board-list img,
-body.public-event-detail-page.event-page-restored .public-played-list img,
-body.public-event-portal-page.event-page-restored .public-request-board-list img,
-body.public-event-portal-page.event-page-restored .public-played-list img{
-  width:68px !important;
-  height:68px !important;
+body.public-event-detail-page .public-request-artwork img,
+body.public-event-detail-page .public-played-artwork img{
+  width:54px !important;
+  height:54px !important;
   object-fit:cover !important;
-  border-radius:12px !important;
 }
 
-/* Photos section */
-body.public-event-detail-page.event-page-restored .public-event-photo-carousel-card,
-body.public-event-portal-page.event-page-restored .public-event-photo-carousel-card{
-  margin-top:22px !important;
+body.public-event-detail-page .public-request-card-main,
+body.public-event-detail-page .public-played-track-main{
+  min-width:0 !important;
 }
 
-body.public-event-detail-page.event-page-restored .public-gallery-card-actions,
-body.public-event-portal-page.event-page-restored .public-gallery-card-actions{
+body.public-event-detail-page .public-request-row-head{
   display:flex !important;
-  gap:10px !important;
-  flex-wrap:wrap !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:8px !important;
 }
 
-body.public-event-detail-page.event-page-restored .public-photo-carousel,
-body.public-event-portal-page.event-page-restored .public-photo-carousel{
-  position:relative !important;
+body.public-event-detail-page .public-request-row-head strong,
+body.public-event-detail-page .public-played-track-main strong{
+  display:block !important;
+  font-size:15px !important;
+  line-height:1.18 !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+
+body.public-event-detail-page .public-request-artist,
+body.public-event-detail-page .public-played-track-main span{
+  display:block !important;
+  font-size:13px !important;
+  line-height:1.2 !important;
+  color:rgba(255,255,255,.76) !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+
+body.public-event-detail-page .public-request-member-list{
+  margin-top:4px !important;
+  display:block !important;
+}
+
+body.public-event-detail-page .public-request-member{
+  margin:0 !important;
+}
+
+body.public-event-detail-page .public-request-member small{
+  display:block !important;
+  font-size:12px !important;
+  color:rgba(255,255,255,.72) !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+
+body.public-event-detail-page .public-request-dedication{
+  margin:2px 0 0 !important;
+  font-size:12px !important;
+  line-height:1.25 !important;
+  color:rgba(255,255,255,.82) !important;
+}
+
+body.public-event-detail-page .public-request-status{
+  flex:0 0 auto !important;
+  font-size:11px !important;
+  padding:4px 7px !important;
+  border-radius:999px !important;
+}
+
+body.public-event-detail-page .public-played-track-row{
+  grid-template-columns:54px minmax(0,1fr) auto !important;
+}
+
+body.public-event-detail-page .public-played-track-actions{
+  display:flex !important;
+  gap:6px !important;
+}
+
+body.public-event-detail-page .public-track-icon-action{
+  width:34px !important;
+  height:34px !important;
+  min-height:34px !important;
+  padding:0 !important;
+  border-radius:50% !important;
+}
+
+body.public-event-detail-page .public-event-photo-grid{
+  display:grid !important;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr)) !important;
+  gap:14px !important;
   margin-top:16px !important;
 }
 
-body.public-event-detail-page.event-page-restored .public-photo-carousel-track,
-body.public-event-portal-page.event-page-restored .public-photo-carousel-track{
+body.public-event-detail-page .public-event-photo-tile{
   display:grid !important;
-  grid-auto-flow:column !important;
-  grid-auto-columns:minmax(260px,1fr) !important;
-  gap:14px !important;
-  overflow:hidden !important;
+  gap:8px !important;
+  color:#fff !important;
 }
 
-body.public-event-detail-page.event-page-restored .public-photo-carousel-slide,
-body.public-event-portal-page.event-page-restored .public-photo-carousel-slide{
-  min-height:170px !important;
+body.public-event-detail-page .public-event-photo-thumb{
+  display:block !important;
+  width:100% !important;
+  aspect-ratio:1 / 1 !important;
+  border:1px solid rgba(255,255,255,.14) !important;
+  border-radius:18px !important;
+  overflow:hidden !important;
+  background:rgba(10,20,36,.72) !important;
+  padding:0 !important;
+  cursor:pointer !important;
+}
+
+body.public-event-detail-page .public-event-photo-thumb img{
+  display:block !important;
+  width:100% !important;
+  height:100% !important;
+  object-fit:cover !important;
+}
+
+body.public-event-detail-page .public-event-photo-tile span{
+  font-size:12px !important;
+  color:rgba(255,255,255,.78) !important;
+}
+
+body.public-event-detail-page .public-event-photos-empty{
+  margin-top:16px !important;
+  padding:18px !important;
+  border:1px dashed rgba(255,255,255,.18) !important;
+  border-radius:20px !important;
+  background:rgba(10,20,36,.44) !important;
+}
+
+.public-lightbox[hidden]{display:none !important}
+.public-lightbox{
+  position:fixed !important;
+  inset:0 !important;
+  z-index:9999 !important;
   display:grid !important;
   place-items:center !important;
-  text-align:center !important;
-  padding:20px !important;
-  border:1px solid rgba(255,255,255,.14) !important;
-  border-radius:20px !important;
-  background:rgba(10,20,36,.64) !important;
-  color:#fff !important;
-  text-decoration:none !important;
+  padding:24px !important;
+  background:rgba(5,0,12,.88) !important;
+  backdrop-filter:blur(8px) !important;
 }
-
-body.public-event-detail-page.event-page-restored .public-carousel-btn,
-body.public-event-portal-page.event-page-restored .public-carousel-btn{
+.public-lightbox figure{
+  width:min(980px,100%) !important;
+  max-height:92vh !important;
+  display:grid !important;
+  gap:14px !important;
+  margin:0 !important;
+}
+.public-lightbox img{
+  max-width:100% !important;
+  max-height:70vh !important;
+  object-fit:contain !important;
+  margin:auto !important;
+  border-radius:18px !important;
+  box-shadow:0 0 40px rgba(255,58,220,.22) !important;
+}
+.public-lightbox figcaption{
+  display:grid !important;
+  gap:8px !important;
+  color:#fff !important;
+  text-align:center !important;
+}
+.public-lightbox-actions{
+  display:flex !important;
+  justify-content:center !important;
+  gap:10px !important;
+  flex-wrap:wrap !important;
+}
+.public-lightbox-actions button,
+.public-lightbox-close,
+.public-lightbox-nav{
+  border:1px solid rgba(255,255,255,.22) !important;
+  background:rgba(255,255,255,.08) !important;
+  color:#fff !important;
+  border-radius:999px !important;
+  padding:10px 14px !important;
+  font-weight:900 !important;
+  cursor:pointer !important;
+}
+.public-lightbox-close{
+  position:absolute !important;
+  top:18px !important;
+  right:18px !important;
+  width:44px !important;
+  height:44px !important;
+  padding:0 !important;
+  font-size:28px !important;
+}
+.public-lightbox-nav{
   position:absolute !important;
   top:50% !important;
-  z-index:2 !important;
   transform:translateY(-50%) !important;
-  width:38px !important;
-  height:38px !important;
-  border-radius:50% !important;
-  border:1px solid rgba(255,255,255,.25) !important;
-  background:rgba(20,6,36,.88) !important;
-  color:#fff !important;
-  font-size:28px !important;
-  line-height:1 !important;
+  width:46px !important;
+  height:46px !important;
+  padding:0 !important;
+  font-size:34px !important;
 }
-
-body.public-event-detail-page.event-page-restored .public-carousel-prev,
-body.public-event-portal-page.event-page-restored .public-carousel-prev{left:8px !important}
-body.public-event-detail-page.event-page-restored .public-carousel-next,
-body.public-event-portal-page.event-page-restored .public-carousel-next{right:8px !important}
-
-body.public-event-detail-page.event-page-restored .public-neon-btn,
-body.public-event-portal-page.event-page-restored .public-neon-btn{
-  display:inline-flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-  min-height:44px !important;
-  padding:0 16px !important;
-  border-radius:16px !important;
-  border:1px solid rgba(255,58,220,.38) !important;
-  background:linear-gradient(135deg,rgba(179,21,255,.85),rgba(255,79,216,.78)) !important;
-  color:#fff !important;
-  text-decoration:none !important;
-  font-weight:950 !important;
-}
-
-body.public-event-detail-page.event-page-restored .public-neon-btn.subtle,
-body.public-event-portal-page.event-page-restored .public-neon-btn.subtle{
-  background:rgba(255,255,255,.06) !important;
-}
-
-@media(max-width:860px){
-  body.public-event-detail-page.event-page-restored .public-event-action-grid,
-  body.public-event-detail-page.event-page-restored .public-event-live-grid,
-  body.public-event-portal-page.event-page-restored .public-event-action-grid,
-  body.public-event-portal-page.event-page-restored .public-event-live-grid{
-    grid-template-columns:1fr !important;
-  }
-  body.public-event-detail-page.event-page-restored .public-feature-card-header,
-  body.public-event-portal-page.event-page-restored .public-feature-card-header{
-    display:grid !important;
-  }
-}
+.public-lightbox-nav.prev{left:18px !important}
+.public-lightbox-nav.next{right:18px !important}
+.public-lightbox-open{overflow:hidden !important}
