@@ -5154,3 +5154,44 @@ body.public-event-detail-page .public-request-board-item.is-grouped .public-requ
   padding-top:5px !important;
   border-top:1px solid rgba(255,255,255,.08) !important;
 }
+
+
+/* Event page polish: restore card spacing and Spotify brand mark */
+body.public-event-detail-page .public-event-photo-carousel-card{
+  margin-top:22px !important;
+  margin-bottom:26px !important;
+}
+
+body.public-event-detail-page .public-event-photo-carousel-card + .public-event-detail-card{
+  margin-top:26px !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.spotify{
+  border-color:rgba(255,58,220,.78) !important;
+  background:rgba(255,58,220,.08) !important;
+  color:#1DB954 !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon{
+  color:#1DB954 !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon circle{
+  fill:#1DB954 !important;
+  stroke:#1DB954 !important;
+  stroke-width:0 !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon path{
+  fill:none !important;
+  stroke:#070b12 !important;
+  stroke-width:1.7 !important;
+  stroke-linecap:round !important;
+  stroke-linejoin:round !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.spotify:hover .public-action-icon circle,
+body.public-event-detail-page .public-track-icon-action.spotify:focus-visible .public-action-icon circle{
+  fill:#1ed760 !important;
+  stroke:#1ed760 !important;
+}
