@@ -3992,129 +3992,122 @@ body.homepage-option-one .home-coming-up-card.is-live{
 }
 
 
-/* Modern request page rebuild */
-.request-modern-layout{
-  width:min(1180px,calc(100% - 32px));
-  margin:0 auto;
-  padding:26px 0 70px;
+/* Clean public song request form layout */
+.public-request-card{
+  max-width:960px;
+  margin:24px auto;
 }
-.request-modern-layout .public-request-card,
-.request-modern-layout .request-form-card{
-  background:linear-gradient(135deg,rgba(61,9,82,.74),rgba(28,3,52,.72));
-  border:1px solid rgba(255,58,220,.32);
-  border-radius:28px;
-  padding:28px;
-  box-shadow:0 0 28px rgba(255,58,220,.12);
-}
-.request-modern-layout .public-request-form,
-.request-modern-layout .request-form{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
+.public-request-card .public-feature-card-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
   gap:18px;
+  margin-bottom:20px;
+}
+.public-request-form-clean{
+  display:grid !important;
+  grid-template-columns:1fr 1fr;
+  gap:16px 18px;
   align-items:start;
 }
-.request-modern-layout label{
+.public-request-form-clean .request-field{
   display:grid;
-  gap:8px;
-  font-weight:900;
+  gap:7px;
+}
+.public-request-form-clean label{
   color:#fff;
+  font-weight:900;
 }
-.request-modern-layout input,
-.request-modern-layout textarea{
+.public-request-form-clean input,
+.public-request-form-clean textarea{
   width:100%;
-  border-radius:18px;
-  border:1px solid rgba(255,255,255,.18);
-  background:rgba(242,245,252,.95);
-  color:#241330;
-  padding:14px 16px;
-  min-height:52px;
-  font-size:17px;
+  box-sizing:border-box;
+  border-radius:14px;
+  border:1px solid rgba(180,210,255,.28);
+  background:#101d30;
+  color:#fff;
+  padding:12px 14px;
+  min-height:48px;
+  font:inherit;
+  box-shadow:none;
 }
-.request-modern-layout textarea{
-  min-height:120px;
+.public-request-form-clean input::placeholder,
+.public-request-form-clean textarea::placeholder{
+  color:rgba(255,255,255,.45);
+}
+.public-request-form-clean textarea{
+  min-height:86px;
   resize:vertical;
 }
-.request-modern-layout .full{
+.public-request-form-clean .request-name-field,
+.public-request-form-clean .request-dedication-field,
+.public-request-form-clean .request-song-artist-row,
+.public-request-form-clean .public-spotify-search-box,
+.public-request-form-clean .request-submit-row{
   grid-column:1/-1;
 }
-.request-modern-layout .spotify-search-results,
-.request-modern-layout .spotify-results,
-.request-modern-layout .spotify-search-list{
+.public-request-form-clean .request-song-artist-row{
   display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-template-columns:1fr 1fr;
+  gap:18px;
+}
+.public-request-form-clean .public-spotify-search-box{
+  margin-top:0;
+}
+.public-request-form-clean .spotify-results{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:8px;
+  margin-top:8px;
+}
+.public-request-form-clean .spotify-result,
+.public-request-form-clean .spotify-search-item,
+.public-request-form-clean .spotify-match{
+  display:grid;
+  grid-template-columns:56px 1fr;
   gap:12px;
-  margin-top:16px;
-}
-.request-modern-layout .spotify-result,
-.request-modern-layout .spotify-search-item,
-.request-modern-layout .spotify-match{
-  display:grid;
-  grid-template-columns:72px 1fr;
-  gap:14px;
   align-items:center;
-  padding:10px;
-  border-radius:20px;
-  background:linear-gradient(135deg,#b315ff,#ff4fd8);
-  color:#fff;
-  text-decoration:none;
-  box-shadow:0 0 18px rgba(179,21,255,.26);
-}
-.request-modern-layout .spotify-result img,
-.request-modern-layout .spotify-search-item img,
-.request-modern-layout .spotify-match img{
-  width:72px;
-  height:72px;
-  object-fit:cover;
+  width:100%;
+  padding:8px 10px;
+  border:1px solid rgba(82,154,255,.28);
   border-radius:14px;
+  background:#0d1a2c;
+  color:#fff;
+  text-align:left;
+  box-shadow:none;
 }
-.request-modern-layout .spotify-result strong,
-.request-modern-layout .spotify-search-item strong,
-.request-modern-layout .spotify-match strong{
-  display:block;
-  font-size:18px;
-  line-height:1.2;
+.public-request-form-clean .spotify-result img,
+.public-request-form-clean .spotify-search-item img,
+.public-request-form-clean .spotify-match img{
+  width:56px;
+  height:56px;
+  object-fit:cover;
+  border-radius:10px;
 }
-.request-modern-layout .spotify-result span,
-.request-modern-layout .spotify-search-item span,
-.request-modern-layout .spotify-match span{
-  display:block;
-  margin-top:4px;
-  opacity:.92;
-  font-weight:700;
+.public-request-form-clean .spotify-selected{
+  margin-top:8px;
 }
-.request-modern-layout .request-submit-row{
+.public-request-form-clean .request-submit-row{
   display:flex;
   justify-content:flex-end;
-  margin-top:20px;
 }
-.request-modern-layout button[type="submit"],
-.request-modern-layout .public-neon-btn{
-  min-width:220px;
-  min-height:54px;
-  border-radius:18px;
-  border:0;
-  background:linear-gradient(135deg,#b315ff,#ff4fd8);
-  color:#fff;
-  font-size:18px;
-  font-weight:950;
-  box-shadow:0 0 20px rgba(179,21,255,.28);
+.public-request-form-clean .public-submit-btn{
+  width:auto !important;
+  min-width:170px;
+  min-height:46px;
+  padding:0 22px;
+  border-radius:14px;
+  font-size:16px;
 }
-.request-modern-layout .event-info-button{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  min-height:44px;
-  padding:0 16px;
-  border-radius:16px;
-  background:rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.12);
-}
-@media(max-width:860px){
-  .request-modern-layout .public-request-form,
-  .request-modern-layout .request-form,
-  .request-modern-layout .spotify-search-results,
-  .request-modern-layout .spotify-results,
-  .request-modern-layout .spotify-search-list{
+@media(max-width:760px){
+  .public-request-form-clean,
+  .public-request-form-clean .request-song-artist-row{
     grid-template-columns:1fr;
+  }
+  .public-request-form-clean .request-submit-row{
+    justify-content:stretch;
+  }
+  .public-request-form-clean .public-submit-btn{
+    width:100% !important;
   }
 }
