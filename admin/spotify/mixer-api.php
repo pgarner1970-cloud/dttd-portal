@@ -80,7 +80,30 @@ function mx_spotify_playlist_tracks($playlist_id) {
 }
 function mx_history() {
     $history = mx_json('spotify_mixer_history', []);
-    return array_values(array_map('mx_track_output', array_slice((array)$history, 0, 80)));
+    $history = is_array($history) ? $history : [];
+
+    $eventId = mx_current_event_id();
+    $cutoff = time() - 86400;
+    $filtered = [];
+
+    foreach ($history as $item) {
+        if (!is_array($item)) continue;
+
+        $playedAt = strtotime((string)($item['played_at'] ?? ''));
+        if (!$playedAt || $playedAt < $cutoff) continue;
+
+        if ($eventId > 0) {
+            // During a live event the mixer history must stay scoped to that
+            // event only. Global/older rows without an event_id are hidden so
+            // previous parties cannot leak into the current mixer view.
+            if ((int)($item['event_id'] ?? 0) !== $eventId) continue;
+        }
+
+        $filtered[] = $item;
+        if (count($filtered) >= 80) break;
+    }
+
+    return array_values(array_map('mx_track_output', $filtered));
 }
 
 function mx_crates() {
@@ -173,6 +196,8 @@ function mx_add_history($deck, $track) {
     $item = mx_clean_track($track);
     $item['history_deck'] = strtoupper($deck === 'b' ? 'b' : 'a');
     $item['played_at'] = date('Y-m-d H:i:s');
+    $eventId = !empty($item['event_id']) ? (int)$item['event_id'] : mx_current_event_id();
+    if ($eventId > 0) $item['event_id'] = $eventId;
     $history = mx_json('spotify_mixer_history', []);
     array_unshift($history, $item);
     $seen = [];
@@ -200,6 +225,7 @@ function mx_clean_track($track) {
         'url' => (string)($track['url'] ?? ''),
         'duration_ms' => isset($track['duration_ms']) ? (int)$track['duration_ms'] : null,
         'source' => (string)($track['source'] ?? 'search'),
+        'event_id' => !empty($track['event_id']) ? (int)$track['event_id'] : null,
         'request_id' => !empty($track['request_id']) ? (int)$track['request_id'] : null,
         'request_group_id' => (string)($track['request_group_id'] ?? ''),
         'request_count' => isset($track['request_count']) ? (int)$track['request_count'] : null,
@@ -304,6 +330,7 @@ function mx_track_from_request_group($request_id, $request_group_id = '') {
         'source' => 'request',
         'request_id' => (int)$r['id'],
         'request_group_id' => (string)($r['request_group_id'] ?? $request_group_id),
+        'event_id' => isset($r['event_id']) ? (int)$r['event_id'] : null,
         'request_count' => $requestCount,
         'requesters' => $requesters,
         'request_notes' => $notes,
@@ -829,6 +856,7 @@ function mx_track_output($t) {
     if ($t['image'] === '') $t['image'] = 'https://dancethruthedecades.co.uk/assets/glitter-ball-clean.png';
     if (isset($raw['played_at'])) $t['played_at'] = (string)$raw['played_at'];
     if (isset($raw['history_deck'])) $t['history_deck'] = (string)$raw['history_deck'];
+    if (isset($raw['event_id'])) $t['event_id'] = (int)$raw['event_id'];
     return $t;
 }
 function mx_requests($playlist) {
