@@ -3,6 +3,12 @@ require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/photo-uploads.php';
 dttd_redirect_public_feature_to_primary_domain();
 
+if (!headers_sent()) {
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+}
+
 if (!function_exists('public_h')) {
     function public_h($value) {
         return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
@@ -1092,15 +1098,16 @@ if ($event) {
                   <?php
                     $displayPath = $photo['path'] ?? '';
                     $thumbPath = $photo['thumb'] ?? $displayPath;
-                    $originalPath = $photo['original'] ?? $displayPath;
+                    $displayUrl = function_exists('photo_public_cache_busted_url') ? photo_public_cache_busted_url($displayPath) : '/' . ltrim($displayPath, '/');
+                    $thumbUrl = function_exists('photo_public_cache_busted_url') ? photo_public_cache_busted_url($thumbPath ?: $displayPath) : '/' . ltrim(($thumbPath ?: $displayPath), '/');
                     $photoTitle = 'Photo from ' . $title;
                     $photoMeta = !empty($photo['guest_name']) ? 'Shared by ' . $photo['guest_name'] : 'Dance Thru The Decades';
                     $shareUrl = !empty($photo['id']) ? '/gallery.php?photo=' . (int)$photo['id'] : '/' . ltrim($displayPath, '/');
                     $shareText = $title . ($venue ? ' at ' . $venue : '') . "\nDance Thru The Decades";
                   ?>
-                  <article class="public-event-photo-tile" data-lightbox-item="<?= (int)$index ?>" data-lightbox-image="/<?= public_h($originalPath ?: $displayPath) ?>" data-lightbox-title="<?= public_h($title) ?>" data-lightbox-meta="<?= public_h(($venue ? $venue . ' · ' : '') . dttd_public_event_date($event)) ?>" data-lightbox-share-url="<?= public_h($shareUrl) ?>" data-lightbox-share-text="<?= public_h($shareText) ?>">
+                  <article class="public-event-photo-tile" data-lightbox-item="<?= (int)$index ?>" data-lightbox-image="<?= public_h($displayUrl) ?>" data-lightbox-title="<?= public_h($title) ?>" data-lightbox-meta="<?= public_h(($venue ? $venue . ' · ' : '') . dttd_public_event_date($event)) ?>" data-lightbox-share-url="<?= public_h($shareUrl) ?>" data-lightbox-share-text="<?= public_h($shareText) ?>">
                     <button class="public-event-photo-thumb" type="button">
-                      <img src="/<?= public_h($thumbPath ?: $displayPath) ?>" alt="<?= public_h($photoTitle) ?>">
+                      <img src="<?= public_h($thumbUrl) ?>" alt="<?= public_h($photoTitle) ?>">
                     </button>
                     <?php if (!empty($photo['guest_name'])): ?>
                       <span>Shared by <?= public_h($photo['guest_name']) ?></span>

@@ -34,7 +34,7 @@ function photo_relative_to_public($path) {
     return ltrim(str_replace('\\', '/', (string)$path), '/');
 }
 
-function photo_public_url($path) {
+function photo_public_url($path, $cacheBust = false) {
     $path = trim((string)$path);
     if ($path === '') {
         return '';
@@ -42,7 +42,19 @@ function photo_public_url($path) {
     if (preg_match('~^https?://~i', $path)) {
         return $path;
     }
-    return '/' . ltrim($path, '/');
+
+    $url = '/' . ltrim($path, '/');
+    if ($cacheBust) {
+        $localPath = dirname(__DIR__) . '/' . ltrim($path, '/');
+        if (is_file($localPath)) {
+            $url .= (strpos($url, '?') === false ? '?' : '&') . 'v=' . filemtime($localPath);
+        }
+    }
+    return $url;
+}
+
+function photo_public_cache_busted_url($path) {
+    return photo_public_url($path, true);
 }
 
 function photo_storage_directories() {

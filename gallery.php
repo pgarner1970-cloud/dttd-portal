@@ -2,6 +2,12 @@
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/photo-uploads.php';
 
+if (!headers_sent()) {
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+}
+
 $public_current = 'gallery';
 $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
 
@@ -130,7 +136,7 @@ $metaUrl = gallery_absolute_url('/gallery.php');
 
 if ($sharePhoto) {
     $sharePaths = photo_row_display_paths($sharePhoto);
-    $shareDisplayUrl = photo_public_url($sharePaths['display']);
+    $shareDisplayUrl = photo_public_cache_busted_url($sharePaths['display']);
     $shareTitle = trim((string)($sharePhoto['event_name'] ?? 'Dance Thru The Decades photo'));
     $shareCaption = gallery_photo_caption($sharePhoto);
 
@@ -242,8 +248,8 @@ try {
           <div class="public-photo-grid">
             <?php foreach ($photos as $index => $photo):
               $paths = photo_row_display_paths($photo);
-              $displayUrl = photo_public_url($paths['display']);
-              $thumbUrl = photo_public_url($paths['thumb']);
+              $displayUrl = photo_public_cache_busted_url($paths['display']);
+              $thumbUrl = photo_public_cache_busted_url($paths['thumb']);
               $dateLabel = '';
               if (!empty($photo['event_date'])) {
                 try {
@@ -261,7 +267,7 @@ try {
               ?>
               <article class="public-photo-tile" data-lightbox-item="<?= (int)$index ?>" data-lightbox-image="<?= photo_h($displayUrl) ?>" data-lightbox-title="<?= photo_h((string)($photo['event_name'] ?? 'Event photo')) ?>" data-lightbox-meta="<?= photo_h($caption) ?>" data-lightbox-share-url="<?= photo_h($shareUrl) ?>" data-lightbox-share-text="<?= photo_h($shareText) ?>" data-lightbox-id="<?= (int)($photo['id'] ?? 0) ?>">
                 <button class="public-photo-thumb" type="button">
-                  <img src="<?= photo_h($displayUrl) ?>" alt="<?= photo_h((string)($photo['event_name'] ?? 'Event photo')) ?>">
+                  <img src="<?= photo_h($thumbUrl) ?>" alt="<?= photo_h((string)($photo['event_name'] ?? 'Event photo')) ?>">
                 </button>
                 <div class="public-photo-meta">
                   <h3><?= photo_h((string)($photo['event_name'] ?? 'Event')) ?></h3>
