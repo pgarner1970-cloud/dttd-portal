@@ -117,6 +117,7 @@ function dttd_spotify_command_label($command) {
         'restart_raspotify' => 'Restart Spotify',
         'restart_agent' => 'Restart Agent',
         'reboot' => 'Reboot Node',
+        'shutdown' => 'Shutdown Node',
         'healthcheck' => 'Health Check',
         'update_agent' => 'Update Agent',
         'set_volume' => 'Set Volume',
@@ -274,6 +275,7 @@ $allowedNodeCommands = [
     'restart_raspotify',
     'restart_agent',
     'reboot',
+    'shutdown',
     'healthcheck',
     'update_agent',
     'set_volume',
@@ -591,6 +593,7 @@ admin_header('Spotify Tools - DJ Portal');
                     <button type="submit" name="command" value="restart_raspotify">Restart Spotify</button>
                     <button type="submit" name="command" value="restart_agent">Restart Agent</button>
                     <button class="danger" type="submit" name="command" value="reboot" onclick="return confirm('Reboot Deck <?= h($deckSlot) ?> node <?= h($nodeLabel) ?>?')">Reboot Deck <?= h($deckSlot) ?></button>
+                    <button class="danger" type="submit" name="command" value="shutdown" onclick="return confirm('Shutdown Deck <?= h($deckSlot) ?> node <?= h($nodeLabel) ?>? You will need to physically power it back on.')">Shutdown Deck <?= h($deckSlot) ?></button>
                   </form>
 
                   <form class="pi-volume-actions" method="post">
