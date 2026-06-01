@@ -491,13 +491,19 @@ renderAccountStatus();
     }catch(e){ toast('Action failed', false); }
     finally{ busy = false; }
   }
+  function searchBadgeHtml(track){
+    const badges = Array.isArray(track?.badges) ? track.badges : [];
+    if(!badges.length) return '';
+    return `<div class="search-result-badges">${badges.slice(0,4).map(b=>`<span class="search-result-badge ${esc(b.type || '')}">${esc(b.label || '')}</span>`).join('')}</div>`;
+  }
   function renderSearchResults(tracks){
     if(!els.searchResults) return;
     if(!tracks.length){ els.searchResults.innerHTML = '<div class="mini muted">No matches yet.</div>'; return; }
     els.searchResults.innerHTML = tracks.map(t=>`
-      <div class="result-row">
+      <div class="result-row search-result-row">
         <img src="${esc(image(t.image))}" alt="">
         <div><div class="result-title">${esc(t.title)}</div><div class="mini muted">${esc(t.artist)}${t.album ? ' • ' + esc(t.album) : ''}</div></div>
+        ${searchBadgeHtml(t)}
         <button class="mixer-btn green" data-select-track='${esc(JSON.stringify(t))}'>Choose</button>
       </div>`).join('');
   }

@@ -639,14 +639,14 @@ function dttd_spotify_original_candidate_score(array $track, array $versionTags,
     $isCompilation = in_array('Compilation', $versionTags, true);
     $albumType = strtolower((string)($track['album_type'] ?? ''));
 
-    if ($decade !== null) $score += 35;
-    if ($albumType === 'album' || $albumType === 'single') $score += 10;
-    if (!$hasBadOriginalTag) $score += 22;
-    if (!$isRemaster) $score += 10;
-    if (!$isCompilation) $score += 8;
+    if ($decade !== null) $score += 52;
+    if ($albumType === 'album' || $albumType === 'single') $score += 14;
+    if (!$hasBadOriginalTag) $score += 28;
+    if (!$isRemaster) $score += 18;
+    if (!$isCompilation) $score += 12;
 
-    if ($isRemaster) $score -= 18;
-    if ($isCompilation) $score -= 8;
+    if ($isRemaster) $score -= 28;
+    if ($isCompilation) $score -= 14;
     foreach ($badOriginalTags as $tag) {
         if (in_array($tag, $versionTags, true)) $score -= 24;
     }
@@ -683,6 +683,7 @@ function dttd_spotify_enrich_track(array $track, $query = '') {
     $badges = [];
     if ($decade !== null) $badges[] = ['type' => 'decade', 'label' => $decade];
     if ($likelyOriginal) {
+        $score += 35;
         $badges[] = ['type' => 'original', 'label' => 'Original'];
     } elseif ($decade !== null && $isRemaster && count(array_intersect($versionTags, $badOriginalLabels)) === 0) {
         $badges[] = ['type' => 'original-era', 'label' => 'Original era'];
@@ -729,6 +730,12 @@ function dttd_spotify_enrich_and_sort_tracks(array $tracks, $query = '') {
         $scoreA = (float)($a['search_score'] ?? 0);
         $scoreB = (float)($b['search_score'] ?? 0);
         if ($scoreA === $scoreB) {
+            $origA = !empty($a['likely_original']) ? 1 : 0;
+            $origB = !empty($b['likely_original']) ? 1 : 0;
+            if ($origA !== $origB) return $origB <=> $origA;
+            $decA = !empty($a['decade']) ? 1 : 0;
+            $decB = !empty($b['decade']) ? 1 : 0;
+            if ($decA !== $decB) return $decB <=> $decA;
             return (int)($a['_original_order'] ?? 0) <=> (int)($b['_original_order'] ?? 0);
         }
         return $scoreA < $scoreB ? 1 : -1;

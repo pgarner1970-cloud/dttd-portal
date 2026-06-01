@@ -45,7 +45,8 @@
         button.className = 'spotify-result';
         button.innerHTML =
           (track.image ? '<img src="' + track.image.replace(/"/g, '&quot;') + '" alt="">' : '<span class="spotify-art-placeholder">♫</span>') +
-          '<span class="spotify-result-text"><strong>' + escapeHtml(track.title || '') + '</strong><small>' + escapeHtml(track.artist || '') + (track.album ? ' · ' + escapeHtml(track.album) : '') + '</small>' + badgeHtml(track) + '</span>';
+          '<span class="spotify-result-text"><strong>' + escapeHtml(track.title || '') + '</strong><small>' + escapeHtml(track.artist || '') + (track.album ? ' · ' + escapeHtml(track.album) : '') + '</small></span>' +
+          badgeHtml(track);
 
         button.addEventListener('click', function () {
           titleInput.value = track.title || '';
