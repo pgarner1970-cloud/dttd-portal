@@ -5234,3 +5234,77 @@ body.public-event-detail-page .public-request-status.status-already-requested{
     margin-top:4px !important;
   }
 }
+
+/* Regression guard: public event photo card spacing and played-track icon actions */
+body.public-event-detail-page .public-event-photo-carousel-card{
+  margin-bottom:28px !important;
+}
+body.public-event-detail-page .public-event-photo-carousel-card + .public-event-detail-card{
+  margin-top:0 !important;
+}
+body.public-event-detail-page .public-played-track-actions{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  gap:8px !important;
+  min-width:82px !important;
+}
+body.public-event-detail-page .public-track-icon-action{
+  position:relative !important;
+  display:inline-grid !important;
+  place-items:center !important;
+  width:34px !important;
+  height:34px !important;
+  min-width:34px !important;
+  min-height:34px !important;
+  padding:0 !important;
+  border-radius:999px !important;
+  border:1px solid rgba(255,255,255,.22) !important;
+  background:rgba(255,255,255,.08) !important;
+  color:#fff !important;
+  text-decoration:none !important;
+  font-size:0 !important;
+  line-height:0 !important;
+  overflow:hidden !important;
+}
+body.public-event-detail-page .public-track-icon-action.spotify{
+  background:rgba(30,215,96,.14) !important;
+  border-color:rgba(30,215,96,.48) !important;
+}
+body.public-event-detail-page .public-track-icon-action.share{
+  background:rgba(255,255,255,.10) !important;
+}
+body.public-event-detail-page .public-track-icon-action .public-sr-only{
+  position:absolute !important;
+  width:1px !important;
+  height:1px !important;
+  padding:0 !important;
+  margin:-1px !important;
+  overflow:hidden !important;
+  clip:rect(0,0,0,0) !important;
+  white-space:nowrap !important;
+  border:0 !important;
+}
+body.public-event-detail-page .public-track-icon-action .public-action-icon{
+  display:block !important;
+  width:19px !important;
+  height:19px !important;
+  flex:0 0 19px !important;
+}
+body.public-event-detail-page .public-track-icon-action.share .public-action-icon{
+  fill:none !important;
+  stroke:currentColor !important;
+  stroke-width:2.2 !important;
+  stroke-linecap:round !important;
+  stroke-linejoin:round !important;
+}
+body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon circle{
+  fill:#1ed760 !important;
+  stroke:none !important;
+}
+body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon path{
+  fill:none !important;
+  stroke:#08130b !important;
+  stroke-width:1.9 !important;
+  stroke-linecap:round !important;
+}
