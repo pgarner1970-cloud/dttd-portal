@@ -122,16 +122,11 @@
     function badgeHtml(track) {
       const badges = Array.isArray(track.badges) ? track.badges : [];
       if (!badges.length) return '';
-      return '<span class="spotify-result-badges" aria-label="Spotify track tags">' + badges.slice(0, 4).map(function (badge) {
-        const typeClass = badgeClass(badge.type || '');
-        const labelClass = badgeClass(badge.label || '');
-        return '<em class="spotify-result-badge ' + typeClass + ' ' + labelClass + '">' + escapeHtml(badge.label || '') + '</em>';
+      return '<span class="spotify-result-badges">' + badges.slice(0, 4).map(function (badge) {
+        const typeClass = String(badge.type || '').toLowerCase().replace(/[^a-z0-9_-]+/g, '-');
+        const labelClass = String(badge.label || '').toLowerCase().replace(/[^a-z0-9_-]+/g, '-');
+        return '<em class="spotify-result-badge ' + escapeHtml(typeClass) + ' ' + escapeHtml(typeClass + '-' + labelClass) + '">' + escapeHtml(badge.label || '') + '</em>';
       }).join('') + '</span>';
-    }
-
-    function badgeClass(text) {
-      const slug = String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-      return slug ? 'tag-' + slug : '';
     }
 
     function escapeHtml(text) {
