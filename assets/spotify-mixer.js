@@ -103,11 +103,6 @@ document.head.appendChild(overviewStyle);
     return await res.json();
   }
   function image(src){ return src || 'https://dancethruthedecades.co.uk/assets/glitter-ball-clean.png'; }
-  function trackBadgesHtml(t){
-    const badges = Array.isArray(t.badges) ? t.badges : [];
-    if(!badges.length) return '';
-    return '<div class="track-search-badges">' + badges.slice(0,4).map(b=>`<span class="track-search-badge ${esc(b.type || '')}">${esc(b.label || '')}</span>`).join('') + '</div>';
-  }
 
   function deviceIsOnline(id){
     if(!id) return false;
@@ -435,21 +430,17 @@ renderAccountStatus();
     if(!els.djPlaylist) return;
     if(!list.length){ els.djPlaylist.innerHTML = '<div class="empty">DJ playlist is empty.</div>'; return; }
     els.djPlaylist.innerHTML = list.map((t,i)=>{
-      const count = Number(t.request_count || 0);
-      const requestSummary = t.source === 'request' ? `
-          <div class="playlist-request-summary mini">
-            <span>${esc(count > 1 ? count + ' requests grouped' : '1 request')}</span>
-            ${Array.isArray(t.requesters) && t.requesters.length ? `<span>${esc(t.requesters.join(', '))}</span>` : ''}
-          </div>
-          ${renderRequestNotesList(t, 'mixer-request-note-list playlist-request-note-list')}` : '';
+      // Layout lock: DJ Playlist rows stay compact. Do not add workflow/source badges
+      // or duplicate request summary lines here; requester/time already live in the
+      // dedication/request notes card below the track details.
+      const requestNotes = t.source === 'request' ? renderRequestNotesList(t, 'mixer-request-note-list playlist-request-note-list') : '';
       return `
-      <div class="playlist-row${t.source === 'request' && count > 1 ? ' grouped-playlist-row' : ''}">
+      <div class="playlist-row${t.source === 'request' ? ' grouped-playlist-row' : ''}">
         <img src="${esc(image(t.image))}" alt="">
         <div>
           <strong>${esc(t.title)}</strong><br>
           <span class="mini muted">${esc(t.artist)}${duration(t.duration_ms) ? ' • ' + duration(t.duration_ms) : ''}${t.source === 'request' ? ' • public request' : ''}</span>
-          <div class="workflow-row">${workflowBadge('DJ Playlist', 'queued')}${t.source === 'request' ? workflowBadge(count > 1 ? count + ' Requests' : 'Request', 'source') : workflowBadge(sourceLabel(t), 'source')}</div>
-          ${requestSummary}
+          ${requestNotes}
         </div>
         <div class="row-actions">
           <button class="mixer-btn green auto-btn mixer-mini-action" data-action="auto_load" data-idx="${i}" title="Auto-load to the first empty standby player" aria-label="Auto-load to the first empty standby player">⇄</button>
@@ -467,16 +458,15 @@ renderAccountStatus();
     if(!reqs.length){ els.publicRequests.innerHTML = '<div class="empty">No new Spotify-matched public requests waiting.</div>'; return; }
     els.publicRequests.innerHTML = reqs.map(r => {
       const count = Number(r.request_count || 1);
-      const people = Array.isArray(r.requesters) && r.requesters.length ? r.requesters.join(', ') : (r.guest_name || 'Guest');
-      const countLabel = count > 1 ? workflowBadge(count + ' requests', 'source') : '';
+      // Layout lock: Public Requests rows mirror DJ Playlist rows. Do not show
+      // duplicated requester/time lines or workflow/status badges; the dedication
+      // card already contains requester, time and message.
       return `
       <div class="request-row grouped-request-row${count > 1 ? ' has-multiple-requests' : ''}">
         <img src="${esc(image(r.image))}" alt="">
         <div>
           <strong>${esc(r.title)}</strong> <span class="muted">— ${esc(r.artist)}</span>
-          <div class="request-detail mini"><span class="request-time">${esc(requestTime(r.created_at))}</span><span><strong>${esc(people)}</strong></span></div>
           ${renderRequestNotesList(r, 'mixer-request-note-list public-request-note-list')}
-          <div class="request-source">${workflowBadge('Waiting review', 'waiting')}${countLabel}${r.queue_status ? workflowBadge(r.queue_status.replace(/_/g, ' '), 'source') : ''}</div>
         </div>
         <div class="row-actions quick-actions">
           <button class="mixer-btn green wide" data-select-request='${esc(JSON.stringify(r))}'>Choose action</button>
@@ -505,7 +495,7 @@ renderAccountStatus();
     els.searchResults.innerHTML = tracks.map(t=>`
       <div class="result-row">
         <img src="${esc(image(t.image))}" alt="">
-        <div><div class="result-title">${esc(t.title)}</div><div class="mini muted">${esc(t.artist)}${t.album ? ' • ' + esc(t.album) : ''}</div>${trackBadgesHtml(t)}</div>
+        <div><div class="result-title">${esc(t.title)}</div><div class="mini muted">${esc(t.artist)}${t.album ? ' • ' + esc(t.album) : ''}</div></div>
         <button class="mixer-btn green" data-select-track='${esc(JSON.stringify(t))}'>Choose</button>
       </div>`).join('');
   }
