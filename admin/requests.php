@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/_auth.php';
 require_once dirname(__DIR__) . '/includes/spotify.php';
+require_once dirname(__DIR__) . '/includes/track-history.php';
 
 // Strictly control whether the DJ queue button is shown from app_settings.spotify_queue_enabled.
 // Spotify search can remain enabled while queue controls stay hidden.
@@ -337,6 +338,99 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['merge_source_group'],
     exit;
 }
 
+
+function dttd_request_history_select_columns() {
+    $columns = ['id', 'event_id', 'song_title', 'artist', 'created_at'];
+    foreach (['spotify_track_id','spotify_track_url','spotify_album_image','spotify_duration_ms','request_group_id','guest_name','dedication','message','updated_at'] as $column) {
+        if (dttd_song_request_column_exists($column)) $columns[] = $column;
+    }
+    return array_values(array_unique($columns));
+}
+
+function dttd_request_history_select_sql($columns) {
+    return implode(', ', array_map(function($column) {
+        return '`' . str_replace('`', '', $column) . '`';
+    }, $columns));
+}
+
+function dttd_request_log_standard_played($event_id, $group_key) {
+    if (!function_exists('dttd_history_log_track') || !dttd_table_exists('song_requests')) return;
+
+    $event_id = (int)$event_id;
+    if ($event_id <= 0) return;
+
+    $columns = dttd_request_history_select_columns();
+    $selectSql = dttd_request_history_select_sql($columns);
+    $row = null;
+
+    try {
+        $group_key = (string)$group_key;
+        if (dttd_group_id_column_exists() && str_starts_with($group_key, 'gid:')) {
+            $group_id = substr($group_key, 4);
+            $stmt = db()->prepare("
+                SELECT {$selectSql}
+                FROM song_requests
+                WHERE event_id = ? AND request_group_id = ?
+                ORDER BY
+                  CASE WHEN spotify_track_id IS NULL OR spotify_track_id = '' THEN 1 ELSE 0 END,
+                  id ASC
+                LIMIT 1
+            ");
+            $stmt->execute([$event_id, $group_id]);
+            $row = $stmt->fetch();
+        } else {
+            $parts = explode('|', $group_key);
+            $bucket = array_shift($parts);
+            $song_artist_key = implode('|', $parts);
+
+            if (str_starts_with($bucket, 'final-') && preg_match('/-(\d+)$/', $bucket, $matches)) {
+                $stmt = db()->prepare("
+                    SELECT {$selectSql}
+                    FROM song_requests
+                    WHERE event_id = ? AND id = ?
+                    LIMIT 1
+                ");
+                $stmt->execute([$event_id, (int)$matches[1]]);
+                $row = $stmt->fetch();
+            } else {
+                $stmt = db()->prepare("
+                    SELECT {$selectSql}
+                    FROM song_requests
+                    WHERE event_id = ?
+                    AND CONCAT(LOWER(TRIM(song_title)), '|', LOWER(TRIM(artist))) = ?
+                    ORDER BY
+                      CASE WHEN spotify_track_id IS NULL OR spotify_track_id = '' THEN 1 ELSE 0 END,
+                      id ASC
+                    LIMIT 1
+                ");
+                $stmt->execute([$event_id, $song_artist_key]);
+                $row = $stmt->fetch();
+            }
+        }
+    } catch (Throwable $ignored) {
+        $row = null;
+    }
+
+    if (!$row) return;
+
+    $playedAt = date('Y-m-d H:i:s');
+    dttd_history_log_track([
+        'event_id' => $event_id,
+        'deck' => 'REQ',
+        'spotify_track_id' => $row['spotify_track_id'] ?? '',
+        'track_name' => $row['song_title'] ?? '',
+        'artist_name' => $row['artist'] ?? '',
+        'artwork_url' => $row['spotify_album_image'] ?? '',
+        'duration_ms' => isset($row['spotify_duration_ms']) ? (int)$row['spotify_duration_ms'] : null,
+        'played_ms' => isset($row['spotify_duration_ms']) ? (int)$row['spotify_duration_ms'] : null,
+        'source_type' => 'standard_request',
+        'source_ref_id' => (int)($row['id'] ?? 0),
+        'request_id' => (int)($row['id'] ?? 0),
+        'threshold_met' => 1,
+        'played_at' => $playedAt,
+    ]);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_action'], $_POST['group_key'])) {
     $allowed = ['played','rejected','duplicate','maybe','pending'];
     $status = in_array($_POST['request_action'], $allowed, true) ? $_POST['request_action'] : 'pending';
@@ -383,6 +477,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_action'], $_P
             ");
             $stmt->execute([$status, $reject_reason, (int)$event['id'], $song_artist_key]);
         }
+    }
+
+    if ($status === 'played') {
+        dttd_request_log_standard_played((int)$event['id'], $group_key);
     }
 
     header('Location: requests.php');

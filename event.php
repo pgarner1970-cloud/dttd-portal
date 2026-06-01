@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/track-history.php';
 require_once __DIR__ . '/includes/photo-uploads.php';
 dttd_redirect_public_feature_to_primary_domain();
 
@@ -257,12 +258,21 @@ function public_played_track_key($track) {
     return ($title !== '' || $artist !== '') ? 'text:' . $title . '|' . $artist : '';
 }
 
+
+function public_event_track_history_tracks($event_id, $limit = 80) {
+    if (!function_exists('dttd_history_public_track_rows')) {
+        return [];
+    }
+    return dttd_history_public_track_rows((int)$event_id, $limit);
+}
+
 function public_recent_played_tracks($event_id, $limit = 40) {
+    $historyTracks = public_event_track_history_tracks($event_id, $limit);
     $requestTracks = public_recent_played_requests($event_id, $limit);
     $mixerTracks = public_mixer_history_tracks($event_id, $limit);
     $combined = [];
 
-    foreach (array_merge($mixerTracks, $requestTracks) as $track) {
+    foreach (array_merge($historyTracks, $mixerTracks, $requestTracks) as $track) {
         if (!is_array($track)) {
             continue;
         }
@@ -282,14 +292,17 @@ function public_recent_played_tracks($event_id, $limit = 40) {
     foreach ($combined as $track) {
         $key = public_played_track_key($track);
         $ts = (int)($track['_played_ts'] ?? 0);
+        $source = (string)($track['_source'] ?? '');
         if ($key !== '') {
-            $lastTs = $seen[$key] ?? null;
-            if ($lastTs !== null && abs($lastTs - $ts) <= 300) {
-                // Same track from request status + mixer history for the same play.
+            $last = $seen[$key] ?? null;
+            $lastTs = is_array($last) ? (int)($last['ts'] ?? 0) : 0;
+            $lastSource = is_array($last) ? (string)($last['source'] ?? '') : '';
+            if ($last && $source !== 'event_track_history' && abs($lastTs - $ts) <= 300) {
+                // Same play represented by old request/JSON fallback as well as durable history.
                 continue;
             }
-            if ($lastTs === null) {
-                $seen[$key] = $ts;
+            if (!$last || $source === 'event_track_history') {
+                $seen[$key] = ['ts' => $ts, 'source' => $source];
             }
         }
         $out[] = $track;

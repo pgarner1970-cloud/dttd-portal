@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../_auth.php';
 require_once __DIR__ . '/../../includes/spotify.php';
+require_once __DIR__ . '/../../includes/track-history.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -121,6 +122,31 @@ function mx_played_request_history_rows($eventId, $cutoff) {
     return $out;
 }
 
+
+function mx_event_track_history_rows($eventId, $cutoff) {
+    if ($eventId <= 0 || !function_exists('dttd_history_track_rows')) return [];
+    $rows = dttd_history_track_rows((int)$eventId, 120, true, max(0, time() - (int)$cutoff));
+    $out = [];
+    foreach ($rows as $row) {
+        $spotifyId = (string)($row['spotify_track_id'] ?? '');
+        $out[] = [
+            'id' => $spotifyId,
+            'title' => (string)($row['track_name'] ?? ''),
+            'artist' => (string)($row['artist_name'] ?? ''),
+            'album' => (string)($row['album_name'] ?? ''),
+            'image' => (string)($row['artwork_url'] ?? ''),
+            'url' => $spotifyId !== '' ? 'https://open.spotify.com/track/' . $spotifyId : '',
+            'duration_ms' => isset($row['duration_ms']) ? (int)$row['duration_ms'] : null,
+            'source' => (string)($row['source_type'] ?? 'event_track_history'),
+            'request_id' => !empty($row['request_id']) ? (int)$row['request_id'] : null,
+            'event_id' => (int)$eventId,
+            'played_at' => (string)($row['played_at'] ?? date('Y-m-d H:i:s')),
+            'history_deck' => (string)($row['deck'] ?? ''),
+        ];
+    }
+    return $out;
+}
+
 function mx_history() {
     $history = mx_json('spotify_mixer_history', []);
     $eventId = mx_current_event_id();
@@ -144,6 +170,7 @@ function mx_history() {
     }
 
     if ($eventId > 0) {
+        $candidateRows = array_merge($candidateRows, mx_event_track_history_rows($eventId, $cutoff));
         $candidateRows = array_merge($candidateRows, mx_played_request_history_rows($eventId, $cutoff));
     }
 
@@ -262,6 +289,26 @@ function mx_add_history($deck, $track) {
     }
     $item['history_deck'] = strtoupper($deck === 'b' ? 'b' : 'a');
     $item['played_at'] = date('Y-m-d H:i:s');
+
+    if (function_exists('dttd_history_log_track') && !empty($item['event_id'])) {
+        dttd_history_log_track([
+            'event_id' => (int)$item['event_id'],
+            'deck' => $item['history_deck'],
+            'spotify_track_id' => $item['id'],
+            'track_name' => $item['title'],
+            'artist_name' => $item['artist'],
+            'album_name' => $item['album'],
+            'artwork_url' => $item['image'],
+            'duration_ms' => $item['duration_ms'],
+            'played_ms' => mx_loaded_track_progress_ms($track),
+            'source_type' => ($item['loaded_origin'] !== '' ? $item['loaded_origin'] : $item['source']),
+            'source_ref_id' => !empty($item['request_id']) ? (int)$item['request_id'] : null,
+            'request_id' => !empty($item['request_id']) ? (int)$item['request_id'] : null,
+            'threshold_met' => 1,
+            'played_at' => $item['played_at'],
+        ]);
+    }
+
     $history = mx_json('spotify_mixer_history', []);
     array_unshift($history, $item);
     $seen = [];
@@ -411,6 +458,9 @@ function mx_track_from_request($request_id) {
 }
 
 function mx_current_event_id() {
+    if (function_exists('dttd_history_current_event_id_with_grace')) {
+        return dttd_history_current_event_id_with_grace(3600);
+    }
     try {
         if (function_exists('dttd_get_calculated_current_event')) {
             $event = dttd_get_calculated_current_event();
