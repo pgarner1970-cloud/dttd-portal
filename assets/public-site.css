@@ -5308,3 +5308,23 @@ body.public-event-detail-page .public-track-icon-action.spotify .public-action-i
   stroke-width:1.9 !important;
   stroke-linecap:round !important;
 }
+
+/* Recently played polish: show played time and enlarge Spotify mark */
+body.public-event-detail-page .public-played-time{
+  display:block !important;
+  margin-top:3px !important;
+  font-size:11px !important;
+  line-height:1.15 !important;
+  color:rgba(255,255,255,.58) !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon{
+  width:23px !important;
+  height:23px !important;
+  flex-basis:23px !important;
+}
+body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon path{
+  stroke-width:2.15 !important;
+}

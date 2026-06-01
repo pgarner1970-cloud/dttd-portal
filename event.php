@@ -852,6 +852,16 @@ function public_render_request_board_item($request) {
     <?php
 }
 
+
+function public_played_time_label($played) {
+    $ts = (int)($played['_played_ts'] ?? 0);
+    if ($ts <= 0) {
+        $time = trim((string)($played['updated_at'] ?? $played['created_at'] ?? ''));
+        $ts = $time !== '' ? (strtotime($time) ?: 0) : 0;
+    }
+    return $ts > 0 ? date('H:i', $ts) : '';
+}
+
 function public_played_spotify_url($played) {
     $direct = trim((string)($played['spotify_track_url'] ?? ''));
     if ($direct !== '' && preg_match('~^https?://~i', $direct)) {
@@ -919,6 +929,10 @@ function public_render_played_track_item($played, $event, $eventShareUrl) {
       <div class="public-played-track-main">
         <strong><?= public_h($played['song_title'] ?? '') ?></strong>
         <span><?= public_h($played['artist'] ?? '') ?></span>
+        <?php $playedTimeLabel = public_played_time_label($played); ?>
+        <?php if ($playedTimeLabel !== ''): ?>
+          <small class="public-played-time">Played at <?= public_h($playedTimeLabel) ?></small>
+        <?php endif; ?>
       </div>
       <div class="public-played-track-actions">
         <?php if ($spotifyUrl): ?>
