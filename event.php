@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '/includes/db.php';
-dttd_no_cache_headers();
 require_once __DIR__ . '/includes/photo-uploads.php';
 dttd_redirect_public_feature_to_primary_domain();
 
@@ -735,7 +734,7 @@ function public_render_played_track_item($played, $event, $eventShareUrl) {
             </svg>
           </a>
         <?php endif; ?>
-        <button class="public-track-action public-track-icon-action share" type="button" data-track-share data-share-title="<?= public_h(($played['song_title'] ?? 'Recently played') . ' | Dance Thru The Decades') ?>" data-share-text="<?= public_h($shareText) ?>" data-share-url="<?= public_h($eventShareUrl) ?>" aria-label="Share <?= public_h($trackTitle) ?>" title="Share this track">
+        <button class="public-track-action public-track-icon-action share" type="button" data-track-share data-share-title="<?= public_h(($played['song_title'] ?? 'Recently played') . ' | Dance Thru The Decades') ?>" data-share-text="<?= public_h($shareText) ?>" data-share-url="<?= public_h($spotifyUrl ?: $eventShareUrl) ?>" aria-label="Share <?= public_h($trackTitle) ?>" title="Share this track">
           <span class="public-sr-only">Share this track</span>
           <svg class="public-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <circle cx="18" cy="5" r="3"></circle>
@@ -902,10 +901,9 @@ if ($event) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <?= dttd_cache_meta_tags() ?>
   <title><?= $event ? public_h($title) : ($notFound ? 'Event Not Found' : 'Join Event') ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event portal.' ?>">
-  <link rel="stylesheet" href="<?= h(dttd_asset_url('assets/public-site.css')) ?>">
+  <link rel="stylesheet" href="/assets/public-site.css?v=331">
 </head>
 <body class="homepage-option-one public-event-detail-page public-event-portal-page event-detail-safe">
   <main class="home-option-one">
@@ -1396,6 +1394,5 @@ if ($event) {
     })();
 
   </script>
-<?= dttd_bfcache_reload_script() ?>
 </body>
 </html>

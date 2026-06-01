@@ -4958,7 +4958,199 @@ body.public-event-detail-page .public-lightbox-nav.next{right:18px !important}
   }
 }
 
-/* Spotify search enrichment badges */
-.public-request-form-clean .spotify-result-badges,
-.spotify-result-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.public-request-form-clean .spotify-result-badge,
-.spotify-result-badge{display:inline-flex;align-items:center;border-radius:999px;padding:2px 7px;font-size:10px;font-style:normal;font-weight:1000;line-height:1.25;text-transform:uppercase;letter-spacing:.035em;border:1px solid rgba(148,163,184,.45);color:#dbeafe;background:rgba(148,163,184,.1)}.public-request-form-clean .spotify-result-badge.decade,.spotify-result-badge.decade{border-color:rgba(236,72,153,.65);background:rgba(236,72,153,.18);color:#ffd6f0}.public-request-form-clean .spotify-result-badge.original,.spotify-result-badge.original{border-color:rgba(34,197,94,.72);background:rgba(34,197,94,.14);color:#8dffbb}.public-request-form-clean .spotify-result-badge.remaster,.spotify-result-badge.remaster{border-color:rgba(59,130,246,.66);background:rgba(59,130,246,.13);color:#aad1ff}.public-request-form-clean .spotify-result-badge.live,.public-request-form-clean .spotify-result-badge.karaoke,.public-request-form-clean .spotify-result-badge.cover,.spotify-result-badge.live,.spotify-result-badge.karaoke,.spotify-result-badge.cover{border-color:rgba(248,113,113,.68);background:rgba(248,113,113,.12);color:#ffc4c4}.public-request-form-clean .spotify-result-badge.remix,.public-request-form-clean .spotify-result-badge.acoustic,.public-request-form-clean .spotify-result-badge.instrumental,.spotify-result-badge.remix,.spotify-result-badge.acoustic,.spotify-result-badge.instrumental{border-color:rgba(168,85,247,.66);background:rgba(168,85,247,.13);color:#e6ccff}.public-request-form-clean .spotify-result-badge.compilation,.spotify-result-badge.compilation{border-color:rgba(245,158,11,.65);background:rgba(245,158,11,.13);color:#ffd68a}
+
+/* Event page layout lock: request/recently-played cards and action icons */
+body.public-event-detail-page .public-event-live-grid{
+  align-items:start !important;
+  gap:24px !important;
+}
+body.public-event-detail-page .public-request-board-list,
+body.public-event-detail-page .public-played-list{
+  display:grid !important;
+  gap:12px !important;
+  list-style:none !important;
+  padding:0 !important;
+  margin:14px 0 0 !important;
+}
+body.public-event-detail-page .public-request-board-list > li,
+body.public-event-detail-page .public-played-list > li,
+body.public-event-detail-page .public-request-board-item,
+body.public-event-detail-page .public-played-track-row{
+  width:100% !important;
+  box-sizing:border-box !important;
+  min-height:74px !important;
+  padding:10px 12px !important;
+  border:1px solid rgba(255,58,220,.22) !important;
+  border-radius:18px !important;
+  background:rgba(8,10,35,.82) !important;
+  box-shadow:none !important;
+}
+body.public-event-detail-page .public-request-card-shell{
+  position:relative !important;
+  display:grid !important;
+  grid-template-columns:58px minmax(0,1fr) !important;
+  gap:12px !important;
+  align-items:center !important;
+  width:100% !important;
+}
+body.public-event-detail-page .public-request-card-main{
+  min-width:0 !important;
+  padding-right:112px !important;
+}
+body.public-event-detail-page .public-request-row-head{
+  display:block !important;
+  min-width:0 !important;
+  padding:0 !important;
+  margin:0 !important;
+}
+body.public-event-detail-page .public-request-row-head strong,
+body.public-event-detail-page .public-played-track-main strong{
+  display:block !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  font-size:16px !important;
+  line-height:1.18 !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+body.public-event-detail-page .public-request-status{
+  position:absolute !important;
+  top:50% !important;
+  right:0 !important;
+  transform:translateY(-50%) !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  min-width:0 !important;
+  max-width:110px !important;
+  white-space:nowrap !important;
+  font-size:11px !important;
+  line-height:1 !important;
+  font-weight:950 !important;
+  padding:5px 10px !important;
+  border-radius:999px !important;
+  background:rgba(255,255,255,.035) !important;
+  box-shadow:none !important;
+}
+body.public-event-detail-page .public-request-status.played{
+  color:#4dff9a !important;
+  border:1px solid rgba(77,255,154,.9) !important;
+}
+body.public-event-detail-page .public-request-status.queued{
+  color:#ffe969 !important;
+  border:1px solid rgba(255,220,64,.95) !important;
+}
+body.public-event-detail-page .public-request-status.waiting,
+body.public-event-detail-page .public-request-status.review{
+  color:#7cc8ff !important;
+  border:1px solid rgba(74,163,255,.9) !important;
+}
+body.public-event-detail-page .public-request-status.duplicate{
+  color:#d8b6ff !important;
+  border:1px solid rgba(180,115,255,.9) !important;
+}
+body.public-event-detail-page .public-request-status.unable{
+  color:#ff8994 !important;
+  border:1px solid rgba(255,92,114,.9) !important;
+}
+body.public-event-detail-page .public-request-artwork,
+body.public-event-detail-page .public-played-artwork{
+  width:58px !important;
+  height:58px !important;
+  border-radius:12px !important;
+  overflow:hidden !important;
+  flex:0 0 58px !important;
+}
+body.public-event-detail-page .public-request-artwork img,
+body.public-event-detail-page .public-played-artwork img{
+  width:100% !important;
+  height:100% !important;
+  display:block !important;
+  object-fit:cover !important;
+}
+body.public-event-detail-page .public-request-artist,
+body.public-event-detail-page .public-request-member small,
+body.public-event-detail-page .public-request-dedication,
+body.public-event-detail-page .public-played-track-main span{
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+body.public-event-detail-page .public-played-track-row{
+  display:grid !important;
+  grid-template-columns:58px minmax(0,1fr) auto !important;
+  align-items:center !important;
+  gap:12px !important;
+}
+body.public-event-detail-page .public-played-track-main{
+  min-width:0 !important;
+}
+body.public-event-detail-page .public-played-track-actions{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  gap:8px !important;
+  min-width:86px !important;
+}
+body.public-event-detail-page .public-track-action.public-track-icon-action{
+  position:relative !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:38px !important;
+  height:38px !important;
+  min-width:38px !important;
+  min-height:38px !important;
+  padding:0 !important;
+  border-radius:50% !important;
+  border:1px solid rgba(255,78,220,.95) !important;
+  background:rgba(20,6,36,.82) !important;
+  color:#fff !important;
+  text-decoration:none !important;
+  box-shadow:0 0 14px rgba(255,58,220,.22) !important;
+  overflow:hidden !important;
+}
+body.public-event-detail-page .public-track-action.spotify .public-action-icon{
+  width:28px !important;
+  height:28px !important;
+  fill:#1ed760 !important;
+  stroke:#07130b !important;
+  stroke-width:1.9 !important;
+  stroke-linecap:round !important;
+}
+body.public-event-detail-page .public-track-action.share .public-action-icon{
+  width:21px !important;
+  height:21px !important;
+  fill:none !important;
+  stroke:#fff !important;
+  stroke-width:2.15 !important;
+  stroke-linecap:round !important;
+  stroke-linejoin:round !important;
+}
+body.public-event-detail-page .public-sr-only{
+  position:absolute !important;
+  width:1px !important;
+  height:1px !important;
+  padding:0 !important;
+  margin:-1px !important;
+  overflow:hidden !important;
+  clip:rect(0,0,0,0) !important;
+  white-space:nowrap !important;
+  border:0 !important;
+}
+body.public-event-detail-page .public-event-photo-section,
+body.public-event-detail-page .public-event-photos-card{
+  margin-bottom:26px !important;
+}
+body.public-event-detail-page .public-event-photos-card + .public-event-detail-card,
+body.public-event-detail-page .public-feature-card + .public-event-detail-card{
+  margin-top:26px !important;
+}
+@media(max-width:760px){
+  body.public-event-detail-page .public-request-card-main{padding-right:0 !important;}
+  body.public-event-detail-page .public-request-status{position:static !important; transform:none !important; margin-top:6px !important; display:inline-flex !important;}
+  body.public-event-detail-page .public-request-row-head{display:grid !important; gap:4px !important;}
+  body.public-event-detail-page .public-played-track-row{grid-template-columns:54px minmax(0,1fr) !important;}
+  body.public-event-detail-page .public-played-track-actions{grid-column:2; justify-content:flex-start !important; min-width:0 !important;}
+}
