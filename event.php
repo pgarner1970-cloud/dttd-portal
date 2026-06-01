@@ -804,6 +804,7 @@ function public_event_share_text($event) {
 }
 
 function public_played_share_text($played, $event) {
+    $eventTitle = trim((string)($event['event_name'] ?? $event['name'] ?? ''));
     $title = trim((string)($played['song_title'] ?? ''));
     $artist = trim((string)($played['artist'] ?? ''));
 
@@ -812,7 +813,17 @@ function public_played_share_text($played, $event) {
         $track .= ' by ' . $artist;
     }
 
-    return $track !== '' ? 'Listening to ' . $track . ' 🎶' : 'Listening to Dance Thru The Decades 🎶';
+    if ($track !== '' && $eventTitle !== '') {
+        return 'I am at ' . $eventTitle . ' with Dance Thru The Decades, listening to ' . $track . ' 🎶';
+    }
+
+    if ($track !== '') {
+        return 'Listening to ' . $track . ' with Dance Thru The Decades 🎶';
+    }
+
+    return $eventTitle !== ''
+        ? 'I am at ' . $eventTitle . ' with Dance Thru The Decades 🎶'
+        : 'Listening to Dance Thru The Decades 🎶';
 }
 
 
