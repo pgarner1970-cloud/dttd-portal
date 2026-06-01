@@ -479,6 +479,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_action'], $_P
         }
     }
 
+    if (function_exists('dttd_history_event_request_sync_where')) {
+        dttd_history_event_request_sync_where('event_id = ?', [(int)$event['id']]);
+    }
+
     if ($status === 'played') {
         dttd_request_log_standard_played((int)$event['id'], $group_key);
     }

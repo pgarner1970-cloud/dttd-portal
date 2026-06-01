@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/_auth.php';
+require_once dirname(__DIR__) . '/includes/track-history.php';
 
 function dttd_event_image_column_exists() {
     static $exists = null;
@@ -209,6 +210,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_t
                     "INSERT INTO song_requests (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")"
                 );
                 $stmt->execute($values);
+                if (function_exists('dttd_history_event_request_upsert_from_song_request_id')) {
+                    dttd_history_event_request_upsert_from_song_request_id((int)db()->lastInsertId());
+                }
 
                 $success = 'Test request added.';
             } catch (Throwable $e) {
@@ -229,6 +233,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_t
                             $artist,
                             $request_group_id
                         ]);
+                        if (function_exists('dttd_history_event_request_upsert_from_song_request_id')) {
+                            dttd_history_event_request_upsert_from_song_request_id((int)db()->lastInsertId());
+                        }
                     } else {
                         $stmt = db()->prepare("
                             INSERT INTO song_requests
@@ -241,6 +248,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_t
                             $song_title,
                             $artist
                         ]);
+                        if (function_exists('dttd_history_event_request_upsert_from_song_request_id')) {
+                            dttd_history_event_request_upsert_from_song_request_id((int)db()->lastInsertId());
+                        }
                     }
 
                     $success = 'Test request added.';

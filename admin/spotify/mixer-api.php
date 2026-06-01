@@ -290,9 +290,9 @@ function mx_add_history($deck, $track) {
     $item['history_deck'] = strtoupper($deck === 'b' ? 'b' : 'a');
     $item['played_at'] = date('Y-m-d H:i:s');
 
-    if (function_exists('dttd_history_log_track') && !empty($item['event_id'])) {
+    if (function_exists('dttd_history_log_track')) {
         dttd_history_log_track([
-            'event_id' => (int)$item['event_id'],
+            'event_id' => !empty($item['event_id']) ? (int)$item['event_id'] : null,
             'deck' => $item['history_deck'],
             'spotify_track_id' => $item['id'],
             'track_name' => $item['title'],

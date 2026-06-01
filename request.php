@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/track-history.php';
 dttd_no_cache_headers();
 dttd_redirect_public_feature_to_primary_domain();
 
@@ -138,6 +139,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['song_title']) && $eve
             $placeholders = array_fill(0, count($columns), '?');
             $stmt = db()->prepare("INSERT INTO song_requests (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")");
             $stmt->execute($values);
+            if (function_exists('dttd_history_event_request_upsert_from_song_request_id')) {
+                dttd_history_event_request_upsert_from_song_request_id((int)db()->lastInsertId());
+            }
             $success = true;
         } catch (Throwable $e) {
             $error = 'Sorry, your request could not be sent just now. Please try again.';
