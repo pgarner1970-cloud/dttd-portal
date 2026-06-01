@@ -661,6 +661,9 @@ function photo_wedding_font_path($purpose = 'regular') {
 
     if ($purpose === 'script') {
         $fileCandidates = [
+            '/usr/share/fonts/opentype/urw-base35/Z003-MediumItalic.otf',
+            '/usr/share/fonts/type1/urw-base35/Z003-MediumItalic.t1',
+            '/usr/share/fonts/X11/Type1/Z003-MediumItalic.pfb',
             '/usr/share/fonts/opentype/lobstertwo/LobsterTwo-Italic.otf',
             '/usr/share/fonts/opentype/lobster/lobster.otf',
             '/usr/share/fonts/opentype/lobstertwo/LobsterTwo-Regular.otf',
@@ -674,13 +677,15 @@ function photo_wedding_font_path($purpose = 'regular') {
         // ImageMagick on shared hosting often exposes fonts by IM name rather than path.
         // Prefer genuine script/calligraphy options before falling back to serif italic.
         $fontNameCandidates = [
+            'Z003-MediumItalic',
+            'Z003',
+            'URW-Chancery-L-Medium-Italic',
             'LobsterTwo-Italic',
             'LobsterTwo',
             'GreatVibes-Regular',
             'Great-Vibes',
             'DancingScript-Regular',
             'Dancing-Script',
-            'URW-Chancery-L-Medium-Italic',
             'Times-Italic',
             'FreeSerif-Italic',
             'DejaVu-Serif-Italic',
@@ -727,7 +732,7 @@ function photo_wedding_font_path($purpose = 'regular') {
     }
 
     if ($purpose === 'script') {
-        return 'Times-Italic';
+        return 'Z003';
     }
     return photo_imagick_font_path($purpose === 'bold');
 }
@@ -823,10 +828,10 @@ function photo_render_wedding_framed_image($sourcePath, $destPath, $event, $orie
         $fontRegular = photo_wedding_font_path('regular');
         $fontBold = photo_wedding_font_path('bold');
         $fontScript = photo_wedding_font_path('script');
-        $gold = '#b47a26';
+        $gold = '#b77d2b';
         $ink = '#4b403a';
-        $script = '#a95454';
-        $titleGold = '#b9812a';
+        $script = '#a65f5d';
+        $titleGold = '#b67d25';
 
         $eventName = trim((string)($event['photo_overlay_title'] ?? ''));
         if ($eventName === '') {
@@ -842,17 +847,17 @@ function photo_render_wedding_framed_image($sourcePath, $destPath, $event, $orie
 
         if ($landscape) {
             photo_imagick_draw_text($canvas, 'CELEBRATING THE WEDDING OF', 800, 118, $fontRegular, 24, $gold, null, 0, 900, Imagick::ALIGN_CENTER);
-            $titleSize = photo_imagick_fit_font_size($canvas, $eventName, $fontScript, 96, 980, 46);
-            photo_imagick_draw_text($canvas, $eventName, 800, 200, $fontScript, $titleSize, $titleGold, null, 0, 1030, Imagick::ALIGN_CENTER);
-            photo_imagick_draw_text($canvas, $thankYou, 790, 1032, $fontScript, 42, $script, null, 0, 760, Imagick::ALIGN_CENTER);
+            $titleSize = photo_imagick_fit_font_size($canvas, $eventName, $fontScript, 104, 1030, 48);
+            photo_imagick_draw_text($canvas, $eventName, 800, 204, $fontScript, $titleSize, $titleGold, null, 0, 1030, Imagick::ALIGN_CENTER);
+            photo_imagick_draw_text($canvas, $thankYou, 790, 1026, $fontScript, 38, $script, null, 0, 760, Imagick::ALIGN_CENTER);
             $details = trim(($dateLine !== '' ? $dateLine : 'DATE') . ($venueLine !== '' ? '   |   ' . strtoupper($venueLine) : '   |   VENUE'));
             photo_imagick_draw_text($canvas, $details, 860, 1098, $fontRegular, 21, $ink, null, 0, 730, Imagick::ALIGN_CENTER);
             photo_imagick_draw_text($canvas, $siteUrlText, 860, 1152, $fontBold, 22, $gold, null, 0, 760, Imagick::ALIGN_CENTER);
         } else {
             photo_imagick_draw_text($canvas, 'CELEBRATING THE WEDDING OF', 540, 118, $fontRegular, 20, $gold, null, 0, 690, Imagick::ALIGN_CENTER);
-            $titleSize = photo_imagick_fit_font_size($canvas, $eventName, $fontScript, 78, 700, 38);
-            photo_imagick_draw_text($canvas, $eventName, 540, 198, $fontScript, $titleSize, $titleGold, null, 0, 760, Imagick::ALIGN_CENTER);
-            photo_imagick_draw_text($canvas, $thankYou, 620, 1162, $fontScript, 34, $script, null, 0, 560, Imagick::ALIGN_CENTER);
+            $titleSize = photo_imagick_fit_font_size($canvas, $eventName, $fontScript, 78, 730, 36);
+            photo_imagick_draw_text($canvas, $eventName, 540, 194, $fontScript, $titleSize, $titleGold, null, 0, 760, Imagick::ALIGN_CENTER);
+            photo_imagick_draw_text($canvas, $thankYou, 620, 1152, $fontScript, 30, $script, null, 0, 560, Imagick::ALIGN_CENTER);
             $details = trim(($dateLine !== '' ? $dateLine : 'DATE') . ($venueLine !== '' ? '   |   ' . strtoupper($venueLine) : '   |   VENUE'));
             photo_imagick_draw_text($canvas, $details, 610, 1242, $fontRegular, 16, $ink, null, 0, 530, Imagick::ALIGN_CENTER);
             photo_imagick_draw_text($canvas, $siteUrlText, 610, 1300, $fontBold, 18, $gold, null, 0, 560, Imagick::ALIGN_CENTER);
