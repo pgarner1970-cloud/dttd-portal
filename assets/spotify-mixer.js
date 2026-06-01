@@ -58,8 +58,8 @@ document.head.appendChild(overviewStyle);
   }
   function playedThresholdLabel(track){
     const ms = Number(track?.duration_ms || 0);
-    if(!ms) return '60% or 90s';
-    const threshold = Math.min(ms * 0.6, 90000);
+    if(!ms) return '50% or 90s';
+    const threshold = Math.min(ms * 0.5, 90000);
     return duration(threshold) + ' / ' + duration(ms);
   }
   function progressStatus(track, deck){
@@ -179,9 +179,9 @@ document.head.appendChild(overviewStyle);
     const bBlocked = !deckCanLoad('b');
     let html = '';
     html += choiceButton('+ Add to DJ playlist', 'green full', 'playlist');
-    // Save to crate is deliberately only available from direct Spotify Search results.
-    // Public requests, DJ crates and History selections are already curated sources.
-    if(source === 'track' && activeSource === 'search') html += crateSaveControls();
+    // Save to crate is only for direct Spotify Search results.
+    // Public Requests, DJ Crates and History are action-only selections.
+    if(source === 'track') html += crateSaveControls();
     html += choiceButton('Load to A', 'orange', 'load_a', aBlocked);
     html += choiceButton('Load to B', 'blue', 'load_b', bBlocked);
     html += choiceButton('▶ Play on A now', 'green', 'play_a', aBlocked);
@@ -573,21 +573,40 @@ renderAccountStatus();
   }
 
 
+  async function fetchSearchJson(url){
+    const res = await fetch(url, {cache:'no-store', credentials:'same-origin'});
+    const text = await res.text();
+    try { return JSON.parse(text); }
+    catch(e) {
+      console.warn('Spotify search returned non-JSON response', {url, status: res.status, body: text.slice(0, 250)});
+      throw e;
+    }
+  }
   async function search(q){
     if(!q || q.trim().length < 3){ els.searchResults.innerHTML=''; els.searchStatus.textContent=''; return; }
     els.searchStatus.innerHTML = '<span class="spinner"></span> Searching…';
-    try{
-      const res = await fetch(searchApi + '?q=' + encodeURIComponent(q), {cache:'no-store'});
-      const data = await res.json();
-      if(data.ok){
-        const sourceLabel = data.rate_limited ? 'Spotify cooling down — cached matches shown' : (data.source === 'cache' ? 'Cached matches shown' : '');
-        els.searchStatus.textContent = sourceLabel;
-        renderSearchResults(data.tracks || []);
-      } else {
-        els.searchStatus.textContent = data.error || data.message || 'Search failed';
+    const query = q.trim();
+    const urls = [
+      searchApi + '?q=' + encodeURIComponent(query) + '&_=' + Date.now(),
+      api + '?' + new URLSearchParams({action:'search', q:query, _:Date.now()}).toString()
+    ];
+    let lastError = null;
+    for(const url of urls){
+      try{
+        const data = await fetchSearchJson(url);
+        if(data && data.ok){
+          const sourceLabel = data.rate_limited ? 'Spotify cooling down — cached matches shown' : (data.source === 'cache' ? 'Cached matches shown' : '');
+          els.searchStatus.textContent = sourceLabel || '';
+          renderSearchResults(data.tracks || []);
+          return;
+        }
+        lastError = (data && (data.error || data.message)) || 'Search failed';
       }
+      catch(e){ lastError = e; }
     }
-    catch(e){ els.searchStatus.textContent = 'Search failed'; }
+    console.warn('Spotify mixer search failed', lastError);
+    els.searchResults.innerHTML = '';
+    els.searchStatus.textContent = typeof lastError === 'string' ? lastError : 'Search failed';
   }
   app.addEventListener('click', (e)=>{
     const sourceTab = e.target.closest('[data-source-tab]');

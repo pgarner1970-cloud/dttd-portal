@@ -695,6 +695,7 @@ function public_event_share_text($event) {
 function public_played_share_text($played, $event) {
     $title = trim((string)($played['song_title'] ?? ''));
     $artist = trim((string)($played['artist'] ?? ''));
+
     $track = $title;
     if ($artist !== '') {
         $track .= ' by ' . $artist;
@@ -732,8 +733,7 @@ function public_render_played_track_item($played, $event, $eventShareUrl) {
             </svg>
           </a>
         <?php endif; ?>
-        <?php $trackShareUrl = $spotifyUrl ?: $eventShareUrl; ?>
-        <button class="public-track-action public-track-icon-action share" type="button" data-track-share data-share-title="<?= public_h(($played['song_title'] ?? 'Recently played') . ' | Dance Thru The Decades') ?>" data-share-text="<?= public_h($shareText) ?>" data-share-url="<?= public_h($trackShareUrl) ?>" aria-label="Share <?= public_h($trackTitle) ?>" title="Share this track">
+        <button class="public-track-action public-track-icon-action share" type="button" data-track-share data-share-title="<?= public_h(($played['song_title'] ?? 'Recently played') . ' | Dance Thru The Decades') ?>" data-share-text="<?= public_h($shareText) ?>" data-share-url="<?= public_h($spotifyUrl ?: $eventShareUrl) ?>" aria-label="Share <?= public_h($trackTitle) ?>" title="Share this track">
           <span class="public-sr-only">Share this track</span>
           <svg class="public-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <circle cx="18" cy="5" r="3"></circle>
@@ -902,7 +902,7 @@ if ($event) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : ($notFound ? 'Event Not Found' : 'Join Event') ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event portal.' ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=332">
+  <link rel="stylesheet" href="/assets/public-site.css?v=331">
 </head>
 <body class="homepage-option-one public-event-detail-page public-event-portal-page event-detail-safe">
   <main class="home-option-one">
@@ -1141,7 +1141,7 @@ if ($event) {
                 <h2><?= public_h($title) ?></h2>
               </div>
 
-              <button class="public-event-share-button" type="button" data-track-share data-share-title="<?= public_h($title . ' | Dance Thru The Decades') ?>" data-share-text="<?= public_h(public_event_share_text($event)) ?>" data-share-url="<?= public_h($eventShareUrl) ?>" aria-label="Share this event" title="Share this event">
+              <button class="public-event-share-button" type="button" data-track-share data-share-title="<?= public_h($title . ' | Dance Thru The Decades') ?>" data-share-text="<?= public_h(public_event_share_text($event)) ?>" data-share-url="<?= public_h($spotifyUrl ?: $eventShareUrl) ?>" aria-label="Share this event" title="Share this event">
                 <span class="public-sr-only">Share this event</span>
                 <svg class="public-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <circle cx="18" cy="5" r="3"></circle>

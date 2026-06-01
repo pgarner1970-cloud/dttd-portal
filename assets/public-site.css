@@ -4725,6 +4725,45 @@ body.public-event-detail-page .public-track-icon-action{
   border-radius:50% !important;
 }
 
+
+body.public-event-detail-page .public-track-icon-action .public-sr-only{
+  position:absolute !important;
+  width:1px !important;
+  height:1px !important;
+  padding:0 !important;
+  margin:-1px !important;
+  overflow:hidden !important;
+  clip:rect(0,0,0,0) !important;
+  white-space:nowrap !important;
+  border:0 !important;
+}
+
+body.public-event-detail-page .public-track-icon-action .public-action-icon{
+  width:28px !important;
+  height:28px !important;
+  display:block !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon circle{
+  fill:#1DB954 !important;
+  stroke:none !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon path{
+  fill:none !important;
+  stroke:#04120a !important;
+  stroke-width:1.8 !important;
+  stroke-linecap:round !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.share .public-action-icon{
+  fill:none !important;
+  stroke:#fff !important;
+  stroke-width:1.8 !important;
+  stroke-linecap:round !important;
+  stroke-linejoin:round !important;
+}
+
 body.public-event-detail-page .public-event-photo-grid{
   display:grid !important;
   grid-template-columns:repeat(auto-fill,minmax(150px,1fr)) !important;
@@ -5112,160 +5151,5 @@ body.public-event-detail-page .public-request-status.status-already-requested{
   body.public-event-detail-page .public-request-status{
     top:0 !important;
     right:0 !important;
-  }
-}
-
-
-/* Event live card final layout lock: 12 item list, compact outlined statuses, icon-only played actions */
-body.public-event-detail-page .public-requests-card .public-card-summary{
-  display:none !important;
-}
-body.public-event-detail-page .public-request-board-list > li{
-  padding:12px 14px !important;
-  min-height:76px !important;
-}
-body.public-event-detail-page .public-request-card-shell{
-  grid-template-columns:64px minmax(0,1fr) !important;
-  gap:14px !important;
-  align-items:center !important;
-}
-body.public-event-detail-page .public-request-card-main{
-  display:block !important;
-  padding-right:118px !important;
-  min-width:0 !important;
-}
-body.public-event-detail-page .public-request-row-head{
-  display:block !important;
-  min-width:0 !important;
-}
-body.public-event-detail-page .public-request-row-head strong,
-body.public-event-detail-page .public-request-artist,
-body.public-event-detail-page .public-request-member-list,
-body.public-event-detail-page .public-request-member,
-body.public-event-detail-page .public-request-member small,
-body.public-event-detail-page .public-request-dedication{
-  visibility:visible !important;
-  opacity:1 !important;
-  transform:none !important;
-}
-body.public-event-detail-page .public-request-status{
-  position:absolute !important;
-  top:12px !important;
-  right:14px !important;
-  z-index:4 !important;
-  display:inline-flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-  width:auto !important;
-  height:auto !important;
-  min-height:22px !important;
-  padding:4px 9px !important;
-  border-radius:999px !important;
-  font-size:11px !important;
-  line-height:1 !important;
-  font-weight:950 !important;
-  white-space:nowrap !important;
-  background:rgba(9,13,30,.74) !important;
-  box-shadow:none !important;
-}
-body.public-event-detail-page .public-request-status.played{
-  color:#36f58d !important;
-  border:1px solid #36f58d !important;
-}
-body.public-event-detail-page .public-request-status.queued{
-  color:#fde047 !important;
-  border:1px solid #fde047 !important;
-}
-body.public-event-detail-page .public-request-status.waiting{
-  color:#93c5fd !important;
-  border:1px solid #93c5fd !important;
-}
-body.public-event-detail-page .public-request-status.review{
-  color:#fbbf24 !important;
-  border:1px solid #fbbf24 !important;
-}
-body.public-event-detail-page .public-request-status.duplicate{
-  color:#60a5fa !important;
-  border:1px solid #60a5fa !important;
-}
-body.public-event-detail-page .public-request-status.unable{
-  color:#fb7185 !important;
-  border:1px solid #fb7185 !important;
-}
-body.public-event-detail-page .public-played-track-actions{
-  display:flex !important;
-  gap:8px !important;
-  align-items:center !important;
-}
-body.public-event-detail-page .public-track-icon-action{
-  width:42px !important;
-  height:42px !important;
-  min-width:42px !important;
-  min-height:42px !important;
-  padding:0 !important;
-  border-radius:50% !important;
-  display:inline-flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-  border:1.5px solid #ff37df !important;
-  background:rgba(86,0,90,.28) !important;
-  box-shadow:0 0 15px rgba(255,55,223,.36) !important;
-  overflow:hidden !important;
-  text-decoration:none !important;
-}
-body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon{
-  width:31px !important;
-  height:31px !important;
-  color:#1ed760 !important;
-  stroke:#041008 !important;
-  fill:#1ed760 !important;
-}
-body.public-event-detail-page .public-track-icon-action.share .public-action-icon{
-  width:22px !important;
-  height:22px !important;
-  color:#fff !important;
-  stroke:currentColor !important;
-  fill:none !important;
-}
-body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon circle{
-  fill:#1ed760 !important;
-  stroke:#1ed760 !important;
-}
-body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon path{
-  fill:none !important;
-  stroke:#06120a !important;
-  stroke-width:1.8 !important;
-  stroke-linecap:round !important;
-}
-body.public-event-detail-page .public-sr-only,
-body.public-event-detail-page .public-track-icon-action .public-sr-only{
-  position:absolute !important;
-  width:1px !important;
-  height:1px !important;
-  padding:0 !important;
-  margin:-1px !important;
-  overflow:hidden !important;
-  clip:rect(0,0,0,0) !important;
-  white-space:nowrap !important;
-  border:0 !important;
-}
-@media(max-width:640px){
-  body.public-event-detail-page .public-request-card-main{
-    padding-right:0 !important;
-    padding-top:28px !important;
-  }
-  body.public-event-detail-page .public-request-status{
-    top:0 !important;
-    right:0 !important;
-  }
-  body.public-event-detail-page .public-track-icon-action{
-    width:38px !important;
-    height:38px !important;
-    min-width:38px !important;
-    min-height:38px !important;
-  }
-  body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon{
-    width:28px !important;
-    height:28px !important;
   }
 }
