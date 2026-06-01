@@ -195,25 +195,8 @@ function mx_history() {
     return array_values(array_map('mx_track_output', $filtered));
 }
 
-function mx_crate_db_ready() {
+function mx_db_crates_available() {
     return mx_table_exists('dj_crates') && mx_table_exists('dj_crate_tracks');
-}
-
-function mx_crate_track_from_row($row) {
-    $spotifyId = (string)($row['spotify_track_id'] ?? '');
-    return mx_clean_track([
-        'id' => $spotifyId,
-        'title' => (string)($row['track_name'] ?? ''),
-        'artist' => (string)($row['artist_name'] ?? ''),
-        'album' => (string)($row['album_name'] ?? ''),
-        'image' => (string)($row['artwork_url'] ?? ''),
-        'url' => $spotifyId !== '' ? 'https://open.spotify.com/track/' . $spotifyId : '',
-        'duration_ms' => isset($row['duration_ms']) ? (int)$row['duration_ms'] : null,
-        'source' => 'dj_crate',
-        'crate_id' => !empty($row['crate_id']) ? (int)$row['crate_id'] : null,
-        'crate_track_id' => !empty($row['id']) ? (int)$row['id'] : null,
-        'added_at' => (string)($row['added_at'] ?? date('Y-m-d H:i:s')),
-    ]);
 }
 
 function mx_legacy_crates() {
@@ -229,74 +212,15 @@ function mx_legacy_crates() {
     return array_values(array_map('mx_normalise_crate', (array)$crates));
 }
 
-function mx_seed_db_crates_if_needed() {
-    if (!mx_crate_db_ready()) return;
-    static $done = false;
-    if ($done) return;
-    $done = true;
-    try {
-        $count = (int)db()->query("SELECT COUNT(*) FROM dj_crates")->fetchColumn();
-        if ($count > 0) return;
-
-        $legacy = mx_json('spotify_mixer_crates', []);
-        if (!$legacy) {
-            $legacy = [
-                ['id' => 'crate_80s', 'name' => '80s', 'tracks' => []],
-                ['id' => 'crate_90s', 'name' => '90s', 'tracks' => []],
-                ['id' => 'crate_floorfillers', 'name' => 'Floorfillers', 'tracks' => []],
-            ];
-        }
-
-        $sort = 0;
-        foreach (array_values((array)$legacy) as $crate) {
-            $normal = mx_normalise_crate($crate);
-            $stmt = db()->prepare("INSERT INTO dj_crates (name, description, sort_order, is_active) VALUES (?, ?, ?, 1)");
-            $stmt->execute([$normal['name'], 'Migrated from legacy mixer crate storage', $sort]);
-            $crateId = (int)db()->lastInsertId();
-            $trackSort = 0;
-            foreach ((array)$normal['tracks'] as $track) {
-                $clean = mx_clean_track($track);
-                if ($clean['id'] === '') continue;
-                $trackStmt = db()->prepare("\n                    INSERT INTO dj_crate_tracks\n                    (crate_id, spotify_track_id, track_name, artist_name, album_name, artwork_url, duration_ms, preview_url, sort_order, added_at)\n                    VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)\n                ");
-                $trackStmt->execute([
-                    $crateId,
-                    $clean['id'],
-                    $clean['title'],
-                    $clean['artist'],
-                    $clean['album'],
-                    $clean['image'],
-                    $clean['duration_ms'],
-                    $trackSort,
-                    $clean['added_at'] ?: date('Y-m-d H:i:s'),
-                ]);
-                $trackSort++;
-            }
-            $sort++;
-        }
-    } catch (Throwable $e) {
-        // Keep the mixer usable by falling back to legacy JSON crates.
-    }
-}
-
 function mx_crates() {
-    if (!mx_crate_db_ready()) return mx_legacy_crates();
-    mx_seed_db_crates_if_needed();
-    try {
-        $stmt = db()->query("\n            SELECT c.id, c.name, c.description, c.sort_order, c.is_active, COUNT(t.id) AS track_count\n            FROM dj_crates c\n            LEFT JOIN dj_crate_tracks t ON t.crate_id = c.id\n            WHERE c.is_active = 1\n            GROUP BY c.id, c.name, c.description, c.sort_order, c.is_active\n            ORDER BY c.sort_order ASC, c.name ASC, c.id ASC\n        ");
-        $out = [];
-        foreach ($stmt->fetchAll() as $row) {
-            $out[] = [
-                'id' => (string)(int)$row['id'],
-                'name' => (string)$row['name'],
-                'tracks' => [],
-                'track_count' => (int)($row['track_count'] ?? 0),
-            ];
-        }
-        return $out;
-    } catch (Throwable $e) {
-        return mx_legacy_crates();
+    if (mx_db_crates_available()) {
+        mx_seed_mysql_crates_if_empty();
+        $rows = mx_mysql_crates();
+        if ($rows) return $rows;
     }
+    return mx_legacy_crates();
 }
+
 function mx_normalise_crate($crate) {
     $id = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)($crate['id'] ?? ''));
     if ($id === '') $id = 'crate_' . bin2hex(random_bytes(4));
@@ -305,31 +229,105 @@ function mx_normalise_crate($crate) {
     foreach ((array)($crate['tracks'] ?? []) as $track) {
         $clean = mx_clean_track($track);
         if ($clean['id'] !== '') $tracks[] = $clean;
-        if (count($tracks) >= 500) break;
+        if (count($tracks) >= 200) break;
     }
     return ['id' => $id, 'name' => $name !== '' ? $name : 'DJ Crate', 'tracks' => $tracks];
 }
+
 function mx_save_legacy_crates($crates) {
     mx_set('spotify_mixer_crates', json_encode(array_values(array_map('mx_normalise_crate', (array)$crates))));
 }
+
 function mx_save_crates($crates) {
+    // Legacy compatibility wrapper. New crate writes go to MySQL first.
     mx_save_legacy_crates($crates);
 }
+
 function mx_find_crate_index($crates, $crate_id) {
     foreach ((array)$crates as $idx => $crate) {
         if ((string)($crate['id'] ?? '') === (string)$crate_id) return $idx;
     }
     return -1;
 }
-function mx_crate_summaries() {
-    if (mx_crate_db_ready()) {
-        return array_map(function($crate) {
-            return [
-                'id' => $crate['id'],
-                'name' => $crate['name'],
-                'track_count' => (int)($crate['track_count'] ?? 0),
+
+function mx_seed_mysql_crates_if_empty() {
+    if (!mx_db_crates_available()) return;
+    try {
+        $count = (int)db()->query("SELECT COUNT(*) FROM dj_crates")->fetchColumn();
+        if ($count > 0) return;
+    } catch (Throwable $e) {
+        return;
+    }
+
+    $legacy = mx_json('spotify_mixer_crates', []);
+    if (!$legacy) {
+        $legacy = [
+            ['id' => 'crate_80s', 'name' => '80s', 'tracks' => []],
+            ['id' => 'crate_90s', 'name' => '90s', 'tracks' => []],
+            ['id' => 'crate_floorfillers', 'name' => 'Floorfillers', 'tracks' => []],
+        ];
+    }
+
+    $crateInsert = db()->prepare("INSERT INTO dj_crates (name, description, sort_order, is_active, created_at) VALUES (?, ?, ?, 1, NOW())");
+    $trackInsert = db()->prepare("\n        INSERT INTO dj_crate_tracks\n        (crate_id, spotify_track_id, track_name, artist_name, album_name, artwork_url, duration_ms, preview_url, sort_order, added_at)\n        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n    ");
+
+    $order = 0;
+    foreach ((array)$legacy as $crate) {
+        $normal = mx_normalise_crate($crate);
+        $crateInsert->execute([$normal['name'], 'Imported from legacy mixer crate JSON', $order++]);
+        $crateId = (int)db()->lastInsertId();
+        $trackOrder = 0;
+        foreach ((array)$normal['tracks'] as $track) {
+            $clean = mx_clean_track($track);
+            if ($clean['id'] === '') continue;
+            $trackInsert->execute([
+                $crateId,
+                $clean['id'],
+                $clean['title'],
+                $clean['artist'],
+                $clean['album'],
+                $clean['image'],
+                $clean['duration_ms'],
+                '',
+                $trackOrder++,
+                $clean['added_at'] ?: date('Y-m-d H:i:s'),
+            ]);
+        }
+    }
+}
+
+function mx_mysql_crates() {
+    if (!mx_db_crates_available()) return [];
+    try {
+        $stmt = db()->query("\n            SELECT c.id, c.name, COUNT(t.id) AS track_count\n            FROM dj_crates c\n            LEFT JOIN dj_crate_tracks t ON t.crate_id = c.id\n            WHERE c.is_active = 1\n            GROUP BY c.id, c.name, c.sort_order, c.created_at\n            ORDER BY c.sort_order ASC, c.created_at ASC, c.id ASC\n        ");
+        $rows = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $rows[] = [
+                'id' => (string)$row['id'],
+                'name' => (string)$row['name'],
+                'tracks' => [],
+                'track_count' => (int)($row['track_count'] ?? 0),
             ];
-        }, mx_crates());
+        }
+        return $rows;
+    } catch (Throwable $e) {
+        return [];
+    }
+}
+
+function mx_crate_summaries() {
+    if (mx_db_crates_available()) {
+        mx_seed_mysql_crates_if_empty();
+        $rows = mx_mysql_crates();
+        if ($rows) {
+            return array_map(function($crate) {
+                return [
+                    'id' => (string)$crate['id'],
+                    'name' => (string)$crate['name'],
+                    'track_count' => (int)($crate['track_count'] ?? 0),
+                ];
+            }, $rows);
+        }
     }
     return array_map(function($crate) {
         return [
@@ -337,39 +335,63 @@ function mx_crate_summaries() {
             'name' => $crate['name'],
             'track_count' => count($crate['tracks'] ?? []),
         ];
-    }, mx_crates());
+    }, mx_legacy_crates());
 }
+
 function mx_crate_tracks($crate_id) {
-    if (mx_crate_db_ready() && ctype_digit((string)$crate_id)) {
-        mx_seed_db_crates_if_needed();
-        $stmt = db()->prepare("\n            SELECT id, crate_id, spotify_track_id, track_name, artist_name, album_name, artwork_url, duration_ms, preview_url, sort_order, added_at\n            FROM dj_crate_tracks\n            WHERE crate_id = ?\n            ORDER BY sort_order ASC, added_at DESC, id DESC\n            LIMIT 500\n        ");
+    if (mx_db_crates_available() && ctype_digit((string)$crate_id)) {
+        mx_seed_mysql_crates_if_empty();
+        $stmt = db()->prepare("\n            SELECT t.*, c.name AS crate_name\n            FROM dj_crate_tracks t\n            INNER JOIN dj_crates c ON c.id = t.crate_id\n            WHERE t.crate_id = ? AND c.is_active = 1\n            ORDER BY t.sort_order ASC, t.added_at DESC, t.id DESC\n            LIMIT 500\n        ");
         $stmt->execute([(int)$crate_id]);
-        return array_values(array_map('mx_track_output', array_map('mx_crate_track_from_row', $stmt->fetchAll())));
+        $tracks = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $tracks[] = mx_track_output([
+                'id' => (string)($row['spotify_track_id'] ?? ''),
+                'title' => (string)($row['track_name'] ?? ''),
+                'artist' => (string)($row['artist_name'] ?? ''),
+                'album' => (string)($row['album_name'] ?? ''),
+                'image' => (string)($row['artwork_url'] ?? ''),
+                'url' => !empty($row['spotify_track_id']) ? 'https://open.spotify.com/track/' . $row['spotify_track_id'] : '',
+                'duration_ms' => isset($row['duration_ms']) ? (int)$row['duration_ms'] : null,
+                'source' => 'dj_crate',
+                'loaded_origin' => 'dj_crate',
+                'crate_id' => (int)$row['crate_id'],
+                'crate_track_id' => (int)$row['id'],
+                'source_ref_id' => (int)$row['id'],
+                'added_at' => (string)($row['added_at'] ?? date('Y-m-d H:i:s')),
+            ]);
+        }
+        return $tracks;
     }
+
     $crates = mx_legacy_crates();
     $idx = mx_find_crate_index($crates, $crate_id);
     if ($idx < 0) throw new RuntimeException('DJ crate not found.');
     return array_values(array_map('mx_track_output', (array)$crates[$idx]['tracks']));
 }
+
 function mx_create_crate($name) {
     $name = trim((string)$name);
     if ($name === '') throw new RuntimeException('Enter a crate name first.');
-    if (mx_crate_db_ready()) {
-        mx_seed_db_crates_if_needed();
+
+    if (mx_db_crates_available()) {
+        mx_seed_mysql_crates_if_empty();
         $sort = 0;
-        try { $sort = (int)db()->query("SELECT COALESCE(MIN(sort_order), 0) - 10 FROM dj_crates")->fetchColumn(); } catch (Throwable $ignored) {}
-        $stmt = db()->prepare("INSERT INTO dj_crates (name, description, sort_order, is_active) VALUES (?, NULL, ?, 1)");
+        try { $sort = (int)db()->query("SELECT COALESCE(MAX(sort_order), -1) + 1 FROM dj_crates")->fetchColumn(); } catch (Throwable $ignored) {}
+        $stmt = db()->prepare("INSERT INTO dj_crates (name, description, sort_order, is_active, created_at) VALUES (?, NULL, ?, 1, NOW())");
         $stmt->execute([$name, $sort]);
-        return (string)(int)db()->lastInsertId();
+        return (string)db()->lastInsertId();
     }
+
     $crates = mx_legacy_crates();
     $id = 'crate_' . preg_replace('/[^a-z0-9]+/', '_', strtolower($name)) . '_' . substr(bin2hex(random_bytes(3)), 0, 6);
     array_unshift($crates, ['id' => $id, 'name' => $name, 'tracks' => []]);
     mx_save_legacy_crates($crates);
     return $id;
 }
+
 function mx_delete_crate($crate_id) {
-    if (mx_crate_db_ready() && ctype_digit((string)$crate_id)) {
+    if (mx_db_crates_available() && ctype_digit((string)$crate_id)) {
         $stmt = db()->prepare("UPDATE dj_crates SET is_active = 0 WHERE id = ?");
         $stmt->execute([(int)$crate_id]);
         return;
@@ -378,25 +400,33 @@ function mx_delete_crate($crate_id) {
     $crates = array_values(array_filter($crates, function($c) use ($crate_id) { return (string)($c['id'] ?? '') !== (string)$crate_id; }));
     mx_save_legacy_crates($crates);
 }
+
 function mx_add_track_to_crate($crate_id, $track) {
     $clean = mx_clean_track($track);
     if ($clean['id'] === '') throw new RuntimeException('Track is missing a Spotify ID.');
-    if (mx_crate_db_ready() && ctype_digit((string)$crate_id)) {
-        mx_seed_db_crates_if_needed();
-        $exists = db()->prepare("SELECT id FROM dj_crates WHERE id = ? AND is_active = 1 LIMIT 1");
-        $exists->execute([(int)$crate_id]);
-        if (!$exists->fetch()) throw new RuntimeException('Choose a DJ crate first.');
+
+    if (mx_db_crates_available() && ctype_digit((string)$crate_id)) {
+        mx_seed_mysql_crates_if_empty();
+        $stmt = db()->prepare("SELECT id FROM dj_crates WHERE id = ? AND is_active = 1 LIMIT 1");
+        $stmt->execute([(int)$crate_id]);
+        if (!$stmt->fetch()) throw new RuntimeException('Choose a DJ crate first.');
+
         db()->prepare("DELETE FROM dj_crate_tracks WHERE crate_id = ? AND spotify_track_id = ?")->execute([(int)$crate_id, $clean['id']]);
-        $sort = 0;
-        try {
-            $sortStmt = db()->prepare("SELECT COALESCE(MIN(sort_order), 0) - 10 FROM dj_crate_tracks WHERE crate_id = ?");
-            $sortStmt->execute([(int)$crate_id]);
-            $sort = (int)$sortStmt->fetchColumn();
-        } catch (Throwable $ignored) {}
-        $stmt = db()->prepare("\n            INSERT INTO dj_crate_tracks\n            (crate_id, spotify_track_id, track_name, artist_name, album_name, artwork_url, duration_ms, preview_url, sort_order, added_at)\n            VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, NOW())\n        ");
-        $stmt->execute([(int)$crate_id, $clean['id'], $clean['title'], $clean['artist'], $clean['album'], $clean['image'], $clean['duration_ms'], $sort]);
+        db()->prepare("UPDATE dj_crate_tracks SET sort_order = sort_order + 1 WHERE crate_id = ?")->execute([(int)$crate_id]);
+        $insert = db()->prepare("\n            INSERT INTO dj_crate_tracks\n            (crate_id, spotify_track_id, track_name, artist_name, album_name, artwork_url, duration_ms, preview_url, sort_order, added_at)\n            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())\n        ");
+        $insert->execute([
+            (int)$crate_id,
+            $clean['id'],
+            $clean['title'],
+            $clean['artist'],
+            $clean['album'],
+            $clean['image'],
+            $clean['duration_ms'],
+            '',
+        ]);
         return;
     }
+
     $crates = mx_legacy_crates();
     $idx = mx_find_crate_index($crates, $crate_id);
     if ($idx < 0) throw new RuntimeException('Choose a DJ crate first.');
@@ -406,13 +436,19 @@ function mx_add_track_to_crate($crate_id, $track) {
     $clean['source'] = 'dj_crate';
     $clean['added_at'] = date('Y-m-d H:i:s');
     array_unshift($tracks, $clean);
-    $crates[$idx]['tracks'] = array_slice($tracks, 0, 500);
+    $crates[$idx]['tracks'] = array_slice($tracks, 0, 200);
     mx_save_legacy_crates($crates);
 }
+
 function mx_remove_track_from_crate($crate_id, $track_id) {
-    if (mx_crate_db_ready() && ctype_digit((string)$crate_id)) {
-        $stmt = db()->prepare("DELETE FROM dj_crate_tracks WHERE crate_id = ? AND spotify_track_id = ?");
-        $stmt->execute([(int)$crate_id, (string)$track_id]);
+    if (mx_db_crates_available() && ctype_digit((string)$crate_id)) {
+        if (ctype_digit((string)$track_id)) {
+            $stmt = db()->prepare("DELETE FROM dj_crate_tracks WHERE crate_id = ? AND id = ?");
+            $stmt->execute([(int)$crate_id, (int)$track_id]);
+        } else {
+            $stmt = db()->prepare("DELETE FROM dj_crate_tracks WHERE crate_id = ? AND spotify_track_id = ?");
+            $stmt->execute([(int)$crate_id, (string)$track_id]);
+        }
         return;
     }
     $crates = mx_legacy_crates();
@@ -444,7 +480,7 @@ function mx_add_history($deck, $track) {
             'duration_ms' => $item['duration_ms'],
             'played_ms' => mx_loaded_track_progress_ms($track),
             'source_type' => ($item['loaded_origin'] !== '' ? $item['loaded_origin'] : $item['source']),
-            'source_ref_id' => !empty($item['request_id']) ? (int)$item['request_id'] : (!empty($item['crate_id']) ? (int)$item['crate_id'] : null),
+            'source_ref_id' => !empty($item['source_ref_id']) ? (int)$item['source_ref_id'] : (!empty($item['crate_track_id']) ? (int)$item['crate_track_id'] : (!empty($item['request_id']) ? (int)$item['request_id'] : null)),
             'request_id' => !empty($item['request_id']) ? (int)$item['request_id'] : null,
             'crate_id' => !empty($item['crate_id']) ? (int)$item['crate_id'] : null,
             'threshold_met' => 1,
@@ -479,8 +515,6 @@ function mx_clean_track($track) {
         'url' => (string)($track['url'] ?? ''),
         'duration_ms' => isset($track['duration_ms']) ? (int)$track['duration_ms'] : null,
         'source' => (string)($track['source'] ?? 'search'),
-        'crate_id' => !empty($track['crate_id']) ? (int)$track['crate_id'] : null,
-        'crate_track_id' => !empty($track['crate_track_id']) ? (int)$track['crate_track_id'] : null,
         'request_id' => !empty($track['request_id']) ? (int)$track['request_id'] : null,
         'request_group_id' => (string)($track['request_group_id'] ?? ''),
         'event_id' => !empty($track['event_id']) ? (int)$track['event_id'] : null,
@@ -502,6 +536,9 @@ function mx_clean_track($track) {
         'playback_started_at' => isset($track['playback_started_at']) ? (int)$track['playback_started_at'] : null,
         'expected_finish_at' => isset($track['expected_finish_at']) ? (int)$track['expected_finish_at'] : null,
         'history_logged_at' => isset($track['history_logged_at']) ? (int)$track['history_logged_at'] : null,
+        'crate_id' => !empty($track['crate_id']) ? (int)$track['crate_id'] : null,
+        'crate_track_id' => !empty($track['crate_track_id']) ? (int)$track['crate_track_id'] : null,
+        'source_ref_id' => !empty($track['source_ref_id']) ? (int)$track['source_ref_id'] : null,
     ];
 }
 function mx_request_select_columns($extra = []) {
@@ -1147,9 +1184,10 @@ function mx_track_output($t) {
     if (isset($raw['played_at'])) $t['played_at'] = (string)$raw['played_at'];
     if (isset($raw['history_deck'])) $t['history_deck'] = (string)$raw['history_deck'];
     if (isset($raw['history_logged_at'])) $t['history_logged_at'] = (int)$raw['history_logged_at'];
+    if (!empty($raw['event_id'])) $t['event_id'] = (int)$raw['event_id'];
     if (!empty($raw['crate_id'])) $t['crate_id'] = (int)$raw['crate_id'];
     if (!empty($raw['crate_track_id'])) $t['crate_track_id'] = (int)$raw['crate_track_id'];
-    if (!empty($raw['event_id'])) $t['event_id'] = (int)$raw['event_id'];
+    if (!empty($raw['source_ref_id'])) $t['source_ref_id'] = (int)$raw['source_ref_id'];
     return $t;
 }
 function mx_requests($playlist) {
