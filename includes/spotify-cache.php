@@ -31,7 +31,7 @@ if (!function_exists('dttd_track_cache_normalise')) {
             $id = substr($uri, strlen('spotify:track:'));
         }
 
-        return [
+        $base = [
             'id' => $id,
             'uri' => $uri,
             'title' => (string)($track['title'] ?? $track['track_name'] ?? ''),
@@ -41,7 +41,10 @@ if (!function_exists('dttd_track_cache_normalise')) {
             'url' => (string)($track['url'] ?? ($id !== '' ? 'https://open.spotify.com/track/' . $id : '')),
             'duration_ms' => isset($track['duration_ms']) ? (int)$track['duration_ms'] : null,
             'popularity' => isset($track['popularity']) ? (int)$track['popularity'] : null,
+            'release_date' => (string)($track['release_date'] ?? ''),
+            'release_date_precision' => (string)($track['release_date_precision'] ?? ''),
         ];
+        return function_exists('dttd_spotify_enrich_track') ? dttd_spotify_enrich_track($base) : $base;
     }
 }
 
@@ -80,7 +83,7 @@ if (!function_exists('dttd_track_cache_row_to_track')) {
     function dttd_track_cache_row_to_track(array $row) {
         $uri = (string)($row['spotify_uri'] ?? '');
         $id = preg_replace('/^spotify:track:/', '', $uri);
-        return [
+        $base = [
             'id' => $id,
             'uri' => $uri,
             'title' => (string)($row['track_name'] ?? ''),
@@ -91,6 +94,7 @@ if (!function_exists('dttd_track_cache_row_to_track')) {
             'duration_ms' => isset($row['duration_ms']) ? (int)$row['duration_ms'] : null,
             'cached' => true,
         ];
+        return function_exists('dttd_spotify_enrich_track') ? dttd_spotify_enrich_track($base) : $base;
     }
 }
 

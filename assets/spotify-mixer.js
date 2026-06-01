@@ -103,6 +103,11 @@ document.head.appendChild(overviewStyle);
     return await res.json();
   }
   function image(src){ return src || 'https://dancethruthedecades.co.uk/assets/glitter-ball-clean.png'; }
+  function trackBadgesHtml(t){
+    const badges = Array.isArray(t.badges) ? t.badges : [];
+    if(!badges.length) return '';
+    return '<div class="track-search-badges">' + badges.slice(0,4).map(b=>`<span class="track-search-badge ${esc(b.type || '')}">${esc(b.label || '')}</span>`).join('') + '</div>';
+  }
 
   function deviceIsOnline(id){
     if(!id) return false;
@@ -500,7 +505,7 @@ renderAccountStatus();
     els.searchResults.innerHTML = tracks.map(t=>`
       <div class="result-row">
         <img src="${esc(image(t.image))}" alt="">
-        <div><div class="result-title">${esc(t.title)}</div><div class="mini muted">${esc(t.artist)}${t.album ? ' • ' + esc(t.album) : ''}</div></div>
+        <div><div class="result-title">${esc(t.title)}</div><div class="mini muted">${esc(t.artist)}${t.album ? ' • ' + esc(t.album) : ''}</div>${trackBadgesHtml(t)}</div>
         <button class="mixer-btn green" data-select-track='${esc(JSON.stringify(t))}'>Choose</button>
       </div>`).join('');
   }
@@ -576,42 +581,21 @@ renderAccountStatus();
   }
 
 
-  async function fetchSearchJson(url){
-    const res = await fetch(url, {cache:'no-store', credentials:'same-origin'});
-    const text = await res.text();
-    let data = null;
-    try { data = JSON.parse(text); }
-    catch(e) { throw new Error('Search endpoint returned non-JSON response'); }
-    if(!res.ok || !data || data.ok === false){
-      throw new Error((data && (data.error || data.message)) || 'Search endpoint failed');
-    }
-    return data;
-  }
-
   async function search(q){
     if(!q || q.trim().length < 3){ els.searchResults.innerHTML=''; els.searchStatus.textContent=''; return; }
-    const query = q.trim();
     els.searchStatus.innerHTML = '<span class="spinner"></span> Searching…';
     try{
-      let data = null;
-      try {
-        data = await fetchSearchJson(searchApi + '?q=' + encodeURIComponent(query));
-      } catch(primaryError) {
-        // Public search can fail if the admin portal is running on a different
-        // host/path. Fall back to the authenticated mixer API search action.
-        data = await fetchSearchJson(api + '?action=search&q=' + encodeURIComponent(query));
+      const res = await fetch(searchApi + '?q=' + encodeURIComponent(q), {cache:'no-store'});
+      const data = await res.json();
+      if(data.ok){
+        const sourceLabel = data.rate_limited ? 'Spotify cooling down — cached matches shown' : (data.source === 'cache' ? 'Cached matches shown' : '');
+        els.searchStatus.textContent = sourceLabel;
+        renderSearchResults(data.tracks || []);
+      } else {
+        els.searchStatus.textContent = data.error || data.message || 'Search failed';
       }
-
-      const tracks = data.tracks || [];
-      const sourceLabel = data.rate_limited ? 'Spotify cooling down — cached matches shown' : (data.source === 'cache' ? 'Cached matches shown' : '');
-      els.searchStatus.textContent = sourceLabel;
-      renderSearchResults(tracks);
     }
-    catch(e){
-      console.error('Spotify mixer search failed', e);
-      els.searchStatus.textContent = 'Search failed';
-      renderSearchResults([]);
-    }
+    catch(e){ els.searchStatus.textContent = 'Search failed'; }
   }
   app.addEventListener('click', (e)=>{
     const sourceTab = e.target.closest('[data-source-tab]');
