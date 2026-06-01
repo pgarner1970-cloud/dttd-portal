@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/db.php';
+dttd_no_cache_headers();
 dttd_redirect_public_feature_to_primary_domain();
 
 if (!function_exists('public_h')) {
@@ -155,9 +156,10 @@ $requestCloseClock = $event ? dttd_event_request_close_clock_label($event) : '';
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <?= dttd_cache_meta_tags() ?>
   <title><?= public_h($title) ?> | Dance Thru the Decades</title>
   <meta name="description" content="Request a song at a Dance Thru the Decades event using the venue QR code or event code.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=315">
+  <link rel="stylesheet" href="<?= h(dttd_asset_url('assets/public-site.css')) ?>">
 </head>
 <body class="homepage-option-one public-event-feature-page public-request-page">
   <main class="home-option-one">
@@ -282,6 +284,7 @@ $requestCloseClock = $event ? dttd_event_request_close_clock_label($event) : '';
 
     <?php require __DIR__ . '/includes/public-footer.php'; ?>
   </main>
-  <script src="/assets/spotify-request-search.js?v=4"></script>
+  <script src="<?= h(dttd_asset_url('assets/spotify-request-search.js')) ?>"></script>
+<?= dttd_bfcache_reload_script() ?>
 </body>
 </html>

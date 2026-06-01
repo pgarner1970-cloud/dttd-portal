@@ -1,6 +1,51 @@
 <?php
 require_once __DIR__ . '/config.php';
 
+
+function dttd_no_cache_headers() {
+    if (headers_sent()) {
+        return;
+    }
+
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private');
+    header('Cache-Control: post-check=0, pre-check=0', false);
+    header('Pragma: no-cache');
+    header('Expires: Thu, 01 Jan 1970 00:00:00 GMT');
+    header('X-DTTD-Cache-Policy: no-store');
+}
+
+function dttd_asset_version($asset_path) {
+    $asset_path = ltrim((string)$asset_path, '/');
+    $full_path = dirname(__DIR__) . '/' . $asset_path;
+
+    if (is_file($full_path)) {
+        return (string)filemtime($full_path);
+    }
+
+    return (string)time();
+}
+
+function dttd_asset_url($asset_path, $absolute = false) {
+    $asset_path = ltrim((string)$asset_path, '/');
+    $url = '/' . $asset_path . '?v=' . rawurlencode(dttd_asset_version($asset_path));
+
+    if ($absolute) {
+        return 'https://dancethruthedecades.co.uk' . $url;
+    }
+
+    return $url;
+}
+
+function dttd_cache_meta_tags() {
+    return '<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">' . "\n"
+        . '<meta http-equiv="Pragma" content="no-cache">' . "\n"
+        . '<meta http-equiv="Expires" content="0">';
+}
+
+function dttd_bfcache_reload_script() {
+    return '<script>(function(){window.addEventListener("pageshow",function(e){if(e.persisted){window.location.reload();}});})();</script>';
+}
+
 function db() {
     static $pdo = null;
     if ($pdo === null) {
@@ -281,8 +326,6 @@ function dttd_public_request_base_url($fallback = '') {
 
     $host = strtolower((string)(parse_url($base, PHP_URL_HOST) ?: ''));
     $portalHosts = [
-        'dj.dancethruthedecades.co.uk',
-        'www.dj.dancethruthedecades.co.uk',
         'djdancethruthedecades.co.uk',
         'www.djdancethruthedecades.co.uk',
     ];
@@ -307,8 +350,6 @@ function dttd_redirect_public_feature_to_primary_domain() {
     // public guest pages to the main public site so the access cookie is stored
     // where guests naturally browse later.
     $portalHosts = [
-        'dj.dancethruthedecades.co.uk',
-        'www.dj.dancethruthedecades.co.uk',
         'djdancethruthedecades.co.uk',
         'www.djdancethruthedecades.co.uk',
     ];

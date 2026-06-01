@@ -2,6 +2,7 @@
 session_start();
 
 require_once __DIR__ . '/../includes/db.php';
+dttd_no_cache_headers();
 require_once __DIR__ . '/_auth_cookie.php';
 
 if (!defined('ADMIN_PASSWORD')) {
@@ -37,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DJ Portal Login</title>
-<link rel="stylesheet" href="https://dancethruthedecades.co.uk/assets/admin-touch.css">
+<link rel="stylesheet" href="<?= h(dttd_asset_url('assets/admin-touch.css', true)) ?>">
 </head>
 <body class="admin-body">
   <main class="touch-login">

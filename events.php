@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/db.php';
+dttd_no_cache_headers();
 
 function public_h($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
@@ -188,9 +189,10 @@ try {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <?= dttd_cache_meta_tags() ?>
   <title>Upcoming Events | Dance Thru the Decades</title>
   <meta name="description" content="Upcoming public Dance Thru the Decades events, party nights and request-enabled DJ events.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=260">
+  <link rel="stylesheet" href="<?= h(dttd_asset_url('assets/public-site.css')) ?>">
 </head>
 <body class="homepage-option-one public-list-page">
   <main class="home-option-one">
@@ -274,5 +276,6 @@ try {
     </section>
       <?php require __DIR__ . '/includes/public-footer.php'; ?>
   </main>
+<?= dttd_bfcache_reload_script() ?>
 </body>
 </html>

@@ -13,9 +13,10 @@ $public_current = 'privacy';
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <?= dttd_cache_meta_tags() ?>
   <title>Privacy & Cookies | Dance Thru the Decades</title>
   <meta name="description" content="Privacy and cookie information for Dance Thru the Decades event song requests and photo uploads.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=260">
+  <link rel="stylesheet" href="<?= h(dttd_asset_url('assets/public-site.css')) ?>">
 </head>
 <body class="homepage-option-one public-list-page public-policy-page">
   <main class="home-option-one">
@@ -57,5 +58,6 @@ $public_current = 'privacy';
 
     <?php require __DIR__ . '/includes/public-footer.php'; ?>
   </main>
+<?= dttd_bfcache_reload_script() ?>
 </body>
 </html>

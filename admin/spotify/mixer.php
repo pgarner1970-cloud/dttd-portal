@@ -144,5 +144,5 @@ admin_header('Spotify Mixer - DJ Portal');
   </div>
   
 </main>
-<script src="<?= h(admin_url('assets/spotify-mixer.js')) ?>?v=20260601-compact-rows-lock"></script>
+<script src="<?= h(dttd_asset_url('assets/spotify-mixer.js', true)) ?>"></script>
 <?php admin_footer(); ?>

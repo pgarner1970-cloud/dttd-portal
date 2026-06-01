@@ -4,6 +4,8 @@ session_start();
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/_auth_cookie.php';
 
+dttd_no_cache_headers();
+
 if (!defined('ADMIN_PASSWORD')) {
     define('ADMIN_PASSWORD', 'changeme');
 }
@@ -190,9 +192,10 @@ function admin_header($title = 'DJ Portal') {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<?= dttd_cache_meta_tags() ?>
 <title><?= h($title) ?></title>
-<link rel="stylesheet" href="https://dancethruthedecades.co.uk/assets/admin-touch.css?v=20260531-photo-alert-compact">
-<link rel="stylesheet" href="https://dancethruthedecades.co.uk/assets/admin-topbar-icons.css?v=20260522-1810">
+<link rel="stylesheet" href="<?= h(dttd_asset_url('assets/admin-touch.css', true)) ?>">
+<link rel="stylesheet" href="<?= h(dttd_asset_url('assets/admin-topbar-icons.css', true)) ?>">
 </head>
 <body class="admin-body">
 <header class="touch-topbar">
@@ -262,7 +265,7 @@ function admin_header($title = 'DJ Portal') {
           </span>
           <span class="admin-nav-text">Venues</span>
         </a>
-        <a id="adminPhotosNavBtn" class="header-admin-nav-btn <?= admin_nav_active('photos') ?>" href="<?= h(admin_url('event-photos.php')) ?>" title="Photos" aria-label="Photos">
+        <a class="header-admin-nav-btn <?= admin_nav_active('photos') ?>" href="<?= h(admin_url('event-photos.php')) ?>" title="Photos" aria-label="Photos">
           <span class="admin-nav-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" focusable="false"><path d="M5 5h4l1.2-2h3.6L15 5h4a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm7 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0-2.1a1.9 1.9 0 1 1 0-3.8 1.9 1.9 0 0 1 0 3.8Z"/></svg>
           </span>
@@ -322,12 +325,12 @@ function admin_footer() {
 window.DTTD_REQUEST_PING_URL = "<?= h(admin_url('request-ping.php')) ?>";
 window.DTTD_REQUESTS_URL = "<?= h(admin_url('requests.php')) ?>";
 window.DTTD_IS_REQUESTS_PAGE = <?= basename($_SERVER['SCRIPT_NAME']) === 'requests.php' ? 'true' : 'false' ?>;
-window.DTTD_IS_PHOTOS_PAGE = <?= basename($_SERVER['SCRIPT_NAME']) === 'event-photos.php' ? 'true' : 'false' ?>;
 </script>
-<script src="https://dancethruthedecades.co.uk/assets/request-update-check.js?v=20260531-photo-alert-compact"></script>
-<script src="https://dancethruthedecades.co.uk/assets/header-timers.js?v=97"></script>
-<script src="https://dancethruthedecades.co.uk/assets/event-qr.js?v=106"></script>
-<script src="https://dancethruthedecades.co.uk/assets/venue-select.js?v=115"></script>
+<script src="<?= h(dttd_asset_url('assets/request-update-check.js', true)) ?>"></script>
+<script src="<?= h(dttd_asset_url('assets/header-timers.js', true)) ?>"></script>
+<script src="<?= h(dttd_asset_url('assets/event-qr.js', true)) ?>"></script>
+<script src="<?= h(dttd_asset_url('assets/venue-select.js', true)) ?>"></script>
+<?= dttd_bfcache_reload_script() ?>
 </body>
 </html>
 <?php

@@ -5,3 +5,16 @@ RewriteEngine On
 RewriteRule ^events/?$ events.php [L,QSA]
 RewriteRule ^event/([a-z0-9-]+)/?$ event.php?slug=$1 [L,QSA]
 RewriteRule ^events/([a-z0-9-]+)/?$ event.php?slug=$1 [L,QSA]
+
+
+# DTTD live portal cache safety
+<IfModule mod_headers.c>
+  <FilesMatch "\.(php)$">
+    Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0, private"
+    Header always set Pragma "no-cache"
+    Header always set Expires "Thu, 01 Jan 1970 00:00:00 GMT"
+  </FilesMatch>
+  <FilesMatch "\.(css|js)$">
+    Header always set Cache-Control "no-cache, must-revalidate, max-age=0"
+  </FilesMatch>
+</IfModule>

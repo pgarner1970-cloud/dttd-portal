@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/db.php';
+dttd_no_cache_headers();
 require_once __DIR__ . '/../includes/spotify.php';
 require_once __DIR__ . '/../includes/spotify-cache.php';
 

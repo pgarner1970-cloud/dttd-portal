@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/db.php';
+dttd_no_cache_headers();
 require_once __DIR__ . '/includes/photo-uploads.php';
 
 $public_current = 'gallery';
@@ -102,9 +103,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <?= dttd_cache_meta_tags() ?>
   <title>Upload Photos | Dance Thru The Decades</title>
   <meta name="description" content="Upload your event photos for moderation and inclusion in the public gallery.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=314">
+  <link rel="stylesheet" href="<?= h(dttd_asset_url('assets/public-site.css')) ?>">
 </head>
 <body class="homepage-option-one public-gallery-page public-upload-page">
   <main class="home-option-one">
@@ -197,5 +199,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <?php require __DIR__ . '/includes/public-footer.php'; ?>
   </main>
+<?= dttd_bfcache_reload_script() ?>
 </body>
 </html>

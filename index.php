@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/db.php';
+dttd_no_cache_headers();
 
 $active_event = null;
 $active_event_is_public = false;
@@ -155,9 +156,10 @@ $public_current = 'home';
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <?= dttd_cache_meta_tags() ?>
   <title>Dance Thru the Decades Events</title>
   <meta name="description" content="Dance Thru the Decades Events — 60s, 70s, 80s, 90s and 00s party nights, DJ events, song requests and Facebook event updates.">
-  <link rel="stylesheet" href="/assets/public-site.css?v=290">
+  <link rel="stylesheet" href="<?= h(dttd_asset_url('assets/public-site.css')) ?>">
 </head>
 <body class="homepage-option-one">
   <main class="home-option-one">
@@ -354,6 +356,7 @@ $public_current = 'home';
     <?php endif; ?>
       <?php require __DIR__ . '/includes/public-footer.php'; ?>
   </main>
+<?= dttd_bfcache_reload_script() ?>
 </body>
 </html>
 
