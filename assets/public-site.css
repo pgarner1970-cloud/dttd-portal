@@ -4725,45 +4725,6 @@ body.public-event-detail-page .public-track-icon-action{
   border-radius:50% !important;
 }
 
-
-body.public-event-detail-page .public-track-icon-action .public-sr-only{
-  position:absolute !important;
-  width:1px !important;
-  height:1px !important;
-  padding:0 !important;
-  margin:-1px !important;
-  overflow:hidden !important;
-  clip:rect(0,0,0,0) !important;
-  white-space:nowrap !important;
-  border:0 !important;
-}
-
-body.public-event-detail-page .public-track-icon-action .public-action-icon{
-  width:28px !important;
-  height:28px !important;
-  display:block !important;
-}
-
-body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon circle{
-  fill:#1DB954 !important;
-  stroke:none !important;
-}
-
-body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon path{
-  fill:none !important;
-  stroke:#04120a !important;
-  stroke-width:1.8 !important;
-  stroke-linecap:round !important;
-}
-
-body.public-event-detail-page .public-track-icon-action.share .public-action-icon{
-  fill:none !important;
-  stroke:#fff !important;
-  stroke-width:1.8 !important;
-  stroke-linecap:round !important;
-  stroke-linejoin:round !important;
-}
-
 body.public-event-detail-page .public-event-photo-grid{
   display:grid !important;
   grid-template-columns:repeat(auto-fill,minmax(150px,1fr)) !important;
@@ -5151,5 +5112,204 @@ body.public-event-detail-page .public-request-status.status-already-requested{
   body.public-event-detail-page .public-request-status{
     top:0 !important;
     right:0 !important;
+  }
+}
+
+
+/* DTTD event page lock: public request status pills + played action icons */
+body.public-event-detail-page .public-sr-only,
+body.public-event-detail-page .public-track-icon-action .public-sr-only{
+  position:absolute !important;
+  width:1px !important;
+  height:1px !important;
+  padding:0 !important;
+  margin:-1px !important;
+  overflow:hidden !important;
+  clip:rect(0,0,0,0) !important;
+  white-space:nowrap !important;
+  border:0 !important;
+}
+
+body.public-event-detail-page .public-played-track-row{
+  display:grid !important;
+  grid-template-columns:58px minmax(0,1fr) auto !important;
+  align-items:center !important;
+  gap:14px !important;
+}
+
+body.public-event-detail-page .public-played-track-actions{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  gap:9px !important;
+}
+
+body.public-event-detail-page .public-track-icon-action,
+body.public-event-detail-page a.public-track-icon-action,
+body.public-event-detail-page button.public-track-icon-action{
+  width:42px !important;
+  height:42px !important;
+  min-width:42px !important;
+  min-height:42px !important;
+  padding:0 !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  border-radius:999px !important;
+  border:1.5px solid #f026d4 !important;
+  background:rgba(55,9,72,.48) !important;
+  color:#fff !important;
+  box-shadow:0 0 18px rgba(240,38,212,.38), inset 0 0 14px rgba(255,255,255,.06) !important;
+  text-decoration:none !important;
+  line-height:1 !important;
+  appearance:none !important;
+}
+
+body.public-event-detail-page .public-track-icon-action .public-action-icon{
+  display:block !important;
+  width:25px !important;
+  height:25px !important;
+  stroke:currentColor !important;
+  fill:none !important;
+  stroke-width:2.1 !important;
+  stroke-linecap:round !important;
+  stroke-linejoin:round !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon{
+  width:31px !important;
+  height:31px !important;
+  color:#080b12 !important;
+  stroke:#080b12 !important;
+  fill:#1ed760 !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon circle{
+  fill:#1ed760 !important;
+  stroke:#1ed760 !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon path{
+  fill:none !important;
+  stroke:#080b12 !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.share .public-action-icon circle,
+body.public-event-detail-page .public-track-icon-action.share .public-action-icon path{
+  fill:none !important;
+  stroke:#fff !important;
+}
+
+body.public-event-detail-page .public-request-card-shell{
+  position:relative !important;
+}
+
+body.public-event-detail-page .public-request-card-main{
+  position:relative !important;
+  min-width:0 !important;
+  padding-right:132px !important;
+}
+
+body.public-event-detail-page .public-request-row-head{
+  display:block !important;
+  min-width:0 !important;
+}
+
+body.public-event-detail-page .public-request-row-head strong,
+body.public-event-detail-page .public-request-artist,
+body.public-event-detail-page .public-request-member small,
+body.public-event-detail-page .public-request-dedication{
+  display:block !important;
+  min-width:0 !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+
+body.public-event-detail-page .public-request-status{
+  position:absolute !important;
+  top:0 !important;
+  right:0 !important;
+  z-index:4 !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:auto !important;
+  min-width:0 !important;
+  max-width:124px !important;
+  min-height:24px !important;
+  padding:4px 10px !important;
+  border-radius:999px !important;
+  font-size:11px !important;
+  line-height:1 !important;
+  font-weight:950 !important;
+  white-space:nowrap !important;
+  background:rgba(10,12,28,.72) !important;
+  box-shadow:none !important;
+}
+
+body.public-event-detail-page .public-request-status.played,
+body.public-event-detail-page .public-request-status.status-played{
+  color:#36f58d !important;
+  border:1.5px solid #36f58d !important;
+}
+
+body.public-event-detail-page .public-request-status.queued,
+body.public-event-detail-page .public-request-status.status-queue,
+body.public-event-detail-page .public-request-status.status-in-dj-queue,
+body.public-event-detail-page .public-request-status.in-dj-queue{
+  color:#fde047 !important;
+  border:1.5px solid #fde047 !important;
+}
+
+body.public-event-detail-page .public-request-status.currently-playing,
+body.public-event-detail-page .public-request-status.status-currently-playing{
+  color:#22c55e !important;
+  border:1.5px solid #22c55e !important;
+}
+
+body.public-event-detail-page .public-request-status.unable,
+body.public-event-detail-page .public-request-status.rejected,
+body.public-event-detail-page .public-request-status.status-unable,
+body.public-event-detail-page .public-request-status.status-rejected{
+  color:#fb7185 !important;
+  border:1.5px solid #fb7185 !important;
+}
+
+body.public-event-detail-page .public-request-status.review,
+body.public-event-detail-page .public-request-status.waiting,
+body.public-event-detail-page .public-request-status.pending,
+body.public-event-detail-page .public-request-status.status-pending,
+body.public-event-detail-page .public-request-status.status-waiting-review{
+  color:#facc15 !important;
+  border:1.5px solid #facc15 !important;
+}
+
+body.public-event-detail-page .public-request-status.duplicate,
+body.public-event-detail-page .public-request-status.status-duplicate,
+body.public-event-detail-page .public-request-status.status-already-requested{
+  color:#60a5fa !important;
+  border:1.5px solid #60a5fa !important;
+}
+
+@media(max-width:640px){
+  body.public-event-detail-page .public-request-card-main{
+    padding-right:0 !important;
+    padding-top:30px !important;
+  }
+  body.public-event-detail-page .public-request-status{
+    top:0 !important;
+    right:0 !important;
+  }
+  body.public-event-detail-page .public-played-track-row{
+    grid-template-columns:52px minmax(0,1fr) auto !important;
+    gap:10px !important;
+  }
+  body.public-event-detail-page .public-track-icon-action,
+  body.public-event-detail-page a.public-track-icon-action,
+  body.public-event-detail-page button.public-track-icon-action{
+    width:38px !important;
+    height:38px !important;
+    min-width:38px !important;
+    min-height:38px !important;
   }
 }

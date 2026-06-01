@@ -148,37 +148,148 @@ function public_find_event_by_slug($slug) {
     return null;
 }
 
-function public_recent_played_requests($event_id, $limit = 25) {
-    if (!dttd_table_exists('song_requests')) {
-        return [];
-    }
+function public_recent_played_requests($event_id, $limit = 50) {
+    $eventId = (int)$event_id;
+    $limit = max(1, min(80, (int)$limit));
+    $played = [];
 
-    $limit = max(1, min(50, (int)$limit));
-    $select = ['id', 'song_title', 'artist', 'created_at'];
-    foreach (['spotify_track_url', 'spotify_track_id', 'spotify_album_image', 'updated_at', 'request_group_id', 'guest_name', 'dedication', 'message'] as $column) {
-        if (dttd_table_column_exists('song_requests', $column)) {
-            $select[] = $column;
+    if (dttd_table_exists('song_requests')) {
+        $select = ['id', 'song_title', 'artist', 'created_at'];
+        foreach (['spotify_track_url', 'spotify_track_id', 'spotify_album_image', 'updated_at', 'request_group_id', 'guest_name', 'dedication', 'message'] as $column) {
+            if (dttd_table_column_exists('song_requests', $column)) {
+                $select[] = $column;
+            }
+        }
+
+        $selectSql = implode(', ', array_map(function($column) {
+            return '`' . str_replace('`', '', $column) . '`';
+        }, array_unique($select)));
+
+        try {
+            $orderSql = dttd_table_column_exists('song_requests', 'updated_at') ? 'updated_at DESC, created_at DESC, id DESC' : 'created_at DESC, id DESC';
+            $stmt = db()->prepare("\n                SELECT $selectSql\n                FROM song_requests\n                WHERE event_id = ? AND status = 'played'\n                ORDER BY $orderSql\n                LIMIT " . $limit . "\n            ");
+            $stmt->execute([$eventId]);
+            foreach (public_group_played_tracks($stmt->fetchAll()) as $row) {
+                $row['_played_ts'] = public_played_sort_timestamp($row);
+                $row['_played_source'] = 'request';
+                $played[] = $row;
+            }
+        } catch (Throwable $e) {
+            // Keep public page alive even if the request query fails.
         }
     }
 
-    $selectSql = implode(', ', array_map(function($column) {
-        return '`' . str_replace('`', '', $column) . '`';
-    }, array_unique($select)));
+    foreach (public_recent_mixer_history_for_event($eventId, 80) as $row) {
+        $played[] = $row;
+    }
+
+    usort($played, function($a, $b) {
+        return (int)($b['_played_ts'] ?? 0) <=> (int)($a['_played_ts'] ?? 0);
+    });
+
+    return array_slice($played, 0, $limit);
+}
+
+function public_played_sort_timestamp($row) {
+    if (isset($row['rows']) && is_array($row['rows'])) {
+        $best = 0;
+        foreach ($row['rows'] as $child) {
+            $best = max($best, public_played_sort_timestamp($child));
+        }
+        return $best;
+    }
+
+    foreach (['played_at', 'updated_at', 'created_at'] as $field) {
+        if (!empty($row[$field])) {
+            $ts = strtotime((string)$row[$field]);
+            if ($ts) {
+                return $ts;
+            }
+        }
+    }
+
+    return 0;
+}
+
+function public_recent_mixer_history_for_event($event_id, $limit = 80) {
+    if (!dttd_table_exists('app_settings')) {
+        return [];
+    }
 
     try {
-        $orderSql = dttd_table_column_exists('song_requests', 'updated_at') ? 'updated_at DESC, created_at DESC, id DESC' : 'created_at DESC, id DESC';
-        $stmt = db()->prepare("
-            SELECT $selectSql
-            FROM song_requests
-            WHERE event_id = ? AND status = 'played'
-            ORDER BY $orderSql
-            LIMIT " . $limit . "
-        ");
-        $stmt->execute([(int)$event_id]);
-        return public_group_played_tracks($stmt->fetchAll());
+        $stmt = db()->prepare("SELECT setting_value FROM app_settings WHERE setting_key = 'spotify_mixer_history' LIMIT 1");
+        $stmt->execute();
+        $raw = (string)($stmt->fetchColumn() ?: '');
     } catch (Throwable $e) {
         return [];
     }
+
+    if ($raw === '') {
+        return [];
+    }
+
+    $history = json_decode($raw, true);
+    if (!is_array($history)) {
+        return [];
+    }
+
+    $eventId = (int)$event_id;
+    $cutoff = time() - 86400;
+    $out = [];
+
+    foreach ($history as $item) {
+        if (!is_array($item)) {
+            continue;
+        }
+
+        $rowEventId = isset($item['event_id']) ? (int)$item['event_id'] : 0;
+        if ($eventId > 0 && $rowEventId !== $eventId) {
+            continue;
+        }
+
+        $playedAtRaw = (string)($item['played_at'] ?? '');
+        $playedAt = $playedAtRaw !== '' ? strtotime($playedAtRaw) : false;
+        if (!$playedAt || $playedAt < $cutoff) {
+            continue;
+        }
+
+        $title = trim((string)($item['title'] ?? $item['song_title'] ?? ''));
+        $artist = trim((string)($item['artist'] ?? ''));
+        if ($title === '' && $artist === '') {
+            continue;
+        }
+
+        $trackId = trim((string)($item['id'] ?? $item['spotify_track_id'] ?? ''));
+        $trackUrl = trim((string)($item['url'] ?? $item['spotify_track_url'] ?? ''));
+        if ($trackUrl === '' && $trackId !== '') {
+            $trackUrl = 'https://open.spotify.com/track/' . rawurlencode($trackId);
+        }
+
+        $out[] = [
+            'id' => 0,
+            'song_title' => $title,
+            'artist' => $artist,
+            'spotify_track_id' => $trackId,
+            'spotify_track_url' => $trackUrl,
+            'spotify_album_image' => (string)($item['image'] ?? $item['spotify_album_image'] ?? ''),
+            'created_at' => $playedAtRaw,
+            'updated_at' => $playedAtRaw,
+            'played_at' => $playedAtRaw,
+            'guest_name' => '',
+            'dedication' => '',
+            'message' => '',
+            'request_count' => 1,
+            'rows' => [],
+            '_played_ts' => $playedAt,
+            '_played_source' => 'mixer_history',
+        ];
+
+        if (count($out) >= $limit) {
+            break;
+        }
+    }
+
+    return $out;
 }
 
 function public_pending_request_count($event_id) {
@@ -701,11 +812,7 @@ function public_played_share_text($played, $event) {
         $track .= ' by ' . $artist;
     }
 
-    if ($track === '') {
-        return 'Listening to Dance Thru The Decades 🎶';
-    }
-
-    return 'Listening to ' . $track . ' 🎶';
+    return $track !== '' ? 'Listening to ' . $track . ' 🎶' : 'Listening to Dance Thru The Decades 🎶';
 }
 
 
@@ -733,7 +840,7 @@ function public_render_played_track_item($played, $event, $eventShareUrl) {
             </svg>
           </a>
         <?php endif; ?>
-        <button class="public-track-action public-track-icon-action share" type="button" data-track-share data-share-title="<?= public_h(($played['song_title'] ?? 'Recently played') . ' | Dance Thru The Decades') ?>" data-share-text="<?= public_h($shareText) ?>" data-share-url="<?= public_h($spotifyUrl ?: $eventShareUrl) ?>" aria-label="Share <?= public_h($trackTitle) ?>" title="Share this track">
+        <button class="public-track-action public-track-icon-action share" type="button" data-track-share data-share-title="<?= public_h(($played['song_title'] ?? 'Recently played') . ' | Dance Thru The Decades') ?>" data-share-text="<?= public_h($shareText) ?>" data-share-url="<?= public_h($spotifyUrl) ?>" aria-label="Share <?= public_h($trackTitle) ?>" title="Share this track">
           <span class="public-sr-only">Share this track</span>
           <svg class="public-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <circle cx="18" cy="5" r="3"></circle>
@@ -902,7 +1009,7 @@ if ($event) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $event ? public_h($title) : ($notFound ? 'Event Not Found' : 'Join Event') ?> | Dance Thru the Decades</title>
   <meta name="description" content="<?= $event ? public_h(($description ?: $title . ' at ' . $venue)) : 'Dance Thru the Decades event portal.' ?>">
-  <link rel="stylesheet" href="/assets/public-site.css?v=331">
+  <link rel="stylesheet" href="/assets/public-site.css?v=332">
 </head>
 <body class="homepage-option-one public-event-detail-page public-event-portal-page event-detail-safe">
   <main class="home-option-one">
@@ -1141,7 +1248,7 @@ if ($event) {
                 <h2><?= public_h($title) ?></h2>
               </div>
 
-              <button class="public-event-share-button" type="button" data-track-share data-share-title="<?= public_h($title . ' | Dance Thru The Decades') ?>" data-share-text="<?= public_h(public_event_share_text($event)) ?>" data-share-url="<?= public_h($spotifyUrl ?: $eventShareUrl) ?>" aria-label="Share this event" title="Share this event">
+              <button class="public-event-share-button" type="button" data-track-share data-share-title="<?= public_h($title . ' | Dance Thru The Decades') ?>" data-share-text="<?= public_h(public_event_share_text($event)) ?>" data-share-url="<?= public_h($spotifyUrl) ?>" aria-label="Share this event" title="Share this event">
                 <span class="public-sr-only">Share this event</span>
                 <svg class="public-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <circle cx="18" cy="5" r="3"></circle>
