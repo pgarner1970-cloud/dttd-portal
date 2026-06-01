@@ -402,6 +402,16 @@ function photo_draw_pill($im, $text, $x, $y, $padX, $h, $font, $fontSize, $textC
     return [$w, $h];
 }
 
+function photo_event_is_wedding($event) {
+    $type = strtolower(trim((string)($event['event_type'] ?? '')));
+    if ($type === 'wedding' || strpos($type, 'wedding') !== false) {
+        return true;
+    }
+
+    $name = strtolower(trim((string)($event['event_name'] ?? $event['name'] ?? '')));
+    return strpos($name, 'wedding') !== false;
+}
+
 function photo_event_date_long($dateValue) {
     $dateValue = trim((string)$dateValue);
     if ($dateValue === '') { return ''; }
@@ -634,8 +644,22 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
     $landscape = ($orientation === 'landscape');
     $canvasW = $landscape ? 1600 : 1080;
     $canvasH = $landscape ? 1200 : 1350;
-    $overlayPath = dirname(__DIR__) . '/assets/' . ($landscape ? 'dttd-overlay-landscape.png' : 'dttd-overlay-portrait.png');
-    $logoPath = dirname(__DIR__) . '/assets/dttd-logo-inner.png';
+    $isWedding = photo_event_is_wedding($event);
+    $overlayFile = $landscape ? 'dttd-overlay-landscape.png' : 'dttd-overlay-portrait.png';
+    $logoFile = 'dttd-logo-inner.png';
+
+    if ($isWedding) {
+        $weddingOverlayFile = $landscape ? 'dttd-overlay-wedding-landscape.png' : 'dttd-overlay-wedding-portrait.png';
+        if (is_file(dirname(__DIR__) . '/assets/' . $weddingOverlayFile)) {
+            $overlayFile = $weddingOverlayFile;
+        }
+        if (is_file(dirname(__DIR__) . '/assets/dttd-logo-wedding.png')) {
+            $logoFile = 'dttd-logo-wedding.png';
+        }
+    }
+
+    $overlayPath = dirname(__DIR__) . '/assets/' . $overlayFile;
+    $logoPath = dirname(__DIR__) . '/assets/' . $logoFile;
     if (!is_file($logoPath)) {
         $logoPath = dirname(__DIR__) . '/assets/dttd-neon-logo.png';
     }
@@ -676,10 +700,10 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
         } catch (Throwable $e) {
             // Ignore trim failures and use the source as-is.
         }
-        $logoSize = $landscape ? 116 : 116;
+        $logoSize = $isWedding ? ($landscape ? 150 : 168) : ($landscape ? 116 : 116);
         $logo->resizeImage($logoSize, $logoSize, Imagick::FILTER_LANCZOS, 1, true);
-        $logoX = $landscape ? 30 : 30;
-        $logoY = $landscape ? 30 : 30;
+        $logoX = $isWedding ? ($landscape ? 42 : 44) : ($landscape ? 30 : 30);
+        $logoY = $isWedding ? ($landscape ? 992 : 1038) : ($landscape ? 30 : 30);
         $canvas->compositeImage($logo, Imagick::COMPOSITE_OVER, $logoX, $logoY);
 
         $fontBold = photo_imagick_font_path(true);
@@ -690,8 +714,25 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
         $venueLine = trim((string)($event['venue_name'] ?? $event['venue'] ?? ''));
         $dateLine = photo_event_date_long($event['event_date'] ?? '');
         $siteUrlText = 'dancethruthedecades.co.uk';
+        $headlineText = $isWedding ? 'CELEBRATING THE WEDDING OF' : '';
+        $thankYouText = $isWedding ? 'Thank you for celebrating with us!' : 'Dance Thru The Decades';
+        $taglineText = $isWedding ? 'Share your photos & request your favourite songs' : '60s  •  70s  •  80s  •  90s  •  00s';
+        $weddingInk = '#4d4447';
+        $weddingRose = '#b27670';
+        $weddingGold = '#b88f4f';
 
         if ($landscape) {
+            if ($isWedding) {
+                photo_imagick_draw_text($canvas, $headlineText, 800, 52, $fontBold, 24, $weddingInk, null, 0, 960, Imagick::ALIGN_CENTER);
+                $titleSize = photo_imagick_fit_font_size($canvas, $eventName, $fontRegular, 58, 980, 34);
+                photo_imagick_draw_text($canvas, $eventName, 800, 118, $fontRegular, $titleSize, $weddingRose, null, 0, 980, Imagick::ALIGN_CENTER);
+                photo_imagick_draw_text($canvas, ($dateLine !== '' ? $dateLine : 'TBA'), 800, 164, $fontBold, 24, $weddingInk, null, 0, 520, Imagick::ALIGN_CENTER);
+                if ($venueLine !== '') {
+                    photo_imagick_draw_text($canvas, $venueLine, 800, 194, $fontBold, 18, $weddingInk, null, 0, 660, Imagick::ALIGN_CENTER);
+                }
+                photo_imagick_draw_text($canvas, $thankYouText, 800, 1040, $fontRegular, 32, $weddingRose, null, 0, 820, Imagick::ALIGN_CENTER);
+                photo_imagick_draw_text($canvas, strtoupper($taglineText), 800, 1084, $fontBold, 16, $weddingInk, null, 0, 820, Imagick::ALIGN_CENTER);
+            }
             $rightInset = 86;
             $pillGap = 14;
             $eventMaxW = 220;
@@ -708,28 +749,41 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
 
             $siteRightX = $canvasW - $rightInset;
             $siteMaxW = 420;
-            photo_imagick_draw_text($canvas, $siteUrlText, $siteRightX, 60, $fontBold, 22, '#f7aaff', 'rgba(110,0,170,0.92)', 1, $siteMaxW, Imagick::ALIGN_RIGHT);
+            if (!$isWedding) { photo_imagick_draw_text($canvas, $siteUrlText, $siteRightX, 60, $fontBold, 22, '#f7aaff', 'rgba(110,0,170,0.92)', 1, $siteMaxW, Imagick::ALIGN_RIGHT); }
 
             $titleX = 178;
             $titleY = 92;
             $titleMaxW = 500;
             $titleSize = photo_imagick_fit_font_size($canvas, $eventName, $fontBold, 36, $titleMaxW, 24);
-            photo_imagick_draw_text($canvas, $eventName, $titleX, $titleY, $fontBold, $titleSize, '#ffcf40', 'rgba(80,0,40,0.78)', 1, $titleMaxW);
+            if (!$isWedding) { photo_imagick_draw_text($canvas, $eventName, $titleX, $titleY, $fontBold, $titleSize, '#ffcf40', 'rgba(80,0,40,0.78)', 1, $titleMaxW); }
 
             $venueText = ($venueLine !== '' ? $venueLine : 'Dance Thru The Decades');
             $dateText = ($dateLine !== '' ? $dateLine : 'TBA');
-            photo_imagick_draw_text($canvas, $venueText, 178, 124, $fontBold, 20, '#ffd977', 'rgba(80,0,40,0.66)', 1, 500);
-            photo_imagick_draw_text($canvas, $dateText, 178, 150, $fontBold, 20, '#ffd977', 'rgba(80,0,40,0.66)', 1, 500);
+            if (!$isWedding) { photo_imagick_draw_text($canvas, $venueText, 178, 124, $fontBold, 20, '#ffd977', 'rgba(80,0,40,0.66)', 1, 500); }
+            if (!$isWedding) { photo_imagick_draw_text($canvas, $dateText, 178, 150, $fontBold, 20, '#ffd977', 'rgba(80,0,40,0.66)', 1, 500); }
 
             $pillTopY = 76;
-            if ($creditX !== null) {
-                photo_imagick_draw_pill($canvas, 'Photo by ' . $creditName, $creditX, $pillTopY, $fontBold, 14, 'white', '#f7aaff', 'rgba(12,0,20,0.78)', 18, 30, $creditMaxW);
+            if (!$isWedding) {
+                if ($creditX !== null) {
+                    photo_imagick_draw_pill($canvas, 'Photo by ' . $creditName, $creditX, $pillTopY, $fontBold, 14, 'white', '#f7aaff', 'rgba(12,0,20,0.78)', 18, 30, $creditMaxW);
+                }
+                photo_imagick_draw_pill($canvas, 'EVENT PHOTO', $eventX, $pillTopY, $fontBold, 15, 'white', '#f7aaff', 'rgba(12,0,20,0.78)', 20, 30, $eventMaxW);
             }
-            photo_imagick_draw_pill($canvas, 'EVENT PHOTO', $eventX, $pillTopY, $fontBold, 15, 'white', '#f7aaff', 'rgba(12,0,20,0.78)', 20, 30, $eventMaxW);
 
-            photo_imagick_draw_text($canvas, 'Dance Thru The Decades', 750, 1115, $fontBold, 32, '#ffcf40', 'rgba(80,0,40,0.78)', 1, 0, Imagick::ALIGN_CENTER);
-            photo_imagick_draw_text($canvas, '60s  •  70s  •  80s  •  90s  •  00s', 750, 1148, $fontBold, 17, '#ffcf40', null, 0, 0, Imagick::ALIGN_CENTER);
+            if (!$isWedding) { photo_imagick_draw_text($canvas, 'Dance Thru The Decades', 750, 1115, $fontBold, 32, '#ffcf40', 'rgba(80,0,40,0.78)', 1, 0, Imagick::ALIGN_CENTER); }
+            if (!$isWedding) { photo_imagick_draw_text($canvas, '60s  •  70s  •  80s  •  90s  •  00s', 750, 1148, $fontBold, 17, '#ffcf40', null, 0, 0, Imagick::ALIGN_CENTER); }
         } else {
+            if ($isWedding) {
+                photo_imagick_draw_text($canvas, $headlineText, 540, 62, $fontBold, 22, $weddingInk, null, 0, 760, Imagick::ALIGN_CENTER);
+                $titleSize = photo_imagick_fit_font_size($canvas, $eventName, $fontRegular, 56, 840, 32);
+                photo_imagick_draw_text($canvas, $eventName, 540, 135, $fontRegular, $titleSize, $weddingRose, null, 0, 840, Imagick::ALIGN_CENTER);
+                photo_imagick_draw_text($canvas, ($dateLine !== '' ? $dateLine : 'TBA'), 540, 184, $fontBold, 24, $weddingInk, null, 0, 500, Imagick::ALIGN_CENTER);
+                if ($venueLine !== '') {
+                    photo_imagick_draw_text($canvas, $venueLine, 540, 216, $fontBold, 18, $weddingInk, null, 0, 620, Imagick::ALIGN_CENTER);
+                }
+                photo_imagick_draw_text($canvas, $thankYouText, 620, 1165, $fontRegular, 31, $weddingRose, null, 0, 720, Imagick::ALIGN_CENTER);
+                photo_imagick_draw_text($canvas, strtoupper($taglineText), 620, 1210, $fontBold, 14, $weddingInk, null, 0, 720, Imagick::ALIGN_CENTER);
+            }
             $rightInset = 72;
             $pillGap = 12;
             $eventMaxW = 210;
@@ -746,24 +800,26 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
 
             $siteRightX = $canvasW - $rightInset;
             $siteMaxW = 420;
-            photo_imagick_draw_text($canvas, $siteUrlText, $siteRightX, 56, $fontBold, 22, '#f7aaff', 'rgba(110,0,170,0.92)', 1, $siteMaxW, Imagick::ALIGN_RIGHT);
+            if (!$isWedding) { photo_imagick_draw_text($canvas, $siteUrlText, $siteRightX, 56, $fontBold, 22, '#f7aaff', 'rgba(110,0,170,0.92)', 1, $siteMaxW, Imagick::ALIGN_RIGHT); }
 
             $titleX = 178;
             $titleY = 86;
             $titleMaxW = 560;
             $titleSize = photo_imagick_fit_font_size($canvas, $eventName, $fontBold, 32, $titleMaxW, 22);
-            photo_imagick_draw_text($canvas, $eventName, $titleX, $titleY, $fontBold, $titleSize, '#ffcf40', 'rgba(80,0,40,0.78)', 1, $titleMaxW);
-            photo_imagick_draw_text($canvas, ($venueLine !== '' ? $venueLine : 'Dance Thru The Decades'), 178, 118, $fontBold, 20, '#ffd977', 'rgba(80,0,40,0.66)', 1, 560);
-            photo_imagick_draw_text($canvas, ($dateLine !== '' ? $dateLine : 'TBA'), 178, 144, $fontBold, 20, '#ffd977', 'rgba(80,0,40,0.66)', 1, 560);
+            if (!$isWedding) { photo_imagick_draw_text($canvas, $eventName, $titleX, $titleY, $fontBold, $titleSize, '#ffcf40', 'rgba(80,0,40,0.78)', 1, $titleMaxW); }
+            if (!$isWedding) { photo_imagick_draw_text($canvas, ($venueLine !== '' ? $venueLine : 'Dance Thru The Decades'), 178, 118, $fontBold, 20, '#ffd977', 'rgba(80,0,40,0.66)', 1, 560); }
+            if (!$isWedding) { photo_imagick_draw_text($canvas, ($dateLine !== '' ? $dateLine : 'TBA'), 178, 144, $fontBold, 20, '#ffd977', 'rgba(80,0,40,0.66)', 1, 560); }
 
             $pillTopY = 88;
-            if ($creditX !== null) {
-                photo_imagick_draw_pill($canvas, 'Photo by ' . $creditName, $creditX, $pillTopY, $fontBold, 14, 'white', '#f7aaff', 'rgba(12,0,20,0.78)', 18, 30, $creditMaxW);
+            if (!$isWedding) {
+                if ($creditX !== null) {
+                    photo_imagick_draw_pill($canvas, 'Photo by ' . $creditName, $creditX, $pillTopY, $fontBold, 14, 'white', '#f7aaff', 'rgba(12,0,20,0.78)', 18, 30, $creditMaxW);
+                }
+                photo_imagick_draw_pill($canvas, 'EVENT PHOTO', $eventX, $pillTopY, $fontBold, 15, 'white', '#f7aaff', 'rgba(12,0,20,0.78)', 20, 30, $eventMaxW);
             }
-            photo_imagick_draw_pill($canvas, 'EVENT PHOTO', $eventX, $pillTopY, $fontBold, 15, 'white', '#f7aaff', 'rgba(12,0,20,0.78)', 20, 30, $eventMaxW);
 
-            photo_imagick_draw_text($canvas, 'Dance Thru The Decades', 540, 1274, $fontBold, 30, '#ffcf40', 'rgba(80,0,40,0.78)', 1, 0, Imagick::ALIGN_CENTER);
-            photo_imagick_draw_text($canvas, '60s  •  70s  •  80s  •  90s  •  00s', 540, 1300, $fontBold, 15, '#ffcf40', null, 0, 0, Imagick::ALIGN_CENTER);
+            if (!$isWedding) { photo_imagick_draw_text($canvas, 'Dance Thru The Decades', 540, 1274, $fontBold, 30, '#ffcf40', 'rgba(80,0,40,0.78)', 1, 0, Imagick::ALIGN_CENTER); }
+            if (!$isWedding) { photo_imagick_draw_text($canvas, '60s  •  70s  •  80s  •  90s  •  00s', 540, 1300, $fontBold, 15, '#ffcf40', null, 0, 0, Imagick::ALIGN_CENTER); }
         }
 
         $canvas->setImageFormat('jpeg');
