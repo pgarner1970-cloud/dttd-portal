@@ -485,6 +485,27 @@ function photo_imagick_font_path($bold = false) {
 }
 
 
+
+function photo_imagick_serif_font_path($bold = false) {
+    $candidates = $bold
+        ? [
+            '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf',
+            '/usr/share/fonts/dejavu/DejaVuSerif-Bold.ttf',
+            '/usr/share/fonts/TTF/DejaVuSerif-Bold.ttf',
+        ]
+        : [
+            '/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf',
+            '/usr/share/fonts/dejavu/DejaVuSerif.ttf',
+            '/usr/share/fonts/TTF/DejaVuSerif.ttf',
+        ];
+    foreach ($candidates as $path) {
+        if (is_file($path)) {
+            return $path;
+        }
+    }
+    return $bold ? 'DejaVu-Serif-Bold' : 'DejaVu-Serif';
+}
+
 function photo_imagick_set_font_safe(ImagickDraw $draw, $fontPath) {
     $fontPath = trim((string)$fontPath);
     if ($fontPath === '') {
@@ -700,14 +721,16 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
         } catch (Throwable $e) {
             // Ignore trim failures and use the source as-is.
         }
-        $logoSize = $isWedding ? ($landscape ? 150 : 168) : ($landscape ? 116 : 116);
+        $logoSize = $isWedding ? ($landscape ? 126 : 138) : ($landscape ? 116 : 116);
         $logo->resizeImage($logoSize, $logoSize, Imagick::FILTER_LANCZOS, 1, true);
-        $logoX = $isWedding ? ($landscape ? 42 : 44) : ($landscape ? 30 : 30);
-        $logoY = $isWedding ? ($landscape ? 992 : 1038) : ($landscape ? 30 : 30);
+        $logoX = $isWedding ? ($landscape ? 44 : 42) : ($landscape ? 30 : 30);
+        $logoY = $isWedding ? ($landscape ? 1016 : 1076) : ($landscape ? 30 : 30);
         $canvas->compositeImage($logo, Imagick::COMPOSITE_OVER, $logoX, $logoY);
 
         $fontBold = photo_imagick_font_path(true);
         $fontRegular = photo_imagick_font_path(false);
+        $fontWeddingTitle = photo_imagick_serif_font_path(false);
+        $fontWeddingTitleBold = photo_imagick_serif_font_path(true);
 
         $eventName = trim((string)($event['event_name'] ?? $event['name'] ?? 'Dance Thru The Decades'));
         if ($eventName === '') { $eventName = 'Dance Thru The Decades'; }
@@ -723,15 +746,16 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
 
         if ($landscape) {
             if ($isWedding) {
-                photo_imagick_draw_text($canvas, $headlineText, 800, 52, $fontBold, 24, $weddingInk, null, 0, 960, Imagick::ALIGN_CENTER);
-                $titleSize = photo_imagick_fit_font_size($canvas, $eventName, $fontRegular, 58, 980, 34);
-                photo_imagick_draw_text($canvas, $eventName, 800, 118, $fontRegular, $titleSize, $weddingRose, null, 0, 980, Imagick::ALIGN_CENTER);
-                photo_imagick_draw_text($canvas, ($dateLine !== '' ? $dateLine : 'TBA'), 800, 164, $fontBold, 24, $weddingInk, null, 0, 520, Imagick::ALIGN_CENTER);
+                photo_imagick_draw_text($canvas, $headlineText, 800, 44, $fontBold, 22, $weddingInk, null, 0, 960, Imagick::ALIGN_CENTER);
+                $titleSize = photo_imagick_fit_font_size($canvas, $eventName, $fontWeddingTitle, 54, 980, 32);
+                photo_imagick_draw_text($canvas, $eventName, 800, 99, $fontWeddingTitle, $titleSize, $weddingRose, null, 0, 980, Imagick::ALIGN_CENTER);
+                photo_imagick_draw_text($canvas, ($dateLine !== '' ? $dateLine : 'TBA'), 800, 135, $fontWeddingTitleBold, 22, $weddingInk, null, 0, 620, Imagick::ALIGN_CENTER);
                 if ($venueLine !== '') {
-                    photo_imagick_draw_text($canvas, $venueLine, 800, 194, $fontBold, 18, $weddingInk, null, 0, 660, Imagick::ALIGN_CENTER);
+                    photo_imagick_draw_text($canvas, $venueLine, 800, 163, $fontBold, 16, $weddingInk, null, 0, 720, Imagick::ALIGN_CENTER);
                 }
-                photo_imagick_draw_text($canvas, $thankYouText, 800, 1040, $fontRegular, 32, $weddingRose, null, 0, 820, Imagick::ALIGN_CENTER);
-                photo_imagick_draw_text($canvas, strtoupper($taglineText), 800, 1084, $fontBold, 16, $weddingInk, null, 0, 820, Imagick::ALIGN_CENTER);
+                photo_imagick_draw_text($canvas, $thankYouText, 800, 1054, $fontWeddingTitle, 30, $weddingRose, null, 0, 820, Imagick::ALIGN_CENTER);
+                photo_imagick_draw_text($canvas, strtoupper($taglineText), 800, 1098, $fontBold, 15, $weddingInk, null, 0, 860, Imagick::ALIGN_CENTER);
+                photo_imagick_draw_text($canvas, $siteUrlText, 800, 1171, $fontWeddingTitleBold, 28, '#ffffff', null, 0, 860, Imagick::ALIGN_CENTER);
             }
             $rightInset = 86;
             $pillGap = 14;
@@ -774,15 +798,16 @@ function photo_render_framed_image($sourcePath, $destPath, $event, $orientation 
             if (!$isWedding) { photo_imagick_draw_text($canvas, '60s  •  70s  •  80s  •  90s  •  00s', 750, 1148, $fontBold, 17, '#ffcf40', null, 0, 0, Imagick::ALIGN_CENTER); }
         } else {
             if ($isWedding) {
-                photo_imagick_draw_text($canvas, $headlineText, 540, 62, $fontBold, 22, $weddingInk, null, 0, 760, Imagick::ALIGN_CENTER);
-                $titleSize = photo_imagick_fit_font_size($canvas, $eventName, $fontRegular, 56, 840, 32);
-                photo_imagick_draw_text($canvas, $eventName, 540, 135, $fontRegular, $titleSize, $weddingRose, null, 0, 840, Imagick::ALIGN_CENTER);
-                photo_imagick_draw_text($canvas, ($dateLine !== '' ? $dateLine : 'TBA'), 540, 184, $fontBold, 24, $weddingInk, null, 0, 500, Imagick::ALIGN_CENTER);
+                photo_imagick_draw_text($canvas, $headlineText, 540, 54, $fontBold, 21, $weddingInk, null, 0, 760, Imagick::ALIGN_CENTER);
+                $titleSize = photo_imagick_fit_font_size($canvas, $eventName, $fontWeddingTitle, 54, 835, 30);
+                photo_imagick_draw_text($canvas, $eventName, 540, 121, $fontWeddingTitle, $titleSize, $weddingRose, null, 0, 835, Imagick::ALIGN_CENTER);
+                photo_imagick_draw_text($canvas, ($dateLine !== '' ? $dateLine : 'TBA'), 540, 165, $fontWeddingTitleBold, 22, $weddingInk, null, 0, 570, Imagick::ALIGN_CENTER);
                 if ($venueLine !== '') {
-                    photo_imagick_draw_text($canvas, $venueLine, 540, 216, $fontBold, 18, $weddingInk, null, 0, 620, Imagick::ALIGN_CENTER);
+                    photo_imagick_draw_text($canvas, $venueLine, 540, 194, $fontBold, 16, $weddingInk, null, 0, 650, Imagick::ALIGN_CENTER);
                 }
-                photo_imagick_draw_text($canvas, $thankYouText, 620, 1165, $fontRegular, 31, $weddingRose, null, 0, 720, Imagick::ALIGN_CENTER);
-                photo_imagick_draw_text($canvas, strtoupper($taglineText), 620, 1210, $fontBold, 14, $weddingInk, null, 0, 720, Imagick::ALIGN_CENTER);
+                photo_imagick_draw_text($canvas, $thankYouText, 620, 1173, $fontWeddingTitle, 30, $weddingRose, null, 0, 720, Imagick::ALIGN_CENTER);
+                photo_imagick_draw_text($canvas, strtoupper($taglineText), 620, 1216, $fontBold, 14, $weddingInk, null, 0, 720, Imagick::ALIGN_CENTER);
+                photo_imagick_draw_text($canvas, $siteUrlText, 620, 1322, $fontWeddingTitleBold, 24, '#ffffff', null, 0, 720, Imagick::ALIGN_CENTER);
             }
             $rightInset = 72;
             $pillGap = 12;
