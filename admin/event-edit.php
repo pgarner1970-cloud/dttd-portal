@@ -302,6 +302,8 @@ $event = [
     'public_slug' => '',
     'queue_visibility' => 'public',
     'event_image' => '',
+    'photo_overlay_theme' => 'standard',
+    'photo_overlay_title' => '',
 ];
 
 if ($is_edit) {
@@ -361,6 +363,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!in_array($event_type, $allowed_event_types, true)) {
         $event_type = 'public';
     }
+    $photo_overlay_theme = trim((string)($_POST['photo_overlay_theme'] ?? 'standard'));
+    $allowed_overlay_themes = ['standard', 'wedding_blush'];
+    if (!in_array($photo_overlay_theme, $allowed_overlay_themes, true)) {
+        $photo_overlay_theme = 'standard';
+    }
+    if ($event_type === 'wedding' && $photo_overlay_theme === 'standard') {
+        $photo_overlay_theme = 'wedding_blush';
+    }
+    $photo_overlay_title = trim((string)($_POST['photo_overlay_title'] ?? ''));
     $notes = trim((string)($_POST['notes'] ?? ''));
     $event_date = trim((string)($_POST['event_date'] ?? ''));
     $start_time = trim((string)($_POST['start_time'] ?? ''));
@@ -409,6 +420,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'venue_ticket_url' => $venue_ticket_url,
             'venue_social_label' => $venue_social_label,
             'event_type' => $event_type,
+            'photo_overlay_theme' => $photo_overlay_theme,
+            'photo_overlay_title' => $photo_overlay_title,
             'notes' => $notes,
             'event_date' => $event_date,
             'start_time' => $start_time,
@@ -552,6 +565,23 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
               <option value="wedding" <?= ($event['event_type'] ?? '') === 'wedding' ? 'selected' : '' ?>>Wedding</option>
               <option value="corporate" <?= ($event['event_type'] ?? '') === 'corporate' ? 'selected' : '' ?>>Corporate Event</option>
             </select>
+          </label>
+
+
+
+          <label class="event-overlay-theme-field">
+            <span>Photo overlay theme</span>
+            <select name="photo_overlay_theme">
+              <option value="standard" <?= ($event['photo_overlay_theme'] ?? 'standard') === 'standard' ? 'selected' : '' ?>>Standard event overlay</option>
+              <option value="wedding_blush" <?= ($event['photo_overlay_theme'] ?? '') === 'wedding_blush' ? 'selected' : '' ?>>Wedding — blush floral</option>
+            </select>
+            <small>Wedding events can use a dedicated photo frame overlay.</small>
+          </label>
+
+          <label class="event-overlay-title-field">
+            <span>Photo overlay wording</span>
+            <input name="photo_overlay_title" value="<?= h($event['photo_overlay_title'] ?? '') ?>" placeholder="Example: Emily & James">
+            <small>Leave blank to use the event name on framed photo uploads.</small>
           </label>
 
           <label class="event-notes-field">
