@@ -45,8 +45,7 @@
         button.className = 'spotify-result';
         button.innerHTML =
           (track.image ? '<img src="' + track.image.replace(/"/g, '&quot;') + '" alt="">' : '<span class="spotify-art-placeholder">♫</span>') +
-          '<span class="spotify-result-text"><strong>' + escapeHtml(track.title || '') + '</strong><small>' + escapeHtml(track.artist || '') + (track.album ? ' · ' + escapeHtml(track.album) : '') + '</small></span>' +
-          badgeHtml(track);
+          '<span class="spotify-result-text"><strong>' + escapeHtml(track.title || '') + '</strong><small>' + escapeHtml(track.artist || '') + (track.album ? ' · ' + escapeHtml(track.album) : '') + '</small>' + badgeHtml(track) + '</span>';
 
         button.addEventListener('click', function () {
           titleInput.value = track.title || '';
@@ -123,9 +122,16 @@
     function badgeHtml(track) {
       const badges = Array.isArray(track.badges) ? track.badges : [];
       if (!badges.length) return '';
-      return '<span class="spotify-result-badges">' + badges.slice(0, 4).map(function (badge) {
-        return '<em class="spotify-result-badge ' + escapeHtml(badge.type || '') + '">' + escapeHtml(badge.label || '') + '</em>';
+      return '<span class="spotify-result-badges" aria-label="Spotify track tags">' + badges.slice(0, 4).map(function (badge) {
+        const typeClass = badgeClass(badge.type || '');
+        const labelClass = badgeClass(badge.label || '');
+        return '<em class="spotify-result-badge ' + typeClass + ' ' + labelClass + '">' + escapeHtml(badge.label || '') + '</em>';
       }).join('') + '</span>';
+    }
+
+    function badgeClass(text) {
+      const slug = String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      return slug ? 'tag-' + slug : '';
     }
 
     function escapeHtml(text) {
