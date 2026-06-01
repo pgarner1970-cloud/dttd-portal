@@ -560,21 +560,22 @@ function dttd_spotify_clean_token_text($text) {
 }
 
 function dttd_spotify_track_version_tags(array $track) {
-    $title = dttd_spotify_clean_token_text(($track['title'] ?? '') . ' ' . ($track['album'] ?? ''));
+    $haystack = dttd_spotify_clean_token_text(($track['title'] ?? '') . ' ' . ($track['album'] ?? ''));
     $tags = [];
     $checks = [
-        'Remaster' => ['remaster', 'remastered'],
-        'Live' => ['live at', 'live in', 'live from', 'live version', 'concert'],
-        'Remix' => ['remix', 'club mix', 'extended mix', 'radio mix', 'dance mix'],
-        'Acoustic' => ['acoustic', 'unplugged'],
-        'Karaoke' => ['karaoke', 'backing track'],
+        'Remaster' => ['remaster', 'remastered', 'anniversary edition', 'deluxe edition'],
+        'Live' => ['live at', 'live in', 'live from', 'live version', 'concert', 'mtv unplugged'],
+        'Remix' => ['remix', 'club mix', 'extended mix', 'radio mix', 'dance mix', 'dub mix', 'vip mix', 'sped up', 'slowed', 'nightcore'],
+        'Acoustic' => ['acoustic', 'unplugged', 'stripped'],
+        'Karaoke' => ['karaoke', 'backing track', 'sing along'],
         'Instrumental' => ['instrumental'],
-        'Cover' => ['cover', 'tribute', 're recorded', 'rerecorded', 're recording'],
-        'Compilation' => ['greatest hits', 'best of', 'very best', 'essential', 'collection', 'anthology', 'summer songs', 'now that', 'hits'],
+        'Cover' => ['cover', 'tribute', 're recorded', 'rerecorded', 're recording', 'version originally performed'],
+        'Compilation' => ['greatest hits', 'best of', 'very best', 'essential', 'collection', 'anthology', 'summer songs', 'now that', 'hits', 'gold', 'ultimate'],
+        'Soundtrack' => ['soundtrack', 'motion picture', 'original motion picture'],
     ];
     foreach ($checks as $label => $needles) {
         foreach ($needles as $needle) {
-            if (strpos($title, $needle) !== false) {
+            if (strpos($haystack, $needle) !== false) {
                 $tags[] = $label;
                 break;
             }
@@ -596,40 +597,96 @@ function dttd_spotify_decade_from_release_date($releaseDate) {
     return null;
 }
 
+function dttd_spotify_query_terms($query) {
+    $q = dttd_spotify_clean_token_text($query);
+    if ($q === '') return [];
+    $drop = ['the', 'and', 'feat', 'ft', 'with', 'remaster', 'remastered', 'official', 'video'];
+    $terms = [];
+    foreach (explode(' ', $q) as $term) {
+        if (mb_strlen($term) < 3 || in_array($term, $drop, true)) continue;
+        $terms[] = $term;
+    }
+    return array_values(array_unique($terms));
+}
+
+function dttd_spotify_query_match_score(array $track, $query = '') {
+    $terms = dttd_spotify_query_terms($query);
+    if (!$terms) return 0;
+
+    $title = dttd_spotify_clean_token_text($track['title'] ?? '');
+    $artist = dttd_spotify_clean_token_text($track['artist'] ?? '');
+    $album = dttd_spotify_clean_token_text($track['album'] ?? '');
+    $score = 0;
+
+    $titleHits = 0;
+    $artistHits = 0;
+    foreach ($terms as $term) {
+        if (strpos($title, $term) !== false) { $score += 9; $titleHits++; }
+        if (strpos($artist, $term) !== false) { $score += 6; $artistHits++; }
+        if (strpos($album, $term) !== false) { $score += 2; }
+    }
+    if ($titleHits === count($terms)) $score += 18;
+    if ($artistHits > 0) $score += 8;
+
+    return $score;
+}
+
+function dttd_spotify_original_candidate_score(array $track, array $versionTags, $decade) {
+    $score = 0;
+    $badOriginalTags = ['Live', 'Remix', 'Acoustic', 'Karaoke', 'Instrumental', 'Cover'];
+    $hasBadOriginalTag = count(array_intersect($versionTags, $badOriginalTags)) > 0;
+    $isRemaster = in_array('Remaster', $versionTags, true);
+    $isCompilation = in_array('Compilation', $versionTags, true);
+    $albumType = strtolower((string)($track['album_type'] ?? ''));
+
+    if ($decade !== null) $score += 35;
+    if ($albumType === 'album' || $albumType === 'single') $score += 10;
+    if (!$hasBadOriginalTag) $score += 22;
+    if (!$isRemaster) $score += 10;
+    if (!$isCompilation) $score += 8;
+
+    if ($isRemaster) $score -= 18;
+    if ($isCompilation) $score -= 8;
+    foreach ($badOriginalTags as $tag) {
+        if (in_array($tag, $versionTags, true)) $score -= 24;
+    }
+
+    return $score;
+}
+
 function dttd_spotify_enrich_track(array $track, $query = '') {
     $releaseDate = (string)($track['release_date'] ?? '');
     $decade = dttd_spotify_decade_from_release_date($releaseDate);
     $versionTags = dttd_spotify_track_version_tags($track);
-    $badVersionTags = array_intersect($versionTags, ['Remaster', 'Live', 'Remix', 'Acoustic', 'Karaoke', 'Instrumental', 'Cover']);
-    $isCompilation = in_array('Compilation', $versionTags, true);
-
     $score = 0;
-    $title = dttd_spotify_clean_token_text($track['title'] ?? '');
-    $artist = dttd_spotify_clean_token_text($track['artist'] ?? '');
-    $album = dttd_spotify_clean_token_text($track['album'] ?? '');
-    $q = dttd_spotify_clean_token_text($query);
 
-    if ($decade !== null) $score += 25;
-    if (!$badVersionTags) $score += 18;
-    if (!$isCompilation) $score += 8;
-    if (isset($track['popularity']) && $track['popularity'] !== null) $score += min(20, max(0, (int)$track['popularity']) / 5);
-    if ($q !== '') {
-        $qTerms = array_values(array_filter(explode(' ', $q), function($t){ return mb_strlen($t) >= 3; }));
-        foreach ($qTerms as $term) {
-            if (strpos($title, $term) !== false) $score += 4;
-            if (strpos($artist, $term) !== false) $score += 3;
-            if (strpos($album, $term) !== false) $score += 1;
-        }
+    $score += dttd_spotify_query_match_score($track, $query);
+    $score += dttd_spotify_original_candidate_score($track, $versionTags, $decade);
+
+    if (isset($track['popularity']) && $track['popularity'] !== null) {
+        $score += min(18, max(0, (int)$track['popularity']) / 6);
     }
-    foreach ($badVersionTags as $tag) $score -= 12;
-    if ($isCompilation) $score -= 5;
 
-    $badLabels = ['Remaster', 'Live', 'Remix', 'Acoustic', 'Karaoke', 'Instrumental', 'Cover'];
-    $likelyOriginal = $decade !== null && count(array_intersect($versionTags, $badLabels)) === 0 && !$isCompilation;
+    $hardNegative = ['Karaoke', 'Cover', 'Instrumental'];
+    foreach ($hardNegative as $tag) {
+        if (in_array($tag, $versionTags, true)) $score -= 35;
+    }
+
+    $badOriginalLabels = ['Live', 'Remix', 'Acoustic', 'Karaoke', 'Instrumental', 'Cover'];
+    $isCompilation = in_array('Compilation', $versionTags, true);
+    $isRemaster = in_array('Remaster', $versionTags, true);
+    $likelyOriginal = $decade !== null
+        && !$isCompilation
+        && !$isRemaster
+        && count(array_intersect($versionTags, $badOriginalLabels)) === 0;
 
     $badges = [];
     if ($decade !== null) $badges[] = ['type' => 'decade', 'label' => $decade];
-    if ($likelyOriginal) $badges[] = ['type' => 'original', 'label' => 'Original'];
+    if ($likelyOriginal) {
+        $badges[] = ['type' => 'original', 'label' => 'Original'];
+    } elseif ($decade !== null && $isRemaster && count(array_intersect($versionTags, $badOriginalLabels)) === 0) {
+        $badges[] = ['type' => 'original-era', 'label' => 'Original era'];
+    }
     foreach ($versionTags as $tag) {
         $badges[] = ['type' => strtolower(str_replace(' ', '-', $tag)), 'label' => $tag];
     }
@@ -643,11 +700,30 @@ function dttd_spotify_enrich_track(array $track, $query = '') {
     return $track;
 }
 
+function dttd_spotify_dedupe_key(array $track) {
+    $id = trim((string)($track['id'] ?? ''));
+    if ($id !== '') return 'id:' . $id;
+    $url = trim((string)($track['url'] ?? ''));
+    if ($url !== '') return 'url:' . $url;
+    return 'text:' . dttd_spotify_clean_token_text(($track['title'] ?? '') . '|' . ($track['artist'] ?? ''));
+}
+
 function dttd_spotify_enrich_and_sort_tracks(array $tracks, $query = '') {
     $out = [];
+    $seen = [];
     foreach ($tracks as $i => $track) {
         $track['_original_order'] = $i;
-        $out[] = dttd_spotify_enrich_track($track, $query);
+        $track = dttd_spotify_enrich_track($track, $query);
+        $key = dttd_spotify_dedupe_key($track);
+        if (isset($seen[$key])) {
+            $existingIndex = $seen[$key];
+            if ((float)($track['search_score'] ?? 0) > (float)($out[$existingIndex]['search_score'] ?? 0)) {
+                $out[$existingIndex] = $track;
+            }
+            continue;
+        }
+        $seen[$key] = count($out);
+        $out[] = $track;
     }
     usort($out, function($a, $b) {
         $scoreA = (float)($a['search_score'] ?? 0);
