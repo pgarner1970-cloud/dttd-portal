@@ -5114,3 +5114,111 @@ body.public-event-detail-page .public-request-status.status-already-requested{
     right:0 !important;
   }
 }
+
+
+/* DTTD layout lock: public event recently-played action icons must remain icon-only. */
+body.public-event-detail-page .public-sr-only,
+body.public-event-detail-page .public-track-icon-action .public-sr-only{
+  position:absolute !important;
+  width:1px !important;
+  height:1px !important;
+  padding:0 !important;
+  margin:-1px !important;
+  overflow:hidden !important;
+  clip:rect(0,0,0,0) !important;
+  clip-path:inset(50%) !important;
+  white-space:nowrap !important;
+  border:0 !important;
+}
+
+body.public-event-detail-page .public-played-track-actions{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  gap:8px !important;
+  min-width:82px !important;
+}
+
+body.public-event-detail-page .public-track-icon-action{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:38px !important;
+  height:38px !important;
+  min-width:38px !important;
+  min-height:38px !important;
+  padding:0 !important;
+  border-radius:999px !important;
+  border:1px solid rgba(255,47,222,.95) !important;
+  background:rgba(52,9,68,.72) !important;
+  color:#fff !important;
+  box-shadow:0 0 14px rgba(255,47,222,.28) !important;
+  text-decoration:none !important;
+  font-size:0 !important;
+  line-height:0 !important;
+}
+
+body.public-event-detail-page .public-track-icon-action .public-action-icon{
+  display:block !important;
+  width:23px !important;
+  height:23px !important;
+  overflow:visible !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon circle{
+  fill:#1ed760 !important;
+  stroke:#1ed760 !important;
+  stroke-width:0 !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon path{
+  fill:none !important;
+  stroke:#07120b !important;
+  stroke-width:1.85 !important;
+  stroke-linecap:round !important;
+}
+
+body.public-event-detail-page .public-track-icon-action.share .public-action-icon circle,
+body.public-event-detail-page .public-track-icon-action.share .public-action-icon path{
+  fill:none !important;
+  stroke:currentColor !important;
+  stroke-width:1.8 !important;
+  stroke-linecap:round !important;
+  stroke-linejoin:round !important;
+}
+
+body.public-event-detail-page .public-played-track-row{
+  display:grid !important;
+  grid-template-columns:58px minmax(0,1fr) auto !important;
+  align-items:center !important;
+  gap:14px !important;
+}
+
+body.public-event-detail-page .public-played-track-main{
+  min-width:0 !important;
+}
+
+body.public-event-detail-page .public-played-track-main strong,
+body.public-event-detail-page .public-played-track-main span{
+  display:block !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+}
+
+@media (max-width: 720px){
+  body.public-event-detail-page .public-played-track-row{
+    grid-template-columns:52px minmax(0,1fr) auto !important;
+    gap:10px !important;
+  }
+  body.public-event-detail-page .public-track-icon-action{
+    width:34px !important;
+    height:34px !important;
+    min-width:34px !important;
+    min-height:34px !important;
+  }
+  body.public-event-detail-page .public-track-icon-action .public-action-icon{
+    width:21px !important;
+    height:21px !important;
+  }
+}

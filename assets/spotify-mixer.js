@@ -179,7 +179,9 @@ document.head.appendChild(overviewStyle);
     const bBlocked = !deckCanLoad('b');
     let html = '';
     html += choiceButton('+ Add to DJ playlist', 'green full', 'playlist');
-    if(source !== 'crate') html += crateSaveControls();
+    // Save to crate is deliberately only available from direct Spotify Search results.
+    // Public requests, DJ crates and History selections are already curated sources.
+    if(source === 'track' && activeSource === 'search') html += crateSaveControls();
     html += choiceButton('Load to A', 'orange', 'load_a', aBlocked);
     html += choiceButton('Load to B', 'blue', 'load_b', bBlocked);
     html += choiceButton('▶ Play on A now', 'green', 'play_a', aBlocked);
