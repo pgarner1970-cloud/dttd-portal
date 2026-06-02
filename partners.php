@@ -7,7 +7,7 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
 $partners = [];
 
 try {
-    $stmt = db()->query("\n        SELECT partner_name, category, website_url, image_url, notes\n        FROM partners\n        WHERE is_active = 1\n        ORDER BY sort_order ASC, partner_name ASC\n    ");
+    $stmt = db()->query("\n        SELECT partner_name, category, website_url, image_url, logo_background, notes\n        FROM partners\n        WHERE is_active = 1\n        ORDER BY sort_order ASC, partner_name ASC\n    ");
     $partners = $stmt->fetchAll() ?: [];
 } catch (Throwable $e) {
     $partners = [];
@@ -66,9 +66,10 @@ function partner_public_image($value) {
               $notes = trim((string)($partner['notes'] ?? ''));
               $website = partner_public_url($partner['website_url'] ?? '');
               $image = partner_public_image($partner['image_url'] ?? '');
+              $logoBackground = (($partner['logo_background'] ?? 'dark') === 'light') ? 'light' : 'dark';
             ?>
             <article class="public-partner-card">
-              <div class="public-partner-logo">
+              <div class="public-partner-logo public-partner-logo--<?= h($logoBackground) ?>">
                 <?php if ($image): ?>
                   <img src="<?= h($image) ?>" alt="<?= h($name) ?> logo or image">
                 <?php else: ?>

@@ -49,6 +49,7 @@ $partner = [
     'email' => '',
     'website_url' => '',
     'image_url' => '',
+    'logo_background' => 'dark',
     'notes' => '',
     'sort_order' => 100,
     'is_active' => 1,
@@ -81,6 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && partners_table_exists()) {
         'email' => trim((string)($_POST['email'] ?? '')),
         'website_url' => trim((string)($_POST['website_url'] ?? '')),
         'image_url' => trim((string)($_POST['image_url'] ?? '')),
+        'logo_background' => in_array(($_POST['logo_background'] ?? 'dark'), ['dark', 'light'], true) ? $_POST['logo_background'] : 'dark',
         'notes' => trim((string)($_POST['notes'] ?? '')),
         'sort_order' => (int)($_POST['sort_order'] ?? 100),
         'is_active' => isset($_POST['is_active']) ? 1 : 0,
@@ -181,7 +183,16 @@ admin_header(($is_edit ? 'Edit Partner' : 'Add Partner') . ' - DJ Portal');
 
           <label>
             <span>Image/logo URL</span>
-            <input type="url" name="image_url" value="<?= h($partner['image_url']) ?>" placeholder="https://... or /assets/...">
+            <input id="partner-image-url" type="url" name="image_url" value="<?= h($partner['image_url']) ?>" placeholder="https://... or /assets/...">
+          </label>
+
+          <label>
+            <span>Logo background</span>
+            <select name="logo_background" id="partner-logo-background">
+              <option value="dark" <?= (($partner['logo_background'] ?? 'dark') === 'dark') ? 'selected' : '' ?>>Dark / transparent</option>
+              <option value="light" <?= (($partner['logo_background'] ?? 'dark') === 'light') ? 'selected' : '' ?>>Light panel</option>
+            </select>
+            <small>Use Light panel for transparent logos with dark text.</small>
           </label>
 
           <label>
@@ -204,6 +215,16 @@ admin_header(($is_edit ? 'Edit Partner' : 'Add Partner') . ' - DJ Portal');
         </div>
       </section>
 
+      <div class="partner-logo-preview-wrap" aria-live="polite">
+        <div class="partner-logo-preview <?= (($partner['logo_background'] ?? 'dark') === 'light') ? 'is-light' : 'is-dark' ?>" id="partner-logo-preview">
+          <?php if (!empty($partner['image_url'])): ?>
+            <img src="<?= h($partner['image_url']) ?>" alt="Partner logo preview">
+          <?php else: ?>
+            <span>Logo preview</span>
+          <?php endif; ?>
+        </div>
+      </div>
+
       <div class="form-actions">
         <a class="touch-btn" href="partners.php">Cancel</a>
         <button class="touch-btn blue" type="submit" <?= partners_table_exists() ? '' : 'disabled' ?>><?= $is_edit ? 'Save Partner' : 'Add Partner' ?></button>
@@ -212,4 +233,47 @@ admin_header(($is_edit ? 'Edit Partner' : 'Add Partner') . ' - DJ Portal');
   </section>
 </main>
 
+<style>
+.partner-logo-preview-wrap {
+  margin: 0 18px 18px;
+}
+.partner-logo-preview {
+  min-height: 120px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.65);
+}
+.partner-logo-preview.is-light {
+  background: rgba(255,255,255,.96);
+  color: #111827;
+}
+.partner-logo-preview img {
+  max-width: min(420px, 90%);
+  max-height: 110px;
+  object-fit: contain;
+}
+</style>
+<script>
+(function () {
+  const urlInput = document.getElementById('partner-image-url');
+  const bgSelect = document.getElementById('partner-logo-background');
+  const preview = document.getElementById('partner-logo-preview');
+  if (!urlInput || !bgSelect || !preview) return;
+
+  function updatePreview() {
+    preview.classList.toggle('is-light', bgSelect.value === 'light');
+    preview.classList.toggle('is-dark', bgSelect.value !== 'light');
+    const value = urlInput.value.trim();
+    preview.innerHTML = value ? '<img src="' + value.replace(/"/g, '&quot;') + '" alt="Partner logo preview">' : '<span>Logo preview</span>';
+  }
+
+  urlInput.addEventListener('input', updatePreview);
+  bgSelect.addEventListener('change', updatePreview);
+})();
+</script>
 <?php admin_footer(); ?>
