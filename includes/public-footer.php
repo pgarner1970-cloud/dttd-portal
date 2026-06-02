@@ -30,8 +30,8 @@ $whatsappUrl = $whatsappUrl ?? '';
     <div class="public-footer-links">
       <a href="/">Home</a>
       <a href="/events">Events</a>
-      <a href="/gallery.php">Gallery</a>
-      <a href="/partners.php">Partners</a>
+      <a href="/gallery">Gallery</a>
+      <a href="/partners">Partners</a>
       <a href="/privacy.php">Privacy</a>
       <a href="/terms.php">Terms</a>
     </div>

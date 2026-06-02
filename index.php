@@ -236,7 +236,7 @@ $public_current = 'home';
             </a>
 
           <?php else: ?>
-            <a class="option-one-action-card primary-action" href="/events.php">
+            <a class="option-one-action-card primary-action" href="/events">
               <span class="option-one-icon">▦</span>
               <span>
                 <strong>Upcoming Events</strong>
@@ -244,7 +244,7 @@ $public_current = 'home';
               </span>
             </a>
 
-            <a class="option-one-action-card" href="/gallery.php">
+            <a class="option-one-action-card" href="/gallery">
               <span class="option-one-icon">▧</span>
               <span>
                 <strong>Photos & Memories</strong>
@@ -287,13 +287,13 @@ $public_current = 'home';
 <section class="home-info-section" id="memories">
       <div class="home-info-grid <?= $homepage_state === 'no-event' ? '' : 'home-info-grid-secondary' ?>">
         <?php if ($homepage_state === 'no-event'): ?>
-          <a class="home-info-card" href="/events.php">
+          <a class="home-info-card" href="/events">
             <span>📅</span>
             <h2>Public Nights</h2>
             <p>See upcoming Dance Thru The Decades events that are open to the public.</p>
           </a>
 
-          <a class="home-info-card" href="/gallery.php">
+          <a class="home-info-card" href="/gallery">
             <span>📸</span>
             <h2>Photos & Memories</h2>
             <p>Gallery uploads will be reviewed before they appear publicly on the site.</p>
@@ -306,13 +306,13 @@ $public_current = 'home';
           </a>
 
         <?php else: ?>
-          <a class="home-info-card" href="/events.php">
+          <a class="home-info-card" href="/events">
             <span>📅</span>
             <h2>Upcoming Events</h2>
             <p>See public nights, future dates and event details.</p>
           </a>
 
-          <a class="home-info-card" href="/gallery.php">
+          <a class="home-info-card" href="/gallery">
             <span>📸</span>
             <h2>Photo Gallery</h2>
             <p>View approved event photos and shared memories.</p>

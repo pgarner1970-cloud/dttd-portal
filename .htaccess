@@ -19,3 +19,8 @@ RewriteRule ^events/([a-z0-9-]+)/?$ event.php?slug=$1 [L,QSA]
     Header always set Cache-Control "no-cache, must-revalidate, max-age=0"
   </FilesMatch>
 </IfModule>
+
+# Public clean URLs
+RewriteRule ^events/?$ events.php [L,QSA]
+RewriteRule ^gallery/?$ gallery.php [L,QSA]
+RewriteRule ^partners/?$ partners.php [L,QSA]
