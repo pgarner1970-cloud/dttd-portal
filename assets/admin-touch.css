@@ -6309,3 +6309,13 @@ button.action-tile:disabled{
 .header-admin-nav-btn.photo-alert-pulse{border-color:rgba(255,70,85,.9)!important;box-shadow:0 0 0 1px rgba(255,70,85,.4),0 0 22px rgba(255,70,85,.72)!important;animation:dttdRequestPulse 1.05s ease-in-out infinite;}
 .header-admin-nav-btn.photo-alert-pulse .admin-nav-icon{color:#ff6b75!important;}
 .header-admin-nav-btn.photo-alert-pulse::after{content:'NEW';position:absolute;right:-6px;top:-6px;border-radius:999px;background:#ff3346;color:#fff;font-size:10px;font-weight:1000;line-height:1;padding:4px 6px;border:1px solid rgba(255,255,255,.36);box-shadow:0 0 16px rgba(255,51,70,.8);}
+
+/* v115 admin tools structure: muted cards for planned maintenance areas */
+.admin-home-card-muted{
+  opacity:.74;
+  border-style:dashed;
+  cursor:default;
+}
+.admin-home-card-muted:hover{
+  transform:none;
+}

@@ -54,6 +54,7 @@ function admin_nav_active($page) {
         'venues' => ['venues.php', 'venue-edit.php'],
         'settings' => ['settings.php'],
         'photos' => ['event-photos.php'],
+        'tools' => ['tools.php', 'events.php', 'event-edit.php', 'event-qr.php', 'venues.php', 'venue-edit.php', 'request-debug.php', 'events-diagnostic.php', 'regenerate-photo-frames.php', 'repair-upload-paths.php', 'upload-path-check.php'],
     ];
 
     return in_array($script, $map[$page] ?? [], true) ? 'active' : '';
@@ -253,23 +254,17 @@ function admin_header($title = 'DJ Portal') {
           </span>
           <span class="admin-nav-text">Requests</span>
         </a>
-        <a class="header-admin-nav-btn <?= admin_nav_active('events') ?>" href="<?= h(admin_url('events.php')) ?>" title="Events" aria-label="Events">
-          <span class="admin-nav-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false"><path d="M7 2h2v3h6V2h2v3h3a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h3V2Zm13 8H4v10h16V10ZM4 8h16V7H4v1Zm3 4h3v3H7v-3Zm5 0h3v3h-3v-3Z"/></svg>
-          </span>
-          <span class="admin-nav-text">Events</span>
-        </a>
-        <a class="header-admin-nav-btn <?= admin_nav_active('venues') ?>" href="<?= h(admin_url('venues.php')) ?>" title="Venues" aria-label="Venues">
-          <span class="admin-nav-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false"><path d="M4 21V8l8-5 8 5v13h-5v-6H9v6H4Zm2-2h1v-6h10v6h1V9.1l-6-3.75-6 3.75V19Zm4-8h4V8h-4v3Z"/></svg>
-          </span>
-          <span class="admin-nav-text">Venues</span>
-        </a>
         <a class="header-admin-nav-btn <?= admin_nav_active('photos') ?>" href="<?= h(admin_url('event-photos.php')) ?>" title="Photos" aria-label="Photos">
           <span class="admin-nav-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" focusable="false"><path d="M5 5h4l1.2-2h3.6L15 5h4a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm7 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0-2.1a1.9 1.9 0 1 1 0-3.8 1.9 1.9 0 0 1 0 3.8Z"/></svg>
           </span>
           <span class="admin-nav-text">Photos</span>
+        </a>
+        <a class="header-admin-nav-btn <?= admin_nav_active('tools') ?>" href="<?= h(admin_url('tools.php')) ?>" title="Admin tools" aria-label="Admin tools">
+          <span class="admin-nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false"><path d="M4 4h7v7H4V4Zm2 2v3h3V6H6Zm7-2h7v7h-7V4Zm2 2v3h3V6h-3ZM4 13h7v7H4v-7Zm2 2v3h3v-3H6Zm11-2 1.55 2.82L22 16.4l-2.42 2.28.5 3.32L17 20.42 13.92 22l.5-3.32L12 16.4l3.45-.58L17 13Z"/></svg>
+          </span>
+          <span class="admin-nav-text">Admin Tools</span>
         </a>
         <a class="header-admin-nav-btn <?= admin_nav_active('settings') ?>" href="<?= h(admin_url('settings.php')) ?>" title="Settings" aria-label="Settings">
           <span class="admin-nav-icon" aria-hidden="true">
