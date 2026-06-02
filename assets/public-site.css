@@ -5512,3 +5512,54 @@ body.public-event-detail-page .public-track-icon-action.spotify .public-action-i
     inset 0 1px 0 rgba(255,255,255,.10),
     0 0 22px rgba(255, 40, 190, .16);
 }
+
+
+/* Global public-site dark select fix.
+   Keeps Gallery/Event/Venue/Date filters readable on the neon dark theme. */
+.public-page select,
+.public-page select option,
+.gallery-filters select,
+.gallery-filters select option,
+.photo-filters select,
+.photo-filters select option,
+.find-photos select,
+.find-photos select option,
+select.public-select,
+select.public-select option {
+  background-color: rgba(41, 13, 58, 0.96) !important;
+  color: #ffffff !important;
+}
+
+.public-page select,
+.gallery-filters select,
+.photo-filters select,
+.find-photos select,
+select.public-select {
+  border-color: rgba(255, 79, 216, 0.45) !important;
+  color-scheme: dark;
+}
+
+.public-page select:focus,
+.gallery-filters select:focus,
+.photo-filters select:focus,
+.find-photos select:focus,
+select.public-select:focus {
+  background-color: rgba(41, 13, 58, 0.98) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 213, 74, 0.8) !important;
+  outline: none;
+}
+
+.public-page select option:checked,
+.public-page select option:hover,
+.gallery-filters select option:checked,
+.gallery-filters select option:hover,
+.photo-filters select option:checked,
+.photo-filters select option:hover,
+.find-photos select option:checked,
+.find-photos select option:hover,
+select.public-select option:checked,
+select.public-select option:hover {
+  background-color: #7c2bd6 !important;
+  color: #ffffff !important;
+}
