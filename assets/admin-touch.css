@@ -6319,3 +6319,49 @@ button.action-tile:disabled{
 .admin-home-card-muted:hover{
   transform:none;
 }
+
+
+/* Global dark-theme select styling for admin forms */
+.touch-wrap select,
+.touch-panel select,
+.settings-card select,
+.venue-edit-form select,
+.admin-card select,
+.admin-form select {
+  appearance: auto;
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+  border-color: rgba(148, 163, 184, 0.35) !important;
+}
+
+.touch-wrap select:focus,
+.touch-panel select:focus,
+.settings-card select:focus,
+.venue-edit-form select:focus,
+.admin-card select:focus,
+.admin-form select:focus {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+  border-color: rgba(59, 130, 246, 0.75) !important;
+  outline: none;
+}
+
+.touch-wrap select option,
+.touch-panel select option,
+.settings-card select option,
+.venue-edit-form select option,
+.admin-card select option,
+.admin-form select option {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+}
+
+.touch-wrap select option:checked,
+.touch-panel select option:checked,
+.settings-card select option:checked,
+.venue-edit-form select option:checked,
+.admin-card select option:checked,
+.admin-form select option:checked {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+}

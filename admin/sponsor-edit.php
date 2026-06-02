@@ -49,6 +49,7 @@ $sponsor = [
     'email' => '',
     'website_url' => '',
     'logo_url' => '',
+    'logo_background' => 'dark',
     'default_offer' => '',
     'notes' => '',
     'sort_order' => 100,
@@ -82,6 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && sponsors_table_exists()) {
         'email' => trim((string)($_POST['email'] ?? '')),
         'website_url' => trim((string)($_POST['website_url'] ?? '')),
         'logo_url' => trim((string)($_POST['logo_url'] ?? '')),
+        'logo_background' => in_array(($_POST['logo_background'] ?? 'dark'), ['dark', 'light'], true) ? $_POST['logo_background'] : 'dark',
         'default_offer' => trim((string)($_POST['default_offer'] ?? '')),
         'notes' => trim((string)($_POST['notes'] ?? '')),
         'sort_order' => (int)($_POST['sort_order'] ?? 100),
@@ -184,6 +186,15 @@ admin_header(($is_edit ? 'Edit Sponsor' : 'Add Sponsor') . ' - DJ Portal');
           <label>
             <span>Logo/image URL</span>
             <input type="url" name="logo_url" value="<?= h($sponsor['logo_url']) ?>" placeholder="https://... or /assets/...">
+          </label>
+
+          <label>
+            <span>Logo background</span>
+            <select name="logo_background">
+              <option value="dark" <?= (($sponsor['logo_background'] ?? 'dark') === 'dark') ? 'selected' : '' ?>>Dark / transparent</option>
+              <option value="light" <?= (($sponsor['logo_background'] ?? 'dark') === 'light') ? 'selected' : '' ?>>Light panel</option>
+            </select>
+            <small>Use Light panel for transparent logos with dark text.</small>
           </label>
 
           <label>
