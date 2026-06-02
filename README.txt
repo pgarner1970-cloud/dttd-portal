@@ -1,4 +1,4 @@
 Patch purpose:
-- Replace harsh white logo panels with softer neon/glass tinted panels
-- Improve transparent dark-text logos on the DTTD theme
-- Applies to both Partners and Sponsors
+- Replace bright light logo panels with richer purple/blue neon glass panels
+- Better match the DTTD colour palette
+- Applies to partner/sponsor previews and public cards
