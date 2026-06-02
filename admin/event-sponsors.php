@@ -154,6 +154,8 @@ if (event_sponsors_required_tables_ready()) {
         $events = db()->query("
             SELECT id, event_name, event_date, start_time, venue_name
             FROM events
+            WHERE event_type = 'public'
+              AND is_active = 1
             ORDER BY event_date DESC, start_time DESC, id DESC
         ")->fetchAll();
     } catch (Throwable $e) {
