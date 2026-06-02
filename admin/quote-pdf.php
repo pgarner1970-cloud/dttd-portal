@@ -202,17 +202,24 @@ if ($type === 'invoice') {
     ];
 }
 
-$summaryX = 365;
+// Payment summary aligned with the top of the notes box. Wider columns and taller rows
+// prevent the labels and amounts from colliding when quotation payment dates are shown.
+$summaryX = 355;
 $summaryY = 285;
-$summaryW = 190;
-$rowH = $type === 'invoice' ? 30 : 18;
+$summaryW = 200;
+$rowH = $type === 'invoice' ? 30 : 23;
+$labelX = $summaryX + 12;
+$valueX = $summaryX + 128;
 foreach ($summaryRows as $summaryRow) {
     [$label, $value, $fill, $stroke, $fontSize, $bold] = $summaryRow;
     $pdf->rect($summaryX, $summaryY - $rowH, $summaryW, $rowH, $fill, $stroke);
     $textColour = ($fill === $purple) ? [1,1,1] : $dark;
     $labelColour = ($fill === $purple) ? [1,1,1] : $purple;
-    $pdf->text($summaryX + 14, $summaryY - $rowH + 7, $label, $fontSize, true, $labelColour);
-    $pdf->text($summaryX + 112, $summaryY - $rowH + 7, $value, $fontSize, true, $textColour);
+    $displaySize = min((float)$fontSize, 10.5);
+    if ($label === 'TOTAL QUOTATION') { $displaySize = 10; }
+    if ($label === 'BALANCE DUE BY') { $displaySize = 9.5; }
+    $pdf->text($labelX, $summaryY - $rowH + 8, $label, $displaySize, true, $labelColour);
+    $pdf->text($valueX, $summaryY - $rowH + 8, $value, $displaySize, true, $textColour);
     $summaryY -= $rowH;
 }
 
