@@ -1,56 +1,77 @@
 <?php
 require __DIR__ . '/includes/config.php';
 $public_current = 'terms';
-$metaTitle = 'Terms & Conditions | Dance Thru The Decades';
-$metaDescription = 'Terms for events, bookings, photo uploads, music requests and public website features.';
 ?>
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title><?= htmlspecialchars($metaTitle, ENT_QUOTES, 'UTF-8') ?></title>
-  <meta name="description" content="<?= htmlspecialchars($metaDescription, ENT_QUOTES, 'UTF-8') ?>">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="canonical" href="/terms">
-  <link rel="stylesheet" href="<?= htmlspecialchars(dttd_asset_url('assets/public-site.css'), ENT_QUOTES, 'UTF-8') ?>">
-  <link rel="stylesheet" href="<?= htmlspecialchars(dttd_asset_url('assets/legal-pages.css'), ENT_QUOTES, 'UTF-8') ?>">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terms & Conditions | Dance Thru The Decades</title>
+<link rel="stylesheet" href="<?= h(dttd_asset_url('assets/public-site.css')) ?>">
+<link rel="stylesheet" href="<?= h(dttd_asset_url('assets/legal-pages.css')) ?>">
 </head>
-<body class="public-legal-page">
-  <?php require __DIR__ . '/includes/public-nav.php'; ?>
+<body class="homepage-option-one public-legal-page">
+<main class="home-option-one">
+<?php require __DIR__ . '/includes/public-nav.php'; ?>
 
-  <main class="public-legal-shell">
-    <section class="public-legal-hero">
-      <img class="public-legal-logo" src="/assets/dttd-logo-inner.png" alt="Dance Thru The Decades">
-      <p class="public-legal-eyebrow">Dance Thru The Decades</p>
-      <h1>Terms & Conditions</h1>
-      <p class="public-legal-subtitle">Terms for events, bookings, photo uploads, music requests and public website features.</p>
-    </section>
+<section class="public-legal-shell">
+    <div class="public-legal-hero">
+        <img class="public-legal-logo" src="/assets/dttd-logo-inner.png" alt="Dance Thru The Decades">
+        <div class="public-legal-eyebrow">Dance Thru The Decades</div>
+        <h1 class="public-legal-title">Terms & Conditions</h1>
+        <p class="public-legal-subtitle">
+            Terms relating to public events, music requests, photo uploads and use of the website.
+        </p>
+    </div>
 
-    <section class="public-legal-card">
-      <p class="public-legal-updated">Last updated: <?= date('F Y') ?></p>
-      <h2>About these terms</h2>
-      <p>These terms apply when you use the Dance Thru The Decades website, attend one of our events, submit a music request, upload a photo, or interact with our public event features.</p>
+    <div class="public-legal-card">
+        <div class="public-legal-updated">Last updated: June 2026</div>
 
-      <h2>Event information</h2>
-      <p>We aim to keep event information, timings, venues, prices and availability accurate. Details may occasionally change because of venue requirements, technical issues, supplier availability, weather, safety, licensing, or other circumstances outside our control.</p>
+        <h2>Website use</h2>
+        <p>
+            By using the website, event pages or public gallery features, you agree to use the site responsibly
+            and in a way that does not disrupt events or other users.
+        </p>
 
-      <h2>Tickets, bookings and entry</h2>
-      <p>Where tickets, bookings or reserved places are used, entry may be subject to venue rules, capacity limits, age restrictions, licensing requirements and any conditions stated at the time of booking.</p>
+        <h2>Event information</h2>
+        <p>
+            Event dates, venues, prices and timings may occasionally change due to operational,
+            venue or technical requirements.
+        </p>
 
-      <h2>Cancellations and changes</h2>
-      <p>If an event has to be cancelled, postponed or materially changed, we will try to provide reasonable notice using the contact or public channels available to us.</p>
+        <h2>Music requests</h2>
+        <p>
+            Requests are welcomed but cannot be guaranteed. DJs may choose whether and when
+            a request is played depending on suitability, timing and the event atmosphere.
+        </p>
 
-      <h2>Music requests</h2>
-      <p>Music requests are welcomed but cannot be guaranteed. The DJ may choose whether, when and how to play requests based on the event style, suitability, timing and the atmosphere on the night.</p>
+        <h2>Photo uploads and galleries</h2>
+        <p>
+            By uploading photos, you confirm you have permission to share the image and that the content
+            is suitable for a public-facing event gallery. Uploaded content may be moderated or removed.
+        </p>
 
-      <h2>Photo uploads and gallery content</h2>
-      <p>If you upload photos through the website, you confirm that you have the right to upload them and that they are suitable for a public event gallery. Photos may be reviewed, approved, edited, hidden or removed at our discretion.</p>
+        <h2>Behaviour and venue rules</h2>
+        <p>
+            Entry to venues and events remains subject to venue policies, licensing rules and organiser discretion.
+        </p>
 
-      <h2>Contact</h2>
-      <p>For questions about these terms, event information, photo removal requests or website content, please contact Dance Thru The Decades using the contact details provided on the website or event materials.</p>
-    </section>
-  </main>
+        <h2>Cancellations and changes</h2>
+        <p>
+            Events may occasionally be postponed, altered or cancelled. We will try to provide reasonable notice
+            whenever possible.
+        </p>
 
-  <?php require __DIR__ . '/includes/public-footer.php'; ?>
+        <h2>Contact</h2>
+        <p>
+            Questions regarding these terms or event-related matters can be directed through the website
+            or associated event contact channels.
+        </p>
+    </div>
+</section>
+
+<?php require __DIR__ . '/includes/public-footer.php'; ?>
+</main>
 </body>
 </html>
