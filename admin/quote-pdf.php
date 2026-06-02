@@ -82,64 +82,69 @@ $softGold = [1.000, 0.940, 0.780];
 $line = [0.78, 0.70, 0.86];
 $dark = [0.08, 0.05, 0.12];
 
-// Footer artwork: full A4 width, complete image, no cropping. 1536 x 360 aspect ratio = 139.5pt high.
+// Footer artwork: full A4 width using a safer crop of the Facebook banner so the central wording is visible.
 if (is_file($footer)) { $pdf->imageContain($footer, 0, 0, 595.28, 140); }
 
 // Top company block. Logo remains square and undistorted.
-if (is_file($logo)) { $pdf->imageContain($logo, 218, 664, 160, 160); }
+if (is_file($logo)) { $pdf->imageContain($logo, 222, 690, 150, 150); }
 
-$pdf->text(42, 788, 'Dance Thru The Decades Events', 12, true, $purple);
-$pdf->text(42, 770, '1 Cooks Cross', 9, false, $dark);
-$pdf->text(42, 756, 'Alveley, Shropshire WV15 6LS', 9, false, $dark);
-$pdf->text(42, 733, 'www.dancethruthedecades.co.uk', 8, false, $purple);
-$pdf->text(42, 718, 'Dance Thru The Decades Events', 8, false, $purple);
+$pdf->text(40, 800, 'Dance Thru The Decades Events', 13, true, $purple);
+$pdf->text(40, 780, '1 Cooks Cross', 10, false, $dark);
+$pdf->text(40, 764, 'Alveley, Shropshire WV15 6LS', 10, false, $dark);
+$pdf->text(40, 738, 'www.dancethruthedecades.co.uk', 8, false, $purple);
 
-$pdf->text(425, 786, $title, 28, true, $purple);
-$pdf->line(425, 776, 553, 776, 0.72);
-$pdf->text(425, 756, 'Number:', 9, true, $dark);
-$pdf->text(485, 756, (string)$doc['number'], 9, false, $dark);
-$pdf->text(425, 738, 'Date:', 9, true, $dark);
-$pdf->text(485, 738, date('d/m/Y'), 9, false, $dark);
+$pdf->text(415, 794, $title, 23, true, $purple);
+$pdf->line(415, 780, 555, 780, 0.72);
+$pdf->text(415, 758, 'Number:', 9, true, $dark);
+$pdf->text(485, 758, (string)$doc['number'], 9, false, $dark);
+$pdf->line(415, 749, 555, 749, 0.82);
+$pdf->text(415, 732, 'Date:', 9, true, $dark);
+$pdf->text(485, 732, date('d/m/Y'), 9, false, $dark);
 
 if ($isPreview) {
-    $pdf->rect(175, 640, 245, 18, [1.000, 0.940, 0.780], [1.000, 0.470, 0.110]);
-    $pdf->text(205, 646, 'PREVIEW / TEST DOCUMENT - NOT SAVED', 10, true, $purple);
+    $pdf->rect(185, 665, 225, 18, [1.000, 0.940, 0.780], [1.000, 0.470, 0.110]);
+    $pdf->text(208, 671, 'PREVIEW / TEST DOCUMENT - NOT SAVED', 9, true, $purple);
 }
 
-// Customer and event cards.
-$pdf->rect(40, 508, 247, 114, [1,1,1], $line);
-$pdf->rect(40, 600, 247, 22, $softPurple, $line);
-$pdf->text(54, 607, 'BILL TO', 12, true, $purple);
-$pdf->text(54, 582, $doc['customer_name'] ?: 'Customer name', 10, true, $dark);
-$y = 566;
-foreach (preg_split('/\r\n|\r|\n/', (string)$doc['customer_address']) as $addrLine) {
+// Customer and event cards moved higher and given more balanced spacing.
+$pdf->rect(40, 518, 247, 112, [1,1,1], $line);
+$pdf->rect(40, 608, 247, 22, $softPurple, $line);
+$pdf->text(54, 615, 'BILL TO', 12, true, $purple);
+$pdf->text(54, 590, $doc['customer_name'] ?: 'Customer name', 10, true, $dark);
+$y = 572;
+foreach (preg_split('/
+|
+|
+/', (string)$doc['customer_address']) as $addrLine) {
     $addrLine = trim($addrLine);
     if ($addrLine === '') { continue; }
     $pdf->multiline(54, $y, $addrLine, 8, 38, 10, 1, false, $dark);
     $y -= 10;
-    if ($y < 527) { break; }
+    if ($y < 538) { break; }
 }
-if (!empty($doc['customer_email']) && $y >= 522) { $pdf->text(54, $y, $doc['customer_email'], 8, false, $purple); }
+if (!empty($doc['customer_email']) && $y >= 532) { $pdf->text(54, $y, $doc['customer_email'], 8, false, $purple); }
 
-$pdf->rect(308, 508, 247, 114, [1,1,1], $line);
-$pdf->rect(308, 600, 247, 22, $softPurple, $line);
-$pdf->text(322, 607, 'EVENT DETAILS', 12, true, $purple);
-$pdf->text(322, 582, 'Event / Occasion:', 8, true, $dark);
-$pdf->multiline(404, 582, $doc['event_description'] ?: 'Dance Thru The Decades Event', 8, 30, 10, 3, false, $dark);
+$pdf->rect(308, 518, 247, 112, [1,1,1], $line);
+$pdf->rect(308, 608, 247, 22, $softPurple, $line);
+$pdf->text(322, 615, 'EVENT DETAILS', 12, true, $purple);
+$pdf->text(322, 590, 'Event / Occasion:', 8, true, $dark);
+$pdf->multiline(404, 590, $doc['event_description'] ?: 'Dance Thru The Decades Event', 8, 30, 10, 3, false, $dark);
+$pdf->line(322, 557, 540, 557, 0.82);
 $pdf->text(322, 544, 'Event Date:', 8, true, $dark);
 $pdf->text(404, 544, !empty($doc['event_date']) ? date('d/m/Y', strtotime($doc['event_date'])) : 'TBC', 8, false, $dark);
-$pdf->text(322, 526, 'Venue:', 8, true, $dark);
-$pdf->multiline(404, 526, $doc['venue'] ?: 'TBC', 8, 30, 10, 2, false, $dark);
+$pdf->line(322, 535, 540, 535, 0.82);
+$pdf->text(322, 522, 'Venue:', 8, true, $dark);
+$pdf->multiline(404, 522, $doc['venue'] ?: 'TBC', 8, 30, 10, 2, false, $dark);
 
-// Line item table.
-$pdf->rect(40, 472, 515, 24, $purple, $purple);
-$pdf->text(54, 481, 'DESCRIPTION', 10, true, [1,1,1]);
-$pdf->text(403, 481, 'QTY', 10, true, [1,1,1]);
-$pdf->text(465, 481, 'AMOUNT', 10, true, [1,1,1]);
+// Line item table with fewer blank rows to free vertical space for the footer artwork.
+$pdf->rect(40, 485, 515, 23, $purple, $purple);
+$pdf->text(54, 493, 'DESCRIPTION', 10, true, [1,1,1]);
+$pdf->text(407, 493, 'QTY', 10, true, [1,1,1]);
+$pdf->text(468, 493, 'AMOUNT', 10, true, [1,1,1]);
 
-$y = 440;
+$y = 453;
 $total = 0;
-$maxRows = 5;
+$maxRows = 4;
 $row = 0;
 foreach ($doc['items'] as $item) {
     if ($row >= $maxRows) { break; }
@@ -162,29 +167,29 @@ while ($row < 3) {
     $row++;
 }
 
-// Notes and total area, safely above the footer.
-$pdf->text(40, 287, 'NOTES / PAYMENT TERMS', 10, true, $purple);
-$pdf->rect(40, 172, 300, 102, [1,1,1], $line);
+// Notes and total area compacted to leave a clean full-width footer.
+$pdf->text(40, 300, 'NOTES / PAYMENT TERMS', 10, true, $purple);
+$pdf->rect(40, 195, 300, 90, [1,1,1], $line);
 $notes = trim((string)$doc['notes']);
 if ($notes === '') {
     $notes = 'Thank you for booking Dance Thru The Decades Events. Payment details, deposit terms and balance due date can be shown here.';
 }
-$pdf->multiline(54, 252, $notes, 8, 58, 11, 7, false, $dark);
+$pdf->multiline(54, 265, $notes, 8, 58, 11, 6, false, $dark);
 
-$pdf->rect(365, 248, 190, 28, [1,1,1], $line);
-$pdf->text(382, 258, 'SUBTOTAL', 10, true, $purple);
-$pdf->text(485, 258, dttd_pdf_money($total), 10, true, $dark);
-$pdf->rect(365, 220, 190, 28, $softGold, $line);
-$pdf->text(382, 230, 'TOTAL', 12, true, $purple);
-$pdf->text(485, 230, dttd_pdf_money($total), 12, true, $dark);
-$pdf->rect(365, 192, 190, 28, [1,1,1], $line);
-$pdf->text(382, 202, 'DEPOSIT PAID', 10, true, $purple);
-$pdf->text(485, 202, dttd_pdf_money(0), 10, true, $dark);
-$pdf->rect(365, 164, 190, 28, $purple, $purple);
-$pdf->text(382, 174, 'BALANCE DUE', 12, true, [1,1,1]);
-$pdf->text(485, 174, dttd_pdf_money($total), 12, true, [1,1,1]);
+$pdf->rect(365, 258, 190, 28, [1,1,1], $line);
+$pdf->text(382, 268, 'SUBTOTAL', 10, true, $purple);
+$pdf->text(485, 268, dttd_pdf_money($total), 10, true, $dark);
+$pdf->rect(365, 230, 190, 28, $softGold, $line);
+$pdf->text(382, 240, 'TOTAL', 12, true, $purple);
+$pdf->text(485, 240, dttd_pdf_money($total), 12, true, $dark);
+$pdf->rect(365, 202, 190, 28, [1,1,1], $line);
+$pdf->text(382, 212, 'DEPOSIT PAID', 10, true, $purple);
+$pdf->text(485, 212, dttd_pdf_money(0), 10, true, $dark);
+$pdf->rect(365, 174, 190, 28, $purple, $purple);
+$pdf->text(382, 184, 'BALANCE DUE', 12, true, [1,1,1]);
+$pdf->text(485, 184, dttd_pdf_money($total), 12, true, [1,1,1]);
 
-$pdf->text(40, 148, $isPreview ? 'Preview mode: this document was not saved and no quote or invoice number has been allocated.' : 'Generated by Dance Thru The Decades Events.', 8, false, $purple);
+$pdf->text(40, 155, $isPreview ? 'Preview mode: this document was not saved and no quote or invoice number has been allocated.' : 'Generated by Dance Thru The Decades Events.', 8, false, $purple);
 
 $pdf->endPage();
 $pdf->output(strtolower(str_replace(' ', '-', $title)) . '-' . preg_replace('/[^A-Za-z0-9-]/', '', $doc['number']) . '.pdf');
