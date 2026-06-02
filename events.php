@@ -137,7 +137,18 @@ $public_current = 'events';
 $where = ["1=1"];
 
 if (public_column_exists('events', 'event_date')) {
-    $where[] = "(event_date >= CURDATE() OR event_date IS NULL)";
+    if (public_column_exists('events', 'start_time') && public_column_exists('events', 'end_time')) {
+        // Public events page should only show future/upcoming events.
+        // If an event has started or has ended, it should no longer appear here.
+        $where[] = "(CASE
+            WHEN start_time IS NULL OR start_time = '' THEN TIMESTAMP(event_date, '23:59:59')
+            WHEN end_time IS NULL OR end_time = '' THEN TIMESTAMP(event_date, start_time)
+            WHEN end_time < start_time THEN TIMESTAMP(DATE_ADD(event_date, INTERVAL 1 DAY), end_time)
+            ELSE TIMESTAMP(event_date, end_time)
+        END > NOW())";
+    } else {
+        $where[] = "(event_date > CURDATE() OR event_date IS NULL)";
+    }
 }
 
 if (public_column_exists('events', 'status')) {

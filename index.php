@@ -125,8 +125,8 @@ try {
     $stmt = db()->query("
         SELECT *,
             CASE
-                WHEN start_time IS NULL OR start_time = '' THEN TIMESTAMP(event_date, '00:00:00')
-                WHEN end_time IS NULL OR end_time = '' THEN DATE_ADD(TIMESTAMP(event_date, start_time), INTERVAL 6 HOUR)
+                WHEN start_time IS NULL OR start_time = '' THEN TIMESTAMP(event_date, '23:59:59')
+                WHEN end_time IS NULL OR end_time = '' THEN TIMESTAMP(event_date, start_time)
                 WHEN end_time < start_time THEN TIMESTAMP(DATE_ADD(event_date, INTERVAL 1 DAY), end_time)
                 ELSE TIMESTAMP(event_date, end_time)
             END AS public_end_at
@@ -136,12 +136,12 @@ try {
           AND event_date IS NOT NULL
           AND CASE
                 WHEN start_time IS NULL OR start_time = '' THEN TIMESTAMP(event_date, '23:59:59')
-                WHEN end_time IS NULL OR end_time = '' THEN DATE_ADD(TIMESTAMP(event_date, start_time), INTERVAL 6 HOUR)
+                WHEN end_time IS NULL OR end_time = '' THEN TIMESTAMP(event_date, start_time)
                 WHEN end_time < start_time THEN TIMESTAMP(DATE_ADD(event_date, INTERVAL 1 DAY), end_time)
                 ELSE TIMESTAMP(event_date, end_time)
-              END >= NOW()
+              END > NOW()
         ORDER BY event_date ASC, start_time ASC, id ASC
-        LIMIT 8
+        LIMIT 4
     "
     );
     $homepage_events = array_values(array_filter($stmt->fetchAll() ?: [], function ($event) {
@@ -345,23 +345,65 @@ $public_current = 'home';
           <h2>What’s happening</h2>
         </div>
         <div class="home-coming-up-track">
-          <?php for ($loop = 0; $loop < 2; $loop++): ?>
-            <?php foreach ($homepage_events as $i => $event): ?>
+          <?php
+            $fallbackCards = [
+                [
+                    'label' => 'More dates soon',
+                    'title' => 'New events being planned',
+                    'text' => 'Check back soon for more public party nights.',
+                    'url' => '/events',
+                ],
+                [
+                    'label' => 'Follow us',
+                    'title' => 'See future announcements',
+                    'text' => 'Facebook updates, event news and photo galleries.',
+                    'url' => $facebookUrl,
+                ],
+                [
+                    'label' => 'Get involved',
+                    'title' => 'Requests, photos and party moments',
+                    'text' => 'Use the event pages on the night for live features.',
+                    'url' => '/gallery',
+                ],
+            ];
+
+            $displayCards = [];
+            foreach ($homepage_events as $i => $event) {
+                $displayCards[] = ['type' => 'event', 'event' => $event, 'index' => $i];
+            }
+
+            $fallbackIndex = 0;
+            while (count($displayCards) < 4 && isset($fallbackCards[$fallbackIndex])) {
+                $displayCards[] = ['type' => 'fallback', 'card' => $fallbackCards[$fallbackIndex]];
+                $fallbackIndex++;
+            }
+          ?>
+
+          <?php foreach ($displayCards as $cardItem): ?>
+            <?php if (($cardItem['type'] ?? '') === 'event'): ?>
               <?php
-                $isLive = $active_event && (int)($event['id'] ?? 0) === (int)($active_event['id'] ?? 0);
-                $label = $isLive ? 'Live now' : ($i === 0 ? 'Next event' : 'Coming soon');
+                $event = $cardItem['event'];
+                $i = (int)($cardItem['index'] ?? 0);
+                $label = $i === 0 ? 'Next event' : 'Coming soon';
                 $title = home_public_event_title($event);
                 $venue = home_public_event_venue($event);
                 $date = dttd_public_event_date($event);
                 $time = dttd_public_event_time_range($event);
               ?>
-              <a class="home-coming-up-card <?= $isLive ? 'is-live' : '' ?>" href="<?= htmlspecialchars(home_public_event_url($event)) ?>" <?= $loop ? 'aria-hidden="true" tabindex="-1"' : '' ?>>
+              <a class="home-coming-up-card" href="<?= htmlspecialchars(home_public_event_url($event)) ?>">
                 <strong><?= htmlspecialchars($label) ?></strong>
                 <span><?= htmlspecialchars($title) ?></span>
                 <em><?= htmlspecialchars(trim($date . ($time ? ' · ' . $time : '') . ($venue ? ' · ' . $venue : ''))) ?></em>
               </a>
-            <?php endforeach; ?>
-          <?php endfor; ?>
+            <?php else: ?>
+              <?php $fallback = $cardItem['card']; ?>
+              <a class="home-coming-up-card is-placeholder" href="<?= htmlspecialchars($fallback['url']) ?>" <?= ($fallback['url'] === $facebookUrl) ? 'target="_blank" rel="noopener"' : '' ?>>
+                <strong><?= htmlspecialchars($fallback['label']) ?></strong>
+                <span><?= htmlspecialchars($fallback['title']) ?></span>
+                <em><?= htmlspecialchars($fallback['text']) ?></em>
+              </a>
+            <?php endif; ?>
+          <?php endforeach; ?>
         </div>
       </section>
     <?php endif; ?>
