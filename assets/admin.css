@@ -374,3 +374,73 @@ details .details-body{
     flex:1;
   }
 }
+
+
+/* v-global-select-dark-hard-fix
+   Force native dropdowns to remain readable on dark DTTD themes.
+   This is intentionally broad because select styling is used across public and admin suites. */
+html,
+body {
+  color-scheme: dark;
+}
+
+select,
+select option,
+select optgroup {
+  background-color: #230033 !important;
+  color: #ffffff !important;
+}
+
+select {
+  color-scheme: dark !important;
+  border-color: rgba(255, 79, 216, 0.50) !important;
+}
+
+select:focus,
+select:active {
+  background-color: #230033 !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 213, 74, 0.85) !important;
+  outline: none !important;
+}
+
+select option:checked,
+select option:hover,
+select option:focus {
+  background-color: #7c2bd6 !important;
+  color: #ffffff !important;
+}
+
+/* Public gallery/filter-specific reinforcement */
+.public-filter-grid select,
+.public-filter-grid select option,
+.public-gallery-page select,
+.public-gallery-page select option,
+.public-page select,
+.public-page select option,
+.gallery-filters select,
+.gallery-filters select option,
+.photo-filters select,
+.photo-filters select option,
+.find-photos select,
+.find-photos select option {
+  background-color: #230033 !important;
+  color: #ffffff !important;
+  color-scheme: dark !important;
+}
+
+/* Admin form/filter-specific reinforcement */
+.admin-form select,
+.admin-form select option,
+.admin-card select,
+.admin-card select option,
+.touch-panel select,
+.touch-panel select option,
+.touch-wrap select,
+.touch-wrap select option,
+.settings-card select,
+.settings-card select option {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+  color-scheme: dark !important;
+}

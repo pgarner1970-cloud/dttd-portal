@@ -5330,43 +5330,71 @@ body.public-event-detail-page .public-track-icon-action.spotify .public-action-i
 }
 
 
-/* Gallery page: keep content aligned to public header width.
-   Preserve 4-column desktop photo grid while stopping the gallery panels
-   from stretching wider than the sticky public header/navigation. */
-.public-gallery-page .public-gallery-shell {
-  width: min(1180px, calc(100% - 28px)) !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
+/* v-global-select-dark-hard-fix
+   Force native dropdowns to remain readable on dark DTTD themes.
+   This is intentionally broad because select styling is used across public and admin suites. */
+html,
+body {
+  color-scheme: dark;
 }
 
-.public-gallery-page .public-filter-card,
-.public-gallery-page .public-photo-grid-card {
-  width: 100% !important;
-  box-sizing: border-box !important;
+select,
+select option,
+select optgroup {
+  background-color: #230033 !important;
+  color: #ffffff !important;
 }
 
-.public-gallery-page .public-photo-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+select {
+  color-scheme: dark !important;
+  border-color: rgba(255, 79, 216, 0.50) !important;
 }
 
-@media (max-width: 1120px) {
-  .public-gallery-page .public-photo-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  }
+select:focus,
+select:active {
+  background-color: #230033 !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 213, 74, 0.85) !important;
+  outline: none !important;
 }
 
-@media (max-width: 820px) {
-  .public-gallery-page .public-gallery-shell {
-    width: min(100% - 20px, 100%) !important;
-  }
-
-  .public-gallery-page .public-photo-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
+select option:checked,
+select option:hover,
+select option:focus {
+  background-color: #7c2bd6 !important;
+  color: #ffffff !important;
 }
 
-@media (max-width: 520px) {
-  .public-gallery-page .public-photo-grid {
-    grid-template-columns: 1fr !important;
-  }
+/* Public gallery/filter-specific reinforcement */
+.public-filter-grid select,
+.public-filter-grid select option,
+.public-gallery-page select,
+.public-gallery-page select option,
+.public-page select,
+.public-page select option,
+.gallery-filters select,
+.gallery-filters select option,
+.photo-filters select,
+.photo-filters select option,
+.find-photos select,
+.find-photos select option {
+  background-color: #230033 !important;
+  color: #ffffff !important;
+  color-scheme: dark !important;
+}
+
+/* Admin form/filter-specific reinforcement */
+.admin-form select,
+.admin-form select option,
+.admin-card select,
+.admin-card select option,
+.touch-panel select,
+.touch-panel select option,
+.touch-wrap select,
+.touch-wrap select option,
+.settings-card select,
+.settings-card select option {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+  color-scheme: dark !important;
 }

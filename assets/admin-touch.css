@@ -6310,127 +6310,72 @@ button.action-tile:disabled{
 .header-admin-nav-btn.photo-alert-pulse .admin-nav-icon{color:#ff6b75!important;}
 .header-admin-nav-btn.photo-alert-pulse::after{content:'NEW';position:absolute;right:-6px;top:-6px;border-radius:999px;background:#ff3346;color:#fff;font-size:10px;font-weight:1000;line-height:1;padding:4px 6px;border:1px solid rgba(255,255,255,.36);box-shadow:0 0 16px rgba(255,51,70,.8);}
 
-/* v115 admin tools structure: muted cards for planned maintenance areas */
-.admin-home-card-muted{
-  opacity:.74;
-  border-style:dashed;
-  cursor:default;
-}
-.admin-home-card-muted:hover{
-  transform:none;
-}
 
-
-/* Global dark-theme select styling for admin forms */
-.touch-wrap select,
-.touch-panel select,
-.settings-card select,
-.venue-edit-form select,
-.admin-card select,
-.admin-form select {
-  appearance: auto;
-  background-color: #1e293b !important;
-  color: #ffffff !important;
-  border-color: rgba(148, 163, 184, 0.35) !important;
-}
-
-.touch-wrap select:focus,
-.touch-panel select:focus,
-.settings-card select:focus,
-.venue-edit-form select:focus,
-.admin-card select:focus,
-.admin-form select:focus {
-  background-color: #1e293b !important;
-  color: #ffffff !important;
-  border-color: rgba(59, 130, 246, 0.75) !important;
-  outline: none;
-}
-
-.touch-wrap select option,
-.touch-panel select option,
-.settings-card select option,
-.venue-edit-form select option,
-.admin-card select option,
-.admin-form select option {
-  background-color: #1e293b !important;
-  color: #ffffff !important;
-}
-
-.touch-wrap select option:checked,
-.touch-panel select option:checked,
-.settings-card select option:checked,
-.venue-edit-form select option:checked,
-.admin-card select option:checked,
-.admin-form select option:checked {
-  background-color: #2563eb !important;
-  color: #ffffff !important;
-}
-
-
-/* v116 global dark native select fix - keep every admin dropdown readable */
+/* v-global-select-dark-hard-fix
+   Force native dropdowns to remain readable on dark DTTD themes.
+   This is intentionally broad because select styling is used across public and admin suites. */
 html,
-body,
-.admin-shell,
-.admin-page,
-.touch-wrap,
-.touch-panel,
-.admin-card,
-.admin-form,
-.settings-card,
-.venue-edit-form {
+body {
   color-scheme: dark;
 }
 
 select,
 select option,
-select optgroup,
-.touch-wrap select,
-.touch-wrap select option,
-.touch-panel select,
-.touch-panel select option,
-.settings-card select,
-.settings-card select option,
-.venue-edit-form select,
-.venue-edit-form select option,
-.admin-card select,
-.admin-card select option,
-.admin-form select,
-.admin-form select option {
-  background-color: #1e293b !important;
+select optgroup {
+  background-color: #230033 !important;
   color: #ffffff !important;
 }
 
 select {
-  border-color: rgba(148, 163, 184, 0.35) !important;
+  color-scheme: dark !important;
+  border-color: rgba(255, 79, 216, 0.50) !important;
 }
 
 select:focus,
-.touch-wrap select:focus,
-.touch-panel select:focus,
-.settings-card select:focus,
-.venue-edit-form select:focus,
-.admin-card select:focus,
-.admin-form select:focus {
-  background-color: #1e293b !important;
+select:active {
+  background-color: #230033 !important;
   color: #ffffff !important;
-  border-color: rgba(59, 130, 246, 0.75) !important;
-  outline: none;
+  border-color: rgba(255, 213, 74, 0.85) !important;
+  outline: none !important;
 }
 
 select option:checked,
 select option:hover,
-.touch-wrap select option:checked,
-.touch-wrap select option:hover,
-.touch-panel select option:checked,
-.touch-panel select option:hover,
-.settings-card select option:checked,
-.settings-card select option:hover,
-.venue-edit-form select option:checked,
-.venue-edit-form select option:hover,
-.admin-card select option:checked,
-.admin-card select option:hover,
-.admin-form select option:checked,
-.admin-form select option:hover {
-  background-color: #2563eb !important;
+select option:focus {
+  background-color: #7c2bd6 !important;
   color: #ffffff !important;
+}
+
+/* Public gallery/filter-specific reinforcement */
+.public-filter-grid select,
+.public-filter-grid select option,
+.public-gallery-page select,
+.public-gallery-page select option,
+.public-page select,
+.public-page select option,
+.gallery-filters select,
+.gallery-filters select option,
+.photo-filters select,
+.photo-filters select option,
+.find-photos select,
+.find-photos select option {
+  background-color: #230033 !important;
+  color: #ffffff !important;
+  color-scheme: dark !important;
+}
+
+/* Admin form/filter-specific reinforcement */
+.admin-form select,
+.admin-form select option,
+.admin-card select,
+.admin-card select option,
+.touch-panel select,
+.touch-panel select option,
+.touch-wrap select,
+.touch-wrap select option,
+.settings-card select,
+.settings-card select option {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+  color-scheme: dark !important;
 }
