@@ -189,8 +189,11 @@ admin_header(($is_edit ? 'Edit Partner' : 'Add Partner') . ' - DJ Portal');
           <label>
             <span>Logo background</span>
             <select name="logo_background" id="partner-logo-background">
-              <option value="dark" <?= (($partner['logo_background'] ?? 'dark') === 'dark') ? 'selected' : '' ?>>Dark / transparent</option>
-              <option value="light" <?= (($partner['logo_background'] ?? 'dark') === 'light') ? 'selected' : '' ?>>Light panel</option>
+                      <option value="dark" <?= $logo_background === 'dark' ? 'selected' : '' ?>>Dark / transparent</option>
+        <option value="light" <?= $logo_background === 'light' ? 'selected' : '' ?>>Light panel</option>
+        <option value="neon_pink" <?= $logo_background === 'neon_pink' ? 'selected' : '' ?>>Neon pink glow</option>
+        <option value="starburst" <?= $logo_background === 'starburst' ? 'selected' : '' ?>>Soft starburst</option>
+        <option value="radial_neon" <?= $logo_background === 'radial_neon' ? 'selected' : '' ?>>Radial neon glow</option>
             </select>
             <small>Use Light panel for transparent logos with dark text.</small>
           </label>
@@ -216,7 +219,8 @@ admin_header(($is_edit ? 'Edit Partner' : 'Add Partner') . ' - DJ Portal');
       </section>
 
       <div class="partner-logo-preview-wrap" aria-live="polite">
-        <div class="partner-logo-preview <?= (($partner['logo_background'] ?? 'dark') === 'light') ? 'is-light' : 'is-dark' ?>" id="partner-logo-preview">
+        <?php $previewLogoBg = preg_replace('/[^a-z0-9_]/', '', (string)($partner['logo_background'] ?? 'dark')); ?>
+        <div class="partner-logo-preview is-<?= h($previewLogoBg) ?>" id="partner-logo-preview">
           <?php if (!empty($partner['image_url'])): ?>
             <img src="<?= h($partner['image_url']) ?>" alt="Partner logo preview">
           <?php else: ?>
@@ -252,8 +256,8 @@ admin_header(($is_edit ? 'Edit Partner' : 'Add Partner') . ' - DJ Portal');
   background:
     linear-gradient(
       135deg,
-      rgba(115, 90, 180, 0.92),
-      rgba(70, 105, 170, 0.88)
+      rgba(236,230,255,0.96),
+      rgba(220,235,255,0.92)
     );
   color: #111827;
   border-color: rgba(255,255,255,.22);
@@ -276,8 +280,8 @@ admin_header(($is_edit ? 'Edit Partner' : 'Add Partner') . ' - DJ Portal');
   if (!urlInput || !bgSelect || !preview) return;
 
   function updatePreview() {
-    preview.classList.toggle('is-light', bgSelect.value === 'light');
-    preview.classList.toggle('is-dark', bgSelect.value !== 'light');
+    preview.classList.remove('is-dark', 'is-light', 'is-neon_pink', 'is-starburst', 'is-radial_neon');
+    preview.classList.add('is-' + (bgSelect.value || 'dark'));
     const value = urlInput.value.trim();
     preview.innerHTML = value ? '<img src="' + value.replace(/"/g, '&quot;') + '" alt="Partner logo preview">' : '<span>Logo preview</span>';
   }
