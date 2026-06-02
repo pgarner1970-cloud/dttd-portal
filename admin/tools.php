@@ -36,6 +36,17 @@ admin_header('Admin Tools - DJ Portal');
         <strong>Settings</strong>
         <span>Portal, request and Spotify settings</span>
       </a>
+    </div>
+  </section>
+
+  <section class="touch-panel">
+    <div class="touch-panel-header">
+      <div>
+        <h2 class="touch-panel-title">Diagnostics</h2>
+      </div>
+    </div>
+
+    <div class="admin-home-grid">
 
       <a class="admin-home-card" href="request-debug.php">
         <span class="admin-home-icon">◎</span>
@@ -48,18 +59,7 @@ admin_header('Admin Tools - DJ Portal');
         <strong>Diagnostics</strong>
         <span>Check event and system diagnostics</span>
       </a>
-    </div>
-  </section>
 
-  <section class="touch-panel">
-    <div class="touch-panel-header">
-      <div>
-        <h2 class="touch-panel-title">Maintenance areas</h2>
-        <p class="touch-subtitle">Behind-the-scenes records kept away from the live DJ operations bar.</p>
-      </div>
-    </div>
-
-    <div class="admin-home-grid">
       <a class="admin-home-card" href="partners.php">
         <span class="admin-home-icon">★</span>
         <strong>Partners</strong>
