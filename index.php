@@ -123,12 +123,23 @@ try {
 
 try {
     $stmt = db()->query("
-        SELECT *
+        SELECT *,
+            CASE
+                WHEN start_time IS NULL OR start_time = '' THEN TIMESTAMP(event_date, '00:00:00')
+                WHEN end_time IS NULL OR end_time = '' THEN DATE_ADD(TIMESTAMP(event_date, start_time), INTERVAL 6 HOUR)
+                WHEN end_time < start_time THEN TIMESTAMP(DATE_ADD(event_date, INTERVAL 1 DAY), end_time)
+                ELSE TIMESTAMP(event_date, end_time)
+            END AS public_end_at
         FROM events
         WHERE is_active = 1
           AND (event_type IS NULL OR LOWER(event_type) = 'public')
           AND event_date IS NOT NULL
-          AND event_date >= DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+          AND CASE
+                WHEN start_time IS NULL OR start_time = '' THEN TIMESTAMP(event_date, '23:59:59')
+                WHEN end_time IS NULL OR end_time = '' THEN DATE_ADD(TIMESTAMP(event_date, start_time), INTERVAL 6 HOUR)
+                WHEN end_time < start_time THEN TIMESTAMP(DATE_ADD(event_date, INTERVAL 1 DAY), end_time)
+                ELSE TIMESTAMP(event_date, end_time)
+              END >= NOW()
         ORDER BY event_date ASC, start_time ASC, id ASC
         LIMIT 8
     "
