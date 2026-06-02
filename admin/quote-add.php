@@ -27,7 +27,7 @@ $venues_for_select = dttd_get_venues_for_select();
 
 $defaults = [
     'customer_name' => '', 'customer_email' => '', 'customer_address' => '',
-    'event_description' => 'Dance Thru The Decades DJ Entertainment Package',
+    'event_description' => '',
     'event_date' => '', 'event_start_time' => '', 'event_end_time' => '', 'venue_id' => '', 'venue' => '', 'notes' => '',
     'line_description' => ['Dance Thru The Decades DJ Entertainment Package'],
     'line_price' => ['350.00'],
@@ -93,30 +93,30 @@ admin_header('Add Quotation - DJ Portal');
 
           <div class="form-section-body">
             <div class="form-grid">
-              <div class="form-field span-6">
+              <div class="form-field span-12">
                 <label for="event_description">Event / quotation description</label>
-                <input id="event_description" type="text" name="event_description" value="<?= h($defaults['event_description']) ?>">
+                <input id="event_description" type="text" name="event_description" placeholder="e.g. 70s / 80s / 90s party night, wedding reception, birthday party">
               </div>
 
-              <div class="form-field span-3">
+              <div class="form-field span-4">
                 <label for="event_date">Event date</label>
                 <input id="event_date" type="date" name="event_date">
               </div>
 
-              <div class="form-field span-3">
+              <div class="form-field span-4">
                 <label for="event_start_time">Start time</label>
                 <input id="event_start_time" type="time" name="event_start_time">
               </div>
 
-              <div class="form-field span-3">
+              <div class="form-field span-4">
                 <label for="event_end_time">End time</label>
                 <input id="event_end_time" type="time" name="event_end_time">
               </div>
 
-              <div class="form-field span-6">
-                <label for="venue_id">Select known venue</label>
+              <div class="form-field span-12">
+                <label for="venue_id">Select a venue</label>
                 <select id="venue_id" name="venue_id">
-                  <option value="">Type a venue manually</option>
+                  <option value="">Manual venue entry</option>
                   <?php foreach ($venues_for_select as $venue): ?>
                     <?php
                       $venueLabel = trim((string)($venue['venue_name'] ?? ''));
@@ -129,11 +129,10 @@ admin_header('Add Quotation - DJ Portal');
                     <option value="<?= (int)$venue['id'] ?>" data-name="<?= h($venueLabel) ?>" data-details="<?= h($venueDetails) ?>"><?= h($venueLabel) ?><?= $venueDetails !== '' ? ' — ' . h($venueDetails) : '' ?></option>
                   <?php endforeach; ?>
                 </select>
-                <p class="field-help">Choose an existing venue or leave this as manual entry.</p>
               </div>
 
-              <div class="form-field span-6">
-                <label for="venue">Venue / address</label>
+              <div class="form-field span-12">
+                <label for="venue">Manually enter venue address</label>
                 <input id="venue" type="text" name="venue" placeholder="Type venue name and/or address">
               </div>
             </div>
