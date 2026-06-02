@@ -147,7 +147,8 @@ admin_header('Events - DJ Portal');
         <h1 class="touch-panel-title">Events</h1>
         <p class="touch-subtitle">Current event is shown first, followed by upcoming and previous events.</p>
       </div>
-      <div>
+      <div class="settings-actions">
+        <a class="touch-btn ghost" href="tools.php">← Admin Tools</a>
         <a class="touch-btn blue" href="event-edit.php">＋ Add Event</a>
       </div>
     </div>

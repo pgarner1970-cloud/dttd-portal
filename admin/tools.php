@@ -60,23 +60,23 @@ admin_header('Admin Tools - DJ Portal');
     </div>
 
     <div class="admin-home-grid">
-      <div class="admin-home-card admin-home-card-muted">
+      <a class="admin-home-card" href="partners.php">
         <span class="admin-home-icon">★</span>
         <strong>Partners</strong>
         <span>DJ suppliers, party suppliers, banner printer and reusable business contacts</span>
-      </div>
+      </a>
 
-      <div class="admin-home-card admin-home-card-muted">
+      <a class="admin-home-card" href="sponsors.php">
         <span class="admin-home-icon">£</span>
         <strong>Sponsors</strong>
         <span>Reusable sponsors that can later be assigned to individual events</span>
-      </div>
+      </a>
 
-      <div class="admin-home-card admin-home-card-muted">
+      <a class="admin-home-card" href="event-sponsors.php">
         <span class="admin-home-icon">⇄</span>
         <strong>Event sponsors</strong>
         <span>Per-event prizes, offers and sponsor display settings</span>
-      </div>
+      </a>
     </div>
   </section>
 </main>
