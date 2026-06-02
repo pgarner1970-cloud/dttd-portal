@@ -5330,6 +5330,13 @@ body.public-event-detail-page .public-track-icon-action.spotify .public-action-i
 }
 
 
+/* v-global-select-dark-hard-fix
+   Force native dropdowns to remain readable on dark DTTD themes.
+   This is intentionally broad because select styling is used across public and admin suites. */
+html,
+body {
+  color-scheme: dark;
+}
 
 select,
 select option,
@@ -5393,11 +5400,102 @@ select option:focus {
 }
 
 
-/* v-cumulative-gallery-width-and-select-fix
-   Keep the public gallery aligned with the sticky public header,
-   while keeping all public select dropdowns readable on the dark neon theme. */
+/* v-cumulative-public-css-repair
+   Restores partner card/logo containment while preserving gallery alignment
+   and dark public select styling. */
 
-/* Match .public-site-header width: width:min(1180px, calc(100% - 28px)); */
+/* --- Public Partners page card/layout repair --- */
+.public-partners-page .public-partners-grid,
+.public-partner-grid,
+.partners-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 24px !important;
+  width: min(1180px, calc(100% - 28px)) !important;
+  max-width: 1180px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.public-partners-page .public-partner-card,
+.public-partner-card,
+.partner-card {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(255, 79, 216, 0.34) !important;
+  background: linear-gradient(180deg, rgba(48, 4, 65, 0.88), rgba(31, 0, 45, 0.94)) !important;
+}
+
+.public-partners-page .public-partner-logo,
+.public-partner-logo,
+.partner-logo {
+  height: 170px !important;
+  min-height: 170px !important;
+  max-height: 170px !important;
+  width: 100% !important;
+  overflow: hidden !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 22px !important;
+  box-sizing: border-box !important;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.public-partners-page .public-partner-logo img,
+.public-partner-logo img,
+.partner-logo img {
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: 92% !important;
+  max-height: 120px !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+}
+
+.public-partners-page .public-partner-logo--dark,
+.public-partner-logo--dark {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.public-partners-page .public-partner-logo--light,
+.public-partner-logo--light {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(115, 90, 180, 0.92),
+      rgba(70, 105, 170, 0.88)
+    ) !important;
+}
+
+.public-partners-page .public-partner-logo--neon_pink,
+.public-partner-logo--neon_pink {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255, 40, 190, .78), rgba(95, 20, 115, .78) 42%, rgba(23, 8, 45, .96) 100%) !important;
+}
+
+.public-partners-page .public-partner-logo--starburst,
+.public-partner-logo--starburst {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 75, 230, .72), rgba(105, 40, 150, .70) 28%, rgba(28, 10, 55, .96) 72%),
+    conic-gradient(from 0deg at 50% 50%, rgba(255,255,255,.12), transparent 12%, rgba(255,255,255,.10) 18%, transparent 30%, rgba(255,255,255,.09) 36%, transparent 46%) !important;
+}
+
+.public-partners-page .public-partner-logo--radial_neon,
+.public-partner-logo--radial_neon {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 35, 175, .72), rgba(100, 20, 125, .72) 38%, rgba(20, 8, 44, .98) 100%) !important;
+}
+
+.public-partners-page .public-partner-body,
+.public-partner-body,
+.partner-card-body {
+  padding: 22px !important;
+}
+
+/* --- Gallery width alignment, matched to sticky public header --- */
 .public-gallery-page .public-gallery-shell {
   width: min(1180px, calc(100% - 28px)) !important;
   max-width: 1180px !important;
@@ -5411,7 +5509,6 @@ select option:focus {
   box-sizing: border-box !important;
 }
 
-/* Preserve the intended 4-photo desktop layout inside the corrected container. */
 .public-gallery-page .public-photo-grid {
   display: grid !important;
   grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
@@ -5420,6 +5517,12 @@ select option:focus {
 }
 
 @media (max-width: 1120px) {
+  .public-partners-page .public-partners-grid,
+  .public-partner-grid,
+  .partners-grid {
+    grid-template-columns: 1fr !important;
+  }
+
   .public-gallery-page .public-photo-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
@@ -5441,8 +5544,7 @@ select option:focus {
   }
 }
 
-/* Public select dropdowns: applied in the active public stylesheet only,
-   so it does not overwrite layout fixes from other patch files. */
+/* --- Public dark select styling --- */
 .public-gallery-page select,
 .public-gallery-page select option,
 .public-filter-grid select,
