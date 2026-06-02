@@ -1308,7 +1308,7 @@ $GLOBALS['public_current_mixer_tracks'] = $hasEventAccess ? public_loaded_mixer_
                 <span class="public-feature-kicker">Photos & Memories</span>
                 <h2>Event photos</h2>
               </div>
-              <span class="public-gallery-card-actions"><a class="public-neon-btn subtle" href="/upload.php">Upload Photos</a><a class="public-neon-btn subtle" href="/gallery.php">View Gallery</a></span>
+              <span class="public-gallery-card-actions"><a class="public-neon-btn subtle" href="/upload.php">Upload Photos</a><a class="public-neon-btn subtle" href="/gallery">View Gallery</a></span>
             </div>
 
             <?php if (!empty($eventPhotos)): ?>

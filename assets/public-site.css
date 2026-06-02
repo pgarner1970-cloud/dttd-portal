@@ -2189,8 +2189,8 @@ body.homepage-option-one::after{
   background:linear-gradient(180deg, rgba(255,79,216,.16), rgba(20,0,35,.58));
 }
 
-.option-one-action-card[href="/events.php"] .option-one-icon,
-.option-one-action-card[href="/gallery.php"] .option-one-icon{
+.option-one-action-card[href="/events"] .option-one-icon,
+.option-one-action-card[href="/gallery"] .option-one-icon{
   font-size:28px;
 }
 

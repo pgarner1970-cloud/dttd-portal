@@ -143,7 +143,7 @@ admin_header(($is_edit ? 'Edit Partner' : 'Add Partner') . ' - DJ Portal');
         <p class="touch-subtitle">Maintain suppliers and trusted contacts used behind the scenes.</p>
       </div>
       <div>
-        <a class="touch-btn" href="partners.php">Back to Partners</a>
+        <a class="touch-btn" href="/partners">Back to Partners</a>
       </div>
     </div>
 
@@ -235,7 +235,7 @@ admin_header(($is_edit ? 'Edit Partner' : 'Add Partner') . ' - DJ Portal');
       </div>
 
       <div class="form-actions">
-        <a class="touch-btn" href="partners.php">Cancel</a>
+        <a class="touch-btn" href="/partners">Cancel</a>
         <button class="touch-btn blue" type="submit" <?= partners_table_exists() ? '' : 'disabled' ?>><?= $is_edit ? 'Save Partner' : 'Add Partner' ?></button>
       </div>
     </form>

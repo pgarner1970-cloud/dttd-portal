@@ -17,7 +17,7 @@ if (!$event) {
             <h1 class="touch-panel-title">Event QR Code</h1>
             <p class="touch-subtitle">Event not found.</p>
           </div>
-          <a class="touch-btn" href="events.php">Back to Events</a>
+          <a class="touch-btn" href="/events">Back to Events</a>
         </div>
       </section>
     </main>
@@ -59,7 +59,7 @@ admin_header('Event QR - DJ Portal');
         <p class="touch-subtitle"><?= h($event['event_name']) ?> — <?= h($event['venue_name']) ?></p>
       </div>
       <div class="settings-actions">
-        <a class="touch-btn" href="events.php">Back to Events</a>
+        <a class="touch-btn" href="/events">Back to Events</a>
         <a class="touch-btn blue" href="event-edit.php?id=<?= (int)$event['id'] ?>">Edit Event</a>
       </div>
     </div>

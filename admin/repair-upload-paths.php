@@ -83,7 +83,7 @@ if (($_POST['repair'] ?? '') === 'yes') {
     <form method="post">
       <input type="hidden" name="repair" value="yes">
       <button class="btn primary" type="submit">Run Repair</button>
-      <a class="btn" href="events.php">Back to Events</a>
+      <a class="btn" href="/events">Back to Events</a>
     </form>
   </section>
 </main>

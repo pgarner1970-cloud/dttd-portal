@@ -16,8 +16,8 @@ if (!isset($facebookUrl)) {
 $navItems = [
     ['key' => 'home', 'label' => 'Home', 'href' => '/'],
     ['key' => 'events', 'label' => 'Events', 'href' => '/events'],
-    ['key' => 'gallery', 'label' => 'Gallery', 'href' => '/gallery.php'],
-    ['key' => 'partners', 'label' => 'Partners', 'href' => '/partners.php'],
+    ['key' => 'gallery', 'label' => 'Gallery', 'href' => '/gallery'],
+    ['key' => 'partners', 'label' => 'Partners', 'href' => '/partners'],
 ];
 ?>
 <header class="public-site-header">

@@ -280,7 +280,7 @@ admin_header('DJ Portal');
         <span>Live song request queue</span>
       </a>
 
-      <a class="admin-home-card" href="events.php">
+      <a class="admin-home-card" href="/events">
         <span class="admin-home-icon">▦</span>
         <strong>Events</strong>
         <span>Create, edit and review events</span>

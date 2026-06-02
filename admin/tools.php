@@ -13,7 +13,7 @@ admin_header('Admin Tools - DJ Portal');
     </div>
 
     <div class="admin-home-grid">
-      <a class="admin-home-card" href="events.php">
+      <a class="admin-home-card" href="/events">
         <span class="admin-home-icon">▦</span>
         <strong>Events</strong>
         <span>Create, edit and review event setup</span>
@@ -60,7 +60,7 @@ admin_header('Admin Tools - DJ Portal');
     </div>
 
     <div class="admin-home-grid">
-      <a class="admin-home-card" href="partners.php">
+      <a class="admin-home-card" href="/partners">
         <span class="admin-home-icon">★</span>
         <strong>Partners</strong>
         <span>DJ suppliers, party suppliers, banner printer and reusable business contacts</span>

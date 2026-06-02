@@ -25,7 +25,7 @@ $badDir = dirname(dirname(__DIR__)) . '/dttd-portalhttps:';
     <p><strong>Bad directory exists?</strong> <?= is_dir($badDir) ? 'Yes' : 'No' ?></p>
 
     <p>
-      <a class="btn" href="events.php">Back to Events</a>
+      <a class="btn" href="/events">Back to Events</a>
     </p>
   </section>
 </main>
