@@ -1,0 +1,19 @@
+
+/* Softer neon/glass logo panel for transparent logos */
+
+.partner-logo--light,
+.sponsor-logo--light {
+    background:
+        linear-gradient(
+            135deg,
+            rgba(236,230,255,0.96),
+            rgba(220,235,255,0.92)
+        );
+    border-radius: 20px;
+    padding: 18px;
+    border: 1px solid rgba(255,255,255,.18);
+    backdrop-filter: blur(6px);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.22),
+        0 10px 30px rgba(0,0,0,.28);
+}
