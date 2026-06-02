@@ -1,0 +1,17 @@
+/* Dark select dropdown fix */
+select,
+select option {
+    background: #0f172a;
+    color: #ffffff;
+}
+
+select:focus {
+    background: #0f172a;
+    color: #ffffff;
+}
+
+select option:checked,
+select option:hover {
+    background: #2563eb;
+    color: #ffffff;
+}
