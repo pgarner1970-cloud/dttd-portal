@@ -20,6 +20,28 @@ function dttd_pdf_money($amount) {
     return chr(163) . number_format((float)$amount, 2);
 }
 
+function dttd_pdf_event_date_time($eventDate, $startTime, $endTime) {
+    $parts = [];
+    if (!empty($eventDate)) {
+        $ts = strtotime((string)$eventDate);
+        $parts[] = $ts ? date('d/m/Y', $ts) : (string)$eventDate;
+    } else {
+        $parts[] = 'TBC';
+    }
+
+    $start = !empty($startTime) ? substr((string)$startTime, 0, 5) : '';
+    $end = !empty($endTime) ? substr((string)$endTime, 0, 5) : '';
+    if ($start !== '' && $end !== '') {
+        $parts[] = $start . ' - ' . $end;
+    } elseif ($start !== '') {
+        $parts[] = 'from ' . $start;
+    } elseif ($end !== '') {
+        $parts[] = 'until ' . $end;
+    }
+
+    return implode(' ', $parts);
+}
+
 $mode = $_GET['mode'] ?? '';
 $type = $_GET['type'] ?? 'quote';
 $isPreview = $mode === 'preview';
@@ -122,40 +144,37 @@ if ($isPreview) {
     $pdf->text(208, 671, 'PREVIEW / TEST DOCUMENT - NOT SAVED', 9, true, $purple);
 }
 
-// Customer and event cards moved higher and given more balanced spacing.
-$pdf->rect(40, 518, 247, 112, [1,1,1], $line);
-$pdf->rect(40, 608, 247, 22, $softPurple, $line);
-$pdf->text(54, 615, 'BILL TO', 12, true, $purple);
-$pdf->text(54, 590, $doc['customer_name'] ?: 'Customer name', 10, true, $dark);
-$y = 572;
-foreach (preg_split('/
-|
-|
-/', (string)$doc['customer_address']) as $addrLine) {
+// Customer and event cards. These sit closer to the header and allow the
+// event venue/address to wrap over more lines without crowding the item table.
+$cardY = 530;
+$cardH = 122;
+$cardHeaderY = $cardY + $cardH - 22;
+
+$pdf->rect(40, $cardY, 247, $cardH, [1,1,1], $line);
+$pdf->rect(40, $cardHeaderY, 247, 22, $softPurple, $line);
+$pdf->text(54, $cardHeaderY + 7, 'BILL TO', 12, true, $purple);
+$pdf->text(54, $cardHeaderY - 18, $doc['customer_name'] ?: 'Customer name', 10, true, $dark);
+$y = $cardHeaderY - 36;
+foreach (preg_split('/\r\n|\r|\n/', (string)$doc['customer_address']) as $addrLine) {
     $addrLine = trim($addrLine);
     if ($addrLine === '') { continue; }
     $pdf->multiline(54, $y, $addrLine, 8, 38, 10, 1, false, $dark);
     $y -= 10;
-    if ($y < 538) { break; }
+    if ($y < $cardY + 18) { break; }
 }
-if (!empty($doc['customer_email']) && $y >= 532) { $pdf->text(54, $y, $doc['customer_email'], 8, false, $purple); }
+if (!empty($doc['customer_email']) && $y >= $cardY + 12) { $pdf->text(54, $y, $doc['customer_email'], 8, false, $purple); }
 
-$pdf->rect(308, 518, 247, 112, [1,1,1], $line);
-$pdf->rect(308, 608, 247, 22, $softPurple, $line);
-$pdf->text(322, 615, 'EVENT DETAILS', 12, true, $purple);
-$pdf->text(322, 590, 'Event / Occasion:', 8, true, $dark);
-$pdf->multiline(404, 590, $doc['event_description'] ?: 'Dance Thru The Decades Event', 8, 30, 10, 3, false, $dark);
-$pdf->line(322, 557, 540, 557, 0.82);
-$pdf->text(322, 548, 'Event Date:', 8, true, $dark);
-$pdf->text(404, 548, !empty($doc['event_date']) ? date('d/m/Y', strtotime($doc['event_date'])) : 'TBC', 8, false, $dark);
-$pdf->line(322, 539, 540, 539, 0.82);
-$pdf->text(322, 528, 'Start Time:', 8, true, $dark);
-$pdf->text(404, 528, !empty($doc['event_start_time']) ? substr((string)$doc['event_start_time'], 0, 5) : 'TBC', 8, false, $dark);
-$pdf->text(462, 528, 'End:', 8, true, $dark);
-$pdf->text(494, 528, !empty($doc['event_end_time']) ? substr((string)$doc['event_end_time'], 0, 5) : 'TBC', 8, false, $dark);
-$pdf->line(322, 519, 540, 519, 0.82);
-$pdf->text(322, 508, 'Venue:', 8, true, $dark);
-$pdf->multiline(404, 508, $doc['venue'] ?: 'TBC', 8, 30, 10, 2, false, $dark);
+$pdf->rect(308, $cardY, 247, $cardH, [1,1,1], $line);
+$pdf->rect(308, $cardHeaderY, 247, 22, $softPurple, $line);
+$pdf->text(322, $cardHeaderY + 7, 'EVENT DETAILS', 12, true, $purple);
+$pdf->text(322, $cardHeaderY - 18, 'Event / Occasion:', 8, true, $dark);
+$pdf->multiline(404, $cardHeaderY - 18, $doc['event_description'] ?: 'Dance Thru The Decades Event', 8, 30, 10, 2, false, $dark);
+$pdf->line(322, $cardHeaderY - 43, 540, $cardHeaderY - 43, 0.82);
+$pdf->text(322, $cardHeaderY - 54, 'Event Date:', 8, true, $dark);
+$pdf->multiline(404, $cardHeaderY - 54, dttd_pdf_event_date_time($doc['event_date'], $doc['event_start_time'], $doc['event_end_time']), 8, 30, 10, 2, false, $dark);
+$pdf->line(322, $cardHeaderY - 78, 540, $cardHeaderY - 78, 0.82);
+$pdf->text(322, $cardHeaderY - 90, 'Venue:', 8, true, $dark);
+$pdf->multiline(404, $cardHeaderY - 90, $doc['venue'] ?: 'TBC', 8, 31, 10, 4, false, $dark);
 
 // Line item table with fewer blank rows to free vertical space for the footer artwork.
 $pdf->rect(40, 485, 515, 23, $purple, $purple);
