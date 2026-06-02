@@ -127,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && partners_table_exists()) {
     }
 }
 
-$logo_background = (string)($$partner['logo_background'] ?? 'dark');
+$logo_background = (string)($partner['logo_background'] ?? 'dark');
 if (!in_array($logo_background, ['dark', 'light', 'neon_pink', 'starburst', 'radial_neon'], true)) {
     $logo_background = 'dark';
 }
@@ -224,7 +224,7 @@ admin_header(($is_edit ? 'Edit Partner' : 'Add Partner') . ' - DJ Portal');
       </section>
 
       <div class="partner-logo-preview-wrap" aria-live="polite">
-        <?php $previewLogoBg = preg_replace('/[^a-z0-9_]/', '', (string)($partner['logo_background'] ?? 'dark')); ?>
+        <?php $previewLogoBg = preg_replace('/[^a-z0-9_]/', '', $logo_background); ?>
         <div class="partner-logo-preview is-<?= h($previewLogoBg) ?>" id="partner-logo-preview">
           <?php if (!empty($partner['image_url'])): ?>
             <img src="<?= h($partner['image_url']) ?>" alt="Partner logo preview">
@@ -271,6 +271,33 @@ admin_header(($is_edit ? 'Edit Partner' : 'Add Partner') . ' - DJ Portal');
     0 10px 30px rgba(0,0,0,.28);
   backdrop-filter: blur(6px);
 }
+
+.partner-logo-preview.is-neon_pink {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255, 40, 190, .78), rgba(95, 20, 115, .78) 42%, rgba(23, 8, 45, .96) 100%);
+  border-color: rgba(255, 70, 220, .42);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    0 0 28px rgba(255, 40, 190, .28);
+}
+.partner-logo-preview.is-starburst {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 75, 230, .72), rgba(105, 40, 150, .70) 28%, rgba(28, 10, 55, .96) 72%),
+    conic-gradient(from 0deg at 50% 50%, rgba(255,255,255,.12), transparent 12%, rgba(255,255,255,.10) 18%, transparent 30%, rgba(255,255,255,.09) 36%, transparent 46%);
+  border-color: rgba(205, 90, 255, .36);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    0 0 24px rgba(190, 65, 255, .22);
+}
+.partner-logo-preview.is-radial_neon {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 35, 175, .72), rgba(100, 20, 125, .72) 38%, rgba(20, 8, 44, .98) 100%);
+  border-color: rgba(230, 65, 210, .32);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 0 22px rgba(255, 40, 190, .20);
+}
+
 .partner-logo-preview img {
   max-width: min(420px, 90%);
   max-height: 110px;

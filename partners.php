@@ -66,7 +66,10 @@ function partner_public_image($value) {
               $notes = trim((string)($partner['notes'] ?? ''));
               $website = partner_public_url($partner['website_url'] ?? '');
               $image = partner_public_image($partner['image_url'] ?? '');
-              $logoBackground = (($partner['logo_background'] ?? 'dark') === 'light') ? 'light' : 'dark';
+              $logoBackground = (string)($partner['logo_background'] ?? 'dark');
+              if (!in_array($logoBackground, ['dark', 'light', 'neon_pink', 'starburst', 'radial_neon'], true)) {
+                  $logoBackground = 'dark';
+              }
             ?>
             <article class="public-partner-card">
               <div class="public-partner-logo public-partner-logo--<?= h($logoBackground) ?>">
