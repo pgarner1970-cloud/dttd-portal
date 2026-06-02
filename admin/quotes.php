@@ -13,6 +13,7 @@ admin_header('Quotations - DJ Portal');
       <div class="settings-actions"><a class="touch-btn blue" href="quote-add.php">＋ Add Quotation</a></div>
     </div>
     <?php if (!empty($_GET['saved'])): ?><p class="notice success">Quotation saved.</p><?php endif; ?>
+    <?php if (!empty($_GET['updated'])): ?><p class="notice success">Quotation updated.</p><?php endif; ?>
     <div class="event-list">
       <?php foreach ($quotes as $q): ?>
         <article class="event-row-card">
@@ -21,6 +22,10 @@ admin_header('Quotations - DJ Portal');
           <div class="event-row-close"><strong>Total</strong><span>£<?= h(number_format((float)$q['total_amount'], 2)) ?></span></div>
           <div class="event-row-actions event-row-actions-only">
             <a class="action-tile duplicate" target="_blank" href="quote-pdf.php?type=quote&id=<?= (int)$q['id'] ?>"><span class="big-icon">PDF</span><span>Quote</span></a>
+            <?php if (empty($q['invoice_number'])): ?>
+              <a class="action-tile maybe" href="quote-add.php?id=<?= (int)$q['id'] ?>"><span class="big-icon">✎</span><span>Edit</span></a>
+            <?php endif; ?>
+            <a class="action-tile duplicate" href="quote-add.php?id=<?= (int)$q['id'] ?>&clone=1"><span class="big-icon">⧉</span><span>Clone</span></a>
             <?php if (!empty($q['invoice_number'])): ?>
               <a class="action-tile maybe" target="_blank" href="quote-pdf.php?type=invoice&id=<?= (int)$q['id'] ?>"><span class="big-icon">INV</span><span><?= h($q['invoice_number']) ?></span></a>
             <?php else: ?>

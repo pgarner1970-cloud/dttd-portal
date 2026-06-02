@@ -179,8 +179,7 @@ $pdf->multiline(404, $cardHeaderY - 90, $doc['venue'] ?: 'TBC', 8, 31, 10, 4, fa
 // Line item table with fewer blank rows to free vertical space for the footer artwork.
 $pdf->rect(40, 485, 515, 23, $purple, $purple);
 $pdf->text(54, 493, 'DESCRIPTION', 10, true, [1,1,1]);
-$pdf->text(407, 493, 'QTY', 10, true, [1,1,1]);
-$pdf->text(468, 493, 'AMOUNT', 10, true, [1,1,1]);
+$pdf->text(478, 493, 'AMOUNT', 10, true, [1,1,1]);
 
 $y = 453;
 $total = 0;
@@ -190,31 +189,28 @@ foreach ($doc['items'] as $item) {
     if ($row >= $maxRows) { break; }
     $price = (float)($item['price'] ?? 0);
     $total += $price;
-    $pdf->rect(40, $y-6, 360, 32, [1,1,1], $line);
-    $pdf->rect(400, $y-6, 48, 32, [1,1,1], $line);
-    $pdf->rect(448, $y-6, 107, 32, [1,1,1], $line);
-    $pdf->multiline(54, $y+9, (string)($item['description'] ?? ''), 8, 58, 10, 2, false, $dark);
-    $pdf->text(420, $y+5, '1', 9, false, $dark);
-    $pdf->text(468, $y+5, dttd_pdf_money($price), 9, true, $dark);
+    $pdf->rect(40, $y-6, 410, 32, [1,1,1], $line);
+    $pdf->rect(450, $y-6, 105, 32, [1,1,1], $line);
+    $pdf->multiline(54, $y+9, (string)($item['description'] ?? ''), 8, 68, 10, 2, false, $dark);
+    $pdf->textRight(535, $y+5, dttd_pdf_money($price), 9, true, $dark);
     $y -= 32;
     $row++;
 }
 while ($row < 3) {
-    $pdf->rect(40, $y-6, 360, 32, [1,1,1], $line);
-    $pdf->rect(400, $y-6, 48, 32, [1,1,1], $line);
-    $pdf->rect(448, $y-6, 107, 32, [1,1,1], $line);
+    $pdf->rect(40, $y-6, 410, 32, [1,1,1], $line);
+    $pdf->rect(450, $y-6, 105, 32, [1,1,1], $line);
     $y -= 32;
     $row++;
 }
 
 // Notes and payment schedule area compacted to leave a clean full-width footer.
 $pdf->text(40, 300, 'NOTES / PAYMENT TERMS', 10, true, $purple);
-$pdf->rect(40, 195, 250, 90, [1,1,1], $line);
+$pdf->rect(40, 195, 220, 90, [1,1,1], $line);
 $notes = trim((string)$doc['notes']);
 if ($notes === '') {
     $notes = 'Thank you for booking Dance Thru The Decades Events.';
 }
-$pdf->multiline(54, 265, $notes, 8, 48, 11, 6, false, $dark);
+$pdf->multiline(54, 265, $notes, 8, 42, 11, 6, false, $dark);
 
 $quoteDateTs = !empty($doc['quote_date']) ? strtotime($doc['quote_date']) : time();
 if ($quoteDateTs === false) { $quoteDateTs = time(); }
@@ -236,41 +232,38 @@ $depositValue = $depositPercent > 0 ? (rtrim(rtrim(number_format($depositPercent
 
 if ($type === 'invoice') {
     $summaryRows = [
-        ['TOTAL INVOICE', dttd_pdf_money($total), [1,1,1], $purple, 12, true],
-        ['AMOUNT PAID', dttd_pdf_money(0), [1,1,1], $line, 10, true],
-        ['BALANCE DUE', dttd_pdf_money($total), $purple, $purple, 13, true],
+        ['TOTAL INVOICE', dttd_pdf_money($total), [1,1,1], $purple],
+        ['AMOUNT PAID', dttd_pdf_money(0), [1,1,1], $line],
+        ['BALANCE DUE', dttd_pdf_money($total), $purple, $purple],
     ];
 } else {
     $summaryRows = [
-        ['TOTAL QUOTATION', dttd_pdf_money($total), $softGold, $line, 12, true],
-        [$depositLabel, $depositValue, [1,1,1], $line, 9.2, true],
+        ['TOTAL QUOTATION', dttd_pdf_money($total), $softGold, $line],
+        ['BOOKING DEPOSIT', $depositValue, [1,1,1], $line],
     ];
     if ($depositPercent > 0) {
-        $summaryRows[] = ['DEPOSIT DUE BY', $depositDue, [1,1,1], $line, 9.8, true];
-        $summaryRows[] = ['REMAINING BALANCE', dttd_pdf_money($remainingBalance), [1,1,1], $line, 9.8, true];
+        $summaryRows[] = ['DEPOSIT DUE BY', $depositDue, [1,1,1], $line];
+        $summaryRows[] = ['REMAINING BALANCE', dttd_pdf_money($remainingBalance), [1,1,1], $line];
     }
-    $summaryRows[] = ['BALANCE DUE BY', $balanceDue, $purple, $purple, 9.8, true];
+    $summaryRows[] = ['BALANCE DUE BY', $balanceDue, $purple, $purple];
 }
 
-// Payment summary aligned with the top of the notes box. Wider columns and taller rows
-// prevent the labels and amounts from colliding when quotation payment dates are shown.
-$summaryX = 305;
+// Payment summary aligned with the top of the notes box. The value column is
+// right-aligned and the font size is uniform so the rows read cleanly.
+$summaryX = 278;
 $summaryY = 285;
-$summaryW = 250;
+$summaryW = 277;
 $rowH = $type === 'invoice' ? 30 : 24;
 $labelX = $summaryX + 12;
 $valueRightX = $summaryX + $summaryW - 14;
+$summaryFont = 9.6;
 foreach ($summaryRows as $summaryRow) {
-    [$label, $value, $fill, $stroke, $fontSize, $bold] = $summaryRow;
+    [$label, $value, $fill, $stroke] = $summaryRow;
     $pdf->rect($summaryX, $summaryY - $rowH, $summaryW, $rowH, $fill, $stroke);
     $textColour = ($fill === $purple) ? [1,1,1] : $dark;
     $labelColour = ($fill === $purple) ? [1,1,1] : $purple;
-    $displaySize = min((float)$fontSize, 10.5);
-    if ($label === 'TOTAL QUOTATION') { $displaySize = 10; }
-    if ($label === 'BOOKING DEPOSIT') { $displaySize = 9.3; }
-    if ($label === 'BALANCE DUE BY') { $displaySize = 9.5; }
-    $pdf->text($labelX, $summaryY - $rowH + 8, $label, $displaySize, true, $labelColour);
-    $pdf->textRight($valueRightX, $summaryY - $rowH + 8, $value, $displaySize, true, $textColour);
+    $pdf->text($labelX, $summaryY - $rowH + 8, $label, $summaryFont, true, $labelColour);
+    $pdf->textRight($valueRightX, $summaryY - $rowH + 8, (string)$value, $summaryFont, true, $textColour);
     $summaryY -= $rowH;
 }
 
