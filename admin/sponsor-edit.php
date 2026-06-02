@@ -185,12 +185,12 @@ admin_header(($is_edit ? 'Edit Sponsor' : 'Add Sponsor') . ' - DJ Portal');
 
           <label>
             <span>Logo/image URL</span>
-            <input type="url" name="logo_url" value="<?= h($sponsor['logo_url']) ?>" placeholder="https://... or /assets/...">
+            <input type="url" name="logo_url" id="sponsor-logo-url" value="<?= h($sponsor['logo_url']) ?>" placeholder="https://... or /assets/...">
           </label>
 
           <label>
             <span>Logo background</span>
-            <select name="logo_background">
+            <select name="logo_background" id="sponsor-logo-background">
               <option value="dark" <?= (($sponsor['logo_background'] ?? 'dark') === 'dark') ? 'selected' : '' ?>>Dark / transparent</option>
               <option value="light" <?= (($sponsor['logo_background'] ?? 'dark') === 'light') ? 'selected' : '' ?>>Light panel</option>
             </select>
@@ -222,6 +222,16 @@ admin_header(($is_edit ? 'Edit Sponsor' : 'Add Sponsor') . ' - DJ Portal');
         </div>
       </section>
 
+      <div class="sponsor-logo-preview-wrap" aria-live="polite">
+        <div class="sponsor-logo-preview <?= (($sponsor['logo_background'] ?? 'dark') === 'light') ? 'is-light' : 'is-dark' ?>" id="sponsor-logo-preview">
+          <?php if (trim((string)$sponsor['logo_url']) !== ''): ?>
+            <img src="<?= h($sponsor['logo_url']) ?>" alt="Sponsor logo preview">
+          <?php else: ?>
+            <span>Logo preview will appear here when a logo URL is entered.</span>
+          <?php endif; ?>
+        </div>
+      </div>
+
       <div class="form-actions">
         <a class="touch-btn" href="sponsors.php">Cancel</a>
         <button class="touch-btn blue" type="submit" <?= sponsors_table_exists() ? '' : 'disabled' ?>><?= $is_edit ? 'Save Sponsor' : 'Add Sponsor' ?></button>
@@ -229,5 +239,69 @@ admin_header(($is_edit ? 'Edit Sponsor' : 'Add Sponsor') . ' - DJ Portal');
     </form>
   </section>
 </main>
+
+
+<style>
+.sponsor-logo-preview-wrap {
+  margin: 0 18px 18px;
+}
+.sponsor-logo-preview {
+  min-height: 120px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.65);
+}
+.sponsor-logo-preview.is-light {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(236,230,255,0.96),
+      rgba(220,235,255,0.92)
+    );
+  color: #111827;
+  border-color: rgba(255,255,255,.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    0 10px 30px rgba(0,0,0,.28);
+  backdrop-filter: blur(6px);
+}
+.sponsor-logo-preview img {
+  max-width: min(420px, 90%);
+  max-height: 110px;
+  object-fit: contain;
+}
+</style>
+<script>
+(function () {
+  const urlInput = document.getElementById('sponsor-logo-url');
+  const bgSelect = document.getElementById('sponsor-logo-background');
+  const preview = document.getElementById('sponsor-logo-preview');
+  if (!urlInput || !bgSelect || !preview) return;
+
+  function refreshPreview() {
+    preview.classList.toggle('is-light', bgSelect.value === 'light');
+    preview.classList.toggle('is-dark', bgSelect.value !== 'light');
+
+    const url = urlInput.value.trim();
+    if (url) {
+      preview.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = 'Sponsor logo preview';
+      preview.appendChild(img);
+    } else {
+      preview.innerHTML = '<span>Logo preview will appear here when a logo URL is entered.</span>';
+    }
+  }
+
+  urlInput.addEventListener('input', refreshPreview);
+  bgSelect.addEventListener('change', refreshPreview);
+})();
+</script>
 
 <?php admin_footer(); ?>

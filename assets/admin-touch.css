@@ -6365,3 +6365,72 @@ button.action-tile:disabled{
   background-color: #2563eb !important;
   color: #ffffff !important;
 }
+
+
+/* v116 global dark native select fix - keep every admin dropdown readable */
+html,
+body,
+.admin-shell,
+.admin-page,
+.touch-wrap,
+.touch-panel,
+.admin-card,
+.admin-form,
+.settings-card,
+.venue-edit-form {
+  color-scheme: dark;
+}
+
+select,
+select option,
+select optgroup,
+.touch-wrap select,
+.touch-wrap select option,
+.touch-panel select,
+.touch-panel select option,
+.settings-card select,
+.settings-card select option,
+.venue-edit-form select,
+.venue-edit-form select option,
+.admin-card select,
+.admin-card select option,
+.admin-form select,
+.admin-form select option {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+}
+
+select {
+  border-color: rgba(148, 163, 184, 0.35) !important;
+}
+
+select:focus,
+.touch-wrap select:focus,
+.touch-panel select:focus,
+.settings-card select:focus,
+.venue-edit-form select:focus,
+.admin-card select:focus,
+.admin-form select:focus {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+  border-color: rgba(59, 130, 246, 0.75) !important;
+  outline: none;
+}
+
+select option:checked,
+select option:hover,
+.touch-wrap select option:checked,
+.touch-wrap select option:hover,
+.touch-panel select option:checked,
+.touch-panel select option:hover,
+.settings-card select option:checked,
+.settings-card select option:hover,
+.venue-edit-form select option:checked,
+.venue-edit-form select option:hover,
+.admin-card select option:checked,
+.admin-card select option:hover,
+.admin-form select option:checked,
+.admin-form select option:hover {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+}

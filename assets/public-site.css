@@ -5445,8 +5445,16 @@ body.public-event-detail-page .public-track-icon-action.spotify .public-action-i
 
 /* Partner logo background options */
 .public-partner-logo--light {
-  background: rgba(255,255,255,.96) !important;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(236,230,255,0.96),
+      rgba(220,235,255,0.92)
+    ) !important;
   border-bottom: 1px solid rgba(255,255,255,.20);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    0 10px 30px rgba(0,0,0,.20);
 }
 
 .public-partner-logo--light img {

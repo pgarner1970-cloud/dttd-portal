@@ -249,8 +249,18 @@ admin_header(($is_edit ? 'Edit Partner' : 'Add Partner') . ' - DJ Portal');
   color: rgba(255,255,255,.65);
 }
 .partner-logo-preview.is-light {
-  background: rgba(255,255,255,.96);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(236,230,255,0.96),
+      rgba(220,235,255,0.92)
+    );
   color: #111827;
+  border-color: rgba(255,255,255,.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    0 10px 30px rgba(0,0,0,.28);
+  backdrop-filter: blur(6px);
 }
 .partner-logo-preview img {
   max-width: min(420px, 90%);
