@@ -7,6 +7,9 @@ $defaults = [
     'event_date' => '', 'venue' => '', 'notes' => '',
     'line_description' => ['Dance Thru The Decades DJ Entertainment Package'],
     'line_price' => ['350.00'],
+    'deposit_percentage' => '20.00',
+    'deposit_due_date' => date('Y-m-d', strtotime('+30 days')),
+    'balance_due_date' => '',
 ];
 
 admin_header('Add Quotation - DJ Portal');
@@ -127,10 +130,46 @@ admin_header('Add Quotation - DJ Portal');
 
         <section class="form-section">
           <div class="form-section-header">
+            <div class="form-section-icon">💷</div>
+            <div>
+              <h2 class="form-section-title">Payment Schedule</h2>
+              <p class="form-section-subtitle">Defaults are 20% deposit, due 30 days from quote date, with the balance due 14 days before the event.</p>
+            </div>
+          </div>
+
+          <div class="form-section-body">
+            <div class="form-grid">
+              <div class="form-field span-4">
+                <label for="deposit_percentage">Deposit percentage</label>
+                <input id="deposit_percentage" type="number" step="0.01" min="0" max="100" name="deposit_percentage" value="<?= h($defaults['deposit_percentage']) ?>">
+                <p class="field-help">Set to 0 if no deposit is required.</p>
+              </div>
+
+              <div class="form-field span-4">
+                <label for="deposit_due_date">Deposit due date</label>
+                <input id="deposit_due_date" type="date" name="deposit_due_date" value="<?= h($defaults['deposit_due_date']) ?>">
+                <p class="field-help">Not applicable when the deposit is 0%.</p>
+              </div>
+
+              <div class="form-field span-4">
+                <label for="balance_due_date">Balance due date</label>
+                <input id="balance_due_date" type="date" name="balance_due_date">
+                <label class="checkbox-row" style="margin-top:10px;">
+                  <input id="balance_due_event_date" type="checkbox" name="balance_due_event_date" value="1">
+                  <span>Use event date</span>
+                </label>
+                <p class="field-help">If left blank, it will default to 14 days before the event.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <div class="form-section-header">
             <div class="form-section-icon">📝</div>
             <div>
               <h2 class="form-section-title">Notes / Payment Terms</h2>
-              <p class="form-section-subtitle">Deposit, balance due date, bank details or other terms.</p>
+              <p class="form-section-subtitle">Optional extra wording. If left blank, the PDF will use a simple thank-you message.</p>
             </div>
           </div>
 
@@ -138,7 +177,7 @@ admin_header('Add Quotation - DJ Portal');
             <div class="form-grid">
               <div class="form-field span-12">
                 <label for="notes">Notes / payment terms</label>
-                <textarea id="notes" name="notes" rows="4" placeholder="Deposit, balance due date, bank details or other terms can go here."></textarea>
+                <textarea id="notes" name="notes" rows="4" placeholder="Optional. Leave blank to use the default thank-you message."></textarea>
               </div>
             </div>
           </div>
@@ -154,4 +193,53 @@ admin_header('Add Quotation - DJ Portal');
     </div>
   </section>
 </main>
+
+<script>
+(function () {
+  const eventDate = document.getElementById('event_date');
+  const depositPercentage = document.getElementById('deposit_percentage');
+  const depositDue = document.getElementById('deposit_due_date');
+  const balanceDue = document.getElementById('balance_due_date');
+  const useEventDate = document.getElementById('balance_due_event_date');
+
+  function isoDate(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  function refreshDepositDateState() {
+    if (!depositPercentage || !depositDue) return;
+    const pct = parseFloat(depositPercentage.value || '0');
+    depositDue.disabled = pct <= 0;
+    if (pct <= 0) {
+      depositDue.value = '';
+    } else if (!depositDue.value) {
+      const d = new Date();
+      d.setDate(d.getDate() + 30);
+      depositDue.value = isoDate(d);
+    }
+  }
+
+  function refreshBalanceDueDate(forceDefault) {
+    if (!eventDate || !balanceDue || !eventDate.value) return;
+    const event = new Date(eventDate.value + 'T12:00:00');
+    if (Number.isNaN(event.getTime())) return;
+    if (useEventDate && useEventDate.checked) {
+      balanceDue.value = eventDate.value;
+      return;
+    }
+    if (forceDefault || !balanceDue.value) {
+      event.setDate(event.getDate() - 14);
+      balanceDue.value = isoDate(event);
+    }
+  }
+
+  if (depositPercentage) depositPercentage.addEventListener('input', refreshDepositDateState);
+  if (eventDate) eventDate.addEventListener('change', function () { refreshBalanceDueDate(true); });
+  if (useEventDate) useEventDate.addEventListener('change', function () { refreshBalanceDueDate(true); });
+  refreshDepositDateState();
+})();
+</script>
 <?php admin_footer(); ?>

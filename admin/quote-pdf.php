@@ -39,6 +39,10 @@ if ($isPreview) {
         'items' => $items,
         'notes' => trim($_POST['notes'] ?? ''),
         'total_amount' => $total,
+        'deposit_percentage' => max(0, min(100, (float)($_POST['deposit_percentage'] ?? 20))),
+        'deposit_due_date' => trim($_POST['deposit_due_date'] ?? ''),
+        'balance_due_date' => trim($_POST['balance_due_date'] ?? ''),
+        'balance_due_event_date' => !empty($_POST['balance_due_event_date']),
         'quote_date' => date('Y-m-d'),
     ];
 } else {
@@ -65,6 +69,10 @@ if ($isPreview) {
         'items' => json_decode($q['items_json'], true) ?: [],
         'notes' => $q['notes'],
         'total_amount' => $q['total_amount'],
+        'deposit_percentage' => isset($q['deposit_percentage']) ? (float)$q['deposit_percentage'] : 20.00,
+        'deposit_due_date' => $q['deposit_due_date'] ?? '',
+        'balance_due_date' => $q['balance_due_date'] ?? '',
+        'balance_due_event_date' => false,
         'quote_date' => !empty($q['created_at']) ? date('Y-m-d', strtotime($q['created_at'])) : date('Y-m-d'),
     ];
 }
@@ -180,11 +188,21 @@ $pdf->multiline(54, 265, $notes, 8, 58, 11, 6, false, $dark);
 
 $quoteDateTs = !empty($doc['quote_date']) ? strtotime($doc['quote_date']) : time();
 if ($quoteDateTs === false) { $quoteDateTs = time(); }
-$depositDue = date('d/m/Y', strtotime('+30 days', $quoteDateTs));
+$depositPercent = max(0, min(100, (float)($doc['deposit_percentage'] ?? 20)));
 $eventDateTs = !empty($doc['event_date']) ? strtotime($doc['event_date']) : false;
-$balanceDue = $eventDateTs ? date('d/m/Y', strtotime('-14 days', $eventDateTs)) : '14 days before event';
-$bookingDeposit = round($total * 0.20, 2);
+$depositDue = 'N/A';
+if ($depositPercent > 0) {
+    $depositDueTs = !empty($doc['deposit_due_date']) ? strtotime($doc['deposit_due_date']) : strtotime('+30 days', $quoteDateTs);
+    $depositDue = $depositDueTs ? date('d/m/Y', $depositDueTs) : date('d/m/Y', strtotime('+30 days', $quoteDateTs));
+}
+$balanceDueTs = !empty($doc['balance_due_date']) ? strtotime($doc['balance_due_date']) : false;
+if (!$balanceDueTs && !empty($doc['balance_due_event_date']) && $eventDateTs) { $balanceDueTs = $eventDateTs; }
+if (!$balanceDueTs && $eventDateTs) { $balanceDueTs = strtotime('-14 days', $eventDateTs); }
+$balanceDue = $balanceDueTs ? date('d/m/Y', $balanceDueTs) : '14 days before event';
+$bookingDeposit = round($total * ($depositPercent / 100), 2);
 $remainingBalance = max(0, $total - $bookingDeposit);
+$depositLabel = $depositPercent > 0 ? ('BOOKING DEPOSIT ' . rtrim(rtrim(number_format($depositPercent, 2), '0'), '.') . '%') : 'BOOKING DEPOSIT';
+$depositValue = $depositPercent > 0 ? dttd_pdf_money($bookingDeposit) : 'Not required';
 
 if ($type === 'invoice') {
     $summaryRows = [
@@ -195,21 +213,23 @@ if ($type === 'invoice') {
 } else {
     $summaryRows = [
         ['TOTAL QUOTATION', dttd_pdf_money($total), $softGold, $line, 12, true],
-        ['BOOKING DEPOSIT 20%', dttd_pdf_money($bookingDeposit), [1,1,1], $line, 10, true],
-        ['DEPOSIT DUE BY', $depositDue, [1,1,1], $line, 10, true],
-        ['REMAINING BALANCE', dttd_pdf_money($remainingBalance), [1,1,1], $line, 10, true],
-        ['BALANCE DUE BY', $balanceDue, $purple, $purple, 10, true],
+        [$depositLabel, $depositValue, [1,1,1], $line, 9.2, true],
     ];
+    if ($depositPercent > 0) {
+        $summaryRows[] = ['DEPOSIT DUE BY', $depositDue, [1,1,1], $line, 9.8, true];
+        $summaryRows[] = ['REMAINING BALANCE', dttd_pdf_money($remainingBalance), [1,1,1], $line, 9.8, true];
+    }
+    $summaryRows[] = ['BALANCE DUE BY', $balanceDue, $purple, $purple, 9.8, true];
 }
 
 // Payment summary aligned with the top of the notes box. Wider columns and taller rows
 // prevent the labels and amounts from colliding when quotation payment dates are shown.
-$summaryX = 355;
+$summaryX = 325;
 $summaryY = 285;
-$summaryW = 200;
-$rowH = $type === 'invoice' ? 30 : 23;
+$summaryW = 230;
+$rowH = $type === 'invoice' ? 30 : 24;
 $labelX = $summaryX + 12;
-$valueX = $summaryX + 128;
+$valueRightX = $summaryX + $summaryW - 14;
 foreach ($summaryRows as $summaryRow) {
     [$label, $value, $fill, $stroke, $fontSize, $bold] = $summaryRow;
     $pdf->rect($summaryX, $summaryY - $rowH, $summaryW, $rowH, $fill, $stroke);
@@ -219,7 +239,7 @@ foreach ($summaryRows as $summaryRow) {
     if ($label === 'TOTAL QUOTATION') { $displaySize = 10; }
     if ($label === 'BALANCE DUE BY') { $displaySize = 9.5; }
     $pdf->text($labelX, $summaryY - $rowH + 8, $label, $displaySize, true, $labelColour);
-    $pdf->text($valueX, $summaryY - $rowH + 8, $value, $displaySize, true, $textColour);
+    $pdf->textRight($valueRightX, $summaryY - $rowH + 8, $value, $displaySize, true, $textColour);
     $summaryY -= $rowH;
 }
 

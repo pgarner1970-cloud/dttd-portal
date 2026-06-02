@@ -20,6 +20,12 @@ class DttdSimplePdf {
         $this->content .= "BT /{$font} {$size} Tf {$x} {$y} Td (" . $this->esc($text) . ") Tj ET\n";
         $this->content .= "0 0 0 rg\n";
     }
+
+    public function textRight($rightX, $y, $text, $size = 10, $bold = false, $rgb = [0,0,0]) {
+        $text = (string)$text;
+        $approxWidth = strlen($text) * $size * 0.52;
+        $this->text($rightX - $approxWidth, $y, $text, $size, $bold, $rgb);
+    }
     public function multiline($x, $y, $text, $size = 9, $maxChars = 48, $lineHeight = 12, $maxLines = 4, $bold = false, $rgb = [0,0,0]) {
         $text = trim(preg_replace('/\s+/', ' ', (string)$text));
         if ($text === '') { return $y; }

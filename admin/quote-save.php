@@ -19,11 +19,27 @@ $items = dttd_quote_items_from_post();
 $total = 0;
 foreach ($items as $item) { $total += (float)$item['price']; }
 
-$stmt = db()->prepare("INSERT INTO quotations (customer_name, customer_email, customer_address, event_description, event_date, venue, items_json, notes, total_amount, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', NOW())");
+
+$depositPercentage = max(0, min(100, (float)($_POST['deposit_percentage'] ?? 20)));
+$eventDate = ($_POST['event_date'] ?? '') ?: null;
+$depositDueDate = null;
+if ($depositPercentage > 0) {
+    $depositDueDate = ($_POST['deposit_due_date'] ?? '') ?: date('Y-m-d', strtotime('+30 days'));
+}
+$balanceDueDate = ($_POST['balance_due_date'] ?? '') ?: null;
+if (!$balanceDueDate && $eventDate) {
+    $balanceDueDate = date('Y-m-d', strtotime($eventDate . ' -14 days'));
+}
+if (!empty($_POST['balance_due_event_date']) && $eventDate) {
+    $balanceDueDate = $eventDate;
+}
+
+$stmt = db()->prepare("INSERT INTO quotations (customer_name, customer_email, customer_address, event_description, event_date, venue, items_json, notes, total_amount, deposit_percentage, deposit_due_date, balance_due_date, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', NOW())");
 $stmt->execute([
     trim($_POST['customer_name'] ?? ''), trim($_POST['customer_email'] ?? ''), trim($_POST['customer_address'] ?? ''),
-    trim($_POST['event_description'] ?? ''), ($_POST['event_date'] ?? '') ?: null, trim($_POST['venue'] ?? ''),
-    json_encode($items), trim($_POST['notes'] ?? ''), number_format($total, 2, '.', '')
+    trim($_POST['event_description'] ?? ''), $eventDate, trim($_POST['venue'] ?? ''),
+    json_encode($items), trim($_POST['notes'] ?? ''), number_format($total, 2, '.', ''),
+    number_format($depositPercentage, 2, '.', ''), $depositDueDate, $balanceDueDate
 ]);
 $id = (int)db()->lastInsertId();
 $quoteNumber = 'QT-' . date('Y') . '-' . str_pad((string)$id, 4, '0', STR_PAD_LEFT);
