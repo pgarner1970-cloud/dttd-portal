@@ -260,8 +260,8 @@ admin_header(($is_edit ? 'Edit Sponsor' : 'Add Sponsor') . ' - DJ Portal');
   background:
     linear-gradient(
       135deg,
-      rgba(236,230,255,0.96),
-      rgba(220,235,255,0.92)
+      rgba(115, 90, 180, 0.92),
+      rgba(70, 105, 170, 0.88)
     );
   color: #111827;
   border-color: rgba(255,255,255,.22);
