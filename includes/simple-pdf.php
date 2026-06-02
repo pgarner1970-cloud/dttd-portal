@@ -14,15 +14,41 @@ class DttdSimplePdf {
         $text = preg_replace('/[^\x09\x0A\x0D\x20-\xFF]/', '', $text);
         return str_replace(['\\','(',')'], ['\\\\','\\(','\\)'], $text);
     }
-    public function text($x, $y, $text, $size = 10, $bold = false) {
+    public function text($x, $y, $text, $size = 10, $bold = false, $rgb = [0,0,0]) {
         $font = $bold ? 'F2' : 'F1';
+        $this->content .= sprintf("%.3F %.3F %.3F rg ", $rgb[0], $rgb[1], $rgb[2]);
         $this->content .= "BT /{$font} {$size} Tf {$x} {$y} Td (" . $this->esc($text) . ") Tj ET\n";
+        $this->content .= "0 0 0 rg\n";
+    }
+    public function multiline($x, $y, $text, $size = 9, $maxChars = 48, $lineHeight = 12, $maxLines = 4, $bold = false, $rgb = [0,0,0]) {
+        $text = trim(preg_replace('/\s+/', ' ', (string)$text));
+        if ($text === '') { return $y; }
+        $words = explode(' ', $text);
+        $line = '';
+        $lines = [];
+        foreach ($words as $word) {
+            $try = $line === '' ? $word : $line . ' ' . $word;
+            if (strlen($try) > $maxChars && $line !== '') {
+                $lines[] = $line;
+                $line = $word;
+            } else {
+                $line = $try;
+            }
+        }
+        if ($line !== '') { $lines[] = $line; }
+        $lines = array_slice($lines, 0, $maxLines);
+        foreach ($lines as $ln) {
+            $this->text($x, $y, $ln, $size, $bold, $rgb);
+            $y -= $lineHeight;
+        }
+        return $y;
     }
     public function line($x1,$y1,$x2,$y2,$gray=0.75) {
         $this->content .= sprintf("%.2F G %.2F %.2F m %.2F %.2F l S\n", $gray,$x1,$y1,$x2,$y2);
     }
     public function rect($x,$y,$w,$h,$fill=[1,1,1],$stroke=[0.8,0.8,0.8]) {
         $this->content .= sprintf("%.3F %.3F %.3F rg %.3F %.3F %.3F RG %.2F %.2F %.2F %.2F re B\n", $fill[0],$fill[1],$fill[2],$stroke[0],$stroke[1],$stroke[2],$x,$y,$w,$h);
+        $this->content .= "0 0 0 rg 0 G\n";
     }
     public function image($path, $x, $y, $w, $h) {
         if (!isset($this->images[$path])) {
@@ -33,6 +59,15 @@ class DttdSimplePdf {
         }
         $name = $this->images[$path]['name'];
         $this->content .= "q {$w} 0 0 {$h} {$x} {$y} cm /{$name} Do Q\n";
+    }
+    public function imageContain($path, $x, $y, $boxW, $boxH) {
+        if (!is_file($path)) { return; }
+        $info = getimagesize($path);
+        if (!$info || empty($info[0]) || empty($info[1])) { return; }
+        $scale = min($boxW / $info[0], $boxH / $info[1]);
+        $w = $info[0] * $scale;
+        $h = $info[1] * $scale;
+        $this->image($path, $x + (($boxW - $w) / 2), $y + (($boxH - $h) / 2), $w, $h);
     }
     public function endPage() { $this->pages[] = $this->content; }
     private function addObject($body) { $this->objects[] = $body; return count($this->objects); }
