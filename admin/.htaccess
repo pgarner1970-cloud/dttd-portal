@@ -1,6 +1,15 @@
-DirectoryIndex index.php login.php
+# DJ Portal / Admin subdomain routing
+# The dj.dancethruthedecades.co.uk subdomain is rooted directly here.
+# Keep admin pages explicit, e.g. /events.php, /venues.php, /partners.php.
+# Do not add public clean URL routes here because they conflict with admin scripts.
 
+DirectoryIndex index.php
 
-# v155 note:
-# Admin navigation can be relative for the DJ subdomain,
-# but shared assets should remain root-relative, e.g. /assets/admin.css.
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# If a real file or directory exists, serve it directly.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+</IfModule>
