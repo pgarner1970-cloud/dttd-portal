@@ -5330,13 +5330,6 @@ body.public-event-detail-page .public-track-icon-action.spotify .public-action-i
 }
 
 
-/* v-global-select-dark-hard-fix
-   Force native dropdowns to remain readable on dark DTTD themes.
-   This is intentionally broad because select styling is used across public and admin suites. */
-html,
-body {
-  color-scheme: dark;
-}
 
 select,
 select option,
@@ -5397,4 +5390,115 @@ select option:focus {
   background-color: #1e293b !important;
   color: #ffffff !important;
   color-scheme: dark !important;
+}
+
+
+/* v-cumulative-gallery-width-and-select-fix
+   Keep the public gallery aligned with the sticky public header,
+   while keeping all public select dropdowns readable on the dark neon theme. */
+
+/* Match .public-site-header width: width:min(1180px, calc(100% - 28px)); */
+.public-gallery-page .public-gallery-shell {
+  width: min(1180px, calc(100% - 28px)) !important;
+  max-width: 1180px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.public-gallery-page .public-filter-card,
+.public-gallery-page .public-photo-grid-card {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Preserve the intended 4-photo desktop layout inside the corrected container. */
+.public-gallery-page .public-photo-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 22px !important;
+  align-items: start !important;
+}
+
+@media (max-width: 1120px) {
+  .public-gallery-page .public-photo-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 820px) {
+  .public-gallery-page .public-gallery-shell {
+    width: min(100% - 20px, 100%) !important;
+  }
+
+  .public-gallery-page .public-photo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .public-gallery-page .public-photo-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Public select dropdowns: applied in the active public stylesheet only,
+   so it does not overwrite layout fixes from other patch files. */
+.public-gallery-page select,
+.public-gallery-page select option,
+.public-filter-grid select,
+.public-filter-grid select option,
+.public-page select,
+.public-page select option,
+.gallery-filters select,
+.gallery-filters select option,
+.photo-filters select,
+.photo-filters select option,
+.find-photos select,
+.find-photos select option,
+select.public-select,
+select.public-select option {
+  background-color: #230033 !important;
+  color: #ffffff !important;
+  color-scheme: dark !important;
+}
+
+.public-gallery-page select,
+.public-filter-grid select,
+.public-page select,
+.gallery-filters select,
+.photo-filters select,
+.find-photos select,
+select.public-select {
+  border-color: rgba(255, 79, 216, 0.50) !important;
+}
+
+.public-gallery-page select:focus,
+.public-filter-grid select:focus,
+.public-page select:focus,
+.gallery-filters select:focus,
+.photo-filters select:focus,
+.find-photos select:focus,
+select.public-select:focus {
+  background-color: #230033 !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 213, 74, 0.85) !important;
+  outline: none !important;
+}
+
+.public-gallery-page select option:checked,
+.public-gallery-page select option:hover,
+.public-filter-grid select option:checked,
+.public-filter-grid select option:hover,
+.public-page select option:checked,
+.public-page select option:hover,
+.gallery-filters select option:checked,
+.gallery-filters select option:hover,
+.photo-filters select option:checked,
+.photo-filters select option:hover,
+.find-photos select option:checked,
+.find-photos select option:hover,
+select.public-select option:checked,
+select.public-select option:hover {
+  background-color: #7c2bd6 !important;
+  color: #ffffff !important;
 }
