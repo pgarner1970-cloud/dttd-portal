@@ -32,8 +32,8 @@ $whatsappUrl = $whatsappUrl ?? '';
       <a href="/events">Events</a>
       <a href="/gallery">Gallery</a>
       <a href="/partners">Partners</a>
-      <a href="/privacy.php">Privacy</a>
-      <a href="/terms.php">Terms</a>
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
     </div>
 
     <div class="public-footer-socials">

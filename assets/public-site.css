@@ -2189,8 +2189,8 @@ body.homepage-option-one::after{
   background:linear-gradient(180deg, rgba(255,79,216,.16), rgba(20,0,35,.58));
 }
 
-.option-one-action-card[href="/events"] .option-one-icon,
-.option-one-action-card[href="/gallery"] .option-one-icon{
+.option-one-action-card[href="/events.php"] .option-one-icon,
+.option-one-action-card[href="/gallery.php"] .option-one-icon{
   font-size:28px;
 }
 
@@ -5863,6 +5863,121 @@ select.public-select option:hover {
   .public-gallery-page .public-gallery-title,
   .public-partners-page .public-partners-hero h1 {
     font-size: clamp(2.8rem, 16vw, 4.6rem) !important;
+  }
+}
+
+/* v-public-legal-pages-standardised
+   Terms and Privacy pages aligned with the main DTTD public site. */
+body.public-legal-page {
+  margin: 0;
+  overflow-x: hidden;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255,79,216,.15), transparent 34rem),
+    radial-gradient(ellipse at 50% 46%, rgba(124,58,237,.12), transparent 42rem),
+    repeating-conic-gradient(from 0deg at 50% 24%, rgba(255,255,255,.052) 0deg 4deg, transparent 4deg 10deg),
+    linear-gradient(180deg, #05000d 0%, #160020 45%, #09000f 100%) !important;
+  color: #ffffff;
+}
+
+body.public-legal-page .home-option-one {
+  background: transparent !important;
+  overflow-x: hidden;
+}
+
+.public-legal-shell {
+  width: min(1180px, calc(100% - 28px));
+  max-width: 1180px;
+  margin: 0 auto 64px;
+  box-sizing: border-box;
+}
+
+.public-legal-hero {
+  padding: 46px 0 30px;
+  text-align: center;
+}
+
+.public-legal-hero .option-one-logo-shell {
+  width: clamp(150px, 14vw, 225px) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  margin-bottom: 22px !important;
+}
+
+.public-legal-hero h1 {
+  display: block;
+  max-width: 980px;
+  margin: 0 auto;
+  text-align: center;
+  font-size: clamp(3.2rem, 7vw, 6.8rem);
+  line-height: .9;
+  letter-spacing: -.045em;
+  text-transform: uppercase;
+  overflow: visible;
+}
+
+.public-legal-hero .option-one-subtitle {
+  width: min(760px, 100%);
+  max-width: 760px;
+  margin: 22px auto 0;
+  text-align: center;
+}
+
+.public-legal-card {
+  background: linear-gradient(180deg, rgba(48, 4, 65, 0.88), rgba(31, 0, 45, 0.94));
+  border: 1px solid rgba(255, 79, 216, 0.34);
+  border-radius: 28px;
+  box-shadow: 0 18px 44px rgba(0,0,0,.24), 0 0 28px rgba(255,79,216,.08);
+  padding: clamp(22px, 4vw, 44px);
+  color: #f8efff;
+}
+
+.public-legal-card h2 {
+  margin: 2rem 0 .65rem;
+  color: #ffd54a;
+  font-size: clamp(1.35rem, 2vw, 1.85rem);
+  line-height: 1.1;
+}
+
+.public-legal-card h2:first-of-type {
+  margin-top: 0;
+}
+
+.public-legal-card p,
+.public-legal-card li {
+  font-size: 1.04rem;
+  line-height: 1.72;
+  color: #eadcf5;
+}
+
+.public-legal-card ul {
+  margin: .6rem 0 1.2rem;
+  padding-left: 1.35rem;
+}
+
+.public-legal-updated {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 213, 74, .38);
+  background: rgba(255, 213, 74, .08);
+  color: #ffe681 !important;
+  font-weight: 900;
+  margin: 0 0 1.5rem !important;
+}
+
+@media (max-width: 820px) {
+  .public-legal-shell {
+    width: min(100% - 20px, 100%);
+  }
+
+  .public-legal-hero h1 {
+    font-size: clamp(2.8rem, 16vw, 4.6rem);
+  }
+
+  .public-legal-card {
+    border-radius: 22px;
   }
 }
 
