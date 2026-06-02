@@ -9,6 +9,23 @@
 function admin_url(string $path = ''): string {
     $path = ltrim($path, '/');
 
+    // Admin pages should stay explicit. Public clean URLs belong to the public site only.
+    $dttd_admin_route_aliases = [
+        'events' => 'events.php',
+        'venues' => 'venues.php',
+        'partners' => 'partners.php',
+        'sponsors' => 'sponsors.php',
+        'event-sponsors' => 'event-sponsors.php',
+        'event-photos' => 'event-photos.php',
+        'requests' => 'requests.php',
+        'settings' => 'settings.php',
+        'tools' => 'tools.php',
+    ];
+
+    if (isset($dttd_admin_route_aliases[$path])) {
+        $path = $dttd_admin_route_aliases[$path];
+    }
+
     $host = $_SERVER['HTTP_HOST'] ?? '';
 
     if (stripos($host, 'dj.') === 0) {

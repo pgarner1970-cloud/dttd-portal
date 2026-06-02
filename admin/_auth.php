@@ -37,6 +37,24 @@ function admin_url($path = '') {
         return 'https://dancethruthedecades.co.uk/' . $path;
     }
 
+    // Admin pages should stay explicit on the DJ subdomain.
+    // Public clean URLs such as /events belong to the public site only.
+    $dttd_admin_route_aliases = [
+        'events' => 'events.php',
+        'venues' => 'venues.php',
+        'partners' => 'partners.php',
+        'sponsors' => 'sponsors.php',
+        'event-sponsors' => 'event-sponsors.php',
+        'event-photos' => 'event-photos.php',
+        'requests' => 'requests.php',
+        'settings' => 'settings.php',
+        'tools' => 'tools.php',
+    ];
+
+    if (isset($dttd_admin_route_aliases[$path])) {
+        $path = $dttd_admin_route_aliases[$path];
+    }
+
     return '/' . $path;
 }
 

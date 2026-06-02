@@ -1,14 +1,14 @@
 # DJ Portal / Admin subdomain routing
 # The dj.dancethruthedecades.co.uk subdomain is rooted directly here.
 # Keep admin pages explicit, e.g. /events.php, /venues.php, /partners.php.
-# Do not add public clean URL routes here because they conflict with admin scripts.
+# Public clean URL routes belong only in the public web root.
 
 DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>
 RewriteEngine On
 
-# If a real file or directory exists, serve it directly.
+# Serve real admin files/directories directly.
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
