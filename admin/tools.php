@@ -54,8 +54,8 @@ admin_header('Admin Tools - DJ Portal');
   <section class="touch-panel">
     <div class="touch-panel-header">
       <div>
-        <h2 class="touch-panel-title">Planned maintenance areas</h2>
-        <p class="touch-subtitle">Reserved for the next stage without adding more buttons to the live DJ header.</p>
+        <h2 class="touch-panel-title">Maintenance areas</h2>
+        <p class="touch-subtitle">Behind-the-scenes records kept away from the live DJ operations bar.</p>
       </div>
     </div>
 
@@ -69,7 +69,7 @@ admin_header('Admin Tools - DJ Portal');
       <a class="admin-home-card" href="sponsors.php">
         <span class="admin-home-icon">£</span>
         <strong>Sponsors</strong>
-        <span>Reusable sponsors that can later be assigned to individual events</span>
+        <span>Reusable sponsors ready for event-specific assignments</span>
       </a>
 
       <a class="admin-home-card" href="event-sponsors.php">
