@@ -12,7 +12,8 @@ $metaDescription = 'How we handle website, event, music request and photo upload
   <meta name="description" content="<?= htmlspecialchars($metaDescription, ENT_QUOTES, 'UTF-8') ?>">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="canonical" href="/privacy">
-  <link rel="stylesheet" href="/assets/public-site.css?v=legal-layout-2">
+  <link rel="stylesheet" href="<?= htmlspecialchars(dttd_asset_url('assets/public-site.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <link rel="stylesheet" href="<?= htmlspecialchars(dttd_asset_url('assets/legal-pages.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>
 <body class="public-legal-page">
   <?php require __DIR__ . '/includes/public-nav.php'; ?>
@@ -35,39 +36,15 @@ $metaDescription = 'How we handle website, event, music request and photo upload
 
       <h2>Photo uploads and galleries</h2>
       <p>If you upload photos, we may store the image file, upload time, linked event, approval status and any information submitted with the upload. Approved photos may appear in public galleries or event displays.</p>
-      <p>If you would like a photo removed from a public gallery, contact us with enough detail to identify the image and event.</p>
 
       <h2>Music requests</h2>
       <p>Music requests may include the requested track, artist, name or nickname, message, event code and timing information. These details are used to manage requests for the DJ and may be visible to authorised event/admin users.</p>
 
-      <h2>Why we use information</h2>
-      <ul>
-        <li>to run event pages and public event features;</li>
-        <li>to manage music requests and photo uploads;</li>
-        <li>to moderate and approve gallery content;</li>
-        <li>to respond to enquiries or removal requests;</li>
-        <li>to maintain website security and prevent misuse;</li>
-        <li>to display partners, sponsors and event information;</li>
-        <li>to improve the website and event experience.</li>
-      </ul>
-
       <h2>Sharing information</h2>
-      <p>We do not sell personal information. Information may be shared with trusted service providers where needed for hosting, website operation, email, storage, security, event administration or legal compliance. Publicly approved photos, sponsor information and partner links may be visible on the public website.</p>
-
-      <h2>Third-party links</h2>
-      <p>The website may link to venues, suppliers, partners, sponsors, social platforms or booking services. Those sites have their own privacy practices and are not controlled by Dance Thru The Decades.</p>
-
-      <h2>Cookies and analytics</h2>
-      <p>The site may use essential cookies or basic technical logging to operate securely and reliably. If analytics, embedded media or third-party tools are added, they may set their own cookies or collect usage information.</p>
-
-      <h2>How long we keep information</h2>
-      <p>We keep information only for as long as reasonably needed for event operation, moderation, record keeping, technical support, safety, dispute handling or legal reasons. Public gallery content may remain available until removed or archived.</p>
+      <p>We do not sell personal information. Information may be shared with trusted service providers where needed for hosting, website operation, email, storage, security, event administration or legal compliance.</p>
 
       <h2>Your rights</h2>
       <p>You may ask to access, correct or delete personal information we hold about you, subject to reasonable identification and any legal or operational requirements. You can also ask us to review or remove a public photo.</p>
-
-      <h2>Security</h2>
-      <p>We use reasonable technical and organisational measures to protect information. No website or online system can be guaranteed completely secure, so please avoid submitting sensitive information through public forms.</p>
 
       <h2>Contact</h2>
       <p>For privacy questions, data requests or photo removal requests, please contact Dance Thru The Decades using the contact details shown on the website or event materials.</p>

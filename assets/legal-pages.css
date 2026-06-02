@@ -1,0 +1,160 @@
+/* Isolated legal pages stylesheet.
+   Loaded only by terms.php and privacy.php, after public-site.css.
+   This prevents Terms/Privacy fixes from changing Events/Gallery/Partners. */
+
+body.public-legal-page {
+  margin: 0 !important;
+  min-height: 100vh !important;
+  overflow-x: hidden !important;
+  padding-top: 108px !important;
+  color: #fff !important;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255,79,216,.15), transparent 34rem),
+    radial-gradient(ellipse at 50% 46%, rgba(124,58,237,.12), transparent 42rem),
+    repeating-conic-gradient(from 0deg at 50% 24%, rgba(255,255,255,.052) 0deg 4deg, transparent 4deg 10deg),
+    linear-gradient(180deg, #05000d 0%, #160020 45%, #09000f 100%) !important;
+}
+
+body.public-legal-page .public-site-header {
+  position: fixed !important;
+  top: 12px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 5000 !important;
+  width: min(1180px, calc(100% - 28px)) !important;
+  max-width: 1180px !important;
+  box-sizing: border-box !important;
+  background: rgba(12, 0, 26, 0.56) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 79, 216, 0.24) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 10px 32px rgba(0,0,0,.34), 0 0 22px rgba(255,79,216,.12) !important;
+  overflow: visible !important;
+}
+
+body.public-legal-page .public-legal-shell {
+  width: min(1180px, calc(100% - 28px)) !important;
+  max-width: 1180px !important;
+  margin: 0 auto 64px !important;
+  box-sizing: border-box !important;
+}
+
+body.public-legal-page .public-legal-hero {
+  padding: 34px 0 30px !important;
+  text-align: center !important;
+}
+
+body.public-legal-page .public-legal-logo {
+  display: block !important;
+  width: clamp(138px, 13vw, 205px) !important;
+  height: auto !important;
+  max-width: 205px !important;
+  max-height: 205px !important;
+  object-fit: contain !important;
+  margin: 0 auto 22px !important;
+  border-radius: 50% !important;
+  box-shadow: 0 0 22px rgba(255, 79, 216, .65), 0 0 54px rgba(255, 79, 216, .32) !important;
+}
+
+body.public-legal-page .public-legal-eyebrow {
+  margin: 0 0 16px !important;
+  color: #ffd54a !important;
+  font-weight: 950 !important;
+  letter-spacing: .34em !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+  text-shadow: 0 0 12px rgba(255, 213, 74, .55) !important;
+}
+
+body.public-legal-page .public-legal-hero h1 {
+  max-width: 980px !important;
+  margin: 0 auto !important;
+  text-align: center !important;
+  font-size: clamp(3.2rem, 7vw, 6.8rem) !important;
+  line-height: .9 !important;
+  letter-spacing: -.045em !important;
+  text-transform: uppercase !important;
+  text-shadow: 0 0 22px rgba(255,255,255,.35) !important;
+}
+
+body.public-legal-page .public-legal-subtitle {
+  width: min(760px, 100%) !important;
+  max-width: 760px !important;
+  margin: 22px auto 0 !important;
+  text-align: center !important;
+  color: #fff !important;
+  font-size: clamp(1.15rem, 2vw, 1.55rem) !important;
+  line-height: 1.35 !important;
+  font-weight: 850 !important;
+}
+
+body.public-legal-page .public-legal-card {
+  background: linear-gradient(180deg, rgba(48, 4, 65, 0.88), rgba(31, 0, 45, 0.94)) !important;
+  border: 1px solid rgba(255, 79, 216, 0.34) !important;
+  border-radius: 28px !important;
+  box-shadow: 0 18px 44px rgba(0,0,0,.24), 0 0 28px rgba(255,79,216,.08) !important;
+  padding: clamp(22px, 4vw, 44px) !important;
+  color: #f8efff !important;
+}
+
+body.public-legal-page .public-legal-card h2 {
+  margin: 2rem 0 .65rem !important;
+  color: #ffd54a !important;
+  font-size: clamp(1.35rem, 2vw, 1.85rem) !important;
+  line-height: 1.1 !important;
+}
+
+body.public-legal-page .public-legal-card h2:first-of-type {
+  margin-top: 0 !important;
+}
+
+body.public-legal-page .public-legal-card p,
+body.public-legal-page .public-legal-card li {
+  font-size: 1.04rem !important;
+  line-height: 1.72 !important;
+  color: #eadcf5 !important;
+}
+
+body.public-legal-page .public-legal-card ul {
+  margin: .6rem 0 1.2rem !important;
+  padding-left: 1.35rem !important;
+}
+
+body.public-legal-page .public-legal-updated {
+  display: inline-flex !important;
+  align-items: center !important;
+  min-height: 36px !important;
+  padding: 7px 13px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255, 213, 74, .38) !important;
+  background: rgba(255, 213, 74, .08) !important;
+  color: #ffe681 !important;
+  font-weight: 900 !important;
+  margin: 0 0 1.5rem !important;
+}
+
+@media (max-width: 820px) {
+  body.public-legal-page {
+    padding-top: 94px !important;
+  }
+
+  body.public-legal-page .public-site-header {
+    width: calc(100% - 16px) !important;
+    top: 8px !important;
+    border-radius: 18px !important;
+  }
+
+  body.public-legal-page .public-legal-shell {
+    width: min(100% - 20px, 100%) !important;
+  }
+
+  body.public-legal-page .public-legal-hero h1 {
+    font-size: clamp(2.8rem, 16vw, 4.6rem) !important;
+  }
+
+  body.public-legal-page .public-legal-card {
+    border-radius: 22px !important;
+  }
+}
