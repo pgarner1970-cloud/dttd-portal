@@ -22,6 +22,9 @@ foreach ($items as $item) { $total += (float)$item['price']; }
 
 $depositPercentage = max(0, min(100, (float)($_POST['deposit_percentage'] ?? 20)));
 $eventDate = ($_POST['event_date'] ?? '') ?: null;
+$eventStartTime = ($_POST['event_start_time'] ?? '') ?: null;
+$eventEndTime = ($_POST['event_end_time'] ?? '') ?: null;
+$venueId = !empty($_POST['venue_id']) ? (int)$_POST['venue_id'] : null;
 $depositDueDate = null;
 if ($depositPercentage > 0) {
     $depositDueDate = ($_POST['deposit_due_date'] ?? '') ?: date('Y-m-d', strtotime('+30 days'));
@@ -34,10 +37,10 @@ if (!empty($_POST['balance_due_event_date']) && $eventDate) {
     $balanceDueDate = $eventDate;
 }
 
-$stmt = db()->prepare("INSERT INTO quotations (customer_name, customer_email, customer_address, event_description, event_date, venue, items_json, notes, total_amount, deposit_percentage, deposit_due_date, balance_due_date, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', NOW())");
+$stmt = db()->prepare("INSERT INTO quotations (customer_name, customer_email, customer_address, event_description, event_date, event_start_time, event_end_time, venue_id, venue, items_json, notes, total_amount, deposit_percentage, deposit_due_date, balance_due_date, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', NOW())");
 $stmt->execute([
     trim($_POST['customer_name'] ?? ''), trim($_POST['customer_email'] ?? ''), trim($_POST['customer_address'] ?? ''),
-    trim($_POST['event_description'] ?? ''), $eventDate, trim($_POST['venue'] ?? ''),
+    trim($_POST['event_description'] ?? ''), $eventDate, $eventStartTime, $eventEndTime, $venueId, trim($_POST['venue'] ?? ''),
     json_encode($items), trim($_POST['notes'] ?? ''), number_format($total, 2, '.', ''),
     number_format($depositPercentage, 2, '.', ''), $depositDueDate, $balanceDueDate
 ]);

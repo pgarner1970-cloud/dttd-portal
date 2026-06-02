@@ -35,7 +35,10 @@ if ($isPreview) {
         'customer_address' => trim($_POST['customer_address'] ?? ''),
         'event_description' => trim($_POST['event_description'] ?? 'Dance Thru The Decades Event'),
         'event_date' => trim($_POST['event_date'] ?? ''),
+        'venue_id' => !empty($_POST['venue_id']) ? (int)$_POST['venue_id'] : null,
         'venue' => trim($_POST['venue'] ?? ''),
+        'event_start_time' => trim($_POST['event_start_time'] ?? ''),
+        'event_end_time' => trim($_POST['event_end_time'] ?? ''),
         'items' => $items,
         'notes' => trim($_POST['notes'] ?? ''),
         'total_amount' => $total,
@@ -65,7 +68,10 @@ if ($isPreview) {
         'customer_address' => $q['customer_address'],
         'event_description' => $q['event_description'],
         'event_date' => $q['event_date'],
+        'venue_id' => $q['venue_id'] ?? null,
         'venue' => $q['venue'],
+        'event_start_time' => $q['event_start_time'] ?? '',
+        'event_end_time' => $q['event_end_time'] ?? '',
         'items' => json_decode($q['items_json'], true) ?: [],
         'notes' => $q['notes'],
         'total_amount' => $q['total_amount'],
@@ -140,11 +146,16 @@ $pdf->text(322, 615, 'EVENT DETAILS', 12, true, $purple);
 $pdf->text(322, 590, 'Event / Occasion:', 8, true, $dark);
 $pdf->multiline(404, 590, $doc['event_description'] ?: 'Dance Thru The Decades Event', 8, 30, 10, 3, false, $dark);
 $pdf->line(322, 557, 540, 557, 0.82);
-$pdf->text(322, 544, 'Event Date:', 8, true, $dark);
-$pdf->text(404, 544, !empty($doc['event_date']) ? date('d/m/Y', strtotime($doc['event_date'])) : 'TBC', 8, false, $dark);
-$pdf->line(322, 535, 540, 535, 0.82);
-$pdf->text(322, 522, 'Venue:', 8, true, $dark);
-$pdf->multiline(404, 522, $doc['venue'] ?: 'TBC', 8, 30, 10, 2, false, $dark);
+$pdf->text(322, 548, 'Event Date:', 8, true, $dark);
+$pdf->text(404, 548, !empty($doc['event_date']) ? date('d/m/Y', strtotime($doc['event_date'])) : 'TBC', 8, false, $dark);
+$pdf->line(322, 539, 540, 539, 0.82);
+$pdf->text(322, 528, 'Start Time:', 8, true, $dark);
+$pdf->text(404, 528, !empty($doc['event_start_time']) ? substr((string)$doc['event_start_time'], 0, 5) : 'TBC', 8, false, $dark);
+$pdf->text(462, 528, 'End:', 8, true, $dark);
+$pdf->text(494, 528, !empty($doc['event_end_time']) ? substr((string)$doc['event_end_time'], 0, 5) : 'TBC', 8, false, $dark);
+$pdf->line(322, 519, 540, 519, 0.82);
+$pdf->text(322, 508, 'Venue:', 8, true, $dark);
+$pdf->multiline(404, 508, $doc['venue'] ?: 'TBC', 8, 30, 10, 2, false, $dark);
 
 // Line item table with fewer blank rows to free vertical space for the footer artwork.
 $pdf->rect(40, 485, 515, 23, $purple, $purple);

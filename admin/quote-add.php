@@ -1,10 +1,34 @@
 <?php
 require_once __DIR__ . '/_auth.php';
 
+function dttd_venues_table_exists() {
+    try {
+        $stmt = db()->query("SHOW TABLES LIKE 'venues'");
+        return (bool)$stmt->fetchColumn();
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
+function dttd_get_venues_for_select() {
+    if (!dttd_venues_table_exists()) {
+        return [];
+    }
+    try {
+        $stmt = db()->query("SELECT id, venue_name, venue_address, venue_postcode FROM venues ORDER BY venue_name ASC, id ASC");
+        return $stmt->fetchAll() ?: [];
+    } catch (Throwable $e) {
+        return [];
+    }
+}
+
+$venues_for_select = dttd_get_venues_for_select();
+
+
 $defaults = [
     'customer_name' => '', 'customer_email' => '', 'customer_address' => '',
     'event_description' => 'Dance Thru The Decades DJ Entertainment Package',
-    'event_date' => '', 'venue' => '', 'notes' => '',
+    'event_date' => '', 'event_start_time' => '', 'event_end_time' => '', 'venue_id' => '', 'venue' => '', 'notes' => '',
     'line_description' => ['Dance Thru The Decades DJ Entertainment Package'],
     'line_price' => ['350.00'],
     'deposit_percentage' => '20.00',
@@ -80,8 +104,37 @@ admin_header('Add Quotation - DJ Portal');
               </div>
 
               <div class="form-field span-3">
-                <label for="venue">Venue</label>
-                <input id="venue" type="text" name="venue">
+                <label for="event_start_time">Start time</label>
+                <input id="event_start_time" type="time" name="event_start_time">
+              </div>
+
+              <div class="form-field span-3">
+                <label for="event_end_time">End time</label>
+                <input id="event_end_time" type="time" name="event_end_time">
+              </div>
+
+              <div class="form-field span-6">
+                <label for="venue_id">Select known venue</label>
+                <select id="venue_id" name="venue_id">
+                  <option value="">Type a venue manually</option>
+                  <?php foreach ($venues_for_select as $venue): ?>
+                    <?php
+                      $venueLabel = trim((string)($venue['venue_name'] ?? ''));
+                      $venueParts = array_filter([
+                          trim((string)($venue['venue_address'] ?? '')),
+                          trim((string)($venue['venue_postcode'] ?? '')),
+                      ]);
+                      $venueDetails = implode(', ', $venueParts);
+                    ?>
+                    <option value="<?= (int)$venue['id'] ?>" data-name="<?= h($venueLabel) ?>" data-details="<?= h($venueDetails) ?>"><?= h($venueLabel) ?><?= $venueDetails !== '' ? ' — ' . h($venueDetails) : '' ?></option>
+                  <?php endforeach; ?>
+                </select>
+                <p class="field-help">Choose an existing venue or leave this as manual entry.</p>
+              </div>
+
+              <div class="form-field span-6">
+                <label for="venue">Venue / address</label>
+                <input id="venue" type="text" name="venue" placeholder="Type venue name and/or address">
               </div>
             </div>
           </div>
@@ -201,6 +254,8 @@ admin_header('Add Quotation - DJ Portal');
   const depositDue = document.getElementById('deposit_due_date');
   const balanceDue = document.getElementById('balance_due_date');
   const useEventDate = document.getElementById('balance_due_event_date');
+  const venueSelect = document.getElementById('venue_id');
+  const venueInput = document.getElementById('venue');
 
   function isoDate(date) {
     const y = date.getFullYear();
@@ -234,6 +289,16 @@ admin_header('Add Quotation - DJ Portal');
       event.setDate(event.getDate() - 14);
       balanceDue.value = isoDate(event);
     }
+  }
+
+  if (venueSelect && venueInput) {
+    venueSelect.addEventListener('change', function () {
+      const option = venueSelect.options[venueSelect.selectedIndex];
+      if (!option || !venueSelect.value) return;
+      const name = option.getAttribute('data-name') || option.textContent || '';
+      const details = option.getAttribute('data-details') || '';
+      venueInput.value = details ? `${name}, ${details}` : name;
+    });
   }
 
   if (depositPercentage) depositPercentage.addEventListener('input', refreshDepositDateState);
