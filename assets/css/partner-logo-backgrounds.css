@@ -1,0 +1,25 @@
+/* Partner logo background support */
+.partner-logo--light {
+    background: rgba(255,255,255,0.96);
+    border-radius: 18px;
+    padding: 18px;
+}
+
+.partner-logo--dark {
+    background: transparent;
+}
+
+/* Gallery lightbox download pill fix */
+.public-lightbox-actions a.public-lightbox-download {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 42px !important;
+    padding: 0 16px !important;
+    border-radius: 999px !important;
+    border: 1px solid rgba(255,255,255,.22) !important;
+    background: rgba(255,255,255,.08) !important;
+    color: #fff !important;
+    text-decoration: none !important;
+    font-weight: 900 !important;
+}
