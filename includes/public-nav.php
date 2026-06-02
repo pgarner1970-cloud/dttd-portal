@@ -17,6 +17,7 @@ $navItems = [
     ['key' => 'home', 'label' => 'Home', 'href' => '/'],
     ['key' => 'events', 'label' => 'Events', 'href' => '/events'],
     ['key' => 'gallery', 'label' => 'Gallery', 'href' => '/gallery.php'],
+    ['key' => 'partners', 'label' => 'Partners', 'href' => '/partners.php'],
 ];
 ?>
 <header class="public-site-header">

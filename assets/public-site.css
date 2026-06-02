@@ -5328,3 +5328,116 @@ body.public-event-detail-page .public-track-icon-action.spotify .public-action-i
 body.public-event-detail-page .public-track-icon-action.spotify .public-action-icon path{
   stroke-width:2.15 !important;
 }
+
+
+/* v330 public partners page */
+.public-partners-page .home-option-one{
+  min-height:100vh;
+}
+
+.public-partners-hero{
+  width:min(1080px, calc(100% - 32px));
+  margin:0 auto;
+  padding:34px 0 28px;
+  text-align:center;
+}
+
+.public-partners-hero h1{
+  margin:0;
+  font-size:clamp(3rem, 8vw, 6.6rem);
+  line-height:.9;
+  letter-spacing:-.06em;
+  text-transform:uppercase;
+}
+
+.public-partners-section{
+  width:min(1180px, calc(100% - 32px));
+  margin:0 auto;
+  padding:12px 0 72px;
+}
+
+.public-partners-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));
+  gap:22px;
+}
+
+.public-partner-card{
+  display:grid;
+  grid-template-rows:auto 1fr;
+  border:1px solid rgba(255,79,216,.38);
+  border-radius:24px;
+  background:linear-gradient(180deg, rgba(33,0,48,.76), rgba(12,0,22,.82));
+  box-shadow:0 20px 50px rgba(0,0,0,.26), 0 0 26px rgba(255,79,216,.08), inset 0 1px 0 rgba(255,255,255,.08);
+  overflow:hidden;
+  backdrop-filter:blur(8px);
+}
+
+.public-partner-logo{
+  min-height:170px;
+  display:grid;
+  place-items:center;
+  padding:22px;
+  background:rgba(255,255,255,.055);
+}
+
+.public-partner-logo img{
+  max-width:100%;
+  max-height:130px;
+  object-fit:contain;
+  display:block;
+}
+
+.public-partner-logo span{
+  width:82px;
+  height:82px;
+  display:grid;
+  place-items:center;
+  border-radius:24px;
+  background:linear-gradient(135deg, #ff2fa8, #7c3cff);
+  color:#ffd15c;
+  font-size:2.6rem;
+  box-shadow:0 0 26px rgba(255,47,168,.35);
+}
+
+.public-partner-body{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:12px;
+  padding:22px;
+}
+
+.public-partner-category{
+  margin:0;
+  color:#ffd15c;
+  font-size:.82rem;
+  font-weight:950;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+}
+
+.public-partner-body h2{
+  margin:0;
+  font-size:clamp(1.5rem, 3vw, 2rem);
+  line-height:1.05;
+}
+
+.public-partner-body p{
+  margin:0;
+  color:#f3e8ff;
+  line-height:1.55;
+}
+
+.public-partner-body .public-neon-btn{
+  margin-top:auto;
+}
+
+@media (max-width: 640px){
+  .public-partners-hero{
+    padding-top:22px;
+  }
+  .public-partner-logo{
+    min-height:145px;
+  }
+}

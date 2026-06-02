@@ -3,6 +3,7 @@ Options -MultiViews
 RewriteEngine On
 
 RewriteRule ^events/?$ events.php [L,QSA]
+RewriteRule ^partners/?$ partners.php [L,QSA]
 RewriteRule ^event/([a-z0-9-]+)/?$ event.php?slug=$1 [L,QSA]
 RewriteRule ^events/([a-z0-9-]+)/?$ event.php?slug=$1 [L,QSA]
 
