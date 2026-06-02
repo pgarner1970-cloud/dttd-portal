@@ -126,10 +126,18 @@ if (is_file($footer)) { $pdf->imageContain($footer, 0, 0, 595.28, 140); }
 // Top company block. Logo remains square and undistorted.
 if (is_file($logo)) { $pdf->imageContain($logo, 222, 690, 150, 150); }
 
-$pdf->text(40, 800, 'Dance Thru The Decades Events', 13, true, $purple);
-$pdf->text(40, 780, '1 Cooks Cross', 10, false, $dark);
-$pdf->text(40, 764, 'Alveley, Shropshire WV15 6LS', 10, false, $dark);
-$pdf->text(40, 738, 'www.dancethruthedecades.co.uk', 8, false, $purple);
+// Company contact block: split the name/address over shorter lines so it
+// does not crowd the central logo, and add clear web/phone contact lines.
+$pdf->text(40, 802, 'Dance Thru The', 13, true, $purple);
+$pdf->text(40, 787, 'Decades Events', 13, true, $purple);
+$pdf->text(40, 766, '1 Cooks Cross', 9.5, false, $dark);
+$pdf->text(40, 752, 'Alveley', 9.5, false, $dark);
+$pdf->text(40, 738, 'Shropshire', 9.5, false, $dark);
+$pdf->text(40, 724, 'WV15 6LS', 9.5, false, $dark);
+$pdf->text(40, 702, 'Web:', 9.5, true, $purple);
+$pdf->text(72, 702, 'www.dancethruthedecades.co.uk', 9.5, false, $purple);
+$pdf->text(40, 686, 'Tel:', 9.5, true, $purple);
+$pdf->text(72, 686, '07807 705937', 9.5, false, $purple);
 
 $pdf->text(415, 794, $title, 23, true, $purple);
 $pdf->line(415, 780, 555, 780, 0.72);
