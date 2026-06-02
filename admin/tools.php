@@ -77,6 +77,12 @@ admin_header('Admin Tools - DJ Portal');
         <strong>Event sponsors</strong>
         <span>Per-event prizes, offers and sponsor display settings</span>
       </a>
+
+      <a class="admin-home-card" href="quote-add.php">
+        <span class="admin-home-icon">£</span>
+        <strong>Quotes & invoices</strong>
+        <span>Create test previews, save quotations and convert them to invoices</span>
+      </a>
     </div>
   </section>
 </main>
