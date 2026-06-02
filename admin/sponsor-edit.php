@@ -83,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && sponsors_table_exists()) {
         'email' => trim((string)($_POST['email'] ?? '')),
         'website_url' => trim((string)($_POST['website_url'] ?? '')),
         'logo_url' => trim((string)($_POST['logo_url'] ?? '')),
-        'logo_background' => in_array(($_POST['logo_background'] ?? 'dark'), ['dark', 'light'], true) ? $_POST['logo_background'] : 'dark',
+        'logo_background' => in_array(($_POST['logo_background'] ?? 'dark'), ['dark', 'light', 'neon_pink', 'starburst', 'radial_neon'], true) ? $_POST['logo_background'] : 'dark',
         'default_offer' => trim((string)($_POST['default_offer'] ?? '')),
         'notes' => trim((string)($_POST['notes'] ?? '')),
         'sort_order' => (int)($_POST['sort_order'] ?? 100),
@@ -127,6 +127,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && sponsors_table_exists()) {
         header('Location: sponsors.php');
         exit;
     }
+}
+
+$logo_background = (string)($$sponsor['logo_background'] ?? 'dark');
+if (!in_array($logo_background, ['dark', 'light', 'neon_pink', 'starburst', 'radial_neon'], true)) {
+    $logo_background = 'dark';
 }
 
 admin_header(($is_edit ? 'Edit Sponsor' : 'Add Sponsor') . ' - DJ Portal');
@@ -191,11 +196,11 @@ admin_header(($is_edit ? 'Edit Sponsor' : 'Add Sponsor') . ' - DJ Portal');
           <label>
             <span>Logo background</span>
             <select name="logo_background" id="sponsor-logo-background">
-                      <option value="dark" <?= $logo_background === 'dark' ? 'selected' : '' ?>>Dark / transparent</option>
-        <option value="light" <?= $logo_background === 'light' ? 'selected' : '' ?>>Light panel</option>
-        <option value="neon_pink" <?= $logo_background === 'neon_pink' ? 'selected' : '' ?>>Neon pink glow</option>
-        <option value="starburst" <?= $logo_background === 'starburst' ? 'selected' : '' ?>>Soft starburst</option>
-        <option value="radial_neon" <?= $logo_background === 'radial_neon' ? 'selected' : '' ?>>Radial neon glow</option>
+              <option value="dark" <?= $logo_background === 'dark' ? 'selected' : '' ?>>Dark / transparent</option>
+              <option value="light" <?= $logo_background === 'light' ? 'selected' : '' ?>>Light panel</option>
+              <option value="neon_pink" <?= $logo_background === 'neon_pink' ? 'selected' : '' ?>>Neon pink glow</option>
+              <option value="starburst" <?= $logo_background === 'starburst' ? 'selected' : '' ?>>Soft starburst</option>
+              <option value="radial_neon" <?= $logo_background === 'radial_neon' ? 'selected' : '' ?>>Radial neon glow</option>
             </select>
             <small>Use Light panel for transparent logos with dark text.</small>
           </label>
