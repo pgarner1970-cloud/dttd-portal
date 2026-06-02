@@ -54,7 +54,7 @@ function admin_nav_active($page) {
         'venues' => ['venues.php', 'venue-edit.php'],
         'settings' => ['settings.php'],
         'photos' => ['event-photos.php'],
-        'tools' => ['tools.php', 'events.php', 'event-edit.php', 'event-qr.php', 'venues.php', 'venue-edit.php', 'partners.php', 'sponsors.php', 'event-sponsors.php', 'request-debug.php', 'events-diagnostic.php', 'regenerate-photo-frames.php', 'repair-upload-paths.php', 'upload-path-check.php'],
+        'tools' => ['tools.php', 'events.php', 'event-edit.php', 'event-qr.php', 'venues.php', 'venue-edit.php', 'partners.php', 'partner-edit.php', 'sponsors.php', 'event-sponsors.php', 'request-debug.php', 'events-diagnostic.php', 'regenerate-photo-frames.php', 'repair-upload-paths.php', 'upload-path-check.php'],
     ];
 
     return in_array($script, $map[$page] ?? [], true) ? 'active' : '';
