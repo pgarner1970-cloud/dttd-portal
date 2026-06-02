@@ -1,6 +1,4 @@
-Patch contents:
-- Add partner logo background option support
-- Add public light logo panel styling
-- Add gallery download pill-button CSS fix
-
-Apply SQL manually in Navicat.
+Patch purpose:
+- Add Logo background selector to Partner add/edit form
+- Save/load logo_background value
+- Supports dark or light logo panel rendering on public partners page
