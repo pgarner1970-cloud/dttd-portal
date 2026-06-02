@@ -5867,56 +5867,40 @@ select.public-select option:hover {
 }
 
 
-/* v-fixed-public-header-restored
-   Restore original floating/fixed public header behaviour. */
 
-.public-site-header {
-  position: fixed !important;
-  top: 12px !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  z-index: 2000 !important;
-  width: min(1180px, calc(100% - 28px)) !important;
-  max-width: 1180px !important;
-  box-sizing: border-box !important;
-
-  background: rgba(12, 0, 26, 0.56) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-
-  border: 1px solid rgba(255, 79, 216, 0.24) !important;
-  border-radius: 24px !important;
-
-  box-shadow:
-    0 10px 32px rgba(0,0,0,.34),
-    0 0 22px rgba(255,79,216,.12);
-
+/* v-legal-page-logo-fix
+   Terms/Privacy pages must not inherit the homepage logo shell oval/pseudo styling. */
+.public-legal-page .public-legal-hero .option-one-logo-shell {
+  width: clamp(150px, 14vw, 220px) !important;
+  height: auto !important;
+  aspect-ratio: 1 / 1 !important;
+  margin: 0 auto 22px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: none !important;
+  filter: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
   overflow: visible !important;
 }
 
-/* Prevent content disappearing underneath fixed header. */
-body.homepage-option-one .home-option-one,
-body.public-gallery-page .home-option-one,
-body.public-partners-page .home-option-one,
-body.public-list-page .home-option-one,
-body.public-legal-page .home-option-one {
-  padding-top: 108px !important;
+.public-legal-page .public-legal-hero .option-one-logo-shell::before,
+.public-legal-page .public-legal-hero .option-one-logo-shell::after {
+  display: none !important;
+  content: none !important;
 }
 
-/* Mobile tightening */
-@media (max-width: 820px) {
-  .public-site-header {
-    width: calc(100% - 16px) !important;
-    top: 8px !important;
-    border-radius: 18px !important;
-  }
-
-  body.homepage-option-one .home-option-one,
-  body.public-gallery-page .home-option-one,
-  body.public-partners-page .home-option-one,
-  body.public-list-page .home-option-one,
-  body.public-legal-page .home-option-one {
-    padding-top: 94px !important;
-  }
+.public-legal-page .public-legal-hero .option-one-logo-shell img {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  max-width: 220px !important;
+  max-height: 220px !important;
+  object-fit: contain !important;
+  border-radius: 50% !important;
+  box-shadow:
+    0 0 22px rgba(255, 79, 216, .65),
+    0 0 54px rgba(255, 79, 216, .32) !important;
 }
 
