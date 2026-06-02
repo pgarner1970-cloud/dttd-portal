@@ -206,11 +206,10 @@ admin_header('Add Quotation - DJ Portal');
               <div class="form-field span-4">
                 <label for="balance_due_date">Balance due date</label>
                 <input id="balance_due_date" type="date" name="balance_due_date">
-                <label class="checkbox-row" style="margin-top:10px;">
+                <label class="compact-checkbox-row">
                   <input id="balance_due_event_date" type="checkbox" name="balance_due_event_date" value="1">
                   <span>Use event date</span>
                 </label>
-                <p class="field-help">If left blank, it will default to 14 days before the event.</p>
               </div>
             </div>
           </div>
@@ -306,4 +305,24 @@ admin_header('Add Quotation - DJ Portal');
   refreshDepositDateState();
 })();
 </script>
+
+<style>
+  .compact-checkbox-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    font-weight: 700;
+    color: var(--admin-text, #fff);
+  }
+  .compact-checkbox-row input[type="checkbox"] {
+    width: 18px !important;
+    height: 18px !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 4px !important;
+    accent-color: #2f7df6;
+  }
+</style>
 <?php admin_footer(); ?>

@@ -190,12 +190,12 @@ while ($row < 3) {
 
 // Notes and payment schedule area compacted to leave a clean full-width footer.
 $pdf->text(40, 300, 'NOTES / PAYMENT TERMS', 10, true, $purple);
-$pdf->rect(40, 195, 300, 90, [1,1,1], $line);
+$pdf->rect(40, 195, 250, 90, [1,1,1], $line);
 $notes = trim((string)$doc['notes']);
 if ($notes === '') {
     $notes = 'Thank you for booking Dance Thru The Decades Events.';
 }
-$pdf->multiline(54, 265, $notes, 8, 58, 11, 6, false, $dark);
+$pdf->multiline(54, 265, $notes, 8, 48, 11, 6, false, $dark);
 
 $quoteDateTs = !empty($doc['quote_date']) ? strtotime($doc['quote_date']) : time();
 if ($quoteDateTs === false) { $quoteDateTs = time(); }
@@ -212,8 +212,8 @@ if (!$balanceDueTs && $eventDateTs) { $balanceDueTs = strtotime('-14 days', $eve
 $balanceDue = $balanceDueTs ? date('d/m/Y', $balanceDueTs) : '14 days before event';
 $bookingDeposit = round($total * ($depositPercent / 100), 2);
 $remainingBalance = max(0, $total - $bookingDeposit);
-$depositLabel = $depositPercent > 0 ? ('BOOKING DEPOSIT ' . rtrim(rtrim(number_format($depositPercent, 2), '0'), '.') . '%') : 'BOOKING DEPOSIT';
-$depositValue = $depositPercent > 0 ? dttd_pdf_money($bookingDeposit) : 'Not required';
+$depositLabel = 'BOOKING DEPOSIT';
+$depositValue = $depositPercent > 0 ? (rtrim(rtrim(number_format($depositPercent, 2), '0'), '.') . '% / ' . dttd_pdf_money($bookingDeposit)) : 'Not required';
 
 if ($type === 'invoice') {
     $summaryRows = [
@@ -235,9 +235,9 @@ if ($type === 'invoice') {
 
 // Payment summary aligned with the top of the notes box. Wider columns and taller rows
 // prevent the labels and amounts from colliding when quotation payment dates are shown.
-$summaryX = 325;
+$summaryX = 305;
 $summaryY = 285;
-$summaryW = 230;
+$summaryW = 250;
 $rowH = $type === 'invoice' ? 30 : 24;
 $labelX = $summaryX + 12;
 $valueRightX = $summaryX + $summaryW - 14;
@@ -248,6 +248,7 @@ foreach ($summaryRows as $summaryRow) {
     $labelColour = ($fill === $purple) ? [1,1,1] : $purple;
     $displaySize = min((float)$fontSize, 10.5);
     if ($label === 'TOTAL QUOTATION') { $displaySize = 10; }
+    if ($label === 'BOOKING DEPOSIT') { $displaySize = 9.3; }
     if ($label === 'BALANCE DUE BY') { $displaySize = 9.5; }
     $pdf->text($labelX, $summaryY - $rowH + 8, $label, $displaySize, true, $labelColour);
     $pdf->textRight($valueRightX, $summaryY - $rowH + 8, $value, $displaySize, true, $textColour);
