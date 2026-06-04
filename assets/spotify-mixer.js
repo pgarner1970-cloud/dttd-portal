@@ -159,6 +159,12 @@ document.head.appendChild(overviewStyle);
   function deckHasLoaded(deck){
     return !!state?.['player_' + deck]?.loaded?.id;
   }
+  function deckLoadedTrack(deck){
+    return state?.['player_' + deck]?.loaded || null;
+  }
+  function deckLoadedIsLocal(deck){
+    return isLocalTrack(deckLoadedTrack(deck));
+  }
   function deckCanLoad(deck){
     return !!state?.['device_' + deck] && !deckIsPlaying(deck);
   }
@@ -202,20 +208,20 @@ document.head.appendChild(overviewStyle);
     }
     const aBlocked = !deckCanLoad('a');
     const bBlocked = !deckCanLoad('b');
-    const localBlocked = local;
+    const localDirectPlayBlocked = local;
     let html = '';
-    html += choiceButton('+ Add to DJ playlist', 'green full', 'playlist', localBlocked);
+    html += choiceButton('+ Add to DJ playlist', 'green full', 'playlist', false);
     // Save to crate is only for direct Spotify Search results.
     // Public Requests, DJ Crates and History are action-only selections.
     if(source === 'track') html += local ? choiceButton('+ Save to DJ crate', 'blue full', 'crate', true) : crateSaveControls();
-    html += choiceButton('Load to A', 'orange', 'load_a', aBlocked || localBlocked);
-    html += choiceButton('Load to B', 'blue', 'load_b', bBlocked || localBlocked);
-    html += choiceButton('▶ Play on A now', 'green', 'play_a', aBlocked || localBlocked);
-    html += choiceButton('▶ Play on B now', 'green', 'play_b', bBlocked || localBlocked);
+    html += choiceButton('Load to A', 'orange', 'load_a', aBlocked);
+    html += choiceButton('Load to B', 'blue', 'load_b', bBlocked);
+    html += choiceButton('▶ Play on A now', 'green', 'play_a', aBlocked || localDirectPlayBlocked);
+    html += choiceButton('▶ Play on B now', 'green', 'play_b', bBlocked || localDirectPlayBlocked);
     if(els.choiceActions) els.choiceActions.innerHTML = html;
     if(els.choiceWarning){
       const notes=[];
-      if(local) notes.push('Local tracks are searchable now; queue and Pi MPD playback will be enabled in the next phase');
+      if(local) notes.push('Local tracks can now be added/loaded; direct Pi MPD playback is still disabled until the next phase');
       if(aBlocked) notes.push('A is unavailable or currently playing');
       if(bBlocked) notes.push('B is unavailable or currently playing');
       els.choiceWarning.textContent = notes.length ? notes.join(' • ') : 'Choose a safe action. Play now loads the track and starts it immediately.';
@@ -405,16 +411,20 @@ renderAccountStatus();
     ['a','b'].forEach(deck => {
       const playing = deck === 'a' ? aPlaying : bPlaying;
       const loaded = deck === 'a' ? aLoaded : bLoaded;
+      const loadedLocal = deckLoadedIsLocal(deck);
       const device = deck === 'a' ? state?.device_a : state?.device_b;
       const otherDeck = deck === 'a' ? 'b' : 'a';
       const otherDevice = otherDeck === 'a' ? state?.device_a : state?.device_b;
       document.querySelectorAll(`[data-deck-action="play_toggle"][data-deck="${deck}"]`).forEach(b => {
-        b.disabled = !loaded || !device || accountHasWarning(deck);
+        b.disabled = !loaded || loadedLocal || !device || accountHasWarning(deck);
         b.classList.toggle('transport-playing', !!playing);
-        b.classList.toggle('transport-ready', !!loaded && !playing);
-        b.title = accountHasWarning(deck) ? (accountInfo(deck)?.warning || 'Spotify account warning') : (playing ? 'Pause Player ' + deck.toUpperCase() : 'Play / resume Player ' + deck.toUpperCase());
+        b.classList.toggle('transport-ready', !!loaded && !playing && !loadedLocal);
+        b.title = loadedLocal ? 'Local MPD playback is not enabled yet' : (accountHasWarning(deck) ? (accountInfo(deck)?.warning || 'Spotify account warning') : (playing ? 'Pause Player ' + deck.toUpperCase() : 'Play / resume Player ' + deck.toUpperCase()));
       });
-      ["seek_start","seek_back","seek_forward","seek_end"].forEach(act => document.querySelectorAll(`[data-deck-action="${act}"][data-deck="${deck}"]`).forEach(b => b.disabled = !loaded || !device || accountHasWarning(deck)));
+      ["seek_start","seek_back","seek_forward","seek_end"].forEach(act => document.querySelectorAll(`[data-deck-action="${act}"][data-deck="${deck}"]`).forEach(b => {
+        b.disabled = !loaded || loadedLocal || !device || accountHasWarning(deck);
+        if(loadedLocal) b.title = 'Local MPD playback is not enabled yet';
+      }));
       document.querySelectorAll(`[data-deck-action="clear_loaded"][data-deck="${deck}"]`).forEach(b => b.disabled = playing || !loaded);
       document.querySelectorAll(`[data-deck-action="return_loaded"][data-deck="${deck}"]`).forEach(b => {
         b.disabled = playing || !loaded;
@@ -425,8 +435,8 @@ renderAccountStatus();
         b.title = 'Manually mark Player ' + deck.toUpperCase() + ' as played and unload it';
       });
       document.querySelectorAll(`[data-deck-action="emergency_swap"][data-deck="${deck}"]`).forEach(b => {
-        b.disabled = !loaded || !device || !otherDevice;
-        b.title = 'Emergency transfer Player ' + deck.toUpperCase() + ' to Player ' + otherDeck.toUpperCase();
+        b.disabled = !loaded || loadedLocal || !device || !otherDevice;
+        b.title = loadedLocal ? 'Local emergency swap will be enabled with MPD playback' : 'Emergency transfer Player ' + deck.toUpperCase() + ' to Player ' + otherDeck.toUpperCase();
       });
     });
     document.querySelectorAll('[data-load-a]').forEach(b => {
@@ -468,7 +478,7 @@ renderAccountStatus();
         <img src="${esc(image(t.image))}" alt="">
         <div>
           <strong>${esc(t.title)}</strong><br>
-          <span class="mini muted">${esc(t.artist)}${duration(t.duration_ms) ? ' • ' + duration(t.duration_ms) : ''}${t.source === 'request' ? ' • public request' : ''}</span>
+          <span class="mini muted">${esc(t.artist)}${duration(t.duration_ms) ? ' • ' + duration(t.duration_ms) : ''}${isLocalTrack(t) ? ' • local' : ''}${t.source === 'request' ? ' • public request' : ''}</span>
           ${requestNotes}
         </div>
         <div class="row-actions">

@@ -506,15 +506,32 @@ function mx_save_playlist($playlist) {
     mx_set('spotify_mixer_playlist', json_encode(array_values(array_slice((array)$playlist, 0, 80))));
 }
 function mx_clean_track($track) {
+    $source = strtolower(trim((string)($track['source'] ?? $track['source_type'] ?? 'search')));
+    $id = (string)($track['id'] ?? '');
+    $localTrackId = !empty($track['local_track_id']) ? (int)$track['local_track_id'] : null;
+    if ($source === 'local' || strpos($id, 'local:') === 0 || $localTrackId) {
+        $source = 'local';
+        if (!$localTrackId && preg_match('/^local:(\d+)$/', $id, $m)) $localTrackId = (int)$m[1];
+        if ($id === '' && $localTrackId) $id = 'local:' . $localTrackId;
+    }
+
     return [
-        'id' => (string)($track['id'] ?? ''),
+        'id' => $id,
         'title' => (string)($track['title'] ?? ''),
         'artist' => (string)($track['artist'] ?? ''),
         'album' => (string)($track['album'] ?? ''),
         'image' => (string)($track['image'] ?? ''),
         'url' => (string)($track['url'] ?? ''),
         'duration_ms' => isset($track['duration_ms']) ? (int)$track['duration_ms'] : null,
-        'source' => (string)($track['source'] ?? 'search'),
+        'source' => $source !== '' ? $source : 'search',
+        'source_label' => (string)($track['source_label'] ?? ''),
+        'local_track_id' => $localTrackId,
+        'local_path' => (string)($track['local_path'] ?? $track['local_relative_path'] ?? $track['relative_path'] ?? ''),
+        'local_relative_path' => (string)($track['local_relative_path'] ?? $track['local_path'] ?? $track['relative_path'] ?? ''),
+        'spotify_uri' => (string)($track['spotify_uri'] ?? ''),
+        'spotify_url' => (string)($track['spotify_url'] ?? ''),
+        'spotify_match_status' => (string)($track['spotify_match_status'] ?? ''),
+        'needs_review' => !empty($track['needs_review']),
         'request_id' => !empty($track['request_id']) ? (int)$track['request_id'] : null,
         'request_group_id' => (string)($track['request_group_id'] ?? ''),
         'event_id' => !empty($track['event_id']) ? (int)$track['event_id'] : null,
@@ -540,6 +557,13 @@ function mx_clean_track($track) {
         'crate_track_id' => !empty($track['crate_track_id']) ? (int)$track['crate_track_id'] : null,
         'source_ref_id' => !empty($track['source_ref_id']) ? (int)$track['source_ref_id'] : null,
     ];
+}
+function mx_is_local_track($track) {
+    if (!is_array($track)) return false;
+    return strtolower((string)($track['source'] ?? '')) === 'local'
+        || strpos((string)($track['id'] ?? ''), 'local:') === 0
+        || !empty($track['local_track_id'])
+        || trim((string)($track['local_path'] ?? $track['local_relative_path'] ?? '')) !== '';
 }
 function mx_request_select_columns($extra = []) {
     $base = ['id', 'guest_name', 'song_title', 'artist', 'created_at', 'spotify_track_id'];
@@ -1188,6 +1212,14 @@ function mx_track_output($t) {
     if (!empty($raw['crate_id'])) $t['crate_id'] = (int)$raw['crate_id'];
     if (!empty($raw['crate_track_id'])) $t['crate_track_id'] = (int)$raw['crate_track_id'];
     if (!empty($raw['source_ref_id'])) $t['source_ref_id'] = (int)$raw['source_ref_id'];
+    if (mx_is_local_track($t)) {
+        $t['source'] = 'local';
+        if ($t['source_label'] === '') $t['source_label'] = 'Local';
+        if ($t['local_relative_path'] === '' && $t['local_path'] !== '') $t['local_relative_path'] = $t['local_path'];
+        if ($t['local_path'] === '' && $t['local_relative_path'] !== '') $t['local_path'] = $t['local_relative_path'];
+        if (!is_array($t['badges'] ?? null)) $t['badges'] = [];
+        $t['badges'][] = ['type' => 'local', 'label' => 'Local'];
+    }
     return $t;
 }
 function mx_requests($playlist) {
@@ -1509,6 +1541,11 @@ function mx_load_track_to_deck($track, $deck, $playback = null, &$playlist = nul
 function mx_track_key($track) {
     if (!empty($track['request_group_id'])) return 'request_group:' . (string)$track['request_group_id'];
     if (!empty($track['request_id'])) return 'request:' . (int)$track['request_id'];
+    if (mx_is_local_track($track)) {
+        if (!empty($track['local_track_id'])) return 'local:' . (int)$track['local_track_id'];
+        $path = trim((string)($track['local_relative_path'] ?? $track['local_path'] ?? ''));
+        if ($path !== '') return 'local_path:' . $path;
+    }
     return 'track:' . (string)($track['id'] ?? '');
 }
 function mx_playlist_contains_track($playlist, $track) {
@@ -1622,9 +1659,11 @@ try {
     if ($action === 'add_track') {
         $track = json_decode((string)($_POST['track_json'] ?? ''), true);
         if (!is_array($track) || empty($track['id'])) throw new RuntimeException('No valid track selected.');
-        array_unshift($playlist, mx_clean_track($track));
+        $clean = mx_clean_track($track);
+        if (mx_playlist_contains_track($playlist, $clean)) throw new RuntimeException('That track is already in the DJ playlist.');
+        array_unshift($playlist, $clean);
         mx_save_playlist($playlist);
-        mx_json_out(['ok' => true, 'message' => 'Track added to DJ playlist.', 'state' => mx_state()]);
+        mx_json_out(['ok' => true, 'message' => (mx_is_local_track($clean) ? 'Local track added to DJ playlist.' : 'Track added to DJ playlist.'), 'state' => mx_state()]);
     }
 
 
@@ -1636,6 +1675,7 @@ try {
         $playback = mx_playback($deck);
         mx_load_track_to_deck($track, $deck, $playback, $playlist, false, (string)($track['source'] ?? 'search'));
         if ($action === 'play_track_direct') {
+            if (mx_is_local_track($track)) throw new RuntimeException('Local direct playback will be enabled in the MPD phase. Add/load the track for now.');
             $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
             mx_play_track($device, $track['id'] ?? '', null, $deck);
             $playedTrack = mx_json('spotify_mixer_loaded_' . $deck, []);
@@ -1778,6 +1818,7 @@ try {
         $deck = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
         $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
         $track = mx_json('spotify_mixer_loaded_' . $deck, []);
+        if (mx_is_local_track($track)) throw new RuntimeException('Local MPD playback is not enabled yet.');
         $pb = mx_playback($deck);
         if (mx_device_playing($device, $pb)) {
             mx_save_resume_position($deck, $device, $track);
@@ -1822,6 +1863,7 @@ try {
         $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
         $track = mx_json('spotify_mixer_loaded_' . $deck, []);
         if (empty($track['id'])) throw new RuntimeException('No track loaded on Player ' . strtoupper($deck) . '.');
+        if (mx_is_local_track($track)) throw new RuntimeException('Local MPD seeking is not enabled yet.');
         $pb = mx_playback($deck);
         $current = mx_resume_position_for_track($deck, $track['id'] ?? '');
         if ($current === null) $current = mx_loaded_position_fallback($track);
@@ -1846,6 +1888,7 @@ try {
         $targetDevice = $target === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
         $track = mx_json('spotify_mixer_loaded_' . $source, []);
         if (empty($track['id'])) throw new RuntimeException('No track loaded on Player ' . strtoupper($source) . '.');
+        if (mx_is_local_track($track)) throw new RuntimeException('Local emergency swap will be enabled with MPD playback.');
         if (!$targetDevice) throw new RuntimeException('Player ' . strtoupper($target) . ' has no assigned Spotify device.');
 
         // Capture the most accurate live position possible before moving devices.
