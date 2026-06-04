@@ -1,0 +1,31 @@
+<?php
+require_once __DIR__ . '/../_auth.php';
+require_once __DIR__ . '/../../includes/local-music.php';
+
+dttd_no_cache_headers();
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store');
+
+$q = trim((string)($_GET['q'] ?? ''));
+$limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
+
+try {
+    $configured = dttd_local_music_table_exists('local_tracks');
+    $tracks = $configured ? dttd_local_music_search($q, $limit) : [];
+    echo json_encode([
+        'ok' => true,
+        'configured' => $configured,
+        'tracks' => $tracks,
+        'source' => 'local',
+        'message' => $configured ? '' : 'Local music table has not been created yet.',
+    ], JSON_UNESCAPED_SLASHES);
+} catch (Throwable $e) {
+    http_response_code(200);
+    echo json_encode([
+        'ok' => false,
+        'configured' => dttd_local_music_table_exists('local_tracks'),
+        'tracks' => [],
+        'source' => 'local',
+        'message' => (isset($_GET['debug']) && $_GET['debug'] === '1') ? ('Local music search is unavailable: ' . $e->getMessage()) : 'Local music search is unavailable.',
+    ], JSON_UNESCAPED_SLASHES);
+}
