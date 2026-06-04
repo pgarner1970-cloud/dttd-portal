@@ -1537,6 +1537,17 @@ function mx_load_track_to_deck($track, $deck, $playback = null, &$playlist = nul
     $clean['end_seen_ms'] = null;
     $clean['end_armed_at'] = null;
     mx_store_loaded_track($deck, $clean);
+    if (mx_is_local_track($clean)) {
+        try {
+            $prepared = mx_json('spotify_mixer_loaded_' . $deck, $clean);
+            mx_local_prepare_track($deck, is_array($prepared) && !empty($prepared) ? $prepared : $clean);
+        } catch (Throwable $prepareError) {
+            // Keep loading usable even if the node is temporarily unavailable.
+            // The later Play command can still attempt a full local_play fallback.
+            $clean['local_prepare_error'] = $prepareError->getMessage();
+            mx_store_loaded_track($deck, $clean);
+        }
+    }
     return $deck;
 }
 
@@ -1597,6 +1608,30 @@ function mx_local_pause_track($deck, $track) {
     $track['paused_position_ms'] = $base;
     $track['position_updated_at'] = null;
     $track['local_is_playing'] = false;
+    mx_store_loaded_track($deck, $track);
+    return $track;
+}
+
+
+
+function mx_local_prepare_track($deck, $track) {
+    $deck = $deck === 'b' ? 'b' : 'a';
+    if (!mx_is_local_track($track)) return $track;
+    $path = mx_local_relative_path($track);
+
+    // Queue a background MPD prepare as soon as the track is loaded to the deck.
+    // This gives the Pi time to clear/add/buffer the network file before the DJ
+    // presses Play, reducing the audible start delay from Samba/MPD buffering.
+    mx_queue_deck_node_command($deck, 'local_prepare', [
+        'relative_path' => $path,
+        'position_ms' => (int)($track['paused_position_ms'] ?? $track['position_base_ms'] ?? 0),
+        'title' => (string)($track['title'] ?? ''),
+        'artist' => (string)($track['artist'] ?? ''),
+    ]);
+
+    $track['local_is_prepared'] = false;
+    $track['local_prepare_requested_at'] = time();
+    $track['local_playback_mode'] = 'mpd';
     mx_store_loaded_track($deck, $track);
     return $track;
 }
