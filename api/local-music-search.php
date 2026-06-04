@@ -32,6 +32,6 @@ try {
         'configured' => dttd_local_music_table_exists('local_tracks'),
         'tracks' => [],
         'source' => 'local',
-        'message' => 'Local music search is unavailable.',
+        'message' => (isset($_GET['debug']) && $_GET['debug'] === '1') ? ('Local music search is unavailable: ' . $e->getMessage()) : 'Local music search is unavailable.',
     ], JSON_UNESCAPED_SLASHES);
 }

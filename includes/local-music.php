@@ -119,7 +119,7 @@ function dttd_local_music_search($query, $limit = 10) {
     if (!dttd_local_music_table_exists('local_tracks')) return [];
 
     $query = trim((string)$query);
-    if ($query === '' || mb_strlen($query) < 2) return [];
+    if ($query === '' || strlen($query) < 2) return [];
 
     $terms = preg_split('/\s+/', $query, -1, PREG_SPLIT_NO_EMPTY);
     $terms = array_slice($terms ?: [], 0, 5);
