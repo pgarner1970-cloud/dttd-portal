@@ -18,6 +18,7 @@ document.head.appendChild(overviewStyle);
   if(!app) return;
   const api = app.dataset.api || 'mixer-api.php';
   const searchApi = app.dataset.searchApi || '/api/spotify-search.php';
+  const localSearchApi = app.dataset.localSearchApi || '/api/local-music-search.php';
   let state = null;
   let searchTimer = null;
   let pollTimer = null;
@@ -104,6 +105,29 @@ document.head.appendChild(overviewStyle);
   }
   function image(src){ return src || 'https://dancethruthedecades.co.uk/assets/glitter-ball-clean.png'; }
 
+  function isLocalTrack(track){
+    return String(track?.source || '').toLowerCase() === 'local' || String(track?.id || '').indexOf('local:') === 0 || !!track?.local_track_id;
+  }
+  function prepareSearchTrack(track, fallbackSource){
+    const t = Object.assign({}, track || {});
+    const local = isLocalTrack(t) || fallbackSource === 'local';
+    if(local){
+      t.source = 'local';
+      t.source_label = t.source_label || 'Local';
+      const badges = Array.isArray(t.badges) ? t.badges.slice() : [];
+      if(!badges.some(b => String(b?.type || '') === 'local')) badges.unshift({type:'local', label:'Local'});
+      if(t.needs_review && !badges.some(b => String(b?.type || '') === 'review')) badges.push({type:'review', label:'Review'});
+      if(String(t.spotify_match_status || '').toLowerCase() === 'matched' && !badges.some(b => String(b?.type || '') === 'matched')) badges.push({type:'matched', label:'Spotify match'});
+      t.badges = badges;
+      return t;
+    }
+    t.source = t.source || 'spotify';
+    const badges = Array.isArray(t.badges) ? t.badges.slice() : [];
+    if(!badges.some(b => String(b?.type || '') === 'spotify')) badges.unshift({type:'spotify', label:'Spotify'});
+    t.badges = badges;
+    return t;
+  }
+
   function deviceIsOnline(id){
     if(!id) return false;
     return (state?.devices || []).some(d => String(d.id) === String(id));
@@ -165,10 +189,11 @@ document.head.appendChild(overviewStyle);
     if(!els.choiceModal || !item) return;
     const title = item.title || item.song_title || 'Selected track';
     const artist = item.artist || '';
+    const local = isLocalTrack(item);
     if(els.choiceImage) els.choiceImage.src = image(item.image || item.spotify_album_image || '');
     if(els.choiceTitle) els.choiceTitle.textContent = title;
     if(els.choiceArtist){
-      let suffix = '';
+      let suffix = local ? ' • local music' : '';
       if(source === 'request'){
         if(Number(item.request_count || 0) > 1) suffix = ' • ' + Number(item.request_count || 0) + ' requests';
         else if(item.guest_name) suffix = ' • requested by ' + item.guest_name;
@@ -177,18 +202,20 @@ document.head.appendChild(overviewStyle);
     }
     const aBlocked = !deckCanLoad('a');
     const bBlocked = !deckCanLoad('b');
+    const localBlocked = local;
     let html = '';
-    html += choiceButton('+ Add to DJ playlist', 'green full', 'playlist');
+    html += choiceButton('+ Add to DJ playlist', 'green full', 'playlist', localBlocked);
     // Save to crate is only for direct Spotify Search results.
     // Public Requests, DJ Crates and History are action-only selections.
-    if(source === 'track') html += crateSaveControls();
-    html += choiceButton('Load to A', 'orange', 'load_a', aBlocked);
-    html += choiceButton('Load to B', 'blue', 'load_b', bBlocked);
-    html += choiceButton('▶ Play on A now', 'green', 'play_a', aBlocked);
-    html += choiceButton('▶ Play on B now', 'green', 'play_b', bBlocked);
+    if(source === 'track') html += local ? choiceButton('+ Save to DJ crate', 'blue full', 'crate', true) : crateSaveControls();
+    html += choiceButton('Load to A', 'orange', 'load_a', aBlocked || localBlocked);
+    html += choiceButton('Load to B', 'blue', 'load_b', bBlocked || localBlocked);
+    html += choiceButton('▶ Play on A now', 'green', 'play_a', aBlocked || localBlocked);
+    html += choiceButton('▶ Play on B now', 'green', 'play_b', bBlocked || localBlocked);
     if(els.choiceActions) els.choiceActions.innerHTML = html;
     if(els.choiceWarning){
       const notes=[];
+      if(local) notes.push('Local tracks are searchable now; queue and Pi MPD playback will be enabled in the next phase');
       if(aBlocked) notes.push('A is unavailable or currently playing');
       if(bBlocked) notes.push('B is unavailable or currently playing');
       els.choiceWarning.textContent = notes.length ? notes.join(' • ') : 'Choose a safe action. Play now loads the track and starts it immediately.';
@@ -584,35 +611,53 @@ renderAccountStatus();
     const text = await res.text();
     try { return JSON.parse(text); }
     catch(e) {
-      console.warn('Spotify search returned non-JSON response', {url, status: res.status, body: text.slice(0, 250)});
+      console.warn('Mixer search returned non-JSON response', {url, status: res.status, body: text.slice(0, 250)});
       throw e;
     }
   }
   async function search(q){
     if(!q || q.trim().length < 3){ els.searchResults.innerHTML=''; els.searchStatus.textContent=''; return; }
-    els.searchStatus.innerHTML = '<span class="spinner"></span> Searching…';
+    els.searchStatus.innerHTML = '<span class="spinner"></span> Searching Spotify + local music…';
     const query = q.trim();
-    const urls = [
+    const spotifyUrls = [
       searchApi + '?q=' + encodeURIComponent(query) + '&_=' + Date.now(),
       api + '?' + new URLSearchParams({action:'search', q:query, _:Date.now()}).toString()
     ];
-    let lastError = null;
-    for(const url of urls){
+    const localUrl = localSearchApi + '?q=' + encodeURIComponent(query) + '&limit=10&_=' + Date.now();
+    let spotifyData = null;
+    let spotifyError = null;
+    for(const url of spotifyUrls){
       try{
         const data = await fetchSearchJson(url);
-        if(data && data.ok){
-          const sourceLabel = data.rate_limited ? 'Spotify cooling down — cached matches shown' : (data.source === 'cache' ? 'Cached matches shown' : '');
-          els.searchStatus.textContent = sourceLabel || '';
-          renderSearchResults(data.tracks || []);
-          return;
-        }
-        lastError = (data && (data.error || data.message)) || 'Search failed';
-      }
-      catch(e){ lastError = e; }
+        if(data && data.ok){ spotifyData = data; break; }
+        spotifyError = (data && (data.error || data.message)) || 'Spotify search failed';
+      } catch(e){ spotifyError = e; }
     }
-    console.warn('Spotify mixer search failed', lastError);
+    let localData = null;
+    let localError = null;
+    try{
+      const data = await fetchSearchJson(localUrl);
+      if(data && data.ok) localData = data;
+      else localError = (data && (data.error || data.message)) || 'Local music search failed';
+    } catch(e){ localError = e; }
+
+    const spotifyTracks = (spotifyData?.tracks || []).map(t => prepareSearchTrack(t, 'spotify'));
+    const localTracks = (localData?.tracks || []).map(t => prepareSearchTrack(t, 'local'));
+    const tracks = spotifyTracks.concat(localTracks);
+    if(tracks.length){
+      const notes = [];
+      if(spotifyData?.rate_limited) notes.push('Spotify cooling down — cached matches shown');
+      else if(spotifyData?.source === 'cache') notes.push('Cached Spotify matches shown');
+      if(localTracks.length) notes.push(localTracks.length + ' local match' + (localTracks.length === 1 ? '' : 'es'));
+      if(!localData && localError) notes.push('Local music unavailable');
+      if(!spotifyData && spotifyError) notes.push('Spotify unavailable');
+      els.searchStatus.textContent = notes.join(' • ');
+      renderSearchResults(tracks);
+      return;
+    }
+    console.warn('Mixer search failed', {spotifyError, localError});
     els.searchResults.innerHTML = '';
-    els.searchStatus.textContent = typeof lastError === 'string' ? lastError : 'Search failed';
+    els.searchStatus.textContent = 'No matches found';
   }
   app.addEventListener('click', (e)=>{
     const sourceTab = e.target.closest('[data-source-tab]');
