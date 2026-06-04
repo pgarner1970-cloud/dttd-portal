@@ -69,6 +69,7 @@ document.head.appendChild(overviewStyle);
     if(track.played_qualified) return {label:'Played', cls:'played', detail:'Played threshold reached'};
     const playing = deck ? deckIsPlaying(deck) : false;
     if(playing) return {label:'Playing', cls:'playing', detail:'Will count as played at ' + playedThresholdLabel(track)};
+    if(deck && deckIsPreparingLocal(deck)) return {label:'Preparing', cls:'preparing', detail:'Local track is being queued on the Raspberry Pi'};
     if(track.played_on_deck) return {label:'Paused / in progress', cls:'progress', detail:'Not marked played yet'};
     return {label:'Loaded', cls:'loaded', detail:'Not marked played until ' + playedThresholdLabel(track)};
   }
@@ -179,6 +180,22 @@ document.head.appendChild(overviewStyle);
   }
   function deckLoadedIsLocal(deck){
     return isLocalTrack(deckLoadedTrack(deck));
+  }
+  function deckLocalPrepareAgeSeconds(deck){
+    const track = deckLoadedTrack(deck);
+    if(!isLocalTrack(track) || !track.local_prepare_requested_at) return null;
+    const requested = Number(track.local_prepare_requested_at) || 0;
+    if(!requested) return null;
+    return (Date.now() / 1000) - requested;
+  }
+  function deckIsPreparingLocal(deck){
+    const track = deckLoadedTrack(deck);
+    if(!isLocalTrack(track) || deckIsPlaying(deck)) return false;
+    if(track.local_prepare_error) return false;
+    const age = deckLocalPrepareAgeSeconds(deck);
+    // Give the Pi a short, visible cue window after a local_prepare command is queued.
+    // Allow a little client/server clock skew so the red state still appears immediately.
+    return age !== null && age > -30 && age < 3.5;
   }
   function deckCanLoad(deck){
     return !!state?.['device_' + deck] && !deckIsPlaying(deck);
@@ -427,14 +444,18 @@ renderAccountStatus();
       const playing = deck === 'a' ? aPlaying : bPlaying;
       const loaded = deck === 'a' ? aLoaded : bLoaded;
       const loadedLocal = deckLoadedIsLocal(deck);
+      const preparingLocal = deckIsPreparingLocal(deck);
       const device = deck === 'a' ? state?.device_a : state?.device_b;
       const otherDeck = deck === 'a' ? 'b' : 'a';
       const otherDevice = otherDeck === 'a' ? state?.device_a : state?.device_b;
       document.querySelectorAll(`[data-deck-action="play_toggle"][data-deck="${deck}"]`).forEach(b => {
         b.disabled = !loaded || (!loadedLocal && (!device || accountHasWarning(deck)));
         b.classList.toggle('transport-playing', !!playing);
-        b.classList.toggle('transport-ready', !!loaded && !playing);
-        b.title = loadedLocal ? (playing ? 'Pause local MPD on Player ' + deck.toUpperCase() : 'Play local MPD on Player ' + deck.toUpperCase()) : (accountHasWarning(deck) ? (accountInfo(deck)?.warning || 'Spotify account warning') : (playing ? 'Pause Player ' + deck.toUpperCase() : 'Play / resume Player ' + deck.toUpperCase()));
+        b.classList.toggle('transport-preparing', !!preparingLocal);
+        b.classList.toggle('transport-ready', !!loaded && !playing && !preparingLocal);
+        b.title = loadedLocal
+          ? (preparingLocal ? 'Preparing local track on Player ' + deck.toUpperCase() : (playing ? 'Pause local MPD on Player ' + deck.toUpperCase() : 'Play local MPD on Player ' + deck.toUpperCase()))
+          : (accountHasWarning(deck) ? (accountInfo(deck)?.warning || 'Spotify account warning') : (playing ? 'Pause Player ' + deck.toUpperCase() : 'Play / resume Player ' + deck.toUpperCase()));
       });
       ["seek_start","seek_back","seek_forward","seek_end"].forEach(act => document.querySelectorAll(`[data-deck-action="${act}"][data-deck="${deck}"]`).forEach(b => {
         b.disabled = !loaded || (!loadedLocal && (!device || accountHasWarning(deck)));
