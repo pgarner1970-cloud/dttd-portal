@@ -54,6 +54,7 @@ document.head.appendChild(overviewStyle);
     if(src === 'public_request' || src === 'request') return 'Public Request';
     if(src === 'dj_crate' || src === 'crate') return 'DJ Crate';
     if(src === 'history') return 'History';
+    if(src === 'local') return 'Local Music';
     if(src === 'search' || src === 'track') return 'Search';
     return src ? src.replace(/_/g, ' ') : 'Manual';
   }
@@ -75,15 +76,27 @@ document.head.appendChild(overviewStyle);
     return `<span class="workflow-badge ${esc(cls)}"${title ? ` title="${esc(title)}"` : ''}>${esc(label)}</span>`;
   }
   function deckProgress(track, deck){
+    const durationMs = Number(track?.duration_ms) || 0;
+    if(isLocalTrack(track)){
+      const active = !!track?.local_is_playing;
+      let progressMs = Number(track?.position_base_ms || track?.paused_position_ms || 0) || 0;
+      if(active && track?.position_updated_at){
+        progressMs += Math.max(0, (Date.now() / 1000 - Number(track.position_updated_at)) * 1000);
+      }
+      if(durationMs) progressMs = Math.min(progressMs, durationMs);
+      const pct = durationMs ? Math.min(100, Math.max(0, (progressMs / durationMs) * 100)) : 0;
+      const remainingMs = durationMs ? Math.max(0, durationMs - progressMs) : 0;
+      return {active, sameTrack: active || progressMs > 0, durationMs, progressMs, remainingMs, pct};
+    }
     const deviceId = state?.['device_' + deck] || '';
     const active = state?.active_device_id === deviceId && !!state?.is_playing;
     const current = state?.track || {};
     const sameTrack = active && track?.id && current?.id && String(track.id) === String(current.id);
-    const durationMs = sameTrack ? (Number(current.duration_ms) || Number(track.duration_ms) || 0) : (Number(track?.duration_ms) || 0);
+    const spotifyDurationMs = sameTrack ? (Number(current.duration_ms) || Number(track.duration_ms) || 0) : durationMs;
     const progressMs = sameTrack ? (Number(current.progress_ms) || 0) : 0;
-    const pct = durationMs ? Math.min(100, Math.max(0, (progressMs / durationMs) * 100)) : 0;
-    const remainingMs = durationMs ? Math.max(0, durationMs - progressMs) : 0;
-    return {active, sameTrack, durationMs, progressMs, remainingMs, pct};
+    const pct = spotifyDurationMs ? Math.min(100, Math.max(0, (progressMs / spotifyDurationMs) * 100)) : 0;
+    const remainingMs = spotifyDurationMs ? Math.max(0, spotifyDurationMs - progressMs) : 0;
+    return {active, sameTrack, durationMs: spotifyDurationMs, progressMs, remainingMs, pct};
   }
   function toast(msg, ok=true){
     if(!els.toast) return;
@@ -151,6 +164,8 @@ document.head.appendChild(overviewStyle);
     return d ? d.name : (id ? 'Selected device' : 'Not assigned');
   }
   function deckIsPlaying(deck){
+    const loaded = state?.['player_' + deck]?.loaded || null;
+    if(isLocalTrack(loaded)) return !!loaded.local_is_playing;
     const deviceId = state?.['device_' + deck] || '';
     const reported = state?.['player_' + deck]?.state === 'playing';
     const active = !!deviceId && state?.active_device_id === deviceId && !!state?.is_playing;
@@ -208,7 +223,7 @@ document.head.appendChild(overviewStyle);
     }
     const aBlocked = !deckCanLoad('a');
     const bBlocked = !deckCanLoad('b');
-    const localDirectPlayBlocked = local;
+    const localDirectPlayBlocked = false;
     let html = '';
     html += choiceButton('+ Add to DJ playlist', 'green full', 'playlist', false);
     // Save to crate is only for direct Spotify Search results.
@@ -221,7 +236,7 @@ document.head.appendChild(overviewStyle);
     if(els.choiceActions) els.choiceActions.innerHTML = html;
     if(els.choiceWarning){
       const notes=[];
-      if(local) notes.push('Local tracks can now be added/loaded; direct Pi MPD playback is still disabled until the next phase');
+      if(local) notes.push('Local track will play via MPD on the assigned Raspberry Pi');
       if(aBlocked) notes.push('A is unavailable or currently playing');
       if(bBlocked) notes.push('B is unavailable or currently playing');
       els.choiceWarning.textContent = notes.length ? notes.join(' • ') : 'Choose a safe action. Play now loads the track and starts it immediately.';
@@ -416,14 +431,14 @@ renderAccountStatus();
       const otherDeck = deck === 'a' ? 'b' : 'a';
       const otherDevice = otherDeck === 'a' ? state?.device_a : state?.device_b;
       document.querySelectorAll(`[data-deck-action="play_toggle"][data-deck="${deck}"]`).forEach(b => {
-        b.disabled = !loaded || loadedLocal || !device || accountHasWarning(deck);
+        b.disabled = !loaded || (!loadedLocal && (!device || accountHasWarning(deck)));
         b.classList.toggle('transport-playing', !!playing);
-        b.classList.toggle('transport-ready', !!loaded && !playing && !loadedLocal);
-        b.title = loadedLocal ? 'Local MPD playback is not enabled yet' : (accountHasWarning(deck) ? (accountInfo(deck)?.warning || 'Spotify account warning') : (playing ? 'Pause Player ' + deck.toUpperCase() : 'Play / resume Player ' + deck.toUpperCase()));
+        b.classList.toggle('transport-ready', !!loaded && !playing);
+        b.title = loadedLocal ? (playing ? 'Pause local MPD on Player ' + deck.toUpperCase() : 'Play local MPD on Player ' + deck.toUpperCase()) : (accountHasWarning(deck) ? (accountInfo(deck)?.warning || 'Spotify account warning') : (playing ? 'Pause Player ' + deck.toUpperCase() : 'Play / resume Player ' + deck.toUpperCase()));
       });
       ["seek_start","seek_back","seek_forward","seek_end"].forEach(act => document.querySelectorAll(`[data-deck-action="${act}"][data-deck="${deck}"]`).forEach(b => {
-        b.disabled = !loaded || loadedLocal || !device || accountHasWarning(deck);
-        if(loadedLocal) b.title = 'Local MPD playback is not enabled yet';
+        b.disabled = !loaded || (!loadedLocal && (!device || accountHasWarning(deck)));
+        if(loadedLocal) b.title = 'Seek local MPD on Player ' + deck.toUpperCase();
       }));
       document.querySelectorAll(`[data-deck-action="clear_loaded"][data-deck="${deck}"]`).forEach(b => b.disabled = playing || !loaded);
       document.querySelectorAll(`[data-deck-action="return_loaded"][data-deck="${deck}"]`).forEach(b => {
@@ -436,7 +451,7 @@ renderAccountStatus();
       });
       document.querySelectorAll(`[data-deck-action="emergency_swap"][data-deck="${deck}"]`).forEach(b => {
         b.disabled = !loaded || loadedLocal || !device || !otherDevice;
-        b.title = loadedLocal ? 'Local emergency swap will be enabled with MPD playback' : 'Emergency transfer Player ' + deck.toUpperCase() + ' to Player ' + otherDeck.toUpperCase();
+        b.title = loadedLocal ? 'Local emergency swap is not enabled yet' : 'Emergency transfer Player ' + deck.toUpperCase() + ' to Player ' + otherDeck.toUpperCase();
       });
     });
     document.querySelectorAll('[data-load-a]').forEach(b => {
