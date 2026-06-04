@@ -4809,6 +4809,7 @@ body.public-event-detail-page .public-event-photos-empty{
   flex-wrap:wrap !important;
 }
 .public-lightbox-actions button,
+.public-lightbox-actions a,
 .public-lightbox-close,
 .public-lightbox-nav{
   border:1px solid rgba(255,255,255,.22) !important;
@@ -4818,6 +4819,9 @@ body.public-event-detail-page .public-event-photos-empty{
   padding:10px 14px !important;
   font-weight:900 !important;
   cursor:pointer !important;
+}
+.public-lightbox-actions a{
+  text-decoration:none !important;
 }
 .public-lightbox-close{
   position:absolute !important;
