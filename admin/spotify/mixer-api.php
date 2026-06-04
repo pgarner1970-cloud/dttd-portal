@@ -553,6 +553,11 @@ function mx_clean_track($track) {
         'playback_started_at' => isset($track['playback_started_at']) ? (int)$track['playback_started_at'] : null,
         'expected_finish_at' => isset($track['expected_finish_at']) ? (int)$track['expected_finish_at'] : null,
         'local_is_playing' => !empty($track['local_is_playing']),
+        'local_is_prepared' => !empty($track['local_is_prepared']),
+        'local_prepare_requested_at' => isset($track['local_prepare_requested_at']) ? (int)$track['local_prepare_requested_at'] : null,
+        'local_prepare_completed_at' => isset($track['local_prepare_completed_at']) ? (int)$track['local_prepare_completed_at'] : null,
+        'local_prepare_command_id' => isset($track['local_prepare_command_id']) ? (int)$track['local_prepare_command_id'] : null,
+        'local_prepare_error' => (string)($track['local_prepare_error'] ?? ''),
         'local_playback_mode' => (string)($track['local_playback_mode'] ?? ''),
         'history_logged_at' => isset($track['history_logged_at']) ? (int)$track['history_logged_at'] : null,
         'crate_id' => !empty($track['crate_id']) ? (int)$track['crate_id'] : null,
@@ -1622,7 +1627,7 @@ function mx_local_prepare_track($deck, $track) {
     // Queue a background MPD prepare as soon as the track is loaded to the deck.
     // This gives the Pi time to clear/add/buffer the network file before the DJ
     // presses Play, reducing the audible start delay from Samba/MPD buffering.
-    mx_queue_deck_node_command($deck, 'local_prepare', [
+    $commandId = mx_queue_deck_node_command($deck, 'local_prepare', [
         'relative_path' => $path,
         'position_ms' => (int)($track['paused_position_ms'] ?? $track['position_base_ms'] ?? 0),
         'title' => (string)($track['title'] ?? ''),
@@ -1631,6 +1636,9 @@ function mx_local_prepare_track($deck, $track) {
 
     $track['local_is_prepared'] = false;
     $track['local_prepare_requested_at'] = time();
+    $track['local_prepare_completed_at'] = null;
+    $track['local_prepare_command_id'] = $commandId;
+    $track['local_prepare_error'] = '';
     $track['local_playback_mode'] = 'mpd';
     mx_store_loaded_track($deck, $track);
     return $track;
@@ -1656,6 +1664,9 @@ function mx_local_play_track($deck, $track, $positionMs = null) {
     ]);
 
     $track['played_on_deck'] = true;
+    $track['local_is_prepared'] = true;
+    if (empty($track['local_prepare_completed_at'])) $track['local_prepare_completed_at'] = time();
+    $track['local_prepare_error'] = '';
     $track['position_base_ms'] = $positionMs;
     $track['position_updated_at'] = time();
     $track['paused_position_ms'] = null;
