@@ -174,3 +174,307 @@ function dttd_local_music_recent_tracks($limit = 50) {
         return [];
     }
 }
+
+function dttd_local_music_table_columns($table) {
+    static $cache = [];
+    $table = preg_replace('/[^a-zA-Z0-9_]/', '', (string)$table);
+    if ($table === '') return [];
+    if (array_key_exists($table, $cache)) return $cache[$table];
+    $cache[$table] = [];
+    if (!dttd_local_music_table_exists($table)) return $cache[$table];
+    try {
+        $stmt = db()->query("SHOW COLUMNS FROM `" . $table . "`");
+        foreach ($stmt->fetchAll() as $row) {
+            if (!empty($row['Field'])) $cache[$table][(string)$row['Field']] = true;
+        }
+    } catch (Throwable $e) {}
+    return $cache[$table];
+}
+
+function dttd_local_music_column_exists($table, $column) {
+    $cols = dttd_local_music_table_columns($table);
+    return isset($cols[(string)$column]);
+}
+
+function dttd_local_music_spotify_match_schema_missing() {
+    $required = ['spotify_match_checked_at', 'spotify_match_attempts', 'spotify_match_error'];
+    $missing = [];
+    foreach ($required as $col) {
+        if (!dttd_local_music_column_exists('local_tracks', $col)) $missing[] = $col;
+    }
+    return $missing;
+}
+
+function dttd_local_music_match_counts() {
+    $out = [
+        'unchecked' => 0,
+        'checking' => 0,
+        'matched' => 0,
+        'needs_review' => 0,
+        'no_match' => 0,
+        'failed' => 0,
+        'skipped' => 0,
+    ];
+    if (!dttd_local_music_table_exists('local_tracks')) return $out;
+    try {
+        $rows = db()->query("SELECT COALESCE(NULLIF(spotify_match_status,''), 'unchecked') AS status, COUNT(*) AS total FROM local_tracks GROUP BY COALESCE(NULLIF(spotify_match_status,''), 'unchecked')")->fetchAll();
+        foreach ($rows as $row) {
+            $key = (string)($row['status'] ?? 'unchecked');
+            if (!array_key_exists($key, $out)) $out[$key] = 0;
+            $out[$key] = (int)($row['total'] ?? 0);
+        }
+    } catch (Throwable $e) {}
+    return $out;
+}
+
+function dttd_local_music_plain_text($value) {
+    $value = strtolower((string)$value);
+    $value = preg_replace('/\([^)]*\)|\[[^]]*\]/', ' ', $value);
+    $value = str_replace(['&'], ' and ', $value);
+    $value = preg_replace('/\b(feat|ft|featuring|remaster|remastered|radio edit|single version|explicit|clean)\b/i', ' ', $value);
+    $value = preg_replace('/[^a-z0-9]+/i', ' ', $value);
+    return trim(preg_replace('/\s+/', ' ', $value));
+}
+
+function dttd_local_music_track_display_field($row, $display, $detected, $fallback = '') {
+    $value = trim((string)($row[$display] ?? ''));
+    if ($value !== '') return $value;
+    $value = trim((string)($row[$detected] ?? ''));
+    if ($value !== '') return $value;
+    return $fallback;
+}
+
+function dttd_local_music_guess_artist_title_from_filename($relativePath, $fileName = '') {
+    $title = dttd_local_music_guess_title($relativePath, $fileName);
+    $artist = '';
+    if (strpos($title, ' - ') !== false) {
+        [$artist, $trackTitle] = explode(' - ', $title, 2);
+        $artist = trim($artist);
+        $title = trim($trackTitle);
+    }
+    return [$artist, $title];
+}
+
+function dttd_local_music_match_query_for_row($row) {
+    [$guessArtist, $guessTitle] = dttd_local_music_guess_artist_title_from_filename((string)($row['relative_path'] ?? ''), (string)($row['file_name'] ?? ''));
+    $title = dttd_local_music_track_display_field($row, 'display_title', 'detected_title', $guessTitle);
+    $artist = dttd_local_music_track_display_field($row, 'display_artist', 'detected_artist', $guessArtist);
+    $title = trim($title);
+    $artist = trim($artist);
+
+    if ($title === '' || strtolower($title) === 'unknown') return '';
+    if ($artist === '' || strtolower($artist) === 'local music' || strtolower($artist) === 'unknown artist') return $title;
+    return trim($artist . ' ' . $title);
+}
+
+function dttd_local_music_score_spotify_candidate($row, array $candidate) {
+    [$guessArtist, $guessTitle] = dttd_local_music_guess_artist_title_from_filename((string)($row['relative_path'] ?? ''), (string)($row['file_name'] ?? ''));
+    $localTitle = dttd_local_music_plain_text(dttd_local_music_track_display_field($row, 'display_title', 'detected_title', $guessTitle));
+    $localArtist = dttd_local_music_plain_text(dttd_local_music_track_display_field($row, 'display_artist', 'detected_artist', $guessArtist));
+    $spTitle = dttd_local_music_plain_text($candidate['title'] ?? '');
+    $spArtist = dttd_local_music_plain_text($candidate['artist'] ?? '');
+
+    $score = 0;
+    if ($localTitle !== '' && $spTitle !== '') {
+        if ($localTitle === $spTitle) $score += 46;
+        elseif (strpos($spTitle, $localTitle) !== false || strpos($localTitle, $spTitle) !== false) $score += 34;
+        else {
+            similar_text($localTitle, $spTitle, $pct);
+            $score += (int)round(min(28, $pct * 0.28));
+        }
+    }
+
+    if ($localArtist !== '' && $spArtist !== '') {
+        if ($localArtist === $spArtist) $score += 36;
+        elseif (strpos($spArtist, $localArtist) !== false || strpos($localArtist, $spArtist) !== false) $score += 26;
+        else {
+            similar_text($localArtist, $spArtist, $pct);
+            $score += (int)round(min(20, $pct * 0.20));
+        }
+    }
+
+    $localDuration = isset($row['duration_seconds']) ? (int)$row['duration_seconds'] : 0;
+    $spotifyDuration = isset($candidate['duration_ms']) ? (int)round(((int)$candidate['duration_ms']) / 1000) : 0;
+    if ($localDuration > 0 && $spotifyDuration > 0) {
+        $diff = abs($localDuration - $spotifyDuration);
+        if ($diff <= 3) $score += 10;
+        elseif ($diff <= 8) $score += 7;
+        elseif ($diff <= 20) $score += 3;
+        elseif ($diff >= 45) $score -= 10;
+    }
+
+    $popularity = isset($candidate['popularity']) ? (int)$candidate['popularity'] : 0;
+    if ($popularity >= 70) $score += 3;
+    elseif ($popularity >= 45) $score += 2;
+
+    return max(0, min(100, $score));
+}
+
+function dttd_local_music_update_match_result($trackId, array $fields) {
+    $allowed = [
+        'spotify_match_uri','spotify_match_url','spotify_match_status','spotify_match_confidence',
+        'spotify_match_checked_at','spotify_match_attempts','spotify_match_error','artwork_path','artwork_source',
+        'display_album','display_year','duration_seconds','updated_at'
+    ];
+    $cols = dttd_local_music_table_columns('local_tracks');
+    $sets = [];
+    $params = [];
+    foreach ($fields as $key => $value) {
+        if (!in_array($key, $allowed, true)) continue;
+        if (!isset($cols[$key])) continue;
+        if ($key === 'updated_at' && $value === 'NOW()') {
+            $sets[] = "updated_at = NOW()";
+            continue;
+        }
+        if ($key === 'spotify_match_checked_at' && $value === 'NOW()') {
+            $sets[] = "spotify_match_checked_at = NOW()";
+            continue;
+        }
+        if ($key === 'spotify_match_attempts' && $value === 'INC') {
+            $sets[] = "spotify_match_attempts = COALESCE(spotify_match_attempts, 0) + 1";
+            continue;
+        }
+        $sets[] = "`$key` = ?";
+        $params[] = $value;
+    }
+    if (!$sets) return false;
+    $params[] = (int)$trackId;
+    $stmt = db()->prepare("UPDATE local_tracks SET " . implode(', ', $sets) . " WHERE id = ?");
+    return $stmt->execute($params);
+}
+
+function dttd_local_music_process_spotify_match_batch($limit = 10) {
+    require_once __DIR__ . '/spotify.php';
+
+    $summary = [
+        'ok' => false,
+        'processed' => 0,
+        'matched' => 0,
+        'needs_review' => 0,
+        'no_match' => 0,
+        'skipped' => 0,
+        'failed' => 0,
+        'messages' => [],
+    ];
+
+    if (!dttd_local_music_table_exists('local_tracks')) {
+        $summary['messages'][] = 'local_tracks table is missing.';
+        return $summary;
+    }
+    $missing = dttd_local_music_spotify_match_schema_missing();
+    if ($missing) {
+        $summary['messages'][] = 'Missing Spotify matching columns: ' . implode(', ', $missing);
+        return $summary;
+    }
+    if (!function_exists('dttd_spotify_config_loaded') || !dttd_spotify_config_loaded()) {
+        $summary['messages'][] = 'Spotify API is not configured.';
+        return $summary;
+    }
+
+    $limit = max(1, min(50, (int)$limit));
+    $sql = "SELECT * FROM local_tracks
+            WHERE is_enabled = 1
+              AND missing_since_at IS NULL
+              AND COALESCE(spotify_match_status, 'unchecked') IN ('unchecked','failed')
+              AND COALESCE(spotify_match_attempts, 0) < 5
+            ORDER BY COALESCE(spotify_match_attempts, 0) ASC, updated_at ASC, id ASC
+            LIMIT " . $limit;
+
+    try {
+        $tracks = db()->query($sql)->fetchAll();
+    } catch (Throwable $e) {
+        $summary['messages'][] = 'Unable to load local tracks for matching.';
+        return $summary;
+    }
+
+    foreach ($tracks as $row) {
+        $trackId = (int)($row['id'] ?? 0);
+        if ($trackId <= 0) continue;
+        $summary['processed']++;
+        $query = dttd_local_music_match_query_for_row($row);
+        if ($query === '' || strlen($query) < 2) {
+            dttd_local_music_update_match_result($trackId, [
+                'spotify_match_status' => 'skipped',
+                'spotify_match_confidence' => '',
+                'spotify_match_checked_at' => 'NOW()',
+                'spotify_match_attempts' => 'INC',
+                'spotify_match_error' => 'Not enough title/artist data to search Spotify.',
+                'updated_at' => 'NOW()',
+            ]);
+            $summary['skipped']++;
+            continue;
+        }
+
+        dttd_local_music_update_match_result($trackId, ['spotify_match_status' => 'checking', 'updated_at' => 'NOW()']);
+        try {
+            $candidates = dttd_spotify_search_tracks($query, 5);
+            $best = null;
+            $bestScore = 0;
+            foreach ($candidates as $candidate) {
+                $score = dttd_local_music_score_spotify_candidate($row, $candidate);
+                if ($score > $bestScore) {
+                    $bestScore = $score;
+                    $best = $candidate;
+                }
+            }
+
+            if (!$best) {
+                dttd_local_music_update_match_result($trackId, [
+                    'spotify_match_uri' => '',
+                    'spotify_match_url' => '',
+                    'spotify_match_status' => 'no_match',
+                    'spotify_match_confidence' => 'none',
+                    'spotify_match_checked_at' => 'NOW()',
+                    'spotify_match_attempts' => 'INC',
+                    'spotify_match_error' => '',
+                    'updated_at' => 'NOW()',
+                ]);
+                $summary['no_match']++;
+                continue;
+            }
+
+            $status = $bestScore >= 80 ? 'matched' : ($bestScore >= 55 ? 'needs_review' : 'no_match');
+            $confidence = $bestScore >= 80 ? 'high' : ($bestScore >= 55 ? 'medium' : 'low');
+            $fields = [
+                'spotify_match_uri' => (string)($best['uri'] ?? ''),
+                'spotify_match_url' => (string)($best['url'] ?? ''),
+                'spotify_match_status' => $status,
+                'spotify_match_confidence' => $confidence,
+                'spotify_match_checked_at' => 'NOW()',
+                'spotify_match_attempts' => 'INC',
+                'spotify_match_error' => '',
+                'updated_at' => 'NOW()',
+            ];
+            if (!empty($best['image'])) {
+                $fields['artwork_path'] = (string)$best['image'];
+                $fields['artwork_source'] = 'spotify';
+            }
+            if (!empty($best['album']) && trim((string)($row['display_album'] ?? '')) === '') {
+                $fields['display_album'] = (string)$best['album'];
+            }
+            if (!empty($best['release_date']) && trim((string)($row['display_year'] ?? '')) === '') {
+                $fields['display_year'] = substr((string)$best['release_date'], 0, 4);
+            }
+            if (!empty($best['duration_ms']) && empty($row['duration_seconds'])) {
+                $fields['duration_seconds'] = (int)round(((int)$best['duration_ms']) / 1000);
+            }
+            dttd_local_music_update_match_result($trackId, $fields);
+            if ($status === 'matched') $summary['matched']++;
+            elseif ($status === 'needs_review') $summary['needs_review']++;
+            else $summary['no_match']++;
+        } catch (Throwable $e) {
+            dttd_local_music_update_match_result($trackId, [
+                'spotify_match_status' => 'failed',
+                'spotify_match_confidence' => '',
+                'spotify_match_checked_at' => 'NOW()',
+                'spotify_match_attempts' => 'INC',
+                'spotify_match_error' => substr($e->getMessage(), 0, 500),
+                'updated_at' => 'NOW()',
+            ]);
+            $summary['failed']++;
+        }
+    }
+
+    $summary['ok'] = true;
+    return $summary;
+}
