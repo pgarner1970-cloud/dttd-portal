@@ -59,6 +59,12 @@ admin_header('Admin Tools - DJ Portal');
         <strong>Quotes &amp; invoices</strong>
         <span>Create previews, save quotations and convert them to invoices</span>
       </a>
+
+      <a class="admin-home-card" href="local-music.php">
+        <span class="admin-home-icon">♫</span>
+        <strong>Local music</strong>
+        <span>Review local SSD tracks synced from the Lenovo scanner</span>
+      </a>
     </div>
   </section>
 
