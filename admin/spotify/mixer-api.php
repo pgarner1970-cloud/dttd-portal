@@ -1208,6 +1208,124 @@ function mx_can_lightweight_resume($device_id, $track, $playback) {
     if ($currentId === '') return false;
     return mx_track_ids_match($currentId, $track_id);
 }
+
+function mx_other_deck($deck) {
+    return $deck === 'b' ? 'a' : 'b';
+}
+
+function mx_deck_device_id($deck) {
+    $deck = $deck === 'b' ? 'b' : 'a';
+    return $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
+}
+
+function mx_playback_track_summary($playback) {
+    if (!is_array($playback)) return null;
+    $item = $playback['item'] ?? [];
+    $artists = [];
+    foreach (($item['artists'] ?? []) as $artist) {
+        if (!empty($artist['name'])) $artists[] = $artist['name'];
+    }
+    return [
+        'device_id' => (string)($playback['device']['id'] ?? ''),
+        'device_name' => (string)($playback['device']['name'] ?? ''),
+        'is_playing' => !empty($playback['is_playing']),
+        'progress_ms' => isset($playback['progress_ms']) ? max(0, (int)$playback['progress_ms']) : null,
+        'duration_ms' => isset($item['duration_ms']) ? max(0, (int)$item['duration_ms']) : null,
+        'track' => [
+            'id' => (string)($item['id'] ?? ''),
+            'title' => (string)($item['name'] ?? ''),
+            'artist' => implode(', ', $artists),
+        ],
+        'synced_at_ms' => (int)round(microtime(true) * 1000),
+    ];
+}
+
+function mx_save_deck_position_from_playback($deck, $device_id, &$track, $playback = null, $lock = true) {
+    $deck = $deck === 'b' ? 'b' : 'a';
+    if (!is_array($track) || empty($track['id'])) return null;
+    $device_id = trim((string)$device_id);
+    $position = null;
+    if ($playback === null) $playback = mx_playback($deck);
+    if (is_array($playback)) {
+        $activeDevice = (string)($playback['device']['id'] ?? '');
+        $currentId = (string)($playback['item']['id'] ?? '');
+        if ($device_id !== '' && $activeDevice === $device_id && mx_track_ids_match($currentId, $track['id']) && isset($playback['progress_ms'])) {
+            $position = max(0, (int)$playback['progress_ms'] - ($lock ? 500 : 0));
+            if (isset($playback['item']['duration_ms']) && (int)$playback['item']['duration_ms'] > 0) {
+                $track['duration_ms'] = (int)$playback['item']['duration_ms'];
+            }
+        }
+    }
+    if ($position === null) {
+        $fallback = mx_loaded_position_fallback($track);
+        if ($fallback !== null) $position = max(0, (int)$fallback - ($lock ? 500 : 0));
+    }
+    if ($position === null) return null;
+
+    $track['position_base_ms'] = $position;
+    $track['position_updated_at'] = time();
+    $track['paused_position_ms'] = $lock ? $position : null;
+    $track['resume_locked'] = (bool)$lock;
+    $track['end_seen_ms'] = max((int)($track['end_seen_ms'] ?? 0), $position);
+    mx_store_loaded_track($deck, $track);
+
+    if ($lock) {
+        mx_set('spotify_mixer_resume_' . $deck, json_encode([
+            'track_id' => (string)$track['id'],
+            'position_ms' => $position,
+            'saved_at' => time(),
+        ]));
+    }
+    return $position;
+}
+
+function mx_pause_deck_for_controlled_handover($deck) {
+    $deck = $deck === 'b' ? 'b' : 'a';
+    $device = mx_deck_device_id($deck);
+    $track = mx_json('spotify_mixer_loaded_' . $deck, []);
+    if (!is_array($track) || empty($track['id'])) return false;
+
+    if (mx_is_local_track($track)) {
+        if (!empty($track['local_is_playing'])) {
+            try { mx_queue_deck_node_command($deck, 'local_pause', []); } catch (Throwable $ignored) {}
+            mx_local_pause_track($deck, $track);
+        }
+        return true;
+    }
+
+    $playback = mx_playback($deck);
+    mx_save_deck_position_from_playback($deck, $device, $track, $playback, true);
+    if ($device !== '' && mx_device_playing($device, $playback)) {
+        try { mx_pause($device, $deck); } catch (Throwable $ignoredPause) {}
+    }
+    return true;
+}
+
+function mx_prepare_single_account_handover($targetDeck) {
+    $targetDeck = $targetDeck === 'b' ? 'b' : 'a';
+    if (!mx_decks_share_spotify_profile()) return;
+    $otherDeck = mx_other_deck($targetDeck);
+    mx_pause_deck_for_controlled_handover($otherDeck);
+}
+
+function mx_arm_started_track_state($deck, &$track, $position_ms = null, $resumeMode = 'explicit_play') {
+    $deck = $deck === 'b' ? 'b' : 'a';
+    if (!is_array($track) || empty($track['id'])) return;
+    $position = $position_ms !== null ? max(0, (int)$position_ms) : mx_loaded_position_fallback($track);
+    if ($position === null) $position = 0;
+    $track['played_on_deck'] = true;
+    $track['position_base_ms'] = $position;
+    $track['position_updated_at'] = time();
+    $track['paused_position_ms'] = null;
+    $track['resume_locked'] = false;
+    $track['end_seen_ms'] = max((int)($track['end_seen_ms'] ?? 0), $position);
+    $track['end_armed_at'] = time();
+    $track['resume_mode'] = $resumeMode;
+    if (!empty($track['duration_ms'])) {
+        $track['expected_finish_at'] = time() + max(1, (int)ceil(max(0, (int)$track['duration_ms'] - $position) / 1000)) + 3;
+    }
+    mx_store_loaded_track($deck, $track);
+}
 function mx_track_output($t) {
     $raw = is_array($t) ? $t : [];
     $t = mx_clean_track($raw);
@@ -1466,6 +1584,8 @@ function mx_state() {
     $activeDeviceIdB = (string)($playbackB['device']['id'] ?? '');
     $isPlayingA = !empty($playbackA['is_playing']);
     $isPlayingB = !empty($playbackB['is_playing']);
+    $playbackSummaryA = mx_playback_track_summary($playbackA);
+    $playbackSummaryB = mx_playback_track_summary($playbackB);
     $statusPlayback = $isPlayingA ? $playbackA : ($isPlayingB ? $playbackB : ($playbackA ?: $playbackB));
     $activeDeviceId = (string)($statusPlayback['device']['id'] ?? '');
     $isPlaying = !empty($statusPlayback['is_playing']);
@@ -1489,6 +1609,7 @@ function mx_state() {
         'duo_mode' => !mx_decks_share_spotify_profile(),
         'auto_start_opposite' => mx_auto_start_opposite_enabled(),
         'server_time' => date('H:i:s'),
+        'server_unix_ms' => (int)round(microtime(true) * 1000),
         'accounts' => [
             'deck_a' => function_exists('dttd_spotify_profile_summary_for_deck') ? dttd_spotify_profile_summary_for_deck('a') : null,
             'deck_b' => function_exists('dttd_spotify_profile_summary_for_deck') ? dttd_spotify_profile_summary_for_deck('b') : null,
@@ -1502,8 +1623,16 @@ function mx_state() {
         ],
         'device_a' => $deviceA,
         'device_b' => $deviceB,
-        'player_a' => ['state' => (!empty($loadedA['local_is_playing']) || ($activeDeviceIdA && $activeDeviceIdA === $deviceA && $isPlayingA)) ? 'playing' : 'standby', 'loaded' => mx_track_output($loadedA)],
-        'player_b' => ['state' => (!empty($loadedB['local_is_playing']) || ($activeDeviceIdB && $activeDeviceIdB === $deviceB && $isPlayingB)) ? 'playing' : 'standby', 'loaded' => mx_track_output($loadedB)],
+        'player_a' => [
+            'state' => (!empty($loadedA['local_is_playing']) || ($activeDeviceIdA && $activeDeviceIdA === $deviceA && $isPlayingA)) ? 'playing' : 'standby',
+            'loaded' => mx_track_output($loadedA),
+            'playback' => $playbackSummaryA,
+        ],
+        'player_b' => [
+            'state' => (!empty($loadedB['local_is_playing']) || ($activeDeviceIdB && $activeDeviceIdB === $deviceB && $isPlayingB)) ? 'playing' : 'standby',
+            'loaded' => mx_track_output($loadedB),
+            'playback' => $playbackSummaryB,
+        ],
         'active_device_id' => $activeDeviceId,
         'active_device_name' => (string)($statusPlayback['device']['name'] ?? ''),
         'is_playing' => $isPlaying,
@@ -1852,6 +1981,7 @@ try {
                 mx_json_out(['ok' => true, 'message' => 'Local track loaded and MPD play command sent to Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
             }
             $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
+            mx_prepare_single_account_handover($deck);
             mx_play_track($device, $track['id'] ?? '', null, $deck);
             $playedTrack = mx_json('spotify_mixer_loaded_' . $deck, []);
             if (is_array($playedTrack) && !empty($playedTrack['id'])) {
@@ -1954,6 +2084,7 @@ try {
         mx_load_track_to_deck($track, $deck, $playback, $playlist, false, 'public_request');
         mx_flag_request_group_in_playlist($requestId, $requestGroupId, 'loaded_' . $deck);
         $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
+        mx_prepare_single_account_handover($deck);
         mx_play_track($device, $track['id'] ?? '', null, $deck);
         $playedTrack = mx_json('spotify_mixer_loaded_' . $deck, []);
         if (is_array($playedTrack) && !empty($playedTrack['id'])) {
@@ -2019,6 +2150,8 @@ try {
         $resumePosition = mx_resume_position_for_track($deck, $track['id'] ?? '');
         if ($resumePosition === null) $resumePosition = mx_loaded_position_fallback($track);
 
+        mx_prepare_single_account_handover($deck);
+        $pb = mx_playback($deck);
         $usedLightweightResume = false;
         if (mx_can_lightweight_resume($device, $track, $pb)) {
             mx_resume_current_device($device, $deck);
@@ -2028,18 +2161,7 @@ try {
         }
 
         mx_set('spotify_mixer_resume_' . $deck, '');
-        if (is_array($track) && !empty($track['id'])) {
-            $track['played_on_deck'] = true;
-            $track['position_base_ms'] = $resumePosition !== null ? max(0, (int)$resumePosition) : mx_loaded_position_fallback($track);
-            if ($track['position_base_ms'] === null) $track['position_base_ms'] = 0;
-            $track['position_updated_at'] = time();
-            $track['paused_position_ms'] = null;
-            $track['resume_locked'] = false;
-            $track['end_seen_ms'] = max(0, (int)$track['position_base_ms']);
-            $track['end_armed_at'] = time();
-            $track['resume_mode'] = $usedLightweightResume ? 'native_resume' : 'explicit_play';
-            mx_store_loaded_track($deck, $track);
-        }
+        mx_arm_started_track_state($deck, $track, $resumePosition, $usedLightweightResume ? 'native_resume' : 'explicit_play');
         mx_mark_loaded_played_if_threshold($deck, $track);
         $playlist = array_values(array_filter($playlist, function($p) use ($track) {
             if (!empty($track['request_id']) && !empty($p['request_id'])) return (int)$p['request_id'] !== (int)$track['request_id'];
@@ -2087,51 +2209,38 @@ try {
     if ($action === 'emergency_swap') {
         $source = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
         $target = $source === 'a' ? 'b' : 'a';
-        $sourceDevice = $source === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
-        $targetDevice = $target === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
+        $sourceDevice = mx_deck_device_id($source);
+        $targetDevice = mx_deck_device_id($target);
         $track = mx_json('spotify_mixer_loaded_' . $source, []);
         if (empty($track['id'])) throw new RuntimeException('No track loaded on Player ' . strtoupper($source) . '.');
         if (mx_is_local_track($track)) throw new RuntimeException('Local emergency swap will be enabled with MPD playback.');
         if (!$targetDevice) throw new RuntimeException('Player ' . strtoupper($target) . ' has no assigned Spotify device.');
 
-        // Capture the most accurate live position possible before moving devices.
-        // Prefer Spotify's live progress if the source deck is the current active device.
-        $pos = null;
-        try {
-            $pb = mx_playback($deck);
-            $activeDevice = (string)($pb['device']['id'] ?? '');
-            $currentId = (string)($pb['item']['id'] ?? '');
-            if ($sourceDevice && $activeDevice === $sourceDevice && mx_track_ids_match($currentId, $track['id'] ?? '') && isset($pb['progress_ms'])) {
-                $pos = max(0, (int)$pb['progress_ms'] + 350);
-            }
-        } catch (Throwable $ignoredProgress) {}
+        // Emergency swap is a controlled output handover: capture source position,
+        // load/play the same track on the other deck, confirm destination playback,
+        // then clear the source deck. Do not clear the source if the destination
+        // cannot be confirmed.
+        $sourcePlayback = mx_playback($source);
+        $pos = mx_save_deck_position_from_playback($source, $sourceDevice, $track, $sourcePlayback, true);
         if ($pos === null) $pos = mx_resume_position_for_track($source, $track['id'] ?? '');
         if ($pos === null) $pos = mx_loaded_position_fallback($track);
         if ($pos === null) $pos = 0;
 
-        $track['played_on_deck'] = true;
-        $track['position_base_ms'] = $pos;
-        $track['position_updated_at'] = time();
-        $track['paused_position_ms'] = null;
-        $track['resume_locked'] = false;
-        $track['end_seen_ms'] = $pos;
-        $track['end_armed_at'] = time();
-        mx_store_loaded_track($target, $track);
+        $targetTrack = $track;
+        mx_arm_started_track_state($target, $targetTrack, $pos, 'emergency_swap');
+        mx_play_track($targetDevice, $targetTrack['id'] ?? '', $pos, $target);
+        $confirmed = mx_confirm_track_playing_on_device($targetDevice, $targetTrack['id'] ?? '', $pos, 4, $target);
 
-        // Do not pause the source device after transfer. Spotify Connect treats playback
-        // as account-wide, and a late pause aimed at the old device can pause the new deck.
-        mx_play_track($targetDevice, $track['id'] ?? '', $pos, $target);
-        mx_set('spotify_mixer_loaded_' . $source, '');
-        mx_set('spotify_mixer_resume_' . $source, '');
-
-        // Re-assert play on the destination after cleanup, because slower Connect clients
-        // sometimes accept the handover but settle into paused state.
-        mx_confirm_track_playing_on_device($targetDevice, $track['id'] ?? '', $pos, 4, $target);
-        if (!mx_decks_share_spotify_profile()) {
-            try { mx_pause($sourceDevice, $source); } catch (Throwable $ignoredSourcePause) {}
+        if ($confirmed) {
+            if (!mx_decks_share_spotify_profile() && $sourceDevice) {
+                try { mx_pause($sourceDevice, $source); } catch (Throwable $ignoredSourcePause) {}
+            }
+            mx_set('spotify_mixer_loaded_' . $source, '');
+            mx_set('spotify_mixer_resume_' . $source, '');
+            mx_json_out(['ok' => true, 'message' => 'Emergency transfer completed from Player ' . strtoupper($source) . ' to Player ' . strtoupper($target) . '.', 'state' => mx_state()]);
         }
 
-        mx_json_out(['ok' => true, 'message' => 'Emergency transfer sent from Player ' . strtoupper($source) . ' to Player ' . strtoupper($target) . '.', 'state' => mx_state()]);
+        mx_json_out(['ok' => false, 'message' => 'Emergency transfer was sent, but Player ' . strtoupper($target) . ' could not be confirmed. Player ' . strtoupper($source) . ' has been left loaded for safety.', 'state' => mx_state()]);
     }
 
     if ($action === 'play') {
@@ -2146,18 +2255,10 @@ try {
         }
         $resumePosition = mx_resume_position_for_track($deck, $track['id'] ?? '');
         if ($resumePosition === null) $resumePosition = mx_loaded_position_fallback($track);
+        mx_prepare_single_account_handover($deck);
         mx_play_track($device, $track['id'] ?? '', $resumePosition, $deck);
         mx_set('spotify_mixer_resume_' . $deck, '');
-        if (is_array($track) && !empty($track['id'])) {
-            $track['played_on_deck'] = true;
-            $track['position_base_ms'] = $resumePosition !== null ? max(0, (int)$resumePosition) : 0;
-            $track['position_updated_at'] = time();
-            $track['paused_position_ms'] = null;
-            $track['resume_locked'] = false;
-            $track['end_seen_ms'] = $resumePosition !== null ? max(0, (int)$resumePosition) : 0;
-            $track['end_armed_at'] = time();
-            mx_store_loaded_track($deck, $track);
-        }
+        mx_arm_started_track_state($deck, $track, $resumePosition, 'explicit_play');
         mx_mark_loaded_played_if_threshold($deck, $track);
         // Remove the item from the DJ playlist once sent to play.
         $playlist = array_values(array_filter($playlist, function($p) use ($track) {

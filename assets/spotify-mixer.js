@@ -22,6 +22,9 @@ document.head.appendChild(overviewStyle);
   let state = null;
   let searchTimer = null;
   let pollTimer = null;
+  let uiTimer = null;
+  let lastStateSyncAt = 0;
+  const STATE_POLL_MS = 12000;
   let busy = false;
   let activeSource = 'search';
   let cratesLoaded = false;
@@ -92,14 +95,20 @@ document.head.appendChild(overviewStyle);
       return {active, sameTrack: active || progressMs > 0, durationMs, progressMs, remainingMs, pct};
     }
     const deviceId = state?.['device_' + deck] || '';
-    const active = state?.active_device_id === deviceId && !!state?.is_playing;
-    const current = state?.track || {};
-    const sameTrack = active && track?.id && current?.id && String(track.id) === String(current.id);
-    const spotifyDurationMs = sameTrack ? (Number(current.duration_ms) || Number(track.duration_ms) || 0) : durationMs;
-    const progressMs = sameTrack ? (Number(current.progress_ms) || 0) : 0;
+    const player = state?.['player_' + deck] || {};
+    const playback = player.playback || {};
+    const playbackTrack = playback.track || {};
+    const active = !!deviceId && playback.device_id === deviceId && !!playback.is_playing;
+    const sameTrack = !!track?.id && !!playbackTrack.id && String(track.id) === String(playbackTrack.id);
+    const spotifyDurationMs = sameTrack ? (Number(playback.duration_ms) || Number(track.duration_ms) || 0) : durationMs;
+    let progressMs = sameTrack ? (Number(playback.progress_ms) || 0) : (Number(track?.position_base_ms || track?.paused_position_ms || 0) || 0);
+    if(active && sameTrack){
+      progressMs += Math.max(0, Date.now() - Number(state?._receivedAtMs || Date.now()));
+    }
+    if(spotifyDurationMs) progressMs = Math.min(progressMs, spotifyDurationMs);
     const pct = spotifyDurationMs ? Math.min(100, Math.max(0, (progressMs / spotifyDurationMs) * 100)) : 0;
     const remainingMs = spotifyDurationMs ? Math.max(0, spotifyDurationMs - progressMs) : 0;
-    return {active, sameTrack, durationMs: spotifyDurationMs, progressMs, remainingMs, pct};
+    return {active, sameTrack: sameTrack || progressMs > 0, durationMs: spotifyDurationMs, progressMs, remainingMs, pct};
   }
   function toast(msg, ok=true){
     if(!els.toast) return;
@@ -554,8 +563,15 @@ renderAccountStatus();
     }).join('');
   }
   function render(){ if(state?.crates) availableCrates = state.crates; renderDevices(); renderPlaylist(); renderRequests(); renderDecks(); if(activeSource === 'crates') renderDjCrates(availableCrates.length ? availableCrates : (state?.crates || [])); if(activeSource === 'history') renderHistory(); }
+  function acceptState(nextState){
+    if(!nextState) return;
+    state = nextState;
+    state._receivedAtMs = Date.now();
+    lastStateSyncAt = Date.now();
+    render();
+  }
   async function refresh(silent=true){
-    try{ const data = await apiGet({action:'state'}); if(data.ok){ state = data.state; render(); } else { if(data.state){state=data.state; render();} if(!silent) toast(data.error || 'Update failed', false); } }
+    try{ const data = await apiGet({action:'state'}); if(data.ok){ acceptState(data.state); } else { if(data.state){acceptState(data.state);} if(!silent) toast(data.error || 'Update failed', false); } }
     catch(e){ if(!silent) toast('Mixer update failed', false); }
   }
   async function doAction(params){
@@ -563,8 +579,8 @@ renderAccountStatus();
     busy = true;
     try{
       const data = await apiPost(params);
-      if(data.state){ state = data.state; render(); }
-      toast(data.ok ? (data.message || 'Done') : (data.error || 'Action failed'), !!data.ok);
+      if(data.state){ acceptState(data.state); }
+      toast(data.ok ? (data.message || 'Done') : (data.error || data.message || 'Action failed'), !!data.ok);
     }catch(e){ toast('Action failed', false); }
     finally{ busy = false; }
   }
@@ -761,6 +777,18 @@ renderAccountStatus();
   const refreshNow = $('#refreshNow'); if(refreshNow) refreshNow.addEventListener('click', ()=>refresh(false));
   if(els.refreshCrates) els.refreshCrates.addEventListener('click', ()=>{ cratesLoaded = false; loadDjCrates(true); });
   if(els.createCrate) els.createCrate.addEventListener('click', async ()=>{ const name = els.newCrateName ? els.newCrateName.value : ''; await doAction({action:'create_crate', name}); if(els.newCrateName) els.newCrateName.value=''; cratesLoaded=false; loadDjCrates(true); });
+  function tickDeckTimers(){
+    if(!state) return;
+    renderDecks();
+    if(Date.now() - lastStateSyncAt > STATE_POLL_MS + 1500 && !busy){
+      refresh(true);
+    }
+  }
+  document.addEventListener('visibilitychange', ()=>{
+    if(!document.hidden) refresh(true);
+  });
+  window.addEventListener('focus', ()=>refresh(true));
   refresh(false);
-  pollTimer = setInterval(()=>refresh(true), 5000);
+  pollTimer = setInterval(()=>refresh(true), STATE_POLL_MS);
+  uiTimer = setInterval(tickDeckTimers, 1000);
 })();
