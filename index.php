@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '/includes/db.php';
-require_once __DIR__ . '/includes/track-history.php';
 dttd_no_cache_headers();
 
 $active_event = null;
@@ -67,53 +66,7 @@ function home_event_is_private($event) {
     );
 }
 
-
-function home_track_key($track) {
-    $spotifyId = strtolower(trim((string)($track['spotify_track_id'] ?? '')));
-    if ($spotifyId !== '') {
-        return 'id:' . $spotifyId;
-    }
-
-    $title = strtolower(trim((string)($track['song_title'] ?? $track['track_name'] ?? $track['title'] ?? '')));
-    $artist = strtolower(trim((string)($track['artist'] ?? $track['artist_name'] ?? '')));
-    return ($title !== '' || $artist !== '') ? 'text:' . $title . '|' . $artist : '';
-}
-
-function home_public_track_rows($eventId, $limit = 6) {
-    if (!function_exists('dttd_history_public_track_rows')) {
-        return [];
-    }
-
-    $rows = dttd_history_public_track_rows((int)$eventId, max(1, min(12, (int)$limit + 8)));
-    $out = [];
-    $seen = [];
-
-    foreach ($rows as $row) {
-        $title = trim((string)($row['song_title'] ?? ''));
-        $artist = trim((string)($row['artist'] ?? ''));
-        if ($title === '' && $artist === '') {
-            continue;
-        }
-
-        $key = home_track_key($row);
-        if ($key !== '') {
-            if (isset($seen[$key])) {
-                continue;
-            }
-            $seen[$key] = true;
-        }
-
-        $out[] = $row;
-        if (count($out) >= $limit) {
-            break;
-        }
-    }
-
-    return $out;
-}
-
 $homepage_events = [];
-$homepage_played_tracks = [];
 
 try {
     /*
@@ -166,14 +119,6 @@ try {
 } catch (Throwable $e) {
     $active_event = null;
     $homepage_state = 'no-event';
-}
-
-if ($active_event && $homepage_state !== 'no-event') {
-    try {
-        $homepage_played_tracks = home_public_track_rows((int)($active_event['id'] ?? 0), 6);
-    } catch (Throwable $e) {
-        $homepage_played_tracks = [];
-    }
 }
 
 try {
@@ -349,38 +294,15 @@ $public_current = 'home';
           <p class="homepage-state-note">Song requests open automatically when an event is live.</p>
         <?php endif; ?>
 
-        <?php if ($active_event && !empty($homepage_played_tracks)): ?>
-          <section class="home-now-playing" aria-label="Now playing and recently played tracks">
+        <?php if ($homepage_state !== 'no-event' && $active_event): ?>
+          <section class="home-now-playing" data-now-playing-section data-endpoint="/api/public-now-playing.php" aria-label="Now playing and recently played tracks" hidden>
             <div class="home-now-playing-head">
               <span>Live soundtrack</span>
-              <h2>Now playing</h2>
+              <strong>Now playing</strong>
+              <em data-now-playing-updated>Live update</em>
             </div>
-            <div class="home-now-playing-scroller" role="list" aria-label="Current and recently played songs">
-              <?php foreach ($homepage_played_tracks as $index => $track): ?>
-                <?php
-                  $trackTitle = trim((string)($track['song_title'] ?? '')) ?: 'Unknown track';
-                  $trackArtist = trim((string)($track['artist'] ?? '')) ?: 'Unknown artist';
-                  $trackImage = trim((string)($track['spotify_album_image'] ?? ''));
-                  $playedAt = !empty($track['created_at']) ? strtotime((string)$track['created_at']) : 0;
-                  $timeLabel = $playedAt ? date('H:i', $playedAt) : '';
-                  $isCurrent = $index === 0;
-                ?>
-                <article class="home-now-playing-card <?= $isCurrent ? 'is-current' : '' ?>" role="listitem">
-                  <div class="home-now-playing-artwork">
-                    <?php if ($trackImage !== ''): ?>
-                      <img src="<?= h($trackImage) ?>" alt="">
-                    <?php else: ?>
-                      <span aria-hidden="true">♪</span>
-                    <?php endif; ?>
-                  </div>
-                  <div class="home-now-playing-copy">
-                    <span class="home-now-playing-label"><?= $isCurrent ? 'Currently playing' : ($timeLabel !== '' ? 'Played at ' . h($timeLabel) : 'Recently played') ?></span>
-                    <strong><?= h($trackTitle) ?></strong>
-                    <em><?= h($trackArtist) ?></em>
-                  </div>
-                </article>
-              <?php endforeach; ?>
-            </div>
+            <div class="home-now-playing-window" data-now-playing-track aria-live="polite"></div>
+            <p class="home-now-playing-empty" data-now-playing-empty hidden>Track history will appear here once music is playing.</p>
           </section>
         <?php endif; ?>
       </div>
@@ -499,6 +421,7 @@ $public_current = 'home';
     <?php endif; ?>
       <?php require __DIR__ . '/includes/public-footer.php'; ?>
   </main>
+<script src="<?= h(dttd_asset_url('assets/public-now-playing.js')) ?>"></script>
 <?= dttd_bfcache_reload_script() ?>
 </body>
 </html>
