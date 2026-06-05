@@ -6194,3 +6194,38 @@ body.homepage-option-one .home-now-playing{
     width:100%;
   }
 }
+
+/* Homepage live soundtrack vertical rhythm
+   Keep this scoped away from event portal pages, where the scroller is already aligned. */
+body.homepage-option-one:not(.public-event-detail-page):not(.public-event-portal-page){
+  --dttd-home-block-gap:24px;
+}
+
+body.homepage-option-one:not(.public-event-detail-page):not(.public-event-portal-page) .option-one-hero{
+  padding-bottom:var(--dttd-home-block-gap) !important;
+}
+
+body.homepage-option-one:not(.public-event-detail-page):not(.public-event-portal-page) .home-now-playing{
+  margin-top:var(--dttd-home-block-gap) !important;
+  margin-bottom:0 !important;
+}
+
+body.homepage-option-one:not(.public-event-detail-page):not(.public-event-portal-page) .home-info-section{
+  padding-top:0 !important;
+}
+
+body.homepage-option-one:not(.public-event-detail-page):not(.public-event-portal-page) .home-info-grid,
+body.homepage-option-one:not(.public-event-detail-page):not(.public-event-portal-page) .home-info-grid-secondary{
+  margin-top:0 !important;
+  margin-bottom:var(--dttd-home-block-gap) !important;
+}
+
+body.homepage-option-one:not(.public-event-detail-page):not(.public-event-portal-page) .home-coming-up{
+  margin-top:0 !important;
+}
+
+@media(max-width:760px){
+  body.homepage-option-one:not(.public-event-detail-page):not(.public-event-portal-page){
+    --dttd-home-block-gap:18px;
+  }
+}
