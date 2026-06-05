@@ -1071,6 +1071,7 @@ $event = null;
 $hasEventAccess = false;
 $publicDetailsMode = false;
 
+$accessNextKey = function_exists('dttd_event_access_next_key') ? dttd_event_access_next_key('event') : 'event';
 $is_access_attempt = isset($_GET['code']) || isset($_GET['token']) || isset($_GET['access']) || isset($_POST['event_access_code']) || isset($_POST['event_code']) || isset($_POST['code']) || isset($_POST['token']) || isset($_POST['access']);
 
 if ($is_access_attempt) {
@@ -1155,6 +1156,7 @@ $GLOBALS['public_current_mixer_tracks'] = $hasEventAccess ? public_loaded_mixer_
           <?php endif; ?>
 
           <form class="public-access-form" method="post" action="/event.php">
+            <input type="hidden" name="next" value="<?= public_h($accessNextKey) ?>">
             <label for="event_access_code">Event code</label>
             <input id="event_access_code" name="event_access_code" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="Example: 5MKDP2" required>
             <button class="public-neon-btn" type="submit">Continue</button>

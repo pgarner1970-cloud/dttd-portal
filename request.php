@@ -189,6 +189,7 @@ $requestCloseClock = $event ? dttd_event_request_close_clock_label($event) : '';
           <?php endif; ?>
 
           <form class="public-access-form" method="post" action="/request.php">
+            <input type="hidden" name="next" value="request">
             <label for="event_access_code">Event code</label>
             <input id="event_access_code" name="event_access_code" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="Example: 5MKDP2" required>
             <button class="public-neon-btn" type="submit">Continue</button>

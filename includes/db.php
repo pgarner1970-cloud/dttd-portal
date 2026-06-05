@@ -637,6 +637,47 @@ function dttd_event_from_access_cookie($require_available = true) {
     return $event;
 }
 
+
+function dttd_event_access_next_key($default = 'event') {
+    $default = strtolower(trim((string)$default));
+    $allowed = ['event', 'request', 'upload', 'selfie'];
+
+    $next = $_POST['next'] ?? $_GET['next'] ?? $default;
+    $next = strtolower(trim((string)$next));
+    $next = preg_replace('/[^a-z0-9_-]/', '', $next);
+
+    if (!in_array($next, $allowed, true)) {
+        $next = in_array($default, $allowed, true) ? $default : 'event';
+    }
+
+    return $next;
+}
+
+function dttd_event_access_redirect_for_next($next = 'event') {
+    switch (dttd_event_access_next_key($next)) {
+        case 'request':
+            return '/request.php';
+        case 'upload':
+            return '/upload.php';
+        case 'selfie':
+            return '/upload.php?selfie=1';
+        case 'event':
+        default:
+            return '/event.php';
+    }
+}
+
+function dttd_event_access_redirect_target($fallback = '/event.php') {
+    $next = $_POST['next'] ?? $_GET['next'] ?? '';
+
+    if (trim((string)$next) !== '') {
+        return dttd_event_access_redirect_for_next($next);
+    }
+
+    $fallback = trim((string)$fallback);
+    return $fallback !== '' ? $fallback : '/event.php';
+}
+
 function dttd_handle_event_access_submission($redirect_to = null) {
     $code = $_GET['code'] ?? $_POST['code'] ?? $_POST['event_code'] ?? $_POST['event_access_code'] ?? '';
     $token = $_GET['token'] ?? $_POST['token'] ?? $_GET['access'] ?? $_POST['access'] ?? '';
@@ -669,8 +710,10 @@ function dttd_handle_event_access_submission($redirect_to = null) {
 
     dttd_set_event_access_cookie($event);
 
-    if ($redirect_to && !headers_sent()) {
-        header('Location: ' . $redirect_to);
+    $target = dttd_event_access_redirect_target($redirect_to ?: '/event.php');
+
+    if ($target && !headers_sent()) {
+        header('Location: ' . $target);
         exit;
     }
 

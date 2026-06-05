@@ -132,9 +132,10 @@ $privateEventType = ($homepage_state === 'private-event' && $active_event) ? str
 $homepageEventAlreadyConnected = function_exists('dttd_event_from_access_cookie') && $active_event ? ((($cookieEvent = dttd_event_from_access_cookie(false)) && (int)($cookieEvent['id'] ?? 0) === (int)($active_event['id'] ?? 0))) : false;
 // Do not expose the private event code in public homepage links.
 // Guests must enter the event code or scan the QR code shown at the venue.
-$privateEventRequestUrl = '/request.php';
-$privateEventUploadUrl = '/upload.php';
-$privateEventInfoUrl = '/event.php';
+$privateEventRequestUrl = $homepageEventAlreadyConnected ? '/request.php' : '/event.php?next=request';
+$privateEventUploadUrl = $homepageEventAlreadyConnected ? '/upload.php' : '/event.php?next=upload';
+$privateEventSelfieUrl = $homepageEventAlreadyConnected ? '/upload.php?selfie=1' : '/event.php?next=selfie';
+$privateEventInfoUrl = $homepageEventAlreadyConnected ? '/event.php' : '/event.php?next=event';
 $public_current = 'home';
 ?>
 <!DOCTYPE html>
@@ -181,7 +182,7 @@ $public_current = 'home';
 
         <div class="option-one-action-strip dynamic-action-strip <?= $homepageEventAlreadyConnected ? 'is-connected-event' : '' ?>" data-homepage-state="<?= htmlspecialchars($homepage_state) ?>" aria-label="Event actions">
           <?php if ($homepage_state === 'public-event' && $active_event && !empty($active_event['event_code'])): ?>
-            <a class="option-one-action-card primary-action" href="/event.php">
+            <a class="option-one-action-card primary-action" href="<?= htmlspecialchars($privateEventInfoUrl) ?>">
               <span class="option-one-icon">▣</span>
               <span>
                 <strong>This Event</strong>
@@ -189,7 +190,7 @@ $public_current = 'home';
               </span>
             </a>
 
-            <a class="option-one-action-card" href="/request.php">
+            <a class="option-one-action-card" href="<?= htmlspecialchars($privateEventRequestUrl) ?>">
               <span class="option-one-icon">♪</span>
               <span>
                 <strong>Request a Song</strong>
@@ -197,7 +198,7 @@ $public_current = 'home';
               </span>
             </a>
 
-            <a class="option-one-action-card" href="/upload.php">
+            <a class="option-one-action-card" href="<?= htmlspecialchars($privateEventUploadUrl) ?>">
               <span class="option-one-icon">▧</span>
               <span>
                 <strong>Upload Photos</strong>
@@ -205,7 +206,7 @@ $public_current = 'home';
               </span>
             </a>
 
-            <a class="option-one-action-card mobile-selfie-action" href="/upload.php?selfie=1">
+            <a class="option-one-action-card mobile-selfie-action" href="<?= htmlspecialchars($privateEventSelfieUrl) ?>">
               <span class="option-one-icon">🤳</span>
               <span>
                 <strong>Take a Selfie</strong>
@@ -214,7 +215,7 @@ $public_current = 'home';
             </a>
 
           <?php elseif ($homepage_state === 'private-event' && $active_event && !empty($active_event['event_code'])): ?>
-            <a class="option-one-action-card primary-action" href="/event.php">
+            <a class="option-one-action-card primary-action" href="<?= htmlspecialchars($privateEventInfoUrl) ?>">
               <span class="option-one-icon">▣</span>
               <span>
                 <strong>Event Info</strong>
@@ -222,7 +223,7 @@ $public_current = 'home';
               </span>
             </a>
 
-            <a class="option-one-action-card" href="/request.php">
+            <a class="option-one-action-card" href="<?= htmlspecialchars($privateEventRequestUrl) ?>">
               <span class="option-one-icon">♪</span>
               <span>
                 <strong>Guest Requests</strong>
@@ -230,7 +231,7 @@ $public_current = 'home';
               </span>
             </a>
 
-            <a class="option-one-action-card" href="/upload.php">
+            <a class="option-one-action-card" href="<?= htmlspecialchars($privateEventUploadUrl) ?>">
               <span class="option-one-icon">▧</span>
               <span>
                 <strong>Upload Photos</strong>
@@ -238,7 +239,7 @@ $public_current = 'home';
               </span>
             </a>
 
-            <a class="option-one-action-card mobile-selfie-action" href="/upload.php?selfie=1">
+            <a class="option-one-action-card mobile-selfie-action" href="<?= htmlspecialchars($privateEventSelfieUrl) ?>">
               <span class="option-one-icon">🤳</span>
               <span>
                 <strong>Take a Selfie</strong>
@@ -292,7 +293,7 @@ $public_current = 'home';
               <strong>Tonight we are hosting a private event<?= $privateEventName !== '' ? ' for ' . htmlspecialchars($privateEventName) : '' ?>.</strong>
               <p>Guests can enter the venue code or scan the QR code displayed at the event.</p>
             </div>
-            <a class="private-event-access-button" href="/request.php">Enter event code</a>
+            <a class="private-event-access-button" href="<?= htmlspecialchars($privateEventInfoUrl) ?>">Enter event code</a>
           </div>
         <?php elseif ($homepage_state === 'no-event'): ?>
           <p class="homepage-state-note">Song requests open automatically when an event is live.</p>
