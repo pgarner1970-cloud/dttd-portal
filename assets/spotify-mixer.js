@@ -22,6 +22,7 @@ document.head.appendChild(overviewStyle);
   let state = null;
   let searchTimer = null;
   let pollTimer = null;
+  let prepareTimer = null;
   let uiTimer = null;
   let lastStateSyncAt = 0;
   const STATE_POLL_MS = 12000;
@@ -72,7 +73,7 @@ document.head.appendChild(overviewStyle);
     if(track.played_qualified) return {label:'Played', cls:'played', detail:'Played threshold reached'};
     const playing = deck ? deckIsPlaying(deck) : false;
     if(playing) return {label:'Playing', cls:'playing', detail:'Will count as played at ' + playedThresholdLabel(track)};
-    if(deck && deckIsPreparingLocal(deck)) return {label:'Preparing', cls:'preparing', detail:'Waiting for the Raspberry Pi to confirm the local track is queued'};
+    if(deck && deckIsPreparingLocal(deck)) return {label:(track.local_autoplay_after_prepare ? 'Preparing to play' : 'Preparing'), cls:'preparing', detail:(track.local_autoplay_after_prepare ? 'Will start automatically once the Raspberry Pi confirms the local track is queued' : 'Waiting for the Raspberry Pi to confirm the local track is queued')};
     if(isLocalTrack(track) && track.local_prepare_error) return {label:'Prepare failed', cls:'preparing', detail:String(track.local_prepare_error || 'The Raspberry Pi could not prepare this local track')};
     if(isLocalTrack(track) && track.local_is_prepared && !track.played_on_deck) return {label:'Ready', cls:'loaded', detail:'Local track is confirmed ready on the Raspberry Pi'};
     if(track.played_on_deck) return {label:'Paused / in progress', cls:'progress', detail:'Not marked played yet'};
@@ -207,6 +208,7 @@ document.head.appendChild(overviewStyle);
     // Red now means a real pending prepare, not just a timer. The Pi clears this
     // state when node-command completion confirms local_prepare succeeded/failed.
     // Keep a safety timeout so a lost command cannot leave the deck red forever.
+    if(track.local_autoplay_after_prepare) return age === null || (age > -30 && age < 90);
     return age !== null && age > -30 && age < 45;
   }
   function deckCanLoad(deck){
@@ -461,7 +463,7 @@ renderAccountStatus();
       const otherDeck = deck === 'a' ? 'b' : 'a';
       const otherDevice = otherDeck === 'a' ? state?.device_a : state?.device_b;
       document.querySelectorAll(`[data-deck-action="play_toggle"][data-deck="${deck}"]`).forEach(b => {
-        b.disabled = !loaded || (!loadedLocal && (!device || accountHasWarning(deck)));
+        b.disabled = !loaded || preparingLocal || (!loadedLocal && (!device || accountHasWarning(deck)));
         b.classList.toggle('transport-playing', !!playing);
         b.classList.toggle('transport-preparing', !!preparingLocal);
         b.classList.toggle('transport-ready', !!loaded && !playing && !preparingLocal);
@@ -471,7 +473,7 @@ renderAccountStatus();
           : (accountHasWarning(deck) ? (accountInfo(deck)?.warning || 'Spotify account warning') : (playing ? 'Pause Player ' + deck.toUpperCase() : 'Play / resume Player ' + deck.toUpperCase()));
       });
       ["seek_start","seek_back","seek_forward","seek_end"].forEach(act => document.querySelectorAll(`[data-deck-action="${act}"][data-deck="${deck}"]`).forEach(b => {
-        b.disabled = !loaded || (!loadedLocal && (!device || accountHasWarning(deck)));
+        b.disabled = !loaded || preparingLocal || (!loadedLocal && (!device || accountHasWarning(deck)));
         if(loadedLocal) b.title = 'Seek local MPD on Player ' + deck.toUpperCase();
       }));
       document.querySelectorAll(`[data-deck-action="clear_loaded"][data-deck="${deck}"]`).forEach(b => b.disabled = playing || !loaded);
@@ -569,6 +571,10 @@ renderAccountStatus();
     state._receivedAtMs = Date.now();
     lastStateSyncAt = Date.now();
     render();
+    if((deckIsPreparingLocal('a') || deckIsPreparingLocal('b')) && !busy){
+      clearTimeout(prepareTimer);
+      prepareTimer = setTimeout(()=>refresh(true), 2500);
+    }
   }
   async function refresh(silent=true){
     try{ const data = await apiGet({action:'state'}); if(data.ok){ acceptState(data.state); } else { if(data.state){acceptState(data.state);} if(!silent) toast(data.error || 'Update failed', false); } }

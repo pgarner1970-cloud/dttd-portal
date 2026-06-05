@@ -559,6 +559,8 @@ function mx_clean_track($track) {
         'local_prepare_command_id' => isset($track['local_prepare_command_id']) ? (int)$track['local_prepare_command_id'] : null,
         'local_prepare_error' => (string)($track['local_prepare_error'] ?? ''),
         'local_playback_mode' => (string)($track['local_playback_mode'] ?? ''),
+        'local_autoplay_after_prepare' => !empty($track['local_autoplay_after_prepare']),
+        'local_autoplay_requested_at' => isset($track['local_autoplay_requested_at']) ? (int)$track['local_autoplay_requested_at'] : null,
         'history_logged_at' => isset($track['history_logged_at']) ? (int)$track['history_logged_at'] : null,
         'crate_id' => !empty($track['crate_id']) ? (int)$track['crate_id'] : null,
         'crate_track_id' => !empty($track['crate_track_id']) ? (int)$track['crate_track_id'] : null,
@@ -1555,6 +1557,12 @@ function mx_state() {
     $loadedA = mx_sync_loaded_position_from_playback('a', $loadedA, $deviceA, $playbackA);
     $loadedB = mx_sync_loaded_position_from_playback('b', $loadedB, $deviceB, $playbackB);
 
+    // For local MPD tracks, Play Now can request playback as soon as the Pi confirms
+    // the prepare command. This keeps Load as prepare-only, while Play Now waits for
+    // a safe prepared state rather than starting immediately.
+    $loadedA = mx_local_maybe_start_autoplay('a', $loadedA);
+    $loadedB = mx_local_maybe_start_autoplay('b', $loadedB);
+
     // Keep deck cards tidy after a played track has finished. This runs during normal
     // mixer polling, so the UI updates without the DJ having to press Clear.
     $beforeUnloadA = $loadedA;
@@ -1658,6 +1666,18 @@ function mx_load_track_to_deck($track, $deck, $playback = null, &$playlist = nul
     $clean['resume_locked'] = false;
     $clean['end_seen_ms'] = null;
     $clean['end_armed_at'] = null;
+    if (mx_is_local_track($clean)) {
+        // Loading a local track is prepare-only. Reset any stale runtime flags that
+        // may have come from history/crates so a Load action cannot auto-start MPD.
+        $clean['local_is_playing'] = false;
+        $clean['local_is_prepared'] = false;
+        $clean['local_prepare_requested_at'] = null;
+        $clean['local_prepare_completed_at'] = null;
+        $clean['local_prepare_command_id'] = null;
+        $clean['local_prepare_error'] = '';
+        $clean['local_autoplay_after_prepare'] = false;
+        $clean['local_autoplay_requested_at'] = null;
+    }
     mx_store_loaded_track($deck, $clean);
     if (mx_is_local_track($clean)) {
         try {
@@ -1757,7 +1777,67 @@ function mx_local_prepare_track($deck, $track) {
     $track['local_prepare_command_id'] = $commandId;
     $track['local_prepare_error'] = '';
     $track['local_playback_mode'] = 'mpd';
+    if (!array_key_exists('local_autoplay_after_prepare', $track)) $track['local_autoplay_after_prepare'] = false;
     mx_store_loaded_track($deck, $track);
+    return $track;
+}
+
+function mx_local_prepare_pending($track) {
+    if (!is_array($track) || !mx_is_local_track($track)) return false;
+    if (!empty($track['local_is_prepared']) || !empty($track['local_prepare_error'])) return false;
+    if (empty($track['local_prepare_requested_at'])) return false;
+    $age = time() - (int)$track['local_prepare_requested_at'];
+    return $age >= 0 && $age < 60;
+}
+
+function mx_local_request_autoplay_after_prepare($deck, $track) {
+    $deck = $deck === 'b' ? 'b' : 'a';
+    if (!mx_is_local_track($track)) throw new RuntimeException('Loaded track is not a local track.');
+
+    $loaded = mx_json('spotify_mixer_loaded_' . $deck, []);
+    if (is_array($loaded) && !empty($loaded['id'])) $track = $loaded;
+
+    if (!empty($track['local_is_playing'])) return $track;
+
+    if (!empty($track['local_is_prepared'])) {
+        return mx_local_play_track($deck, $track, null);
+    }
+
+    if (!mx_local_prepare_pending($track)) {
+        $track = mx_local_prepare_track($deck, $track);
+    }
+
+    $track['local_autoplay_after_prepare'] = true;
+    $track['local_autoplay_requested_at'] = time();
+    mx_store_loaded_track($deck, $track);
+    return $track;
+}
+
+function mx_local_maybe_start_autoplay($deck, $track) {
+    $deck = $deck === 'b' ? 'b' : 'a';
+    if (!mx_is_local_track($track) || empty($track['id'])) return $track;
+    if (empty($track['local_autoplay_after_prepare']) || !empty($track['local_is_playing'])) return $track;
+    if (!empty($track['local_prepare_error'])) return $track;
+
+    if (!empty($track['local_is_prepared'])) {
+        $track['local_autoplay_after_prepare'] = false;
+        $track['local_autoplay_started_at'] = time();
+        mx_store_loaded_track($deck, $track);
+        return mx_local_play_track($deck, $track, null);
+    }
+
+    if (!mx_local_prepare_pending($track)) {
+        try {
+            $track = mx_local_prepare_track($deck, $track);
+            $track['local_autoplay_after_prepare'] = true;
+            $track['local_autoplay_requested_at'] = time();
+            mx_store_loaded_track($deck, $track);
+        } catch (Throwable $prepareError) {
+            $track['local_prepare_error'] = $prepareError->getMessage();
+            mx_store_loaded_track($deck, $track);
+        }
+    }
+
     return $track;
 }
 
@@ -1791,6 +1871,8 @@ function mx_local_play_track($deck, $track, $positionMs = null) {
     $track['end_seen_ms'] = max(0, $positionMs);
     $track['end_armed_at'] = time();
     $track['local_is_playing'] = true;
+    $track['local_autoplay_after_prepare'] = false;
+    $track['local_autoplay_started_at'] = time();
     $track['local_playback_mode'] = 'mpd';
     mx_store_loaded_track($deck, $track);
     return $track;
@@ -1801,6 +1883,7 @@ function mx_local_stop_track($deck, $track = null, $clearPlaying = true) {
     mx_queue_deck_node_command($deck, 'local_stop', []);
     if ($clearPlaying && is_array($track) && !empty($track['id'])) {
         $track['local_is_playing'] = false;
+        $track['local_autoplay_after_prepare'] = false;
         $track['position_updated_at'] = null;
         mx_store_loaded_track($deck, $track);
     }
@@ -1965,8 +2048,8 @@ try {
         if ($action === 'play_track_direct') {
             if (mx_is_local_track($track)) {
                 $playedTrack = mx_json('spotify_mixer_loaded_' . $deck, []);
-                mx_local_play_track($deck, $playedTrack ?: mx_clean_track($track), 0);
-                mx_json_out(['ok' => true, 'message' => 'Local track loaded and MPD play command sent to Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
+                mx_local_request_autoplay_after_prepare($deck, $playedTrack ?: mx_clean_track($track));
+                mx_json_out(['ok' => true, 'message' => 'Local track loaded to Player ' . strtoupper($deck) . ' and will start after the Raspberry Pi confirms it is prepared.', 'state' => mx_state()]);
             }
             $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
             mx_prepare_single_account_handover($deck);
@@ -2124,6 +2207,12 @@ try {
                 mx_local_pause_track($deck, $track);
                 mx_json_out(['ok' => true, 'message' => 'Local playback paused on Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
             }
+            if (empty($track['local_is_prepared'])) {
+                mx_local_request_autoplay_after_prepare($deck, $track);
+                $playlist = mx_remove_track_from_playlist($playlist, $track);
+                mx_save_playlist($playlist);
+                mx_json_out(['ok' => true, 'message' => 'Local track is preparing on Player ' . strtoupper($deck) . ' and will start when ready.', 'state' => mx_state()]);
+            }
             mx_local_play_track($deck, $track, null);
             $playlist = mx_remove_track_from_playlist($playlist, $track);
             mx_save_playlist($playlist);
@@ -2236,6 +2325,12 @@ try {
         $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
         $track = mx_json('spotify_mixer_loaded_' . $deck, []);
         if (mx_is_local_track($track)) {
+            if (empty($track['local_is_prepared'])) {
+                mx_local_request_autoplay_after_prepare($deck, $track);
+                $playlist = mx_remove_track_from_playlist($playlist, $track);
+                mx_save_playlist($playlist);
+                mx_json_out(['ok' => true, 'message' => 'Local track is preparing on Player ' . strtoupper($deck) . ' and will start when ready.', 'state' => mx_state()]);
+            }
             mx_local_play_track($deck, $track, null);
             $playlist = mx_remove_track_from_playlist($playlist, $track);
             mx_save_playlist($playlist);
