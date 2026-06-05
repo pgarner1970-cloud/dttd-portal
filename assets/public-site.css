@@ -6170,6 +6170,11 @@ body.public-legal-page .public-site-header {
 body.homepage-option-one .home-now-playing{
   box-sizing:border-box;
   width:min(1080px, calc(100vw - 48px));
+  position:relative;
+  left:50%;
+  transform:translateX(-50%);
+  margin-left:0;
+  margin-right:0;
 }
 
 .event-detail-safe .public-event-now-playing{
@@ -6181,6 +6186,8 @@ body.homepage-option-one .home-now-playing{
 @media(max-width:760px){
   body.homepage-option-one .home-now-playing{
     width:calc(100vw - 32px);
+    left:50%;
+    transform:translateX(-50%);
   }
 
   .event-detail-safe .public-event-now-playing{
