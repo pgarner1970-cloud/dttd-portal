@@ -1439,6 +1439,28 @@ function mx_requests($playlist) {
     return array_slice($out, 0, 30);
 }
 
+function mx_extract_spotify_id($value) {
+    $value = trim((string)$value);
+    if ($value === '') return '';
+
+    // Stored mixer tracks may contain a plain Spotify track id, a spotify:track URI,
+    // or occasionally a full open.spotify.com track URL. Normalise them before any
+    // emergency-swap confirmation/retry logic compares or replays the track.
+    if (strpos($value, 'spotify:track:') === 0) {
+        return trim(substr($value, strlen('spotify:track:')));
+    }
+
+    if (preg_match('~open\.spotify\.com/track/([A-Za-z0-9]+)~', $value, $m)) {
+        return (string)$m[1];
+    }
+
+    if (preg_match('~^[A-Za-z0-9]{10,}$~', $value)) {
+        return $value;
+    }
+
+    return str_replace('spotify:track:', '', $value);
+}
+
 function mx_track_ids_match($a, $b) {
     $a = trim((string)$a);
     $b = trim((string)$b);
