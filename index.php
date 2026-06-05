@@ -170,7 +170,16 @@ $public_current = 'home';
           Feel-good party nights, classic floor-fillers and moments worth sharing.
         </p>
 
-        <div class="option-one-action-strip dynamic-action-strip" data-homepage-state="<?= htmlspecialchars($homepage_state) ?>" aria-label="Event actions">
+        <?php if ($activeEventAlreadyConnected && $active_event): ?>
+          <div class="connected-event-prompt" aria-label="Connected event actions">
+            <div class="connected-event-prompt__message">
+              <span class="connected-event-prompt__badge">Connected to event</span>
+              <strong>You are currently attached to <?= htmlspecialchars(home_public_event_title($active_event)) ?>.</strong>
+              <p>Use the cards below to request songs, upload photos or view the event page.</p>
+            </div>
+        <?php endif; ?>
+
+        <div class="option-one-action-strip dynamic-action-strip <?= $activeEventAlreadyConnected ? 'is-connected-event' : '' ?>" data-homepage-state="<?= htmlspecialchars($homepage_state) ?>" aria-label="Event actions">
           <?php if ($homepage_state === 'public-event' && $active_event && !empty($active_event['event_code'])): ?>
             <a class="option-one-action-card primary-action" href="/request.php">
               <span class="option-one-icon">♪</span>
@@ -247,6 +256,10 @@ $public_current = 'home';
             </a>
           <?php endif; ?>
         </div>
+
+        <?php if ($activeEventAlreadyConnected && $active_event): ?>
+          </div>
+        <?php endif; ?>
 
         <?php if ($homepage_state === 'private-event' && $active_event && !$privateEventAlreadyConnected): ?>
           <div class="private-event-access-card <?= $privateEventType === 'wedding' ? 'is-wedding' : ($privateEventType === 'private_party' ? 'is-party' : '') ?>">
