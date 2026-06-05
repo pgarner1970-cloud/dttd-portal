@@ -72,23 +72,92 @@ function event_type_label($type) {
     return $labels[$type] ?? 'Public Night';
 }
 
+
+function dttd_event_effective_window($event) {
+    if (!$event || !is_array($event)) {
+        return null;
+    }
+
+    $start_ts = null;
+    $end_ts = null;
+
+    $event_date = trim((string)($event['event_date'] ?? ''));
+    $start_time = trim((string)($event['start_time'] ?? ''));
+    $end_time = trim((string)($event['end_time'] ?? ''));
+
+    if ($event_date !== '' && $start_time !== '') {
+        $start_ts = strtotime($event_date . ' ' . substr($start_time, 0, 5));
+
+        if ($end_time !== '') {
+            $end_ts = strtotime($event_date . ' ' . substr($end_time, 0, 5));
+            if ($start_ts && $end_ts && $end_ts <= $start_ts) {
+                $end_ts = strtotime('+1 day', $end_ts);
+            }
+        } elseif ($start_ts) {
+            $end_ts = strtotime('+6 hours', $start_ts);
+        }
+    }
+
+    $portal_from_ts = !empty($event['portal_available_from']) ? strtotime((string)$event['portal_available_from']) : null;
+    $portal_until_ts = !empty($event['portal_available_until']) ? strtotime((string)$event['portal_available_until']) : null;
+
+    if ($portal_from_ts) {
+        $start_ts = $start_ts ? min($start_ts, $portal_from_ts) : $portal_from_ts;
+    }
+
+    if ($portal_until_ts) {
+        $end_ts = $end_ts ? max($end_ts, $portal_until_ts) : $portal_until_ts;
+    }
+
+    if (!$start_ts || !$end_ts) {
+        return null;
+    }
+
+    return [
+        'start_ts' => $start_ts,
+        'end_ts' => $end_ts,
+    ];
+}
+
+function dttd_event_live_now($event, $now = null) {
+    if (!$event || (int)($event['is_active'] ?? 0) !== 1) {
+        return false;
+    }
+
+    if (function_exists('dttd_event_status_allows_access') && !dttd_event_status_allows_access($event)) {
+        return false;
+    }
+
+    $window = dttd_event_effective_window($event);
+    if (!$window) {
+        return false;
+    }
+
+    $now = $now ?: time();
+    return $now >= $window['start_ts'] && $now <= $window['end_ts'];
+}
+
 function active_event() {
-    $sql = "
-        SELECT *
-        FROM events
-        WHERE is_active = 1
-        AND (
-            portal_available_from IS NULL
-            OR portal_available_from <= NOW()
-        )
-        AND (
-            portal_available_until IS NULL
-            OR portal_available_until >= NOW()
-        )
-        ORDER BY event_date ASC, id DESC
-        LIMIT 1
-    ";
-    return db()->query($sql)->fetch();
+    try {
+        $stmt = db()->query("
+            SELECT *
+            FROM events
+            WHERE is_active = 1
+              AND event_date IS NOT NULL
+              AND start_time IS NOT NULL
+            ORDER BY event_date ASC, start_time ASC, id ASC
+        ");
+
+        foreach ($stmt->fetchAll() as $event) {
+            if (dttd_event_live_now($event)) {
+                return $event;
+            }
+        }
+    } catch (Throwable $e) {
+        return null;
+    }
+
+    return null;
 }
 
 function get_event($id) {
@@ -111,19 +180,7 @@ function request_event() {
 
 function event_is_available($event) {
     if (!$event) return false;
-    if ((int)$event['is_active'] !== 1) return false;
-
-    $now = time();
-
-    if (!empty($event['portal_available_from']) && strtotime($event['portal_available_from']) > $now) {
-        return false;
-    }
-
-    if (!empty($event['portal_available_until']) && strtotime($event['portal_available_until']) < $now) {
-        return false;
-    }
-
-    return true;
+    return dttd_event_live_now($event);
 }
 
 function event_requests_open($event) {
@@ -466,11 +523,9 @@ function dttd_find_event_by_token($token) {
 function dttd_event_access_expires_at($event) {
     $now = time();
 
-    if (!empty($event['portal_available_until'])) {
-        $ts = strtotime((string)$event['portal_available_until']);
-        if ($ts && $ts > $now) {
-            return $ts;
-        }
+    $window = dttd_event_effective_window($event);
+    if ($window && !empty($window['end_ts']) && $window['end_ts'] > $now) {
+        return $window['end_ts'];
     }
 
     if (!empty($event['event_date'])) {

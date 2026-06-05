@@ -52,44 +52,16 @@ function public_np_active_event($eventId = 0) {
     $eventId = max(0, (int)$eventId);
 
     try {
-        $whereEvent = $eventId > 0 ? 'AND id = ?' : '';
-        $sql = "
-            SELECT *,
-                TIMESTAMP(event_date, start_time) AS live_start_at,
-                CASE
-                    WHEN end_time IS NULL OR end_time = '' THEN TIMESTAMP(event_date, start_time)
-                    WHEN end_time < start_time THEN TIMESTAMP(DATE_ADD(event_date, INTERVAL 1 DAY), end_time)
-                    ELSE TIMESTAMP(event_date, end_time)
-                END AS live_end_at
-            FROM events
-            WHERE is_active = 1
-              $whereEvent
-              AND event_date IS NOT NULL
-              AND start_time IS NOT NULL
-              AND start_time <> ''
-              AND NOW() >= TIMESTAMP(event_date, start_time)
-              AND NOW() <= CASE
-                    WHEN end_time IS NULL OR end_time = '' THEN DATE_ADD(TIMESTAMP(event_date, start_time), INTERVAL 6 HOUR)
-                    WHEN end_time < start_time THEN TIMESTAMP(DATE_ADD(event_date, INTERVAL 1 DAY), end_time)
-                    ELSE TIMESTAMP(event_date, end_time)
-              END
-            ORDER BY event_date ASC, start_time ASC, id ASC
-            LIMIT 1
-        ";
-
         if ($eventId > 0) {
-            $stmt = db()->prepare($sql);
-            $stmt->execute([$eventId]);
-        } else {
-            $stmt = db()->query($sql);
+            $event = get_event($eventId);
+            return ($event && event_is_available($event)) ? $event : null;
         }
 
-        return $stmt->fetch() ?: null;
+        return active_event();
     } catch (Throwable $e) {
         return null;
     }
 }
-
 function public_np_normalise_track_text($value) {
     $value = strtolower(trim((string)$value));
     $value = preg_replace('/\s+/', ' ', $value);

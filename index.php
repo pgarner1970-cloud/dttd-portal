@@ -70,37 +70,12 @@ $homepage_events = [];
 
 try {
     /*
-     * Important:
-     * is_active means the event is available/selectable in the portal.
-     * It does NOT mean the event is happening right now.
-     *
-     * The public homepage should only show live-event actions when the current
-     * date/time sits inside the event start/end window.
-     *
-     * End times earlier than start times are treated as after midnight.
+     * Use the shared PHP live-event helper rather than duplicating the SQL time
+     * window here. This keeps the homepage in step with the public event gate,
+     * event page and live soundtrack API, especially after an event end time is
+     * extended while the event is already running.
      */
-    $active_event = db()->query("
-        SELECT *,
-            TIMESTAMP(event_date, start_time) AS live_start_at,
-            CASE
-                WHEN end_time IS NULL OR end_time = '' THEN TIMESTAMP(event_date, start_time)
-                WHEN end_time < start_time THEN TIMESTAMP(DATE_ADD(event_date, INTERVAL 1 DAY), end_time)
-                ELSE TIMESTAMP(event_date, end_time)
-            END AS live_end_at
-        FROM events
-        WHERE is_active = 1
-          AND event_date IS NOT NULL
-          AND start_time IS NOT NULL
-          AND start_time <> ''
-          AND NOW() >= TIMESTAMP(event_date, start_time)
-          AND NOW() <= CASE
-                WHEN end_time IS NULL OR end_time = '' THEN DATE_ADD(TIMESTAMP(event_date, start_time), INTERVAL 6 HOUR)
-                WHEN end_time < start_time THEN TIMESTAMP(DATE_ADD(event_date, INTERVAL 1 DAY), end_time)
-                ELSE TIMESTAMP(event_date, end_time)
-          END
-        ORDER BY event_date ASC, start_time ASC, id ASC
-        LIMIT 1
-    ")->fetch();
+    $active_event = active_event();
 
     if ($active_event) {
         $visibility = strtolower((string)($active_event['queue_visibility'] ?? $active_event['visibility'] ?? 'public'));

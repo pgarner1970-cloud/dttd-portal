@@ -392,7 +392,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($event_name === '' || $venue_name === '' || $event_date === '' || $start_time === '') {
         $error = 'Please complete the required event fields.';
     } else {
-        $requests_close_at = calculate_requests_close_at($event_date, $end_time ?: $start_time, $close_before);
+        $timing_fields = build_event_times($event_date, $start_time, $end_time ?: $start_time, $close_before);
+        $requests_close_at = $timing_fields['requests_close_at'];
         $uploaded_image = event_upload_image();
 
 
@@ -427,6 +428,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'start_time' => $start_time,
             'end_time' => $end_time,
             'requests_close_at' => $requests_close_at,
+            'portal_available_from' => $timing_fields['portal_available_from'],
+            'portal_available_until' => $timing_fields['portal_available_until'],
             'is_active' => $is_active,
             'event_code' => $event_code,
             'queue_visibility' => $queue_visibility,
