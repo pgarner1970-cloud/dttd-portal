@@ -6165,3 +6165,20 @@ body.public-legal-page .public-site-header {
     animation:none;
   }
 }
+
+/* Align live soundtrack scrollers with surrounding public page content */
+body.homepage-option-one .home-now-playing{
+  width:min(1080px, calc(100% - 48px));
+}
+
+.event-detail-safe .public-event-now-playing{
+  width:min(1120px, calc(100% - 32px));
+  margin:22px auto 26px;
+}
+
+@media(max-width:760px){
+  body.homepage-option-one .home-now-playing,
+  .event-detail-safe .public-event-now-playing{
+    width:calc(100% - 32px);
+  }
+}
