@@ -57,12 +57,40 @@ function public_np_active_event() {
     }
 }
 
-function public_np_track_key($track) {
+function public_np_normalise_track_text($value) {
+    $value = strtolower(trim((string)$value));
+    $value = preg_replace('/\s+/', ' ', $value);
+    $value = preg_replace('/[^a-z0-9]+/i', ' ', $value);
+    return trim(preg_replace('/\s+/', ' ', $value));
+}
+
+function public_np_track_keys($track) {
+    $keys = [];
     $id = strtolower(trim((string)($track['id'] ?? $track['spotify_track_id'] ?? '')));
-    if ($id !== '') return 'id:' . $id;
-    $title = strtolower(trim((string)($track['title'] ?? $track['song_title'] ?? '')));
-    $artist = strtolower(trim((string)($track['artist'] ?? '')));
-    return 'txt:' . $title . '|' . $artist;
+    if ($id !== '') {
+        $keys[] = 'id:' . $id;
+    }
+
+    $title = public_np_normalise_track_text($track['title'] ?? $track['song_title'] ?? '');
+    $artist = public_np_normalise_track_text($track['artist'] ?? '');
+    if ($title !== '' || $artist !== '') {
+        $keys[] = 'txt:' . $title . '|' . $artist;
+    }
+
+    return array_values(array_unique($keys));
+}
+
+function public_np_track_seen($track, $seen) {
+    foreach (public_np_track_keys($track) as $key) {
+        if (isset($seen[$key])) return true;
+    }
+    return false;
+}
+
+function public_np_mark_track_seen($track, &$seen) {
+    foreach (public_np_track_keys($track) as $key) {
+        $seen[$key] = true;
+    }
 }
 
 function public_np_public_track($track, $status, $playedAt = '') {
@@ -181,18 +209,16 @@ $seen = [];
 
 if ($current) {
     $currentPublic = public_np_public_track($current, 'current', date('c'));
-    $key = public_np_track_key($currentPublic);
-    if ($key !== 'txt:|') {
-        $seen[$key] = true;
+    if (public_np_track_keys($currentPublic)) {
+        public_np_mark_track_seen($currentPublic, $seen);
         $tracks[] = $currentPublic;
     }
 }
 
 foreach ($historyRows as $row) {
     $track = public_np_public_track($row, $current ? 'recent' : (empty($tracks) ? 'latest' : 'recent'), (string)($row['created_at'] ?? $row['played_at'] ?? ''));
-    $key = public_np_track_key($track);
-    if ($key === 'txt:|' || isset($seen[$key])) continue;
-    $seen[$key] = true;
+    if (!public_np_track_keys($track) || public_np_track_seen($track, $seen)) continue;
+    public_np_mark_track_seen($track, $seen);
     $tracks[] = $track;
     if (count($tracks) >= 6) break;
 }
