@@ -1249,6 +1249,16 @@ $GLOBALS['public_current_mixer_tracks'] = $hasEventAccess ? public_loaded_mixer_
             </div>
           <?php endif; ?>
 
+          <section class="home-now-playing public-event-now-playing" data-now-playing-section data-endpoint="/api/public-now-playing.php?event_id=<?= (int)$event['id'] ?>" aria-label="Now playing and recently played tracks" hidden>
+            <div class="home-now-playing-head">
+              <span>Live soundtrack</span>
+              <strong>Now playing</strong>
+              <em data-now-playing-updated>Live update</em>
+            </div>
+            <div class="home-now-playing-window" data-now-playing-track aria-live="polite"></div>
+            <p class="home-now-playing-empty" data-now-playing-empty hidden>Track history will appear here once music is playing.</p>
+          </section>
+
           <div class="public-event-live-grid">
             <article class="public-feature-card public-live-card public-requests-card">
               <span class="public-feature-kicker">Queue</span>
@@ -1619,5 +1629,6 @@ $GLOBALS['public_current_mixer_tracks'] = $hasEventAccess ? public_loaded_mixer_
     })();
 
   </script>
+<script src="<?= public_h(dttd_asset_url('assets/public-now-playing.js')) ?>"></script>
 </body>
 </html>

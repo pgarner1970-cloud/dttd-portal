@@ -48,9 +48,42 @@ function public_np_set($key, $value) {
     }
 }
 
-function public_np_active_event() {
+function public_np_active_event($eventId = 0) {
+    $eventId = max(0, (int)$eventId);
+
     try {
-        $stmt = db()->query("\n            SELECT *,\n                TIMESTAMP(event_date, start_time) AS live_start_at,\n                CASE\n                    WHEN end_time IS NULL OR end_time = '' THEN TIMESTAMP(event_date, start_time)\n                    WHEN end_time < start_time THEN TIMESTAMP(DATE_ADD(event_date, INTERVAL 1 DAY), end_time)\n                    ELSE TIMESTAMP(event_date, end_time)\n                END AS live_end_at\n            FROM events\n            WHERE is_active = 1\n              AND event_date IS NOT NULL\n              AND start_time IS NOT NULL\n              AND start_time <> ''\n              AND NOW() >= TIMESTAMP(event_date, start_time)\n              AND NOW() <= CASE\n                    WHEN end_time IS NULL OR end_time = '' THEN DATE_ADD(TIMESTAMP(event_date, start_time), INTERVAL 6 HOUR)\n                    WHEN end_time < start_time THEN TIMESTAMP(DATE_ADD(event_date, INTERVAL 1 DAY), end_time)\n                    ELSE TIMESTAMP(event_date, end_time)\n              END\n            ORDER BY event_date ASC, start_time ASC, id ASC\n            LIMIT 1\n        ");
+        $whereEvent = $eventId > 0 ? 'AND id = ?' : '';
+        $sql = "
+            SELECT *,
+                TIMESTAMP(event_date, start_time) AS live_start_at,
+                CASE
+                    WHEN end_time IS NULL OR end_time = '' THEN TIMESTAMP(event_date, start_time)
+                    WHEN end_time < start_time THEN TIMESTAMP(DATE_ADD(event_date, INTERVAL 1 DAY), end_time)
+                    ELSE TIMESTAMP(event_date, end_time)
+                END AS live_end_at
+            FROM events
+            WHERE is_active = 1
+              $whereEvent
+              AND event_date IS NOT NULL
+              AND start_time IS NOT NULL
+              AND start_time <> ''
+              AND NOW() >= TIMESTAMP(event_date, start_time)
+              AND NOW() <= CASE
+                    WHEN end_time IS NULL OR end_time = '' THEN DATE_ADD(TIMESTAMP(event_date, start_time), INTERVAL 6 HOUR)
+                    WHEN end_time < start_time THEN TIMESTAMP(DATE_ADD(event_date, INTERVAL 1 DAY), end_time)
+                    ELSE TIMESTAMP(event_date, end_time)
+              END
+            ORDER BY event_date ASC, start_time ASC, id ASC
+            LIMIT 1
+        ";
+
+        if ($eventId > 0) {
+            $stmt = db()->prepare($sql);
+            $stmt->execute([$eventId]);
+        } else {
+            $stmt = db()->query($sql);
+        }
+
         return $stmt->fetch() ?: null;
     } catch (Throwable $e) {
         return null;
@@ -185,7 +218,8 @@ function public_np_current_spotify_track() {
     return null;
 }
 
-$event = public_np_active_event();
+$requestedEventId = isset($_GET['event_id']) ? (int)$_GET['event_id'] : 0;
+$event = public_np_active_event($requestedEventId);
 if (!$event || empty($event['id'])) {
     public_np_json(['ok' => true, 'active_event' => false, 'tracks' => [], 'generated_at' => date('c')]);
 }
