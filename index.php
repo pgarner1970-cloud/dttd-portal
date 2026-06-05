@@ -129,7 +129,7 @@ try {
 $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
 $privateEventName = ($homepage_state === 'private-event' && $active_event) ? home_public_event_title($active_event) : '';
 $privateEventType = ($homepage_state === 'private-event' && $active_event) ? strtolower((string)($active_event['event_type'] ?? 'private_party')) : '';
-$privateEventAlreadyConnected = function_exists('dttd_event_from_access_cookie') && $active_event ? ((($cookieEvent = dttd_event_from_access_cookie(false)) && (int)($cookieEvent['id'] ?? 0) === (int)($active_event['id'] ?? 0))) : false;
+$homepageEventAlreadyConnected = function_exists('dttd_event_from_access_cookie') && $active_event ? ((($cookieEvent = dttd_event_from_access_cookie(false)) && (int)($cookieEvent['id'] ?? 0) === (int)($active_event['id'] ?? 0))) : false;
 // Do not expose the private event code in public homepage links.
 // Guests must enter the event code or scan the QR code shown at the venue.
 $privateEventRequestUrl = '/request.php';
@@ -170,7 +170,7 @@ $public_current = 'home';
           Feel-good party nights, classic floor-fillers and moments worth sharing.
         </p>
 
-        <?php if ($activeEventAlreadyConnected && $active_event): ?>
+        <?php if ($homepageEventAlreadyConnected && $active_event): ?>
           <div class="connected-event-prompt" aria-label="Connected event actions">
             <div class="connected-event-prompt__message">
               <span class="connected-event-prompt__badge">Connected to event</span>
@@ -179,21 +179,21 @@ $public_current = 'home';
             </div>
         <?php endif; ?>
 
-        <div class="option-one-action-strip dynamic-action-strip <?= $activeEventAlreadyConnected ? 'is-connected-event' : '' ?>" data-homepage-state="<?= htmlspecialchars($homepage_state) ?>" aria-label="Event actions">
+        <div class="option-one-action-strip dynamic-action-strip <?= $homepageEventAlreadyConnected ? 'is-connected-event' : '' ?>" data-homepage-state="<?= htmlspecialchars($homepage_state) ?>" aria-label="Event actions">
           <?php if ($homepage_state === 'public-event' && $active_event && !empty($active_event['event_code'])): ?>
-            <a class="option-one-action-card primary-action" href="/request.php">
+            <a class="option-one-action-card primary-action" href="/event.php">
+              <span class="option-one-icon">▣</span>
+              <span>
+                <strong>This Event</strong>
+                <em>Venue, times and live event info</em>
+              </span>
+            </a>
+
+            <a class="option-one-action-card" href="/request.php">
               <span class="option-one-icon">♪</span>
               <span>
                 <strong>Request a Song</strong>
                 <em>Available via event QR/code at the venue</em>
-              </span>
-            </a>
-
-            <a class="option-one-action-card" href="/event.php">
-              <span class="option-one-icon">▣</span>
-              <span>
-                <strong>This Event</strong>
-                <em>Venue, times and event info</em>
               </span>
             </a>
 
@@ -205,8 +205,24 @@ $public_current = 'home';
               </span>
             </a>
 
+            <a class="option-one-action-card mobile-selfie-action" href="/upload.php?selfie=1">
+              <span class="option-one-icon">🤳</span>
+              <span>
+                <strong>Take a Selfie</strong>
+                <em>Open your phone camera</em>
+              </span>
+            </a>
+
           <?php elseif ($homepage_state === 'private-event' && $active_event && !empty($active_event['event_code'])): ?>
-            <a class="option-one-action-card primary-action" href="/request.php">
+            <a class="option-one-action-card primary-action" href="/event.php">
+              <span class="option-one-icon">▣</span>
+              <span>
+                <strong>Event Info</strong>
+                <em>Private guest event page</em>
+              </span>
+            </a>
+
+            <a class="option-one-action-card" href="/request.php">
               <span class="option-one-icon">♪</span>
               <span>
                 <strong>Guest Requests</strong>
@@ -222,11 +238,11 @@ $public_current = 'home';
               </span>
             </a>
 
-            <a class="option-one-action-card" href="/event.php">
-              <span class="option-one-icon">▣</span>
+            <a class="option-one-action-card mobile-selfie-action" href="/upload.php?selfie=1">
+              <span class="option-one-icon">🤳</span>
               <span>
-                <strong>Event Info</strong>
-                <em>Private guest event page</em>
+                <strong>Take a Selfie</strong>
+                <em>Open your phone camera</em>
               </span>
             </a>
 
@@ -257,11 +273,11 @@ $public_current = 'home';
           <?php endif; ?>
         </div>
 
-        <?php if ($activeEventAlreadyConnected && $active_event): ?>
+        <?php if ($homepageEventAlreadyConnected && $active_event): ?>
           </div>
         <?php endif; ?>
 
-        <?php if ($homepage_state === 'private-event' && $active_event && !$privateEventAlreadyConnected): ?>
+        <?php if ($homepage_state === 'private-event' && $active_event && !$homepageEventAlreadyConnected): ?>
           <div class="private-event-access-card <?= $privateEventType === 'wedding' ? 'is-wedding' : ($privateEventType === 'private_party' ? 'is-party' : '') ?>">
             <div class="private-event-access-decor" aria-hidden="true">
               <?php if ($privateEventType === 'wedding'): ?>
