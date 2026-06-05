@@ -6246,3 +6246,26 @@ body.homepage-option-one:not(.public-event-detail-page):not(.public-event-portal
     padding-bottom:var(--dttd-home-block-gap) !important;
   }
 }
+
+/* Homepage lower-section spacing hard override
+   Keep this scoped to the public homepage only; event portal spacing is not changed. */
+body.homepage-option-one:not(.public-event-detail-page):not(.public-event-portal-page) .home-info-section{
+  padding:0 22px 0 !important;
+  margin-top:0 !important;
+}
+
+body.homepage-option-one:not(.public-event-detail-page):not(.public-event-portal-page) .home-info-section .home-info-grid,
+body.homepage-option-one:not(.public-event-detail-page):not(.public-event-portal-page) .home-info-section .home-info-grid-secondary{
+  margin:0 auto var(--dttd-home-block-gap) !important;
+}
+
+body.homepage-option-one:not(.public-event-detail-page):not(.public-event-portal-page) .home-coming-up{
+  margin-top:0 !important;
+  padding-top:var(--dttd-home-block-gap) !important;
+}
+
+@media(max-width:760px){
+  body.homepage-option-one:not(.public-event-detail-page):not(.public-event-portal-page) .home-info-section{
+    padding:0 16px 0 !important;
+  }
+}
