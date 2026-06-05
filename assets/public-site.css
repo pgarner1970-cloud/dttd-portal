@@ -6168,17 +6168,22 @@ body.public-legal-page .public-site-header {
 
 /* Align live soundtrack scrollers with surrounding public page content */
 body.homepage-option-one .home-now-playing{
-  width:min(1080px, calc(100% - 48px));
+  box-sizing:border-box;
+  width:min(1080px, calc(100vw - 48px));
 }
 
 .event-detail-safe .public-event-now-playing{
-  width:min(1120px, calc(100% - 32px));
-  margin:22px auto 26px;
+  box-sizing:border-box;
+  width:100%;
+  margin:22px 0 26px;
 }
 
 @media(max-width:760px){
-  body.homepage-option-one .home-now-playing,
+  body.homepage-option-one .home-now-playing{
+    width:calc(100vw - 32px);
+  }
+
   .event-detail-safe .public-event-now-playing{
-    width:calc(100% - 32px);
+    width:100%;
   }
 }
