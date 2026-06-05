@@ -980,30 +980,33 @@ function mx_confirm_track_playing_on_device($device_id, $track_id, $position_ms 
     $track_id = trim((string)$track_id);
     if ($device_id === '' || $track_id === '') return false;
     $wantedId = mx_extract_spotify_id($track_id);
-    $position = $position_ms !== null ? max(0, (int)$position_ms) : null;
 
+    // This confirmation step must not repeatedly seek back to the handover
+    // position. During emergency swap that created an audible short loop on
+    // some Spotify Connect clients while the API was retrying. The explicit
+    // play/seek has already been sent by mx_play_track(); from here we mostly
+    // poll for settled state and only do a lightweight resume/transfer if the
+    // destination is paused or not yet active.
     for ($attempt = 0; $attempt < max(1, (int)$max_attempts); $attempt++) {
-        usleep($attempt === 0 ? 250000 : 550000);
+        usleep($attempt === 0 ? 350000 : 700000);
         $pb = mx_playback($deck);
         $activeDevice = (string)($pb['device']['id'] ?? '');
         $currentId = (string)($pb['item']['id'] ?? '');
         $isPlaying = !empty($pb['is_playing']);
         $sameTrack = ($wantedId === '' || $currentId === '' || mx_track_ids_match($currentId, $wantedId));
 
-        if ($activeDevice === $device_id && $isPlaying && $sameTrack) return true;
+        if ($activeDevice === $device_id && $sameTrack) {
+            if ($isPlaying) return true;
+            try { mx_resume_current_device($device_id, $deck); } catch (Throwable $ignoredResume) {}
+            continue;
+        }
 
-        // Spotify Connect can briefly accept the transfer but leave the destination paused.
-        // Re-assert the explicit track+position play command rather than relying on resume.
+        // If Connect has not moved to the destination yet, transfer playback
+        // without seeking. Avoid re-sending the same position repeatedly.
         try {
             mx_transfer_playback_to_device($device_id, false, $deck);
-            usleep(200000);
-            $payload = ['uris' => ['spotify:track:' . $wantedId]];
-            if ($position !== null) $payload['position_ms'] = $position;
-            mx_spotify_put('https://api.spotify.com/v1/me/player/play?device_id=' . rawurlencode($device_id), json_encode($payload), $deck);
-            if ($position !== null) {
-                usleep(200000);
-                try { mx_seek($device_id, $position, $deck); } catch (Throwable $ignoredSeek) {}
-            }
+            usleep(250000);
+            mx_resume_current_device($device_id, $deck);
         } catch (Throwable $ignoredRetry) {}
     }
     return false;
@@ -1188,6 +1191,28 @@ function mx_pause($device_id, $deck = null) {
     $device_id = trim((string)$device_id);
     if ($device_id === '') throw new RuntimeException('No Spotify device selected for this player.');
     mx_spotify_put('https://api.spotify.com/v1/me/player/pause?device_id=' . rawurlencode($device_id), '', $deck);
+}
+
+
+function mx_stop_deck_before_unload($deck, &$track = null) {
+    $deck = $deck === 'b' ? 'b' : 'a';
+    if ($track === null) $track = mx_json('spotify_mixer_loaded_' . $deck, []);
+    if (!is_array($track) || empty($track['id'])) return;
+
+    if (mx_is_local_track($track)) {
+        if (!empty($track['local_is_playing'])) {
+            try { mx_queue_deck_node_command($deck, 'local_pause', []); } catch (Throwable $ignoredLocalPause) {}
+            mx_local_pause_track($deck, $track);
+        }
+        return;
+    }
+
+    $device = mx_deck_device_id($deck);
+    $playback = mx_playback($deck);
+    mx_save_deck_position_from_playback($deck, $device, $track, $playback, true);
+    if ($device !== '' && mx_device_playing($device, $playback)) {
+        try { mx_pause($device, $deck); } catch (Throwable $ignoredPause) {}
+    }
 }
 
 function mx_resume_current_device($device_id, $deck = null) {
@@ -2117,29 +2142,25 @@ try {
 
     if ($action === 'clear_loaded') {
         $deck = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
-        $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
         $loadedForClear = mx_json('spotify_mixer_loaded_' . $deck, []);
-        if (mx_is_local_track($loadedForClear)) {
-            if (!empty($loadedForClear['local_is_playing'])) throw new RuntimeException('Pause Player ' . strtoupper($deck) . ' before clearing.');
-        } elseif (mx_device_playing($device, mx_playback($deck))) throw new RuntimeException('Player ' . strtoupper($deck) . ' is currently playing. Pause it before clearing.');
+        mx_stop_deck_before_unload($deck, $loadedForClear);
         mx_return_loaded_if_unplayed($deck, $playlist, null);
         mx_save_playlist($playlist);
         mx_set('spotify_mixer_loaded_' . $deck, '');
-        mx_json_out(['ok' => true, 'state' => mx_state()]);
+        mx_set('spotify_mixer_resume_' . $deck, '');
+        mx_json_out(['ok' => true, 'message' => 'Player ' . strtoupper($deck) . ' stopped and unloaded.', 'state' => mx_state()]);
     }
 
 
     if ($action === 'return_loaded') {
         $deck = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
-        $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
         $loadedForReturn = mx_json('spotify_mixer_loaded_' . $deck, []);
-        if (mx_is_local_track($loadedForReturn)) {
-            if (!empty($loadedForReturn['local_is_playing'])) throw new RuntimeException('Pause Player ' . strtoupper($deck) . ' before returning it.');
-        } elseif (mx_device_playing($device, mx_playback($deck))) throw new RuntimeException('Pause Player ' . strtoupper($deck) . ' before returning it.');
+        mx_stop_deck_before_unload($deck, $loadedForReturn);
         mx_return_loaded_if_unplayed($deck, $playlist, null);
         mx_save_playlist($playlist);
         mx_set('spotify_mixer_loaded_' . $deck, '');
-        mx_json_out(['ok' => true, 'message' => 'Unplayed track returned safely.', 'state' => mx_state()]);
+        mx_set('spotify_mixer_resume_' . $deck, '');
+        mx_json_out(['ok' => true, 'message' => 'Player ' . strtoupper($deck) . ' stopped and unplayed track returned safely.', 'state' => mx_state()]);
     }
 
     if ($action === 'mark_loaded_played') {
