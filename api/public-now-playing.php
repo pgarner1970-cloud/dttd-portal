@@ -178,11 +178,105 @@ function public_np_track_from_playback($playback, $deckLabel = '') {
     ];
 }
 
+function public_np_json_setting($key, $default = []) {
+    $raw = public_np_setting($key, '');
+    if ($raw === '') return $default;
+    $decoded = json_decode($raw, true);
+    return is_array($decoded) ? $decoded : $default;
+}
+
+function public_np_estimated_loaded_position_ms($loaded) {
+    if (!is_array($loaded) || empty($loaded['id'])) return null;
+    if (isset($loaded['paused_position_ms']) && $loaded['paused_position_ms'] !== null) {
+        return max(0, (int)$loaded['paused_position_ms']);
+    }
+    if (!isset($loaded['position_base_ms']) || $loaded['position_base_ms'] === null) return null;
+    $position = max(0, (int)$loaded['position_base_ms']);
+    $updated = isset($loaded['position_updated_at']) ? (int)$loaded['position_updated_at'] : 0;
+    if ($updated > 0 && empty($loaded['resume_locked'])) {
+        $position += max(0, time() - $updated) * 1000;
+    }
+    return $position;
+}
+
+function public_np_track_ids_match($a, $b) {
+    $a = trim((string)$a);
+    $b = trim((string)$b);
+    if ($a === '' || $b === '') return false;
+    $a = str_replace('spotify:track:', '', $a);
+    $b = str_replace('spotify:track:', '', $b);
+    return $a === $b;
+}
+
+function public_np_track_from_loaded($loaded, $deckLabel = '') {
+    if (!is_array($loaded) || empty($loaded['id'])) return null;
+    $id = trim((string)($loaded['id'] ?? ''));
+    $title = trim((string)($loaded['title'] ?? $loaded['song_title'] ?? ''));
+    if ($id === '' && $title === '') return null;
+
+    return [
+        'id' => $id,
+        'title' => $title,
+        'artist' => trim((string)($loaded['artist'] ?? '')),
+        'image' => trim((string)($loaded['image'] ?? $loaded['spotify_album_image'] ?? '')),
+        'url' => trim((string)($loaded['url'] ?? $loaded['spotify_track_url'] ?? '')),
+        'deck' => $deckLabel,
+        'progress_ms' => public_np_estimated_loaded_position_ms($loaded),
+        'duration_ms' => isset($loaded['duration_ms']) ? (int)$loaded['duration_ms'] : null,
+    ];
+}
+
+function public_np_deck_current_candidate($deck, $deviceId, $playback, $loaded) {
+    $deck = strtolower((string)$deck) === 'b' ? 'b' : 'a';
+    $deckLabel = strtoupper($deck);
+    $deviceId = trim((string)$deviceId);
+    $loaded = is_array($loaded) ? $loaded : [];
+    $candidate = null;
+    $score = null;
+    $startedAt = isset($loaded['playback_started_at']) ? (int)$loaded['playback_started_at'] : 0;
+
+    // Local/MPD tracks are tracked by the mixer state rather than Spotify playback.
+    if (!empty($loaded['local_is_playing'])) {
+        $candidate = public_np_track_from_loaded($loaded, $deckLabel);
+        $score = public_np_estimated_loaded_position_ms($loaded);
+    }
+
+    if (is_array($playback) && !empty($playback['is_playing'])) {
+        $activeDevice = (string)($playback['device']['id'] ?? '');
+        $currentId = (string)($playback['item']['id'] ?? '');
+        $loadedId = (string)($loaded['id'] ?? '');
+        $sameDevice = $deviceId !== '' && $activeDevice === $deviceId;
+        $sameLoadedTrack = $loadedId !== '' && public_np_track_ids_match($currentId, $loadedId);
+
+        if ($sameDevice && $sameLoadedTrack) {
+            $candidate = public_np_track_from_loaded($loaded, $deckLabel) ?: public_np_track_from_playback($playback, $deckLabel);
+            if ($candidate) {
+                if (isset($playback['progress_ms'])) $candidate['progress_ms'] = (int)$playback['progress_ms'];
+                if (isset($playback['item']['duration_ms'])) $candidate['duration_ms'] = (int)$playback['item']['duration_ms'];
+            }
+            $score = isset($playback['progress_ms']) ? (int)$playback['progress_ms'] : public_np_estimated_loaded_position_ms($loaded);
+        } elseif ($sameDevice && empty($candidate)) {
+            // Fallback for Spotify playback that is genuinely on the assigned deck device
+            // but has not yet been mirrored into the mixer loaded-track setting.
+            $candidate = public_np_track_from_playback($playback, $deckLabel);
+            $score = isset($playback['progress_ms']) ? (int)$playback['progress_ms'] : 0;
+        }
+    }
+
+    if (!$candidate) return null;
+    $candidate['deck'] = $deckLabel;
+    $candidate['_score_ms'] = max(0, (int)($score ?? 0));
+    $candidate['_started_at'] = $startedAt;
+    return $candidate;
+}
+
 function public_np_current_spotify_track() {
     if (!function_exists('dttd_spotify_config_loaded') || !dttd_spotify_config_loaded()) return null;
 
     $deviceA = public_np_setting('spotify_mixer_device_a', '');
     $deviceB = public_np_setting('spotify_mixer_device_b', '');
+    $loadedA = public_np_json_setting('spotify_mixer_loaded_a', []);
+    $loadedB = public_np_json_setting('spotify_mixer_loaded_b', []);
     $playbackA = null;
     $playbackB = null;
 
@@ -194,12 +288,32 @@ function public_np_current_spotify_track() {
         try { $playbackB = dttd_spotify_current_playback_for_deck('b'); } catch (Throwable $e) { $playbackB = null; }
     }
 
-    $candidates = [
+    $candidates = [];
+    $candidateA = public_np_deck_current_candidate('a', $deviceA, $playbackA, $loadedA);
+    if ($candidateA) $candidates[] = $candidateA;
+    $candidateB = public_np_deck_current_candidate('b', $deviceB, $playbackB, $loadedB);
+    if ($candidateB) $candidates[] = $candidateB;
+
+    if ($candidates) {
+        usort($candidates, function($a, $b) {
+            $scoreCompare = ((int)($b['_score_ms'] ?? 0)) <=> ((int)($a['_score_ms'] ?? 0));
+            if ($scoreCompare !== 0) return $scoreCompare;
+            return ((int)($a['_started_at'] ?? 0)) <=> ((int)($b['_started_at'] ?? 0));
+        });
+        $current = $candidates[0];
+        unset($current['_score_ms'], $current['_started_at']);
+        return $current;
+    }
+
+    // Last-resort fallback: raw account playback only. The deck-state route above is
+    // preferred because it avoids showing a short cue/preview track as the public current track
+    // when the other deck has been playing longer.
+    $fallbacks = [
         ['deck' => 'A', 'device' => $deviceA, 'playback' => $playbackA],
         ['deck' => 'B', 'device' => $deviceB, 'playback' => $playbackB],
     ];
 
-    foreach ($candidates as $candidate) {
+    foreach ($fallbacks as $candidate) {
         $playback = $candidate['playback'];
         if (!is_array($playback) || empty($playback['is_playing'])) continue;
         $activeDevice = (string)($playback['device']['id'] ?? '');
@@ -210,7 +324,7 @@ function public_np_current_spotify_track() {
         }
     }
 
-    foreach ($candidates as $candidate) {
+    foreach ($fallbacks as $candidate) {
         $track = public_np_track_from_playback($candidate['playback'], $candidate['deck']);
         if ($track) return $track;
     }
