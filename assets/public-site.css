@@ -6229,3 +6229,20 @@ body.homepage-option-one:not(.public-event-detail-page):not(.public-event-portal
     --dttd-home-block-gap:18px;
   }
 }
+
+/* Homepage lower-section vertical rhythm refinement
+   Keep this scoped to the public homepage only; event portal spacing is not changed. */
+body.homepage-option-one:not(.public-event-detail-page):not(.public-event-portal-page) .home-info-section{
+  padding-bottom:var(--dttd-home-block-gap) !important;
+}
+
+body.homepage-option-one:not(.public-event-detail-page):not(.public-event-portal-page) .home-coming-up{
+  margin-top:0 !important;
+  margin-bottom:calc(var(--dttd-home-block-gap) * 1.5) !important;
+}
+
+@media(max-width:760px){
+  body.homepage-option-one:not(.public-event-detail-page):not(.public-event-portal-page) .home-info-section{
+    padding-bottom:var(--dttd-home-block-gap) !important;
+  }
+}
