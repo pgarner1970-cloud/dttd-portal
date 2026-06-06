@@ -299,7 +299,7 @@ function mx_seed_mysql_crates_if_empty() {
 function mx_mysql_crates() {
     if (!mx_db_crates_available()) return [];
     try {
-        $stmt = db()->query("\n            SELECT c.id, c.name, COUNT(t.id) AS track_count\n            FROM dj_crates c\n            LEFT JOIN dj_crate_tracks t ON t.crate_id = c.id\n            WHERE c.is_active = 1\n            GROUP BY c.id, c.name, c.sort_order, c.created_at\n            ORDER BY c.sort_order ASC, c.created_at ASC, c.id ASC\n        ");
+        $stmt = db()->query("\n            SELECT c.id, c.name, COUNT(t.id) AS track_count\n            FROM dj_crates c\n            LEFT JOIN dj_crate_tracks t ON t.crate_id = c.id\n            WHERE c.is_active = 1\n            GROUP BY c.id, c.name, c.sort_order, c.created_at\n            ORDER BY LOWER(c.name) ASC, c.name ASC, c.id ASC\n        ");
         $rows = [];
         foreach ($stmt->fetchAll() as $row) {
             $rows[] = [
@@ -329,13 +329,17 @@ function mx_crate_summaries() {
             }, $rows);
         }
     }
+    $legacy = mx_legacy_crates();
+    usort($legacy, function($a, $b) {
+        return strnatcasecmp((string)($a['name'] ?? ''), (string)($b['name'] ?? ''));
+    });
     return array_map(function($crate) {
         return [
             'id' => $crate['id'],
             'name' => $crate['name'],
             'track_count' => count($crate['tracks'] ?? []),
         ];
-    }, mx_legacy_crates());
+    }, $legacy);
 }
 
 function mx_crate_tracks($crate_id) {
