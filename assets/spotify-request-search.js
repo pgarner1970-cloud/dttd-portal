@@ -39,7 +39,7 @@
         return;
       }
 
-      tracks.slice(0, 5).forEach(function (track) {
+      tracks.slice(0, 8).forEach(function (track) {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'spotify-result';

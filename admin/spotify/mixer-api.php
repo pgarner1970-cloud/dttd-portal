@@ -329,8 +329,8 @@ function mx_crate_summaries() {
             }, $rows);
         }
     }
-    $legacy = mx_legacy_crates();
-    usort($legacy, function($a, $b) {
+    $legacyCrates = mx_legacy_crates();
+    usort($legacyCrates, function($a, $b) {
         return strnatcasecmp((string)($a['name'] ?? ''), (string)($b['name'] ?? ''));
     });
     return array_map(function($crate) {
@@ -339,7 +339,7 @@ function mx_crate_summaries() {
             'name' => $crate['name'],
             'track_count' => count($crate['tracks'] ?? []),
         ];
-    }, $legacy);
+    }, $legacyCrates);
 }
 
 function mx_crate_tracks($crate_id) {

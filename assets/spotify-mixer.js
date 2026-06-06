@@ -62,9 +62,6 @@ document.head.appendChild(overviewStyle);
     if(src === 'search' || src === 'track') return 'Search';
     return src ? src.replace(/_/g, ' ') : 'Manual';
   }
-  function sortCratesAlpha(crates){
-    return (crates || []).slice().sort((a,b) => String(a?.name || '').localeCompare(String(b?.name || ''), undefined, {sensitivity:'base', numeric:true}));
-  }
   function playedThresholdLabel(track){
     const ms = Number(track?.duration_ms || 0);
     if(!ms) return '50% or 90s';
@@ -232,7 +229,7 @@ document.head.appendChild(overviewStyle);
     return `<button class="mixer-btn ${cls}${disabled ? ' choice-disabled' : ''}" data-choice-action="${esc(action)}" ${disabled ? 'disabled' : ''}>${label}</button>`;
   }
   function crateSaveControls(){
-    const crates = sortCratesAlpha(availableCrates.length ? availableCrates : (state?.crates || []));
+    const crates = availableCrates.length ? availableCrates : (state?.crates || []);
     if(!crates.length){
       return choiceButton('+ Save to DJ crate', 'blue full', 'crate', true);
     }
@@ -267,7 +264,7 @@ document.head.appendChild(overviewStyle);
     html += choiceButton('Load to B', 'blue', 'load_b', bBlocked);
     html += choiceButton('▶ Play on A now', 'green', 'play_a', aBlocked || localDirectPlayBlocked);
     html += choiceButton('▶ Play on B now', 'green', 'play_b', bBlocked || localDirectPlayBlocked);
-    if(source === 'crate') html += choiceButton('Remove from this crate', 'red full', 'remove_crate', false);
+    if(source === 'crate') html += choiceButton('Remove from this crate', 'red full', 'remove_crate', !activeCrateId || !item.id);
     if(els.choiceActions) els.choiceActions.innerHTML = html;
     if(els.choiceWarning){
       const notes=[];
@@ -300,14 +297,14 @@ document.head.appendChild(overviewStyle);
         const crateId = select ? select.value : activeCrateId;
         Object.assign(params, {action:'add_crate_track', crate_id:crateId, track_json:trackJson});
       }
-      if(action === 'remove_crate') Object.assign(params, {action:'remove_crate_track', crate_id:activeCrateId || item.crate_id, track_id:item.crate_track_id || item.id});
+      if(action === 'remove_crate') Object.assign(params, {action:'remove_crate_track', crate_id:activeCrateId, track_id:item.crate_track_id || item.id});
       if(action === 'load_a' || action === 'load_b') Object.assign(params, {action:'load_track_direct', track_json:trackJson, deck:action.slice(-1)});
       if(action === 'play_a' || action === 'play_b') Object.assign(params, {action:'play_track_direct', track_json:trackJson, deck:action.slice(-1)});
     }
     closeChoice();
     doAction(params);
-    if(action === 'remove_crate' && activeCrateId) setTimeout(()=>loadDjCrateTracks(activeCrateId, activeCrateName), 350);
     if(src === 'track' && activeSource === 'search') clearSearchUi();
+    if(src === 'crate' && action === 'remove_crate') setTimeout(()=>loadDjCrateTracks(activeCrateId, activeCrateName), 350);
   }
 
   function deckNode(deck){
@@ -570,7 +567,7 @@ renderAccountStatus();
       </div>`;
     }).join('');
   }
-  function render(){ if(state?.crates) availableCrates = sortCratesAlpha(state.crates); renderDevices(); renderPlaylist(); renderRequests(); renderDecks(); if(activeSource === 'crates') renderDjCrates(availableCrates.length ? availableCrates : (state?.crates || [])); if(activeSource === 'history') renderHistory(); }
+  function render(){ if(state?.crates) availableCrates = sortCratesByName(state.crates); renderDevices(); renderPlaylist(); renderRequests(); renderDecks(); if(activeSource === 'crates') renderDjCrates(availableCrates.length ? availableCrates : sortCratesByName(state?.crates || [])); if(activeSource === 'history') renderHistory(); }
   function acceptState(nextState){
     if(!nextState) return;
     state = nextState;
@@ -597,20 +594,30 @@ renderAccountStatus();
     finally{ busy = false; }
   }
   function searchBadgeHtml(track){
-    const badges = Array.isArray(track?.badges) ? track.badges : [];
+    const badges = (Array.isArray(track?.badges) ? track.badges : []).filter(b => {
+      const type = String(b?.type || '').toLowerCase();
+      return type !== 'spotify' && type !== 'local';
+    });
     if(!badges.length) return '';
-    return `<div class="search-result-badges">${badges.slice(0,4).map(b=>`<span class="search-result-badge ${esc(b.type || '')}">${esc(b.label || '')}</span>`).join('')}</div>`;
+    return `<div class="search-result-badges">${badges.slice(0,5).map(b=>`<span class="search-result-badge ${esc(b.type || '')}">${esc(b.label || '')}</span>`).join('')}</div>`;
+  }
+  function trackSourceBadge(track){
+    const src = String(track?.source || '').toLowerCase();
+    if(src === 'local') return '<span class="source-pill local">Local</span>';
+    return '<span class="source-pill spotify">Spotify</span>';
+  }
+  function sortCratesByName(crates){
+    return (crates || []).slice().sort((a,b)=>String(a?.name || '').localeCompare(String(b?.name || ''), undefined, {sensitivity:'base', numeric:true}));
   }
   function renderSearchResults(tracks){
     if(!els.searchResults) return;
     if(!tracks.length){ els.searchResults.innerHTML = '<div class="mini muted">No matches yet.</div>'; return; }
     els.searchResults.innerHTML = tracks.map(t=>`
-      <div class="result-row search-result-row">
+      <button type="button" class="result-row search-result-row tappable-row" data-select-track='${esc(JSON.stringify(t))}' aria-label="Choose ${esc(t.title || 'track')}">
         <img src="${esc(image(t.image))}" alt="">
-        <div><div class="result-title">${esc(t.title)}</div><div class="mini muted">${esc(t.artist)}${t.album ? ' • ' + esc(t.album) : ''}</div></div>
-        ${searchBadgeHtml(t)}
-        <button class="mixer-btn green" data-select-track='${esc(JSON.stringify(t))}'>Choose</button>
-      </div>`).join('');
+        <span class="result-main"><span class="result-title">${esc(t.title)}</span><span class="mini muted">${esc(t.artist)}${t.album ? ' • ' + esc(t.album) : ''}</span></span>
+        <span class="result-meta">${searchBadgeHtml(t)}${trackSourceBadge(t)}</span>
+      </button>`).join('');
   }
   function setSourceTab(name){
     activeSource = name || 'search';
@@ -638,44 +645,35 @@ renderAccountStatus();
   }
   function renderDjCrates(crates){
     if(!els.djCrates) return;
-    const sorted = sortCratesAlpha(crates);
-    if(!sorted.length){ els.djCrates.innerHTML = '<div class="empty">No DJ crates yet. Create one above, then save tracks from search or history.</div>'; return; }
-    els.djCrates.innerHTML = sorted.map(c => {
-      const selected = String(c.id) === String(activeCrateId);
-      return `
-      <div class="spotify-playlist-row dj-crate-row${selected ? ' active-crate' : ''}" role="button" tabindex="0" data-open-dj-crate="${esc(c.id)}" data-crate-name="${esc(c.name)}" aria-pressed="${selected ? 'true' : 'false'}">
-        <div class="crate-icon">♫</div>
-        <div>
-          <strong>${esc(c.name)}</strong><br>
-          <span class="mini muted">${Number(c.track_count || 0)} saved tracks${selected ? ' • selected' : ''}</span>
-        </div>
-      </div>`;
-    }).join('');
+    crates = sortCratesByName(crates);
+    if(!crates.length){ els.djCrates.innerHTML = '<div class="empty">No DJ crates yet. Create one above, then save tracks from search or history.</div>'; return; }
+    els.djCrates.innerHTML = crates.map(c => `
+      <button type="button" class="spotify-playlist-row crate-row tappable-row${String(c.id) === String(activeCrateId) ? ' active-crate' : ''}" data-open-dj-crate="${esc(c.id)}" data-crate-name="${esc(c.name)}" aria-label="Open DJ crate ${esc(c.name)}">
+        <span class="crate-icon">♫</span>
+        <span class="crate-row-copy">
+          <strong>${esc(c.name)}</strong>
+          <span class="mini muted">${Number(c.track_count || 0)} saved tracks${String(c.id) === String(activeCrateId) ? ' • selected' : ''}</span>
+        </span>
+      </button>`).join('');
   }
   function renderDjCrateTracks(tracks){
     if(!els.djCrateTracks) return;
     activeCrateTracks = tracks || [];
-    const heading = activeCrateName ? `<div class="crate-track-heading"><div><div class="tiny-label">${esc(activeCrateName)} tracks</div><div class="mini muted">Tap a track row to choose load/play options.</div></div><span class="crate-track-count">${Number((tracks || []).length)} shown</span></div>` : '';
-    if(!tracks.length){ els.djCrateTracks.innerHTML = heading + '<div class="empty">This crate is empty. Search Spotify, choose a track, then press Save to DJ crate.</div>'; return; }
+    const heading = activeCrateName ? `<div class="crate-track-heading"><div class="tiny-label">${esc(activeCrateName)} tracks</div><div class="mini muted">Tap a track to choose an action. New search/history selections will be saved into this crate.</div></div>` : '';
+    if(!tracks.length){ els.djCrateTracks.innerHTML = heading + '<div class="empty">This crate is empty. Search Spotify, tap a track, then press Save to DJ crate.</div>'; return; }
     els.djCrateTracks.innerHTML = heading + tracks.map(t => `
-      <div class="result-row crate-track-row" role="button" tabindex="0" data-select-crate-track='${esc(JSON.stringify(t))}'>
+      <button type="button" class="result-row crate-track-row tappable-row" data-select-crate-track='${esc(JSON.stringify(t))}' aria-label="Choose ${esc(t.title || 'track')}">
         <img src="${esc(image(t.image))}" alt="">
-        <div><div class="result-title">${esc(t.title)}</div><div class="mini muted">${esc(t.artist)}${t.album ? ' • ' + esc(t.album) : ''}</div></div>
-      </div>`).join('');
+        <span class="result-main"><span class="result-title">${esc(t.title)}</span><span class="mini muted">${esc(t.artist)}${t.album ? ' • ' + esc(t.album) : ''}</span></span>
+        <span class="result-meta">${searchBadgeHtml(t)}${trackSourceBadge(t)}</span>
+      </button>`).join('');
   }
   async function loadDjCrates(force=false){
     if(!force && cratesLoaded) return;
     if(els.djCrateStatus) els.djCrateStatus.innerHTML = '<span class="spinner"></span> Loading DJ crates…';
     try{
       const data = await apiGet({action:'crates'});
-      if(data.ok){
-        cratesLoaded = true;
-        availableCrates = sortCratesAlpha(data.crates || []);
-        if(!activeCrateId && availableCrates.length){ activeCrateId = String(availableCrates[0].id || ''); activeCrateName = String(availableCrates[0].name || 'DJ crate'); }
-        if(els.djCrateStatus) els.djCrateStatus.textContent = '';
-        renderDjCrates(availableCrates);
-        if(activeCrateId) loadDjCrateTracks(activeCrateId, activeCrateName);
-      }
+      if(data.ok){ cratesLoaded = true; availableCrates = sortCratesByName(data.crates || []); if(!activeCrateId && availableCrates.length){ activeCrateId = String(availableCrates[0].id || ''); activeCrateName = String(availableCrates[0].name || 'DJ crate'); setTimeout(()=>loadDjCrateTracks(activeCrateId, activeCrateName), 0); } if(els.djCrateStatus) els.djCrateStatus.textContent = ''; renderDjCrates(availableCrates); }
       else { if(els.djCrateStatus) els.djCrateStatus.textContent = data.error || 'Could not load DJ crates.'; }
     } catch(e){ if(els.djCrateStatus) els.djCrateStatus.textContent = 'Could not load DJ crates.'; }
   }
@@ -684,7 +682,7 @@ renderAccountStatus();
     if(els.djCrateStatus) els.djCrateStatus.innerHTML = '<span class="spinner"></span> Loading crate tracks…';
     try{
       const data = await apiGet({action:'crate_tracks', crate_id:id});
-      if(data.ok){ if(els.djCrateStatus) els.djCrateStatus.textContent = ''; renderDjCrates(availableCrates.length ? availableCrates : sortCratesAlpha(state?.crates || [])); renderDjCrateTracks(data.tracks || []); }
+      if(data.ok){ if(els.djCrateStatus) els.djCrateStatus.textContent = ''; renderDjCrates(availableCrates.length ? availableCrates : sortCratesByName(state?.crates || [])); renderDjCrateTracks(data.tracks || []); }
       else { if(els.djCrateStatus) els.djCrateStatus.textContent = data.error || 'Could not load crate tracks.'; }
     } catch(e){ if(els.djCrateStatus) els.djCrateStatus.textContent = 'Could not load crate tracks.'; }
   }
@@ -793,13 +791,6 @@ renderAccountStatus();
   }
   const clearSearch = $('#clearSearch'); if(clearSearch) clearSearch.addEventListener('click', ()=>{ els.search.value=''; els.search.focus(); els.searchResults.innerHTML=''; els.searchStatus.textContent=''; });
   const refreshNow = $('#refreshNow'); if(refreshNow) refreshNow.addEventListener('click', ()=>refresh(false));
-  app.addEventListener('keydown', (e)=>{
-    if(e.key !== 'Enter' && e.key !== ' ') return;
-    const crateRow = e.target.closest('[data-open-dj-crate]');
-    if(crateRow){ e.preventDefault(); loadDjCrateTracks(crateRow.dataset.openDjCrate, crateRow.dataset.crateName || 'DJ crate'); return; }
-    const crateTrack = e.target.closest('[data-select-crate-track]');
-    if(crateTrack){ e.preventDefault(); try{ openChoice(JSON.parse(crateTrack.dataset.selectCrateTrack), 'crate'); }catch(err){ toast('Could not read crate track selection', false); } }
-  });
   if(els.refreshCrates) els.refreshCrates.addEventListener('click', ()=>{ cratesLoaded = false; loadDjCrates(true); });
   if(els.createCrate) els.createCrate.addEventListener('click', async ()=>{ const name = els.newCrateName ? els.newCrateName.value : ''; await doAction({action:'create_crate', name}); if(els.newCrateName) els.newCrateName.value=''; cratesLoaded=false; loadDjCrates(true); });
   function tickDeckTimers(){
