@@ -172,6 +172,19 @@ function dttd_spotify_redirect_uri() {
     return 'https://dj.dancethruthedecades.co.uk/spotify/callback.php';
 }
 
+function dttd_spotify_authorize_scopes() {
+    return implode(' ', [
+        'user-read-playback-state',
+        'user-read-currently-playing',
+        'user-modify-playback-state',
+        // Required for the playlist diagnostic/import workflow.
+        // Existing refresh tokens do not automatically gain new scopes, so
+        // Spotify accounts must be reconnected after this change is uploaded.
+        'playlist-read-private',
+        'playlist-read-collaborative',
+    ]);
+}
+
 function dttd_spotify_authorize_url() {
     if (session_status() !== PHP_SESSION_ACTIVE) {
         session_start();
@@ -183,7 +196,7 @@ function dttd_spotify_authorize_url() {
         'client_id' => $credentials['client_id'],
         'response_type' => 'code',
         'redirect_uri' => dttd_spotify_redirect_uri(),
-        'scope' => 'user-read-playback-state user-read-currently-playing user-modify-playback-state',
+        'scope' => dttd_spotify_authorize_scopes(),
         'state' => $state,
         'show_dialog' => 'true',
     ];
