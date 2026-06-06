@@ -526,11 +526,9 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
 
       <?php if ($is_edit): ?>
         <?php
-          $public_request_url = dttd_public_request_base_url();
-
           $has_event_code = !empty($event['event_code']);
           $event_request_url = $has_event_code
-              ? $public_request_url . '/request.php?code=' . rawurlencode($event['event_code'])
+              ? dttd_public_event_join_url($event['event_code'], 'event')
               : '';
         ?>
         
@@ -755,7 +753,7 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
             <div class="settings-card-icon">▦</div>
             <div>
               <h3>QR Code & Event Code</h3>
-              <p>Use this for posters, flyers, table cards and screen displays. The event code is generated automatically.</p>
+              <p>Use this for posters, flyers, table cards and screen displays. Scanning the QR joins the event and opens the event page.</p>
             </div>
           </div>
 
@@ -797,7 +795,7 @@ admin_header(($is_edit ? 'Edit Event' : 'Add Event') . ' - DJ Portal');
           <label>
             <span>Event code</span>
             <input name="event_code" value="<?= h($event['event_code'] ?? '') ?>" placeholder="Auto-generated if left blank">
-            <small>Used for the public request link and QR code.</small>
+            <small>Used for the public event join link and QR code.</small>
           </label>
 
           

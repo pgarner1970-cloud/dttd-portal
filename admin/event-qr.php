@@ -45,9 +45,7 @@ if (empty($event['event_code'])) {
     exit;
 }
 
-$public_request_url = dttd_public_request_base_url();
-
-$event_request_url = $public_request_url . '/request.php?code=' . rawurlencode($event['event_code']);
+$event_request_url = dttd_public_event_join_url($event['event_code'], 'event');
 
 admin_header('Event QR - DJ Portal');
 ?>

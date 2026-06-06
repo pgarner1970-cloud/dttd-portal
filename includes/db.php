@@ -385,6 +385,8 @@ function dttd_public_request_base_url($fallback = '') {
     $portalHosts = [
         'djdancethruthedecades.co.uk',
         'www.djdancethruthedecades.co.uk',
+        'dj.dancethruthedecades.co.uk',
+        'www.dj.dancethruthedecades.co.uk',
     ];
 
     if (in_array($host, $portalHosts, true)) {
@@ -392,6 +394,22 @@ function dttd_public_request_base_url($fallback = '') {
     }
 
     return rtrim($base, '/');
+}
+
+function dttd_public_event_join_url($event_code, $next = 'event') {
+    $code = trim((string)$event_code);
+    if ($code === '') {
+        return '';
+    }
+
+    if (function_exists('dttd_event_next_destination')) {
+        $next = dttd_event_next_destination($next);
+    } else {
+        $allowed = ['event', 'request', 'upload', 'selfie'];
+        $next = in_array((string)$next, $allowed, true) ? (string)$next : 'event';
+    }
+
+    return dttd_public_request_base_url() . '/event.php?code=' . rawurlencode($code) . '&next=' . rawurlencode($next);
 }
 
 function dttd_redirect_public_feature_to_primary_domain() {
