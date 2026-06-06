@@ -569,7 +569,33 @@ function mx_clean_track($track) {
         'crate_id' => !empty($track['crate_id']) ? (int)$track['crate_id'] : null,
         'crate_track_id' => !empty($track['crate_track_id']) ? (int)$track['crate_track_id'] : null,
         'source_ref_id' => !empty($track['source_ref_id']) ? (int)$track['source_ref_id'] : null,
+        'release_year' => isset($track['release_year']) && $track['release_year'] !== null ? (int)$track['release_year'] : null,
+        'decade' => (string)($track['decade'] ?? ''),
+        'likely_original' => !empty($track['likely_original']),
+        'version_tags' => is_array($track['version_tags'] ?? null) ? array_values($track['version_tags']) : [],
+        'badges' => mx_normalise_track_badges($track['badges'] ?? []),
     ];
+}
+function mx_normalise_track_badges($badges) {
+    if (!is_array($badges)) return [];
+    $out = [];
+    $seen = [];
+    foreach ($badges as $badge) {
+        if (!is_array($badge)) continue;
+        $label = trim((string)($badge['label'] ?? ''));
+        if ($label === '') continue;
+        $type = strtolower(trim((string)($badge['type'] ?? '')));
+        if ($type === '') $type = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $label));
+        $type = preg_replace('/[^a-z0-9_-]+/', '-', $type);
+        $type = trim($type, '-_');
+        if ($type === '') $type = 'tag';
+        $key = strtolower($type . '|' . $label);
+        if (isset($seen[$key])) continue;
+        $seen[$key] = true;
+        $out[] = ['type' => $type, 'label' => $label];
+        if (count($out) >= 8) break;
+    }
+    return $out;
 }
 function mx_is_local_track($track) {
     if (!is_array($track)) return false;
@@ -1334,6 +1360,13 @@ function mx_arm_started_track_state($deck, &$track, $position_ms = null, $resume
 }
 function mx_track_output($t) {
     $raw = is_array($t) ? $t : [];
+    // Preserve the same search classification metadata used by the public request
+    // search. Mixer search rows can then display decade/version pills such as
+    // 80s, Original, Remix, Live, etc. without changing the underlying track
+    // object used for deck loading.
+    if (function_exists('dttd_spotify_enrich_track') && empty($raw['badges']) && !empty($raw['release_date'])) {
+        try { $raw = dttd_spotify_enrich_track($raw); } catch (Throwable $ignoredBadgeEnrich) {}
+    }
     $t = mx_clean_track($raw);
     if ($t['image'] === '') $t['image'] = 'https://dancethruthedecades.co.uk/assets/glitter-ball-clean.png';
     if (isset($raw['played_at'])) $t['played_at'] = (string)$raw['played_at'];
