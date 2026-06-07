@@ -179,7 +179,7 @@
     const websiteLabel = text(info.website_label || 'dancethruthedecades.co.uk', 'dancethruthedecades.co.uk');
 
     return '<article class="display-slide" data-slide="goodnight">'
-      + '<div class="display-card goodnight-card">'
+      + '<div class="display-card goodnight-card goodnight-card-horizontal">'
       + '<div class="goodnight-copy">'
       + '<p class="display-kicker">Thank You</p>'
       + '<h1>Good night</h1>'
@@ -188,8 +188,8 @@
       + '<strong>Hope to see you again soon.</strong>'
       + '</div>'
       + '<div class="goodnight-qr-grid">'
-      + '<div class="goodnight-qr-card">' + (facebookQr ? '<img src="' + esc(facebookQr) + '" alt="Facebook QR code">' : '') + '<b>Facebook</b><span>Follow us</span></div>'
-      + '<div class="goodnight-qr-card">' + (websiteQr ? '<img src="' + esc(websiteQr) + '" alt="Website QR code">' : '') + '<b>Website</b><span>' + esc(websiteLabel) + '</span></div>'
+      + '<div class="goodnight-qr-card">' + (facebookQr ? '<img src="' + esc(facebookQr) + '" alt="Facebook QR code">' : '') + '<div><b>Facebook</b><span>Follow us</span></div></div>'
+      + '<div class="goodnight-qr-card">' + (websiteQr ? '<img src="' + esc(websiteQr) + '" alt="Website QR code">' : '') + '<div><b>Website</b><span>' + esc(websiteLabel) + '</span></div></div>'
       + '</div>'
       + '</div></article>';
   }

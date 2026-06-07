@@ -923,8 +923,19 @@ function dttd_display_decks_are_clear() {
 
 function dttd_display_goodnight_active($event) {
     if (!$event || empty($event['id'])) return false;
+
     $endTs = dttd_display_event_end_timestamp($event);
-    if (!$endTs || time() < $endTs) return false;
+    if (!$endTs) return false;
+
+    $now = time();
+
+    // Show the Good night page only briefly after the event has finished.
+    // After this grace period, the display should drop back to normal standby/no-current-event mode.
+    $goodnightWindowSeconds = 10 * 60;
+    if ($now < $endTs || $now > ($endTs + $goodnightWindowSeconds)) {
+        return false;
+    }
+
     return dttd_display_decks_are_clear();
 }
 
