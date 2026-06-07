@@ -3220,3 +3220,42 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
 .display-lite .event-timer-card-split .event-timer-panel strong{
   text-shadow:none;
 }
+
+
+/* Slide countdown beside the footer pink dot. */
+.display-progress-wrap{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:clamp(8px,.75vw,14px);
+  min-width:clamp(80px,6vw,120px);
+}
+
+.display-slide-countdown{
+  --slide-countdown-progress:1;
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:clamp(38px,3.2vw,58px);
+  height:clamp(24px,2.2vw,34px);
+  padding:0 clamp(8px,.65vw,13px);
+  border-radius:999px;
+  border:1px solid rgba(255,65,190,.36);
+  background:
+    linear-gradient(90deg, rgba(255,65,190,.22) calc(var(--slide-countdown-progress) * 100%), rgba(255,255,255,.055) 0),
+    rgba(255,255,255,.055);
+  color:#ffd8f3;
+  font-size:clamp(10px,.78vw,15px);
+  font-weight:1000;
+  letter-spacing:.08em;
+  line-height:1;
+  text-transform:uppercase;
+  font-variant-numeric:tabular-nums;
+  box-shadow:0 0 18px rgba(255,65,190,.18), inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+.display-lite .display-slide-countdown{
+  background:rgba(255,255,255,.055);
+  box-shadow:none;
+}

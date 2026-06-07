@@ -775,6 +775,25 @@
     active.classList.add('active');
   }
 
+
+  function slideCountdownElement() {
+    return document.querySelector('[data-slide-countdown]');
+  }
+
+  function updateSlideCountdownDisplay(secondsRemaining, totalSeconds) {
+    const el = slideCountdownElement();
+    if (!el) return;
+
+    const safeRemaining = Math.max(0, Math.ceil(Number(secondsRemaining) || 0));
+    const safeTotal = Math.max(1, Math.ceil(Number(totalSeconds) || 1));
+
+    el.textContent = String(safeRemaining) + 's';
+    el.setAttribute('aria-label', String(safeRemaining) + ' seconds until next slide');
+
+    const progress = Math.max(0, Math.min(1, safeRemaining / safeTotal));
+    el.style.setProperty('--slide-countdown-progress', String(progress));
+  }
+
   function slideDurationMs(slideName) {
     const durations = state && state.slide_durations ? state.slide_durations : {};
     const seconds = Number(durations[slideName] || 0);
@@ -796,7 +815,28 @@
 
       const current = slides[slideIndex] || slides[0];
       const currentName = current ? current.getAttribute('data-slide') : '';
+      const durationMs = slideDurationMs(currentName);
+      const totalSeconds = Math.max(1, Math.round(durationMs / 1000));
+      const startedAt = Date.now();
+
+      updateSlideCountdownDisplay(totalSeconds, totalSeconds);
+
+      if (window.dttdSlideCountdownTimer) {
+        clearInterval(window.dttdSlideCountdownTimer);
+      }
+
+      window.dttdSlideCountdownTimer = setInterval(function(){
+        const elapsed = Date.now() - startedAt;
+        const remainingMs = Math.max(0, durationMs - elapsed);
+        updateSlideCountdownDisplay(remainingMs / 1000, totalSeconds);
+      }, 250);
+
       slideTimer = setTimeout(function(){
+        if (window.dttdSlideCountdownTimer) {
+          clearInterval(window.dttdSlideCountdownTimer);
+          window.dttdSlideCountdownTimer = null;
+        }
+
         const latestSlides = stage.querySelectorAll('.display-slide');
         if (!latestSlides.length) {
           slideTimer = null;
@@ -805,7 +845,7 @@
         slideIndex = (slideIndex + 1) % latestSlides.length;
         showSlide(slideIndex);
         scheduleNext();
-      }, slideDurationMs(currentName));
+      }, durationMs);
     }
 
     scheduleNext();
