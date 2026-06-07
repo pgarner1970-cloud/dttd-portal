@@ -148,12 +148,24 @@
 
   function renderUpcoming() {
     const events = state.upcoming_events || [];
-    const rows = events.slice(0, 5).map(ev => '<li><time>' + esc(formatDate(ev.event_date)) + (ev.start_time ? ' • ' + esc(ev.start_time) : '') + '</time><strong>' + esc(text(ev.event_name, 'Dance Through The Decades')) + '</strong>' + (ev.venue_name ? '<span>' + esc(ev.venue_name) + '</span>' : '') + '</li>').join('');
+    const cards = events.slice(0, 8).map((ev, idx) => {
+      const label = idx === 0 ? 'Next event' : 'Coming soon';
+      const details = [
+        formatDate(ev.event_date),
+        ev.start_time ? esc(ev.start_time) : '',
+        ev.venue_name ? esc(ev.venue_name) : ''
+      ].filter(Boolean).join(' • ');
+      return '<div class="display-coming-up-card">'
+        + '<strong>' + esc(label) + '</strong>'
+        + '<span>' + esc(text(ev.event_name, 'Dance Through The Decades')) + '</span>'
+        + (details ? '<em>' + details + '</em>' : '')
+        + '</div>';
+    });
+    const rail = cards.length ? cards.concat(cards).join('') : '';
     return '<article class="display-slide" data-slide="upcoming">'
-      + '<div class="display-card list-card">'
-      + '<p class="display-kicker">Coming Up</p>'
-      + '<h1>Upcoming events</h1>'
-      + (rows ? '<ul class="upcoming-list">' + rows + '</ul>' : '<div class="display-empty">Upcoming public events will appear here.</div>')
+      + '<div class="display-card display-coming-up-card-wrap">'
+      + '<div class="display-coming-up-head"><div><p class="display-kicker">Coming Up</p><h1>What’s happening</h1></div><span>Public events</span></div>'
+      + (rail ? '<div class="display-coming-up-window"><div class="display-coming-up-track">' + rail + '</div></div>' : '<div class="display-empty">Upcoming public events will appear here.</div>')
       + '</div></article>';
   }
 
