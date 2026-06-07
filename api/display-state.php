@@ -48,6 +48,13 @@ function dttd_display_url($path) {
     return '/' . ltrim($path, '/');
 }
 
+function dttd_display_external_url($url) {
+    $url = trim((string)$url);
+    if ($url === '') return '';
+    if (!preg_match('~^https?://~i', $url)) $url = 'https://' . ltrim($url, '/');
+    return $url;
+}
+
 function dttd_display_event_by_code($code) {
     $code = trim((string)$code);
     if ($code === '' || !dttd_display_table_exists('events')) return null;
@@ -292,6 +299,40 @@ function dttd_display_upcoming_events($limit = 5) {
     }
 }
 
+function dttd_display_partners($limit = 12) {
+    if (!dttd_display_table_exists('partners')) return [];
+    $limit = max(1, min(30, (int)$limit));
+
+    try {
+        $stmt = db()->prepare("
+            SELECT id, partner_name, category, website_url, image_url, logo_background, notes
+            FROM partners
+            WHERE is_active = 1
+            ORDER BY sort_order ASC, partner_name ASC, id ASC
+            LIMIT " . $limit . "
+        ");
+        $stmt->execute();
+
+        $rows = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $website = dttd_display_external_url($row['website_url'] ?? '');
+            $rows[] = [
+                'id' => (int)($row['id'] ?? 0),
+                'name' => (string)($row['partner_name'] ?? 'Partner'),
+                'category' => (string)($row['category'] ?? ''),
+                'summary' => trim(strip_tags((string)($row['notes'] ?? ''))),
+                'image_url' => dttd_display_url($row['image_url'] ?? ''),
+                'logo_background' => (string)($row['logo_background'] ?? 'dark'),
+                'website_url' => $website,
+                'qr_image_url' => $website !== '' ? 'https://api.qrserver.com/v1/create-qr-code/?size=520x520&margin=14&data=' . rawurlencode($website) : '',
+            ];
+        }
+        return $rows;
+    } catch (Throwable $e) {
+        return [];
+    }
+}
+
 function dttd_display_sponsors($eventId, $limit = 6) {
     if (!dttd_display_table_exists('event_sponsors') || !dttd_display_table_exists('sponsors')) return [];
     $eventId = (int)$eventId;
@@ -316,13 +357,18 @@ function dttd_display_sponsors($eventId, $limit = 6) {
 }
 
 $event = dttd_display_event();
+$partners = dttd_display_partners(12);
 if (!$event || empty($event['id'])) {
+    $standbySlides = ['welcome', 'upcoming'];
+    if ($partners) $standbySlides[] = 'partners';
+
     dttd_display_json([
         'ok' => true,
         'active_event' => false,
         'event' => null,
-        'slides' => ['welcome', 'upcoming'],
+        'slides' => $standbySlides,
         'upcoming_events' => dttd_display_upcoming_events(6),
+        'partners' => $partners,
         'generated_at' => date('c'),
     ]);
 }
@@ -345,6 +391,7 @@ if ($recent) $slides[] = 'recent';
 if ($requests) $slides[] = 'requests';
 if ($photos) $slides[] = 'photos';
 if ($upcoming) $slides[] = 'upcoming';
+if ($partners) $slides[] = 'partners';
 if ($sponsors) $slides[] = 'sponsors';
 
 // Repeat the QR slide so guests regularly see the event code during the loop.
@@ -363,6 +410,7 @@ dttd_display_json([
     'recent_tracks' => $recent,
     'photos' => $photos,
     'upcoming_events' => $upcoming,
+    'partners' => $partners,
     'sponsors' => $sponsors,
     'generated_at' => date('c'),
 ]);

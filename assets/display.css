@@ -1191,3 +1191,194 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
     width:min(100%,34vh);
   }
 }
+
+
+/* Partners display slide: two randomly selected active partners with scan-friendly QR codes. */
+.display-partners-card{
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-start;
+  gap:clamp(18px,2.4vh,40px);
+  padding:clamp(24px,2.6vw,48px) clamp(34px,3.4vw,66px);
+}
+
+.display-partners-head{
+  display:grid;
+  grid-template-columns:auto 1fr;
+  align-items:end;
+  gap:clamp(18px,2vw,42px);
+  position:relative;
+  z-index:1;
+}
+
+.display-partners-head .display-kicker{
+  margin:0;
+  align-self:center;
+  white-space:nowrap;
+}
+
+.display-partners-head h1{
+  justify-self:end;
+  text-align:right;
+  white-space:nowrap;
+  font-size:clamp(54px,5.8vw,112px);
+  line-height:.92;
+  margin:0;
+}
+
+.display-partners-grid{
+  flex:1;
+  min-height:0;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:clamp(22px,2.4vw,48px);
+  position:relative;
+  z-index:1;
+}
+
+.display-partner-tile{
+  min-width:0;
+  min-height:0;
+  display:grid;
+  grid-template-rows:minmax(0,.82fr) auto;
+  grid-template-columns:minmax(0,1fr) minmax(160px,.38fr);
+  gap:clamp(14px,1.4vw,28px);
+  padding:clamp(18px,1.8vw,34px);
+  border-radius:clamp(24px,2vw,38px);
+  border:1px solid rgba(255,125,243,.32);
+  background:
+    radial-gradient(circle at 10% 15%, rgba(255,216,106,.12), transparent 34%),
+    linear-gradient(135deg, rgba(83,13,99,.74), rgba(23,0,38,.88));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 18px 52px rgba(0,0,0,.30);
+  overflow:hidden;
+}
+
+.display-partner-logo{
+  grid-column:1 / 2;
+  min-height:0;
+  display:grid;
+  place-items:center;
+  padding:clamp(16px,1.8vw,34px);
+  border-radius:clamp(20px,1.7vw,32px);
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(0,0,0,.22);
+}
+
+.display-partner-logo img{
+  width:100%;
+  max-width:82%;
+  max-height:18vh;
+  object-fit:contain;
+  filter:drop-shadow(0 8px 18px rgba(0,0,0,.35));
+}
+
+.display-partner-logo span{
+  color:var(--display-gold);
+  font-size:clamp(54px,6vw,120px);
+}
+
+.display-partner-logo.partner-logo-bg-light{
+  background:rgba(255,255,255,.94);
+}
+
+.display-partner-logo.partner-logo-bg-neon_pink{
+  background:radial-gradient(circle at 50% 40%,rgba(255,47,179,.32),rgba(34,0,54,.86));
+}
+
+.display-partner-logo.partner-logo-bg-starburst{
+  background:
+    radial-gradient(circle at center, rgba(255,216,106,.34), transparent 32%),
+    conic-gradient(from 0deg, rgba(255,47,179,.20), rgba(68,230,255,.18), rgba(255,216,106,.18), rgba(255,47,179,.20));
+}
+
+.display-partner-logo.partner-logo-bg-radial_neon{
+  background:radial-gradient(circle at 50% 50%,rgba(68,230,255,.24),rgba(255,47,179,.14),rgba(19,0,31,.86));
+}
+
+.display-partner-copy{
+  grid-column:1 / 2;
+  min-width:0;
+}
+
+.display-partner-copy p{
+  margin:0 0 .8vh;
+  color:var(--display-gold);
+  text-transform:uppercase;
+  letter-spacing:.16em;
+  font-weight:1000;
+  font-size:clamp(14px,1vw,22px);
+}
+
+.display-partner-copy h2{
+  margin:0;
+  color:#fff;
+  font-weight:1000;
+  line-height:.98;
+  letter-spacing:-.04em;
+  font-size:clamp(30px,3vw,58px);
+}
+
+.display-partner-copy em{
+  display:-webkit-box;
+  -webkit-line-clamp:3;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+  margin-top:clamp(8px,.8vh,14px);
+  color:var(--display-muted);
+  font-style:normal;
+  font-weight:800;
+  line-height:1.16;
+  font-size:clamp(16px,1.25vw,26px);
+}
+
+.display-partner-qr{
+  grid-column:2 / 3;
+  grid-row:1 / 3;
+  align-self:center;
+  justify-self:center;
+  width:min(100%,24vh);
+  min-width:150px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:clamp(8px,.8vh,14px);
+  padding:clamp(12px,1vw,20px);
+  border-radius:clamp(18px,1.5vw,28px);
+  background:#fff;
+  color:#13001f;
+  box-shadow:0 18px 50px rgba(0,0,0,.34);
+}
+
+.display-partner-qr img{
+  width:100%;
+  aspect-ratio:1/1;
+  object-fit:contain;
+  border-radius:10px;
+}
+
+.display-partner-qr strong{
+  color:#13001f;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  font-weight:1000;
+  font-size:clamp(13px,.9vw,18px);
+  line-height:1;
+  text-align:center;
+}
+
+@media (max-aspect-ratio: 4/3){
+  .display-partners-head{
+    grid-template-columns:1fr;
+    align-items:start;
+  }
+
+  .display-partners-head h1{
+    justify-self:start;
+    text-align:left;
+    white-space:normal;
+  }
+
+  .display-partners-grid{
+    grid-template-columns:1fr;
+  }
+}

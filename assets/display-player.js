@@ -322,6 +322,42 @@
       + '</div></article>';
   }
 
+  function shuffledPartners(partners, limit) {
+    const pool = Array.isArray(partners) ? partners.slice() : [];
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = pool[i];
+      pool[i] = pool[j];
+      pool[j] = tmp;
+    }
+    return pool.slice(0, limit);
+  }
+
+  function renderPartners() {
+    const selected = shuffledPartners(state.partners || [], 2);
+    const cards = selected.map(partner => {
+      const logoClass = ' partner-logo-bg-' + esc(text(partner.logo_background, 'dark'));
+      const summary = text(partner.summary, '');
+      return '<article class="display-partner-tile">'
+        + '<div class="display-partner-logo' + logoClass + '">'
+        + (partner.image_url ? '<img src="' + esc(partner.image_url) + '" alt="' + esc(text(partner.name, 'Partner')) + ' logo">' : '<span>★</span>')
+        + '</div>'
+        + '<div class="display-partner-copy">'
+        + (partner.category ? '<p>' + esc(partner.category) + '</p>' : '')
+        + '<h2>' + esc(text(partner.name, 'Partner')) + '</h2>'
+        + (summary ? '<em>' + esc(summary) + '</em>' : '')
+        + '</div>'
+        + (partner.qr_image_url ? '<div class="display-partner-qr"><img src="' + esc(partner.qr_image_url) + '" alt="' + esc(text(partner.name, 'Partner')) + ' QR code"><strong>Scan to visit</strong></div>' : '')
+        + '</article>';
+    }).join('');
+
+    return '<article class="display-slide" data-slide="partners">'
+      + '<div class="display-card display-partners-card">'
+      + '<div class="display-partners-head"><p class="display-kicker">Our Partners</p><h1>Event friends</h1></div>'
+      + (cards ? '<div class="display-partners-grid">' + cards + '</div>' : '<div class="display-empty">Partner details will appear here.</div>')
+      + '</div></article>';
+  }
+
   function renderSponsors() {
     const sponsors = state.sponsors || [];
     const rows = sponsors.slice(0, 6).map(sp => '<div class="sponsor-tile">' + (sp.image_url ? '<img src="' + esc(sp.image_url) + '" alt="">' : '') + '<strong>' + esc(text(sp.name, 'Event sponsor')) + '</strong>' + (sp.offer ? '<span>' + esc(sp.offer) + '</span>' : '') + '</div>').join('');
@@ -354,6 +390,7 @@
       case 'requests': return renderRequests();
       case 'photos': return renderPhotos();
       case 'upcoming': return renderUpcoming();
+      case 'partners': return renderPartners();
       case 'sponsors': return renderSponsors();
       default: return renderStandby();
     }
@@ -372,6 +409,7 @@
       keyRows(data.recent_tracks),
       keyRows(data.photos),
       keyRows(data.upcoming_events),
+      keyRows(data.partners),
       keyRows(data.sponsors),
       data.venue && data.venue.name ? data.venue.name : ''
     ].join('::');
@@ -440,7 +478,18 @@
     const slides = Array.from(stage.querySelectorAll('.display-slide'));
     if (!slides.length) return;
     slides.forEach(slide => slide.classList.remove('active'));
-    slides[index % slides.length].classList.add('active');
+    const active = slides[index % slides.length];
+    if (active && active.getAttribute('data-slide') === 'partners') {
+      const replacement = document.createElement('div');
+      replacement.innerHTML = renderPartners();
+      const next = replacement.firstElementChild;
+      if (next) {
+        active.replaceWith(next);
+        next.classList.add('active');
+        return;
+      }
+    }
+    active.classList.add('active');
   }
 
   function startLoop() {
