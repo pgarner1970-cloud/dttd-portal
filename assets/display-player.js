@@ -211,7 +211,6 @@
 
   function renderMusicBoard() {
     const requests = state.requests || [];
-    const playedRequests = state.played_requests || [];
     const recent = state.recent_tracks || [];
 
     const requestItems = requests.slice(0, 5).map((req, idx) => {
@@ -226,19 +225,7 @@
         + '</div></div>';
     }).join('');
 
-    const playedRequestItems = playedRequests.slice(0, 3).map((req) => {
-      const person = text(req.requester_name, '');
-      const dedication = text(req.dedication, '');
-      return '<div class="music-board-request played">'
-        + '<b>✓</b>'
-        + '<div><strong>' + esc(text(req.track_name || req.title, 'Unknown track')) + '</strong>'
-        + (req.artist_name || req.artist ? '<span>' + esc(text(req.artist_name || req.artist, '')) + '</span>' : '')
-        + (person ? '<em>Requested by ' + esc(person) + '</em>' : '')
-        + (dedication ? '<small>' + esc(dedication) + '</small>' : '')
-        + '</div></div>';
-    }).join('');
-
-    const playedTracks = recent.slice(0, 10).map((track, idx) => {
+    const playedTracks = recent.slice(0, 8).map((track, idx) => {
       return '<div class="music-board-played-track">'
         + '<b>' + String(idx + 1).padStart(2, '0') + '</b>'
         + '<div><strong>' + esc(text(track.track_name || track.title, 'Unknown track')) + '</strong>'
@@ -247,17 +234,16 @@
     }).join('');
 
     return '<article class="display-slide" data-slide="music_board">'
-      + '<div class="display-card music-board-card">'
+      + '<div class="display-card music-board-card music-board-card-stable">'
       + '<div class="music-board-head"><p class="display-kicker">Tonight’s Music</p><h1>Requests & played</h1></div>'
       + '<div class="music-board-body">'
       + '<section class="music-board-panel music-board-requests">'
-      + '<h2>Requests</h2>'
+      + '<h2>Request queue</h2>'
       + (requestItems ? '<div class="music-board-stack">' + requestItems + '</div>' : '<div class="music-board-empty">No waiting requests yet.</div>')
-      + (playedRequestItems ? '<h3>Played requests</h3><div class="music-board-stack played-stack">' + playedRequestItems + '</div>' : '')
       + '</section>'
       + '<section class="music-board-panel music-board-played">'
       + '<h2>What we’ve played</h2>'
-      + (playedTracks ? '<div class="music-board-played-list">' + playedTracks + '</div>' : '<div class="music-board-empty">Played tracks will appear once the mixer logs them.</div>')
+      + (playedTracks ? '<div class="music-board-played-list">' + playedTracks + '</div>' : '<div class="music-board-empty">Played tracks will appear once they are logged.</div>')
       + '</section>'
       + '</div></div></article>';
   }
