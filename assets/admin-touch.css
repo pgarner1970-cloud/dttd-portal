@@ -6557,3 +6557,107 @@ select option:focus {
   opacity:.45;
   cursor:not-allowed;
 }
+
+
+/* Final stretch controls on Live Display Slides page */
+.display-final-stretch-panel{
+  margin-top:1.25rem;
+  border:1px solid rgba(68,230,255,.18);
+  background:
+    radial-gradient(circle at top left, rgba(68,230,255,.10), transparent 38%),
+    rgba(255,255,255,.045);
+  border-radius:24px;
+  padding:1.1rem;
+}
+
+.display-final-stretch-panel h2{
+  margin:0;
+  color:#fff;
+  font-size:1.35rem;
+}
+
+.display-final-stretch-panel p{
+  margin:.35rem 0 0;
+  color:rgba(255,255,255,.72);
+  max-width:76ch;
+  line-height:1.4;
+}
+
+.display-final-stretch-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+  gap:.9rem;
+  margin-top:1rem;
+  align-items:end;
+}
+
+.display-final-stretch-grid label span:not(.display-final-toggle span){
+  display:block;
+  margin:0 0 .3rem;
+  color:rgba(255,255,255,.72);
+  font-size:.82rem;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+.display-final-stretch-grid select{
+  width:100%;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.18);
+  background:#101529;
+  color:#fff;
+  padding:.75rem .85rem;
+  font-weight:900;
+}
+
+.display-final-toggle{
+  display:grid;
+  grid-template-columns:58px minmax(0,1fr);
+  gap:.75rem;
+  align-items:center;
+  min-height:48px;
+}
+
+.display-final-toggle input{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+
+.display-final-toggle > span{
+  position:relative;
+  display:block;
+  width:58px;
+  height:34px;
+  border-radius:999px;
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.18);
+  transition:.15s ease;
+}
+
+.display-final-toggle > span:after{
+  content:'';
+  position:absolute;
+  width:26px;
+  height:26px;
+  left:4px;
+  top:4px;
+  border-radius:50%;
+  background:rgba(255,255,255,.88);
+  transition:.15s ease;
+}
+
+.display-final-toggle input:checked + span{
+  background:rgba(68,230,255,.22);
+  border-color:rgba(68,230,255,.42);
+}
+
+.display-final-toggle input:checked + span:after{
+  transform:translateX(24px);
+  background:#44e6ff;
+}
+
+.display-final-toggle strong{
+  color:#fff;
+}

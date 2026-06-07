@@ -1,6 +1,56 @@
 <?php
 require_once __DIR__ . '/_auth.php';
 
+
+function dttd_admin_setting_get($key, $default = '') {
+    try {
+        $stmt = db()->prepare("SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1");
+        $stmt->execute([(string)$key]);
+        $value = $stmt->fetchColumn();
+        return $value === false ? (string)$default : (string)$value;
+    } catch (Throwable $e) {
+        return (string)$default;
+    }
+}
+
+function dttd_admin_setting_set($key, $value) {
+    $stmt = db()->prepare("
+        INSERT INTO app_settings (setting_key, setting_value, updated_at)
+        VALUES (?, ?, NOW())
+        ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = NOW()
+    ");
+    $stmt->execute([(string)$key, (string)$value]);
+}
+
+function dttd_admin_display_final_stretch_settings() {
+    return [
+        'enabled' => dttd_admin_setting_get('display_final_stretch_enabled', '1') === '1',
+        'trigger' => dttd_admin_setting_get('display_final_stretch_trigger', 'requests_closed_or_30_minutes'),
+        'duration_seconds' => (int)dttd_admin_setting_get('display_final_stretch_duration_seconds', '10'),
+        'hide_low_priority' => dttd_admin_setting_get('display_final_stretch_hide_low_priority', '1') === '1',
+    ];
+}
+
+function dttd_admin_display_final_stretch_save($posted) {
+    $enabled = !empty($posted['enabled']) ? '1' : '0';
+    $trigger = (string)($posted['trigger'] ?? 'requests_closed_or_30_minutes');
+    if (!in_array($trigger, ['requests_closed_or_30_minutes', 'requests_closed', '30_minutes', '15_minutes'], true)) {
+        $trigger = 'requests_closed_or_30_minutes';
+    }
+
+    $duration = (int)($posted['duration_seconds'] ?? 10);
+    if (!in_array($duration, [10, 15, 20], true)) {
+        $duration = 10;
+    }
+
+    $hideLow = !empty($posted['hide_low_priority']) ? '1' : '0';
+
+    dttd_admin_setting_set('display_final_stretch_enabled', $enabled);
+    dttd_admin_setting_set('display_final_stretch_trigger', $trigger);
+    dttd_admin_setting_set('display_final_stretch_duration_seconds', (string)$duration);
+    dttd_admin_setting_set('display_final_stretch_hide_low_priority', $hideLow);
+}
+
 function dttd_display_slide_table_exists() {
     static $exists = null;
     if ($exists !== null) return $exists;
@@ -225,6 +275,7 @@ function dttd_display_slide_save_settings($settings) {
 
 $tableReady = dttd_display_slide_table_exists();
 $settings = dttd_display_slide_fetch_settings();
+$finalStretch = dttd_admin_display_final_stretch_settings();
 $saved = false;
 $error = '';
 
@@ -244,7 +295,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         try {
             dttd_display_slide_save_settings($settings);
+            dttd_admin_display_final_stretch_save(is_array($_POST['final_stretch'] ?? null) ? $_POST['final_stretch'] : []);
             $settings = dttd_display_slide_fetch_settings();
+            $finalStretch = dttd_admin_display_final_stretch_settings();
             $saved = true;
         } catch (Throwable $e) {
             $error = 'Unable to save display slide settings.';
@@ -319,6 +372,48 @@ admin_header('Live Display Slides - DJ Portal');
           </article>
         <?php endforeach; ?>
       </div>
+
+
+      <section class="display-final-stretch-panel">
+        <div>
+          <p class="touch-kicker">End of Night</p>
+          <h2>Final stretch mode</h2>
+          <p>Automatically tighten the display loop near the end of the night. Recommended: start when requests close or 30 minutes before event end, hide low-priority slides, and show the remaining cards for 10 seconds.</p>
+        </div>
+
+        <div class="display-final-stretch-grid">
+          <label class="display-final-toggle">
+            <input type="checkbox" name="final_stretch[enabled]" value="1" <?= !empty($finalStretch['enabled']) ? 'checked' : '' ?>>
+            <span></span>
+            <strong>Enable final stretch mode</strong>
+          </label>
+
+          <label>
+            <span>Start when</span>
+            <select name="final_stretch[trigger]">
+              <option value="requests_closed_or_30_minutes" <?= $finalStretch['trigger'] === 'requests_closed_or_30_minutes' ? 'selected' : '' ?>>Requests close or 30 minutes left</option>
+              <option value="requests_closed" <?= $finalStretch['trigger'] === 'requests_closed' ? 'selected' : '' ?>>Requests close</option>
+              <option value="30_minutes" <?= $finalStretch['trigger'] === '30_minutes' ? 'selected' : '' ?>>30 minutes before event end</option>
+              <option value="15_minutes" <?= $finalStretch['trigger'] === '15_minutes' ? 'selected' : '' ?>>15 minutes before event end</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Final stretch duration</span>
+            <select name="final_stretch[duration_seconds]">
+              <option value="10" <?= (int)$finalStretch['duration_seconds'] === 10 ? 'selected' : '' ?>>10 seconds</option>
+              <option value="15" <?= (int)$finalStretch['duration_seconds'] === 15 ? 'selected' : '' ?>>15 seconds</option>
+              <option value="20" <?= (int)$finalStretch['duration_seconds'] === 20 ? 'selected' : '' ?>>20 seconds</option>
+            </select>
+          </label>
+
+          <label class="display-final-toggle">
+            <input type="checkbox" name="final_stretch[hide_low_priority]" value="1" <?= !empty($finalStretch['hide_low_priority']) ? 'checked' : '' ?>>
+            <span></span>
+            <strong>Hide low-priority slides</strong>
+          </label>
+        </div>
+      </section>
 
       <div class="display-slide-actions">
         <button class="touch-btn primary" type="submit" <?= !$tableReady ? 'disabled' : '' ?>>Save slide settings</button>

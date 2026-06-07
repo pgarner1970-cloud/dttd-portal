@@ -222,6 +222,103 @@ function dttd_display_slide_durations($settings) {
     return $out;
 }
 
+
+function dttd_display_app_setting_value($key, $default = '') {
+    try {
+        if (!dttd_display_table_exists('app_settings')) return (string)$default;
+        $stmt = db()->prepare("SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1");
+        $stmt->execute([(string)$key]);
+        $value = $stmt->fetchColumn();
+        return $value === false ? (string)$default : (string)$value;
+    } catch (Throwable $e) {
+        return (string)$default;
+    }
+}
+
+function dttd_display_final_stretch_settings() {
+    return [
+        'enabled' => dttd_display_app_setting_value('display_final_stretch_enabled', '1') === '1',
+        'trigger' => dttd_display_app_setting_value('display_final_stretch_trigger', 'requests_closed_or_30_minutes'),
+        'duration_seconds' => max(5, min(30, (int)dttd_display_app_setting_value('display_final_stretch_duration_seconds', '10'))),
+        'hide_low_priority' => dttd_display_app_setting_value('display_final_stretch_hide_low_priority', '1') === '1',
+    ];
+}
+
+function dttd_display_event_end_timestamp($event) {
+    if (!$event || empty($event['event_date']) || empty($event['end_time'])) return 0;
+
+    $endTs = strtotime((string)$event['event_date'] . ' ' . (string)$event['end_time']);
+    if (!$endTs) return 0;
+
+    $middayTs = strtotime((string)$event['event_date'] . ' 12:00');
+    if ($middayTs && $endTs < $middayTs) {
+        $endTs = strtotime('+1 day', $endTs);
+    }
+
+    return $endTs ?: 0;
+}
+
+function dttd_display_requests_are_open_for_event($event) {
+    if (!$event) return false;
+
+    try {
+        if (function_exists('event_requests_open')) {
+            return (bool)event_requests_open($event);
+        }
+    } catch (Throwable $e) {}
+
+    if (!empty($event['requests_close_at'])) {
+        $ts = strtotime((string)$event['requests_close_at']);
+        return !$ts || $ts > time();
+    }
+
+    return true;
+}
+
+function dttd_display_final_stretch_active($event, $settings = null) {
+    $settings = $settings ?: dttd_display_final_stretch_settings();
+    if (empty($settings['enabled']) || !$event) return false;
+
+    $trigger = (string)($settings['trigger'] ?? 'requests_closed_or_30_minutes');
+    $requestsClosed = !dttd_display_requests_are_open_for_event($event);
+
+    $endTs = dttd_display_event_end_timestamp($event);
+    $minutesLeft = $endTs > 0 ? (($endTs - time()) / 60) : null;
+    $within30 = $minutesLeft !== null && $minutesLeft <= 30;
+    $within15 = $minutesLeft !== null && $minutesLeft <= 15;
+
+    if ($trigger === 'requests_closed') return $requestsClosed;
+    if ($trigger === '30_minutes') return $within30;
+    if ($trigger === '15_minutes') return $within15;
+
+    return $requestsClosed || $within30;
+}
+
+function dttd_display_apply_final_stretch($slides, $settings, $finalSettings, $active) {
+    $slides = array_values((array)$slides);
+    if (!$active) {
+        return [$slides, dttd_display_slide_durations($settings)];
+    }
+
+    if (!empty($finalSettings['hide_low_priority'])) {
+        $slides = array_values(array_filter($slides, function($slide) use ($settings) {
+            return strtolower((string)($settings[$slide]['priority'] ?? 'normal')) !== 'low';
+        }));
+    }
+
+    if (!$slides) {
+        $slides = ['event_timer'];
+    }
+
+    $duration = max(5, min(30, (int)($finalSettings['duration_seconds'] ?? 10)));
+    $durations = dttd_display_slide_durations($settings);
+    foreach ($durations as $key => $value) {
+        $durations[$key] = $duration;
+    }
+
+    return [$slides, $durations];
+}
+
 function dttd_display_event_payload($event) {
     if (!$event) return null;
     $joinUrl = !empty($event['event_code']) ? dttd_public_event_join_url($event['event_code'], 'event') : '';
@@ -870,8 +967,15 @@ if (!$slides) {
     $slides = ['qr'];
 }
 
+$finalStretchSettings = dttd_display_final_stretch_settings();
+$finalStretchActive = dttd_display_final_stretch_active($event, $finalStretchSettings);
+
+// Apply the end-of-night filter before weighting so hidden low-priority slides
+// do not get repeated in the weighted loop.
+[$slides, $slideDurations] = dttd_display_apply_final_stretch($slides, $slideSettings, $finalStretchSettings, $finalStretchActive);
+
 $slides = dttd_display_weighted_slides($slides, $slideSettings);
-$slideDurations = dttd_display_slide_durations($slideSettings);
+[$slides, $slideDurations] = dttd_display_apply_final_stretch($slides, $slideSettings, $finalStretchSettings, $finalStretchActive);
 
 dttd_display_json([
     'ok' => true,
@@ -882,6 +986,8 @@ dttd_display_json([
     'slides' => $slides,
     'slide_durations' => $slideDurations,
     'slide_settings' => $slideSettings,
+    'final_stretch' => $finalStretchSettings,
+    'final_stretch_active' => $finalStretchActive,
     'requests' => $requests,
     'played_requests' => $playedRequests,
     'recent_tracks' => $recent,
