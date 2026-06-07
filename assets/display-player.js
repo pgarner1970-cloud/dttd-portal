@@ -776,7 +776,26 @@
 
 
   function slideCountdownElement() {
-    return document.querySelector('[data-slide-countdown]');
+    let el = document.querySelector('[data-slide-countdown]');
+    if (el) return el;
+
+    const dot = document.querySelector('.display-progress-dot, .display-footer-dot, .footer-progress-dot, .display-loop-dot');
+    if (!dot || !dot.parentNode) return null;
+
+    let wrap = dot.closest('.display-progress-wrap');
+    if (!wrap) {
+      wrap = document.createElement('span');
+      wrap.className = 'display-progress-wrap';
+      dot.parentNode.insertBefore(wrap, dot);
+      wrap.appendChild(dot);
+    }
+
+    el = document.createElement('span');
+    el.className = 'display-slide-countdown';
+    el.setAttribute('data-slide-countdown', '');
+    el.textContent = '--';
+    wrap.appendChild(el);
+    return el;
   }
 
   function updateSlideCountdownDisplay(secondsRemaining, totalSeconds) {
