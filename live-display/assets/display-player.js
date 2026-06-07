@@ -331,25 +331,69 @@
       + '</div></div></article>';
   }
 
+
+  function playlistTrackKey(item) {
+    if (!item) return '';
+    const id = trackIdValue(item);
+    if (id) return 'id:' + id;
+    const title = text(item.track_name || item.title, '').trim().toLowerCase();
+    const artist = text(item.artist_name || item.artist, '').trim().toLowerCase();
+    return title ? 'txt:' + title + '|' + artist : '';
+  }
+
+  function deckTrackToPlaylistItem(track, statusLabel, statusClass) {
+    if (!track) return null;
+    return {
+      id: text(track.id || track.spotify_track_id, ''),
+      track_name: text(track.track_name || track.title, 'Unknown track'),
+      artist_name: text(track.artist_name || track.artist, ''),
+      artwork_url: text(track.artwork_url || track.image || track.spotify_album_image, ''),
+      requester_name: text(track.requester_name || track.guest_name, ''),
+      is_request: !!(track.is_request || track.request_id || track.requester_name || track.guest_name),
+      request_id: track.request_id || null,
+      display_status: statusLabel,
+      display_status_class: statusClass,
+      source: 'deck'
+    };
+  }
+
   function renderRequests() {
-    const tracks = Array.isArray(state.coming_up_tracks) ? state.coming_up_tracks : [];
-    const rows = tracks.slice(0, isLite ? 6 : 8).map((track, idx) => {
+    const baseTracks = Array.isArray(state.coming_up_tracks) ? state.coming_up_tracks.slice() : [];
+    const items = [];
+    const seen = {};
+
+    function addItem(item) {
+      if (!item) return;
+      const key = playlistTrackKey(item);
+      if (key && seen[key]) return;
+      if (key) seen[key] = true;
+      items.push(item);
+    }
+
+    addItem(deckTrackToPlaylistItem(currentTrack(), 'Currently playing', 'currently-playing'));
+    addItem(deckTrackToPlaylistItem(upNextTrack(), 'Coming up next', 'coming-up-next'));
+
+    baseTracks.forEach(track => addItem(track));
+
+    const rows = items.slice(0, 10).map((track, idx) => {
       const artwork = requestArtwork(track);
       const requester = text(track.requester_name || track.guest_name || '', '');
       const isReq = !!(track.is_request || requester || track.request_id);
-      return '<article class="playlist-board-item">'
+      const status = text(track.display_status || (isReq ? 'Request' : ''), '');
+      const statusClass = text(track.display_status_class || (isReq ? 'request' : ''), '').replace(/[^a-z0-9-]+/gi, '-').toLowerCase();
+      return '<article class="playlist-board-item' + (statusClass ? ' playlist-status-' + esc(statusClass) : '') + '">'
         + '<div class="playlist-board-art">' + (artwork ? '<img src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>') + '</div>'
         + '<div class="playlist-board-copy">'
         + '<strong>' + esc(text(track.track_name || track.title, 'Unknown track')) + '</strong>'
         + (track.artist_name || track.artist ? '<span>' + esc(text(track.artist_name || track.artist, '')) + '</span>' : '')
         + (isReq && requester ? '<em>Requested by ' + esc(requester) + '</em>' : '')
         + '</div>'
-        + (isReq ? '<p class="request-status-pill">Request</p>' : '')
+        + (status ? '<p class="request-status-pill">' + esc(status) + '</p>' : '')
         + '</article>';
     }).join('');
 
     return '<article class="display-slide" data-slide="requests">'
-      + '<div class="display-card playlist-board-card">'
+      + '<div class="display-card playlist-board-card playlist-board-card-fixed">'
       + '<div class="request-board-head"><p class="display-kicker">Coming Up</p><h1>DJ playlist</h1></div>'
       + (rows ? '<div class="playlist-board-grid">' + rows + '</div>' : '<div class="display-empty">Upcoming tracks will appear here once the DJ playlist is ready.</div>')
       + '</div></article>';
