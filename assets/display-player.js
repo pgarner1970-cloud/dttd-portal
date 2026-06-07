@@ -10,6 +10,7 @@
 
   let state = null;
   let nowPlaying = null;
+  let lastLiveNowPlaying = null;
   let slideIndex = 0;
   let slideTimer = null;
   let refreshTimer = null;
@@ -120,8 +121,9 @@
   }
 
   function renderNowPlaying() {
-    const tracks = nowPlaying && Array.isArray(nowPlaying.tracks) ? nowPlaying.tracks : [];
-    const current = tracks.find(t => t.status === 'current') || tracks[0] || null;
+    const source = nowPlaying && Array.isArray(nowPlaying.tracks) && nowPlaying.tracks.length ? nowPlaying : lastLiveNowPlaying;
+    const tracks = source && Array.isArray(source.tracks) ? source.tracks : [];
+    const current = tracks.find(t => t.status === 'current') || null;
     if (!current) {
       return '<article class="display-slide" data-slide="now_playing">'
         + '<div class="display-card now-playing-feature now-playing-standby">'
@@ -292,14 +294,30 @@
     return fetch(url + sep + '_=' + Date.now(), { cache: 'no-store', credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).catch(() => null);
   }
 
+  function nowPlayingEndpoint() {
+    if (state && state.event && state.event.id) {
+      return '/api/public-now-playing.php?event_id=' + encodeURIComponent(state.event.id);
+    }
+    return nowPlayingUrl;
+  }
+
+  function refreshNowPlaying() {
+    return fetchJson(nowPlayingEndpoint()).then(np => {
+      if (np && np.ok) {
+        nowPlaying = np;
+        if (Array.isArray(np.tracks) && np.tracks.some(t => t.status === 'current')) {
+          lastLiveNowPlaying = np;
+        }
+      }
+      buildSlides();
+    });
+  }
+
   function refresh() {
     return fetchJson(stateUrl).then(data => {
       if (data && data.ok) state = data;
-      const npUrl = state && state.event && state.event.id ? '/api/public-now-playing.php?event_id=' + encodeURIComponent(state.event.id) : nowPlayingUrl;
-      return fetchJson(npUrl);
-    }).then(np => {
-      if (np && np.ok) nowPlaying = np;
-      buildSlides();
+      return refreshNowPlaying();
+    }).then(() => {
       startLoop();
     });
   }
@@ -308,5 +326,6 @@
   setInterval(setClock, 15000);
   refresh();
   refreshTimer = setInterval(refresh, 15000);
+  setInterval(refreshNowPlaying, 5000);
   document.addEventListener('visibilitychange', function(){ if (!document.hidden) refresh(); });
 })();

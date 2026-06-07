@@ -53,8 +53,11 @@ function public_np_active_event($eventId = 0) {
 
     try {
         if ($eventId > 0) {
+            // The HDMI display has already resolved the active event via display-state.php.
+            // Trust an explicit event_id here so now-playing works before/after the public
+            // guest portal availability window.
             $event = get_event($eventId);
-            return ($event && event_is_available($event)) ? $event : null;
+            return ($event && !empty($event['id'])) ? $event : null;
         }
 
         return active_event();
@@ -113,6 +116,9 @@ function public_np_public_track($track, $status, $playedAt = '') {
         'artist' => $artist,
         'image' => $image,
         'url' => $url,
+        'deck' => (string)($track['deck'] ?? ''),
+        'progress_ms' => isset($track['progress_ms']) ? (int)$track['progress_ms'] : null,
+        'duration_ms' => isset($track['duration_ms']) ? (int)$track['duration_ms'] : null,
         'status' => $status,
         'played_at' => $playedAt,
     ];
@@ -198,6 +204,34 @@ function public_np_track_from_loaded($loaded, $deckLabel = '') {
     ];
 }
 
+function public_np_loaded_track_looks_live($loaded) {
+    if (!is_array($loaded) || empty($loaded['id'])) return false;
+
+    $startedAt = isset($loaded['playback_started_at']) ? (int)$loaded['playback_started_at'] : 0;
+    if ($startedAt <= 0) return false;
+
+    // If the mixer has explicitly stored a paused position or resume lock, do not treat
+    // the loaded track as currently playing.
+    if (isset($loaded['paused_position_ms']) && $loaded['paused_position_ms'] !== null) return false;
+    if (!empty($loaded['resume_locked'])) return false;
+
+    $now = time();
+    if ($startedAt > $now + 60) return false;
+
+    $expectedFinish = isset($loaded['expected_finish_at']) ? (int)$loaded['expected_finish_at'] : 0;
+    if ($expectedFinish > 0) {
+        return $now <= ($expectedFinish + 180);
+    }
+
+    $duration = isset($loaded['duration_ms']) ? (int)$loaded['duration_ms'] : 0;
+    if ($duration > 0) {
+        return ($now - $startedAt) <= (int)ceil($duration / 1000) + 180;
+    }
+
+    // Last fallback for tracks without a duration: allow a generous DJ-track window.
+    return ($now - $startedAt) <= 60 * 60 * 6;
+}
+
 function public_np_deck_current_candidate($deck, $deviceId, $playback, $loaded) {
     $deck = strtolower((string)$deck) === 'b' ? 'b' : 'a';
     $deckLabel = strtoupper($deck);
@@ -209,6 +243,14 @@ function public_np_deck_current_candidate($deck, $deviceId, $playback, $loaded) 
 
     // Local/MPD tracks are tracked by the mixer state rather than Spotify playback.
     if (!empty($loaded['local_is_playing'])) {
+        $candidate = public_np_track_from_loaded($loaded, $deckLabel);
+        $score = public_np_estimated_loaded_position_ms($loaded);
+    }
+
+    // Spotify can be slow to confirm the exact deck/device via the Web API. The mixer
+    // already records playback_started_at/expected_finish_at when a play command is sent,
+    // so use that as a display-safe fallback when the loaded deck state still looks live.
+    if (!$candidate && public_np_loaded_track_looks_live($loaded)) {
         $candidate = public_np_track_from_loaded($loaded, $deckLabel);
         $score = public_np_estimated_loaded_position_ms($loaded);
     }
@@ -348,6 +390,7 @@ $payload = [
     'active_event' => true,
     'event_id' => $eventId,
     'has_live_current' => (bool)$current,
+    'track_count' => count($tracks),
     'tracks' => $tracks,
     'generated_at' => date('c'),
 ];
