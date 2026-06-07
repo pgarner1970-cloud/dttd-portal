@@ -26,7 +26,10 @@ document.head.appendChild(overviewStyle);
   let uiTimer = null;
   let lastStateSyncAt = 0;
   const STATE_POLL_MS = 12000;
+  const TRANSPORT_SETTLE_MS = 3500;
   let busy = false;
+  let actionSequence = 0;
+  const pendingTransportHolds = {};
   let activeSource = 'search';
   let cratesLoaded = false;
   let activeCrateId = '';
@@ -210,6 +213,66 @@ document.head.appendChild(overviewStyle);
     // Keep a safety timeout so a lost command cannot leave the deck red forever.
     if(track.local_autoplay_after_prepare) return age === null || (age > -30 && age < 90);
     return age !== null && age > -30 && age < 45;
+  }
+  function cleanupTransportHolds(){
+    const now = Date.now();
+    Object.keys(pendingTransportHolds).forEach(deck => {
+      if(!pendingTransportHolds[deck] || Number(pendingTransportHolds[deck].expiresAt || 0) <= now){
+        delete pendingTransportHolds[deck];
+      }
+    });
+  }
+  function forceDeckPlaybackFlag(deck, playing){
+    if(!state) return;
+    const key = 'player_' + deck;
+    const player = state[key] || (state[key] = {});
+    const loaded = player.loaded || null;
+    if(!loaded) return;
+    player.state = playing ? 'playing' : 'standby';
+    if(isLocalTrack(loaded)){
+      loaded.local_is_playing = !!playing;
+      loaded.position_updated_at = Date.now() / 1000;
+    }
+    if(player.playback){
+      player.playback.is_playing = !!playing;
+      if(playing){
+        player.playback.device_id = state['device_' + deck] || player.playback.device_id || '';
+        player.playback.track = player.playback.track || {id: loaded.id, title: loaded.title, artist: loaded.artist, image: loaded.image};
+      }
+    }
+    if(playing){
+      state.is_playing = true;
+      state.active_device_id = state['device_' + deck] || state.active_device_id || '';
+      const selectedDevice = (state.devices || []).find(d => String(d.id) === String(state.active_device_id));
+      if(selectedDevice) state.active_device_name = selectedDevice.name || state.active_device_name || '';
+      state.track = Object.assign({}, state.track || {}, {
+        id: loaded.id || state.track?.id || '',
+        title: loaded.title || state.track?.title || '',
+        artist: loaded.artist || state.track?.artist || '',
+        image: loaded.image || state.track?.image || '',
+        duration_ms: Number(loaded.duration_ms || player.playback?.duration_ms || 0) || null
+      });
+    } else {
+      const deviceId = state['device_' + deck] || '';
+      if(deviceId && state.active_device_id === deviceId){
+        const other = deck === 'a' ? 'b' : 'a';
+        const otherHold = pendingTransportHolds[other];
+        const otherPlaying = otherHold ? !!otherHold.playing : deckIsPlaying(other);
+        if(!otherPlaying){
+          state.is_playing = false;
+          state.active_device_id = '';
+          state.active_device_name = '';
+        }
+      }
+    }
+  }
+  function holdDeckPlayback(deck, playing){
+    pendingTransportHolds[deck] = {playing: !!playing, expiresAt: Date.now() + TRANSPORT_SETTLE_MS};
+    forceDeckPlaybackFlag(deck, playing);
+  }
+  function applyPendingTransportHolds(){
+    cleanupTransportHolds();
+    Object.keys(pendingTransportHolds).forEach(deck => forceDeckPlaybackFlag(deck, pendingTransportHolds[deck].playing));
   }
   function deckCanLoad(deck){
     return !!state?.['device_' + deck] && !deckIsPlaying(deck);
@@ -567,7 +630,7 @@ renderAccountStatus();
       </div>`;
     }).join('');
   }
-  function render(){ if(state?.crates) availableCrates = sortCratesByName(state.crates); renderDevices(); renderPlaylist(); renderRequests(); renderDecks(); if(activeSource === 'crates') renderDjCrates(availableCrates.length ? availableCrates : sortCratesByName(state?.crates || [])); if(activeSource === 'history') renderHistory(); }
+  function render(){ applyPendingTransportHolds(); if(state?.crates) availableCrates = sortCratesByName(state.crates); renderDevices(); renderPlaylist(); renderRequests(); renderDecks(); if(activeSource === 'crates') renderDjCrates(availableCrates.length ? availableCrates : sortCratesByName(state?.crates || [])); if(activeSource === 'history') renderHistory(); }
   function acceptState(nextState){
     if(!nextState) return;
     state = nextState;
@@ -580,20 +643,29 @@ renderAccountStatus();
     }
   }
   async function refresh(silent=true){
-    try{ const data = await apiGet({action:'state'}); if(data.ok){ acceptState(data.state); } else { if(data.state){acceptState(data.state);} if(!silent) toast(data.error || 'Update failed', false); } }
+    if(busy && silent) return;
+    const requestActionSeq = actionSequence;
+    try{
+      const data = await apiGet({action:'state'});
+      if(requestActionSeq !== actionSequence) return;
+      if(data.ok){ acceptState(data.state); }
+      else { if(data.state){acceptState(data.state);} if(!silent) toast(data.error || 'Update failed', false); }
+    }
     catch(e){ if(!silent) toast('Mixer update failed', false); }
   }
   async function doAction(params){
     if(busy) return;
+    const thisActionSeq = ++actionSequence;
     const optimisticallyUpdated = optimisticDeckAction(params);
     busy = true;
     try{
       const data = await apiPost(params);
+      if(thisActionSeq !== actionSequence) return;
       if(data.state){ acceptState(data.state); }
       else if(optimisticallyUpdated && !data.ok){ refresh(true); }
       toast(data.ok ? (data.message || 'Done') : (data.error || data.message || 'Action failed'), !!data.ok);
-    }catch(e){ if(optimisticallyUpdated) refresh(true); toast('Action failed', false); }
-    finally{ busy = false; }
+    }catch(e){ if(thisActionSeq === actionSequence){ if(optimisticallyUpdated) refresh(true); toast('Action failed', false); } }
+    finally{ if(thisActionSeq === actionSequence) busy = false; }
   }
   function searchBadgeHtml(track){
     const badges = (Array.isArray(track?.badges) ? track.badges : []).filter(b => {
@@ -680,9 +752,14 @@ renderAccountStatus();
       const wasPlaying = deckIsPlaying(deck);
       if(wasPlaying){
         setOptimisticDeckPlayback(deck, false);
+        holdDeckPlayback(deck, false);
       } else {
-        if(!state.duo_mode && deckIsPlaying(other)) setOptimisticDeckPlayback(other, false);
+        if(!state.duo_mode && deckIsPlaying(other)){
+          setOptimisticDeckPlayback(other, false);
+          holdDeckPlayback(other, false);
+        }
         setOptimisticDeckPlayback(deck, true);
+        holdDeckPlayback(deck, true);
       }
       renderDecks();
       return true;
@@ -893,6 +970,7 @@ renderAccountStatus();
   if(els.createCrate) els.createCrate.addEventListener('click', async ()=>{ const name = els.newCrateName ? els.newCrateName.value : ''; await doAction({action:'create_crate', name}); if(els.newCrateName) els.newCrateName.value=''; cratesLoaded=false; loadDjCrates(true); });
   function tickDeckTimers(){
     if(!state) return;
+    cleanupTransportHolds();
     renderDecks();
     if(Date.now() - lastStateSyncAt > STATE_POLL_MS + 1500 && !busy){
       refresh(true);
