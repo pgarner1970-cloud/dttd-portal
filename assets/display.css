@@ -3113,216 +3113,33 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
 }
 
 
-/* Event timer: balanced two-card countdown layout. */
-.event-timer-card-split{
-  justify-content:flex-start;
-  gap:clamp(18px,2.2vh,38px);
-  padding:clamp(28px,3.2vw,58px) clamp(44px,4.4vw,84px);
-}
-
-.event-timer-card-split .event-timer-head{
-  grid-template-columns:minmax(0,1fr) auto;
-  align-items:end;
-}
-
-.event-timer-card-split .event-timer-head h1{
-  font-size:clamp(58px,5.9vw,118px);
-  line-height:.9;
-}
-
-.event-timer-grid{
-  flex:1;
-  min-height:0;
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:clamp(20px,2.2vw,42px);
-}
-
-.event-timer-panel{
-  min-width:0;
-  min-height:0;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-  gap:clamp(10px,1.2vh,22px);
-  padding:clamp(22px,2.5vw,48px);
-  border-radius:clamp(24px,2.2vw,46px);
-  border:1px solid rgba(255,255,255,.12);
+/* Warmer closed-requests message on the Keep dancing timer slide. */
+.event-timer-panel-requests-closed{
   background:
-    radial-gradient(circle at 50% 18%, rgba(68,230,255,.14), transparent 42%),
+    radial-gradient(circle at 50% 18%, rgba(255,216,106,.16), transparent 42%),
     linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.035));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 24px 80px rgba(0,0,0,.22);
-  overflow:hidden;
 }
 
-.event-timer-panel-requests{
-  background:
-    radial-gradient(circle at 50% 18%, rgba(255,216,106,.14), transparent 42%),
-    linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.035));
-  border-color:rgba(255,216,106,.18);
+.event-timer-panel-requests-closed p{
+  color:var(--display-gold);
 }
 
-.event-timer-panel p{
-  margin:0;
+.event-timer-panel-requests-closed .timer-closed-message{
+  max-width:9ch;
   color:#fff;
-  font-size:clamp(24px,2.05vw,42px);
-  font-weight:1000;
-  letter-spacing:-.035em;
-  line-height:1;
+  font-size:clamp(46px,5vw,104px);
+  line-height:.9;
+  letter-spacing:-.06em;
+  text-transform:none;
 }
 
-.event-timer-panel strong{
-  display:block;
-  margin:0;
-  color:var(--display-gold);
-  font-size:clamp(58px,6.4vw,130px);
-  line-height:.86;
-  letter-spacing:-.055em;
-  font-variant-numeric:tabular-nums;
-  text-shadow:0 0 34px rgba(255,216,106,.28), 0 0 64px rgba(255,65,190,.16);
-}
-
-.event-timer-panel-dance strong{
-  color:var(--display-gold);
-}
-
-.event-timer-panel-requests strong{
-  color:#9fffd6;
-  text-shadow:0 0 34px rgba(68,230,255,.24), 0 0 64px rgba(255,65,190,.12);
-}
-
-.event-timer-panel span{
-  margin:0;
-  color:var(--display-soft);
+.event-timer-panel-requests-closed span{
+  max-width:22ch;
+  color:#ffe9a6;
   font-size:clamp(20px,1.75vw,36px);
-  font-weight:900;
-  letter-spacing:-.025em;
   line-height:1.08;
 }
 
-.event-timer-panel.is-closed{
-  border-color:rgba(255,216,106,.26);
-}
-
-.event-timer-panel .timer-closed-text{
-  color:var(--display-gold);
-  font-size:clamp(58px,6vw,122px);
-}
-
-.display-lite .event-timer-card-split .event-timer-panel{
-  background:rgba(255,255,255,.055);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
-}
-
-.display-lite .event-timer-card-split .event-timer-head h1,
-.display-lite .event-timer-card-split .event-timer-panel strong{
-  text-shadow:none;
-}
-
-
-/* Slide countdown beside the footer pink dot. */
-.display-progress-wrap{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:clamp(8px,.75vw,14px);
-  min-width:clamp(80px,6vw,120px);
-}
-
-.display-slide-countdown{
-  --slide-countdown-progress:1;
-  position:relative;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  min-width:clamp(38px,3.2vw,58px);
-  height:clamp(24px,2.2vw,34px);
-  padding:0 clamp(8px,.65vw,13px);
-  border-radius:999px;
-  border:1px solid rgba(255,65,190,.36);
-  background:
-    linear-gradient(90deg, rgba(255,65,190,.22) calc(var(--slide-countdown-progress) * 100%), rgba(255,255,255,.055) 0),
-    rgba(255,255,255,.055);
-  color:#ffd8f3;
-  font-size:clamp(10px,.78vw,15px);
-  font-weight:1000;
-  letter-spacing:.08em;
-  line-height:1;
-  text-transform:uppercase;
-  font-variant-numeric:tabular-nums;
-  box-shadow:0 0 18px rgba(255,65,190,.18), inset 0 1px 0 rgba(255,255,255,.08);
-}
-
-.display-lite .display-slide-countdown{
-  background:rgba(255,255,255,.055);
-  box-shadow:none;
-}
-
-
-/* Robust footer slide countdown fallback. */
-.display-footer .display-progress-wrap,
-.display-progress-wrap{
-  display:inline-flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-  gap:clamp(8px,.75vw,14px) !important;
-  vertical-align:middle;
-}
-
-.display-slide-countdown[data-slide-countdown]{
-  display:inline-flex !important;
-  align-items:center;
-  justify-content:center;
-  min-width:clamp(38px,3.2vw,58px);
-  height:clamp(24px,2.2vw,34px);
-  padding:0 clamp(8px,.65vw,13px);
-  border-radius:999px;
-  border:1px solid rgba(255,65,190,.36);
-  background:
-    linear-gradient(90deg, rgba(255,65,190,.22) calc(var(--slide-countdown-progress, 1) * 100%), rgba(255,255,255,.055) 0),
-    rgba(255,255,255,.055);
-  color:#ffd8f3;
-  font-size:clamp(10px,.78vw,15px);
-  font-weight:1000;
-  letter-spacing:.08em;
-  line-height:1;
-  text-transform:uppercase;
-  font-variant-numeric:tabular-nums;
-  box-shadow:0 0 18px rgba(255,65,190,.18), inset 0 1px 0 rgba(255,255,255,.08);
-  white-space:nowrap;
-}
-
-.display-lite .display-slide-countdown[data-slide-countdown]{
-  background:rgba(255,255,255,.055);
-  box-shadow:none;
-}
-
-
-/* Current event highlight on What’s Happening slide. */
-.display-coming-up-card-current{
-  border-color:rgba(80,255,170,.48) !important;
-  background:
-    radial-gradient(circle at 10% 20%, rgba(80,255,170,.22), transparent 38%),
-    linear-gradient(135deg, rgba(80,255,170,.13), rgba(255,255,255,.055)) !important;
-  box-shadow:
-    0 0 30px rgba(80,255,170,.20),
-    inset 0 1px 0 rgba(255,255,255,.10) !important;
-}
-
-.display-coming-up-card-current .coming-eyebrow{
-  color:#aaffd9 !important;
-  background:rgba(80,255,170,.17);
-  border:1px solid rgba(80,255,170,.35);
-  box-shadow:0 0 18px rgba(80,255,170,.13);
-}
-
-.display-coming-up-card-current .coming-title{
-  color:#fff;
-}
-
-.display-lite .display-coming-up-card-current{
-  background:rgba(80,255,170,.10) !important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.08) !important;
+.display-lite .event-timer-panel-requests-closed{
+  background:rgba(255,216,106,.08);
 }
