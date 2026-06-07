@@ -2896,3 +2896,22 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
   width:clamp(38px,3vw,54px);
   height:clamp(38px,3vw,54px);
 }
+
+
+/* Request board deck-aware status pills. */
+.request-status-currently-playing .request-status-pill{
+  background:rgba(255,65,190,.20);
+  border-color:rgba(255,65,190,.42);
+  color:#ffd8f3;
+}
+
+.request-status-coming-up-next .request-status-pill{
+  background:rgba(68,230,255,.20);
+  border-color:rgba(68,230,255,.38);
+  color:#c8fbff;
+}
+
+.request-board-combined .request-status-currently-playing .music-board-row-copy strong,
+.request-board-combined .request-status-coming-up-next .music-board-row-copy strong{
+  color:#fff;
+}

@@ -273,11 +273,22 @@
     return !requestIsPlayed(item) && !requestIsRejected(item);
   }
 
+
+  function deckStatusForTrack(item) {
+    if (isCurrentTrack(item)) return { label: 'Currently playing', cls: 'currently-playing', rank: 0 };
+    const next = upNextTrack();
+    if (next && tracksMatch(item, next)) return { label: 'Coming up next', cls: 'coming-up-next', rank: 1 };
+    return null;
+  }
+
   function renderMusicBoard() {
     const requestSource = Array.isArray(state.requests) ? state.requests.slice() : [];
     const activeRequests = requestSource
       .filter(requestIsActive)
       .sort((a, b) => {
+        const da = deckStatusForTrack(a);
+        const db = deckStatusForTrack(b);
+        if ((da ? da.rank : 99) !== (db ? db.rank : 99)) return (da ? da.rank : 99) - (db ? db.rank : 99);
         const rank = requestStatusRank(a.status) - requestStatusRank(b.status);
         if (rank !== 0) return rank;
         return Number(b.id || 0) - Number(a.id || 0);
@@ -285,11 +296,17 @@
 
     const playedRequests = requestSource
       .filter(requestIsPlayed)
-      .sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
+      .sort((a, b) => {
+        const da = deckStatusForTrack(a);
+        const db = deckStatusForTrack(b);
+        if ((da ? da.rank : 99) !== (db ? db.rank : 99)) return (da ? da.rank : 99) - (db ? db.rank : 99);
+        return Number(b.id || 0) - Number(a.id || 0);
+      });
 
     const activeItems = activeRequests.slice(0, 5).map((req, idx) => {
-      const status = requestStatusLabel(req.status);
-      const statusClass = requestStatusClass(req.status);
+      const deckStatus = deckStatusForTrack(req);
+      const status = deckStatus ? deckStatus.label : requestStatusLabel(req.status);
+      const statusClass = deckStatus ? deckStatus.cls : requestStatusClass(req.status);
       const person = text(req.requester_name, '');
       const artwork = requestArtwork(req);
       return '<div class="music-board-request music-board-row request-status-' + esc(statusClass) + '">'
@@ -303,15 +320,18 @@
     }).join('');
 
     const playedItems = playedRequests.slice(0, 5).map((req, idx) => {
+      const deckStatus = deckStatusForTrack(req);
+      const status = deckStatus ? deckStatus.label : 'Played';
+      const statusClass = deckStatus ? deckStatus.cls : 'played';
       const artwork = requestArtwork(req);
       const person = text(req.requester_name, '');
-      return '<div class="music-board-played-track music-board-row request-status-played">'
+      return '<div class="music-board-played-track music-board-row request-status-' + esc(statusClass) + '">'
         + '<div class="music-board-row-art">' + (artwork ? '<img class="music-board-artwork" src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>') + '</div>'
         + '<div class="music-board-row-copy"><strong>' + esc(text(req.track_name || req.title, 'Unknown track')) + '</strong>'
         + (req.artist_name || req.artist ? '<span>' + esc(text(req.artist_name || req.artist, '')) + '</span>' : '')
         + (person ? '<em>Requested by ' + esc(person) + '</em>' : '')
         + '</div>'
-        + '<p class="request-status-pill">Played</p>'
+        + '<p class="request-status-pill">' + esc(status) + '</p>'
         + '</div>';
     }).join('');
 
