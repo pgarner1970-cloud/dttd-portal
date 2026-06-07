@@ -250,16 +250,26 @@
 
   function renderRequests() {
     const requests = state.requests || [];
-    const rows = requests.slice(0, 7).map((req) => {
-      const status = text(req.status, 'request');
+    const rows = requests.slice(0, 6).map((req, idx) => {
+      const status = text(req.status, 'pending');
       const person = text(req.requester_name, '');
-      return '<li><div>' + trackLine(req) + (person ? '<em>Requested by ' + esc(person) + '</em>' : '') + '</div><small>' + esc(status) + '</small></li>';
+      const dedication = text(req.dedication, '');
+      return '<article class="request-board-item">'
+        + '<div class="request-board-number">' + String(idx + 1).padStart(2, '0') + '</div>'
+        + '<div class="request-board-copy">'
+        + '<strong>' + esc(text(req.track_name || req.title, 'Unknown track')) + '</strong>'
+        + (req.artist_name || req.artist ? '<span>' + esc(text(req.artist_name || req.artist, '')) + '</span>' : '')
+        + (person ? '<em>Requested by ' + esc(person) + '</em>' : '')
+        + (dedication ? '<small>' + esc(dedication) + '</small>' : '')
+        + '</div>'
+        + '<p class="request-status-pill">' + esc(status) + '</p>'
+        + '</article>';
     }).join('');
+
     return '<article class="display-slide" data-slide="requests">'
-      + '<div class="display-card list-card">'
-      + '<p class="display-kicker">Requested Tonight</p>'
-      + '<h1>On the request list</h1>'
-      + (rows ? '<ul class="display-request-list">' + rows + '</ul>' : '<div class="display-empty">Requests will appear here once guests start sending them in.</div>')
+      + '<div class="display-card request-board-card">'
+      + '<div class="request-board-head"><p class="display-kicker">Requested Tonight</p><h1>Request list</h1></div>'
+      + (rows ? '<div class="request-board-grid">' + rows + '</div>' : '<div class="display-empty">Requests will appear here once guests start sending them in.</div>')
       + '</div></article>';
   }
 
