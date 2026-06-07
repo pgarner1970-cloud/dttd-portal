@@ -1699,3 +1699,21 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
     grid-template-columns:1fr;
   }
 }
+
+
+/* Standby QR label fix: show the full website address instead of truncating it. */
+.standby-social-card-refined .standby-social-qr{
+  width:min(100%,30vh);
+  max-width:360px;
+}
+
+.standby-social-card-refined .standby-social-qr span{
+  max-width:100%;
+  white-space:normal;
+  overflow:visible;
+  text-overflow:clip;
+  text-align:center;
+  overflow-wrap:anywhere;
+  font-size:clamp(11px,.78vw,16px);
+  line-height:1.08;
+}
