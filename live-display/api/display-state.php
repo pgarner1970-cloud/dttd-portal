@@ -184,8 +184,41 @@ function dttd_display_requests($eventId, $limit = 12) {
     $eventId = (int)$eventId;
     if ($eventId <= 0) return [];
     $limit = max(1, min(20, (int)$limit));
+
+    $artworkCol = '';
+    foreach (['artwork_url', 'spotify_album_image', 'album_image', 'image_url', 'image'] as $candidate) {
+        if (dttd_display_col_exists('event_requests', $candidate)) {
+            $artworkCol = $candidate;
+            break;
+        }
+    }
+    $playedCol = dttd_display_col_exists('event_requests', 'played_at') ? 'played_at' : '';
+    $rejectedCol = dttd_display_col_exists('event_requests', 'rejected_at') ? 'rejected_at' : '';
+
     try {
-        $stmt = db()->prepare("\n            SELECT id, track_name, artist_name, requester_name, dedication, status, created_at, approved_at\n            FROM event_requests\n            WHERE event_id = ?\n              AND LOWER(COALESCE(status, 'pending')) NOT IN ('rejected','played')\n            ORDER BY\n              CASE LOWER(COALESCE(status, 'pending'))\n                WHEN 'queued' THEN 1\n                WHEN 'approved' THEN 2\n                WHEN 'pending' THEN 3\n                ELSE 4\n              END ASC,\n              COALESCE(approved_at, created_at) ASC,\n              id ASC\n            LIMIT " . $limit . "\n        ");
+        $stmt = db()->prepare("
+            SELECT id, track_name, artist_name, requester_name, dedication, status, created_at, approved_at"
+            . ($artworkCol !== '' ? ", " . $artworkCol . " AS display_artwork_url" : "")
+            . ($playedCol !== '' ? ", played_at" : "")
+            . ($rejectedCol !== '' ? ", rejected_at" : "") . "
+            FROM event_requests
+            WHERE event_id = ?
+            ORDER BY
+              CASE
+                WHEN LOWER(COALESCE(status, 'pending')) IN ('queued','approved','accepted','pending','new','requested') THEN 1
+                WHEN LOWER(COALESCE(status, 'pending')) IN ('played','complete','completed') THEN 2
+                WHEN LOWER(COALESCE(status, 'pending')) IN ('rejected','declined','cancelled','canceled') THEN 3
+                ELSE 2
+              END ASC,
+              CASE
+                WHEN LOWER(COALESCE(status, 'pending')) IN ('queued','approved','accepted') THEN 1
+                WHEN LOWER(COALESCE(status, 'pending')) IN ('pending','new','requested') THEN 2
+                ELSE 3
+              END ASC,
+              COALESCE(" . ($playedCol !== '' ? "played_at, " : "") . ($rejectedCol !== '' ? "rejected_at, " : "") . "approved_at, created_at) DESC,
+              id DESC
+            LIMIT " . $limit . "
+        ");
         $stmt->execute([$eventId]);
         $rows = [];
         foreach ($stmt->fetchAll() as $row) {
@@ -196,6 +229,9 @@ function dttd_display_requests($eventId, $limit = 12) {
                 'requester_name' => (string)($row['requester_name'] ?? ''),
                 'dedication' => (string)($row['dedication'] ?? ''),
                 'status' => (string)($row['status'] ?? ''),
+                'artwork_url' => dttd_display_url($row['display_artwork_url'] ?? ''),
+                'played_at' => (string)($row['played_at'] ?? ''),
+                'rejected_at' => (string)($row['rejected_at'] ?? ''),
             ];
         }
         return $rows;

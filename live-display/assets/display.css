@@ -2225,3 +2225,71 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
     grid-template-rows:repeat(4,minmax(0,1fr));
   }
 }
+
+
+/* Request/dedication display: status ordering, visible status and artwork thumbnails. */
+.request-board-item{
+  grid-template-columns:clamp(54px,4.4vw,82px) minmax(0,1fr) auto;
+}
+
+.request-board-artwork{
+  width:clamp(54px,4.4vw,82px);
+  height:clamp(54px,4.4vw,82px);
+  align-self:center;
+  justify-self:center;
+  display:block;
+  object-fit:cover;
+  border-radius:clamp(12px,1vw,18px);
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 8px 22px rgba(0,0,0,.30);
+}
+
+.request-status-pill{
+  min-width:clamp(82px,6vw,118px);
+  justify-content:center;
+}
+
+.request-status-accepted .request-status-pill,
+.request-status-queued .request-status-pill{
+  background:rgba(68,230,255,.20);
+  border-color:rgba(68,230,255,.38);
+  color:#c8fbff;
+}
+
+.request-status-waiting .request-status-pill,
+.request-status-pending .request-status-pill{
+  background:rgba(255,216,106,.18);
+  border-color:rgba(255,216,106,.35);
+  color:#ffe88f;
+}
+
+.request-status-played .request-status-pill{
+  background:rgba(58,255,167,.16);
+  border-color:rgba(58,255,167,.32);
+  color:#aaffd9;
+}
+
+.request-status-rejected .request-status-pill,
+.request-status-declined .request-status-pill,
+.request-status-cancelled .request-status-pill,
+.request-status-canceled .request-status-pill{
+  background:rgba(255,92,132,.16);
+  border-color:rgba(255,92,132,.34);
+  color:#ffc2d0;
+}
+
+.request-status-rejected,
+.request-status-declined,
+.request-status-cancelled,
+.request-status-canceled{
+  opacity:.82;
+}
+
+.display-lite .request-board-item{
+  grid-template-columns:clamp(46px,4vw,68px) minmax(0,1fr) auto;
+}
+
+.display-lite .request-board-artwork{
+  width:clamp(46px,4vw,68px);
+  height:clamp(46px,4vw,68px);
+}
