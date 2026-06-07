@@ -974,12 +974,16 @@ if (!$slides) {
 $finalStretchSettings = dttd_display_final_stretch_settings();
 $finalStretchActive = dttd_display_final_stretch_active($event, $finalStretchSettings);
 
-// Apply the end-of-night filter before weighting so hidden low-priority slides
-// do not get repeated in the weighted loop.
-[$slides, $slideDurations] = dttd_display_apply_final_stretch($slides, $slideSettings, $finalStretchSettings, $finalStretchActive);
-
-$slides = dttd_display_weighted_slides($slides, $slideSettings);
-[$slides, $slideDurations] = dttd_display_apply_final_stretch($slides, $slideSettings, $finalStretchSettings, $finalStretchActive);
+if ($finalStretchActive) {
+    // End-of-night mode is deliberately simple and predictable:
+    // hide low-priority slides, show each remaining slide once, and use the
+    // final-stretch duration for every slide.
+    [$slides, $slideDurations] = dttd_display_apply_final_stretch($slides, $slideSettings, $finalStretchSettings, true);
+    $slides = array_values(array_unique($slides));
+} else {
+    $slides = dttd_display_weighted_slides($slides, $slideSettings);
+    $slideDurations = dttd_display_slide_durations($slideSettings);
+}
 
 dttd_display_json([
     'ok' => true,
