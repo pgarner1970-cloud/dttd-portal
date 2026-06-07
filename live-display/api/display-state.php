@@ -921,6 +921,55 @@ function dttd_display_decks_are_clear() {
     return !$aLoaded && !$bLoaded;
 }
 
+
+function dttd_display_goodnight_window_seconds() {
+    return 10 * 60;
+}
+
+function dttd_display_event_has_started($event) {
+    if (!$event || empty($event['id'])) return false;
+
+    $status = strtolower(trim((string)($event['status'] ?? '')));
+    if ($status === 'live') return true;
+
+    if (empty($event['event_date'])) return false;
+    $startTime = !empty($event['start_time']) ? (string)$event['start_time'] : '00:00:00';
+    $startTs = strtotime((string)$event['event_date'] . ' ' . $startTime);
+
+    return $startTs && time() >= $startTs;
+}
+
+function dttd_display_event_finished_timestamp($event) {
+    $endTs = dttd_display_event_end_timestamp($event);
+    return $endTs && time() >= $endTs ? $endTs : 0;
+}
+
+function dttd_display_event_in_post_finish_hold($event) {
+    $endTs = dttd_display_event_finished_timestamp($event);
+    if (!$endTs) return false;
+
+    $now = time();
+    $goodnightEnd = $endTs + dttd_display_goodnight_window_seconds();
+
+    // From event end until the goodnight period has expired, or while a deck is
+    // still loaded, keep the live-event display context rather than dropping to
+    // the no-current-event standby page.
+    if ($now <= $goodnightEnd) return true;
+
+    return !dttd_display_decks_are_clear();
+}
+
+function dttd_display_standby_allowed_for_event($event) {
+    if (!$event || empty($event['id'])) return true;
+
+    $endTs = dttd_display_event_finished_timestamp($event);
+    if ($endTs) {
+        return time() > ($endTs + dttd_display_goodnight_window_seconds()) && dttd_display_decks_are_clear();
+    }
+
+    return !dttd_display_event_has_started($event) && !dttd_display_event_is_live($event);
+}
+
 function dttd_display_goodnight_active($event) {
     if (!$event || empty($event['id'])) return false;
 
@@ -930,8 +979,9 @@ function dttd_display_goodnight_active($event) {
     $now = time();
 
     // Show the Good night page only briefly after the event has finished.
-    // After this grace period, the display should drop back to normal standby/no-current-event mode.
-    $goodnightWindowSeconds = 10 * 60;
+    // After this grace period, the display should drop back to normal standby/no-current-event mode,
+    // but only if both decks are clear.
+    $goodnightWindowSeconds = dttd_display_goodnight_window_seconds();
     if ($now < $endTs || $now > ($endTs + $goodnightWindowSeconds)) {
         return false;
     }
@@ -973,6 +1023,11 @@ function dttd_display_event_is_live($event) {
     $status = strtolower(trim((string)($event['status'] ?? '')));
     if ($status === 'live') return true;
 
+    // If the event has only just finished or music is still loaded, keep the live display context.
+    if (function_exists('dttd_display_event_in_post_finish_hold') && dttd_display_event_in_post_finish_hold($event)) {
+        return true;
+    }
+
     return false;
 }
 
@@ -1008,7 +1063,7 @@ if ($event && !empty($event['id']) && dttd_display_goodnight_active($event)) {
     dttd_display_json(dttd_display_goodnight_payload($event, $partners));
 }
 
-if (!$event || empty($event['id']) || !dttd_display_event_is_live($event)) {
+if (!$event || empty($event['id']) || (!dttd_display_event_is_live($event) && dttd_display_standby_allowed_for_event($event))) {
     dttd_display_json(dttd_display_standby_payload($partners));
 }
 
