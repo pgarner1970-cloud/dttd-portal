@@ -134,10 +134,16 @@ $homepageEventAlreadyConnected = function_exists('dttd_event_from_access_cookie'
 // Guests must enter the event code or scan the QR code shown at the venue.
 // If this browser is already attached to the live event, go directly to the requested feature.
 $eventAccessBaseUrl = '/event.php';
-$privateEventRequestUrl = $homepageEventAlreadyConnected ? '/request.php' : $eventAccessBaseUrl . '?next=request';
-$privateEventUploadUrl = $homepageEventAlreadyConnected ? '/upload.php' : $eventAccessBaseUrl . '?next=upload';
-$privateEventSelfieUrl = $homepageEventAlreadyConnected ? '/upload.php?selfie=1' : $eventAccessBaseUrl . '?next=selfie';
-$privateEventInfoUrl = $homepageEventAlreadyConnected ? '/event.php' : $eventAccessBaseUrl . '?next=event';
+$liveEventInfoUrl = $homepageEventAlreadyConnected ? '/event.php' : '/event.php?next=event';
+$liveEventRequestUrl = $homepageEventAlreadyConnected ? '/request.php' : '/event.php?next=request';
+$liveEventUploadUrl = $homepageEventAlreadyConnected ? '/upload.php' : '/event.php?next=upload';
+$liveEventSelfieUrl = $homepageEventAlreadyConnected ? '/upload.php?selfie=1' : '/event.php?next=selfie';
+
+// Keep the older variable names as aliases for any remaining template branches.
+$privateEventInfoUrl = $liveEventInfoUrl;
+$privateEventRequestUrl = $liveEventRequestUrl;
+$privateEventUploadUrl = $liveEventUploadUrl;
+$privateEventSelfieUrl = $liveEventSelfieUrl;
 $public_current = 'home';
 ?>
 <!DOCTYPE html>
@@ -183,8 +189,8 @@ $public_current = 'home';
         <?php endif; ?>
 
         <div class="option-one-action-strip dynamic-action-strip <?= $homepageEventAlreadyConnected ? 'is-connected-event' : '' ?>" data-homepage-state="<?= htmlspecialchars($homepage_state) ?>" aria-label="Event actions">
-          <?php if ($homepage_state === 'public-event' && $active_event && !empty($active_event['event_code'])): ?>
-            <a class="option-one-action-card primary-action" href="<?= htmlspecialchars($privateEventInfoUrl) ?>">
+          <?php if ($homepage_state === 'public-event' && $active_event): ?>
+            <a class="option-one-action-card primary-action" href="<?= htmlspecialchars($liveEventInfoUrl) ?>" data-event-action="event">
               <span class="option-one-icon">▣</span>
               <span>
                 <strong>This Event</strong>
@@ -192,7 +198,7 @@ $public_current = 'home';
               </span>
             </a>
 
-            <a class="option-one-action-card" href="<?= htmlspecialchars($privateEventRequestUrl) ?>">
+            <a class="option-one-action-card" href="<?= htmlspecialchars($liveEventRequestUrl) ?>" data-event-action="request">
               <span class="option-one-icon">♪</span>
               <span>
                 <strong>Request a Song</strong>
@@ -200,7 +206,7 @@ $public_current = 'home';
               </span>
             </a>
 
-            <a class="option-one-action-card" href="<?= htmlspecialchars($privateEventUploadUrl) ?>">
+            <a class="option-one-action-card" href="<?= htmlspecialchars($liveEventUploadUrl) ?>" data-event-action="upload">
               <span class="option-one-icon">▧</span>
               <span>
                 <strong>Upload Photos</strong>
@@ -208,7 +214,7 @@ $public_current = 'home';
               </span>
             </a>
 
-            <a class="option-one-action-card mobile-selfie-action" href="<?= htmlspecialchars($privateEventSelfieUrl) ?>">
+            <a class="option-one-action-card mobile-selfie-action" href="<?= htmlspecialchars($liveEventSelfieUrl) ?>" data-event-action="selfie">
               <span class="option-one-icon">🤳</span>
               <span>
                 <strong>Take a Selfie</strong>
@@ -216,8 +222,8 @@ $public_current = 'home';
               </span>
             </a>
 
-          <?php elseif ($homepage_state === 'private-event' && $active_event && !empty($active_event['event_code'])): ?>
-            <a class="option-one-action-card primary-action" href="<?= htmlspecialchars($privateEventInfoUrl) ?>">
+          <?php elseif ($homepage_state === 'private-event' && $active_event): ?>
+            <a class="option-one-action-card primary-action" href="<?= htmlspecialchars($liveEventInfoUrl) ?>" data-event-action="event">
               <span class="option-one-icon">▣</span>
               <span>
                 <strong>Event Info</strong>
@@ -225,7 +231,7 @@ $public_current = 'home';
               </span>
             </a>
 
-            <a class="option-one-action-card" href="<?= htmlspecialchars($privateEventRequestUrl) ?>">
+            <a class="option-one-action-card" href="<?= htmlspecialchars($liveEventRequestUrl) ?>" data-event-action="request">
               <span class="option-one-icon">♪</span>
               <span>
                 <strong>Guest Requests</strong>
@@ -233,7 +239,7 @@ $public_current = 'home';
               </span>
             </a>
 
-            <a class="option-one-action-card" href="<?= htmlspecialchars($privateEventUploadUrl) ?>">
+            <a class="option-one-action-card" href="<?= htmlspecialchars($liveEventUploadUrl) ?>" data-event-action="upload">
               <span class="option-one-icon">▧</span>
               <span>
                 <strong>Upload Photos</strong>
@@ -241,7 +247,7 @@ $public_current = 'home';
               </span>
             </a>
 
-            <a class="option-one-action-card mobile-selfie-action" href="<?= htmlspecialchars($privateEventSelfieUrl) ?>">
+            <a class="option-one-action-card mobile-selfie-action" href="<?= htmlspecialchars($liveEventSelfieUrl) ?>" data-event-action="selfie">
               <span class="option-one-icon">🤳</span>
               <span>
                 <strong>Take a Selfie</strong>
@@ -428,6 +434,33 @@ $public_current = 'home';
     <?php endif; ?>
       <?php require __DIR__ . '/includes/public-footer.php'; ?>
   </main>
+<!-- homepage live-event action fallback -->
+
+<script>
+(function(){
+  var strip = document.querySelector('.dynamic-action-strip[data-homepage-state="public-event"], .dynamic-action-strip[data-homepage-state="private-event"]');
+  if (!strip) return;
+
+  var connected = strip.classList.contains('is-connected-event');
+  var targets = connected ? {
+    event: '/event.php',
+    request: '/request.php',
+    upload: '/upload.php',
+    selfie: '/upload.php?selfie=1'
+  } : {
+    event: '/event.php?next=event',
+    request: '/event.php?next=request',
+    upload: '/event.php?next=upload',
+    selfie: '/event.php?next=selfie'
+  };
+
+  strip.querySelectorAll('[data-event-action]').forEach(function(link){
+    var key = link.getAttribute('data-event-action');
+    if (targets[key]) link.setAttribute('href', targets[key]);
+  });
+})();
+</script>
+
 <script src="<?= h(dttd_asset_url('assets/public-now-playing.js')) ?>"></script>
 <?= dttd_bfcache_reload_script() ?>
 </body>
