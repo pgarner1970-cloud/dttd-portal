@@ -3,6 +3,20 @@ require_once __DIR__ . '/includes/db.php';
 dttd_no_cache_headers();
 require_once __DIR__ . '/includes/photo-uploads.php';
 
+dttd_redirect_public_feature_to_primary_domain();
+
+$uploadAccessError = '';
+$is_upload_access_attempt = (
+    isset($_GET['code']) || isset($_GET['token']) || isset($_GET['access']) ||
+    isset($_POST['event_access_code']) || isset($_POST['event_code']) || isset($_POST['code']) || isset($_POST['token']) || isset($_POST['access'])
+);
+
+if ($is_upload_access_attempt && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    [$access_event, $access_error] = dttd_handle_event_access_submission('/upload.php');
+    $uploadAccessError = $access_error;
+}
+
+
 $public_current = 'gallery';
 $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
 
@@ -122,6 +136,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </section>
 
     <section class="public-gallery-shell">
+      <?php if (!empty($uploadAccessError)): ?>
+        <div class="public-alert error upload-access-error"><?= h($uploadAccessError) ?></div>
+      <?php endif; ?>
       <article class="public-filter-card upload-card">
         <p class="option-one-eyebrow"><?= $selfieMode ? 'Selfie Upload' : 'Photo Upload' ?></p>
         <h2><?= $selfieMode ? 'Snap and share your event selfie' : ($uploadEventLocked ? 'Share photos from this event' : ($currentEvent ? 'Share your event memories' : 'Choose an event and upload')) ?></h2>

@@ -130,12 +130,14 @@ $facebookUrl = 'https://www.facebook.com/profile.php?id=61579454050951';
 $privateEventName = ($homepage_state === 'private-event' && $active_event) ? home_public_event_title($active_event) : '';
 $privateEventType = ($homepage_state === 'private-event' && $active_event) ? strtolower((string)($active_event['event_type'] ?? 'private_party')) : '';
 $homepageEventAlreadyConnected = function_exists('dttd_event_from_access_cookie') && $active_event ? ((($cookieEvent = dttd_event_from_access_cookie(false)) && (int)($cookieEvent['id'] ?? 0) === (int)($active_event['id'] ?? 0))) : false;
-// Do not expose the private event code in public homepage links.
+// Do not expose the event code in public homepage links.
 // Guests must enter the event code or scan the QR code shown at the venue.
-$privateEventRequestUrl = $homepageEventAlreadyConnected ? '/request.php' : '/event.php?next=request';
-$privateEventUploadUrl = $homepageEventAlreadyConnected ? '/upload.php' : '/event.php?next=upload';
-$privateEventSelfieUrl = $homepageEventAlreadyConnected ? '/upload.php?selfie=1' : '/event.php?next=selfie';
-$privateEventInfoUrl = $homepageEventAlreadyConnected ? '/event.php' : '/event.php?next=event';
+// If this browser is already attached to the live event, go directly to the requested feature.
+$eventAccessBaseUrl = '/event.php';
+$privateEventRequestUrl = $homepageEventAlreadyConnected ? '/request.php' : $eventAccessBaseUrl . '?next=request';
+$privateEventUploadUrl = $homepageEventAlreadyConnected ? '/upload.php' : $eventAccessBaseUrl . '?next=upload';
+$privateEventSelfieUrl = $homepageEventAlreadyConnected ? '/upload.php?selfie=1' : $eventAccessBaseUrl . '?next=selfie';
+$privateEventInfoUrl = $homepageEventAlreadyConnected ? '/event.php' : $eventAccessBaseUrl . '?next=event';
 $public_current = 'home';
 ?>
 <!DOCTYPE html>
