@@ -375,12 +375,24 @@ function dttd_display_recent_tracks($eventId, $limit = 8) {
     if ($eventId <= 0 || !function_exists('dttd_history_public_track_rows')) return [];
     $out = [];
     foreach (dttd_history_public_track_rows($eventId, $limit) as $row) {
+        $requesterName = '';
+        $requestId = (int)($row['request_id'] ?? 0);
+        if ($requestId > 0 && dttd_display_table_exists('event_requests')) {
+            try {
+                $stmt = db()->prepare('SELECT requester_name FROM event_requests WHERE id = ? LIMIT 1');
+                $stmt->execute([$requestId]);
+                $requesterName = (string)($stmt->fetchColumn() ?: '');
+            } catch (Throwable $e) {}
+        }
+
         $out[] = [
             'id' => (int)($row['id'] ?? 0),
             'track_name' => (string)($row['song_title'] ?? ''),
             'artist_name' => (string)($row['artist'] ?? ''),
             'artwork_url' => dttd_display_url($row['spotify_album_image'] ?? ''),
             'played_at' => (string)($row['created_at'] ?? ''),
+            'request_id' => $requestId,
+            'requester_name' => $requesterName,
         ];
     }
     return $out;

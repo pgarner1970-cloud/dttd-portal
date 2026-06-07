@@ -238,9 +238,24 @@
     return text(item.artwork_url || item.image || item.spotify_album_image || item.album_image || '', '');
   }
 
+
+  function requestIsPlayed(item) {
+    return requestStatusLabel(item && item.status).toLowerCase() === 'played';
+  }
+
+  function requestIsRejected(item) {
+    const label = requestStatusLabel(item && item.status).toLowerCase();
+    return label === 'rejected' || label === 'cancelled';
+  }
+
+  function requestIsActive(item) {
+    return !requestIsPlayed(item) && !requestIsRejected(item);
+  }
+
   function renderMusicBoard() {
     const requestSource = Array.isArray(state.requests) ? state.requests.slice() : [];
-    const requests = requestSource
+    const activeRequests = requestSource
+      .filter(requestIsActive)
       .sort((a, b) => {
         const rank = requestStatusRank(a.status) - requestStatusRank(b.status);
         if (rank !== 0) return rank;
@@ -249,7 +264,7 @@
 
     const recent = Array.isArray(state.recent_tracks) ? state.recent_tracks : [];
 
-    const requestItems = requests.slice(0, isLite ? 3 : 4).map((req, idx) => {
+    const requestItems = activeRequests.slice(0, 5).map((req, idx) => {
       const status = requestStatusLabel(req.status);
       const statusClass = requestStatusClass(req.status);
       const person = text(req.requester_name, '');
@@ -266,19 +281,21 @@
         + '</div>';
     }).join('');
 
-    const playedTracks = recent.slice(0, isLite ? 5 : 7).map((track, idx) => {
+    const playedTracks = recent.slice(0, 5).map((track, idx) => {
       const artwork = requestArtwork(track);
+      const person = text(track.requester_name || track.guest_name || '', '');
       return '<div class="music-board-played-track music-board-row request-status-played">'
         + '<div class="music-board-row-art">' + (artwork ? '<img class="music-board-artwork" src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>') + '</div>'
         + '<div class="music-board-row-copy"><strong>' + esc(text(track.track_name || track.title, 'Unknown track')) + '</strong>'
         + (track.artist_name || track.artist ? '<span>' + esc(text(track.artist_name || track.artist, '')) + '</span>' : '')
+        + (person ? '<em>Requested by ' + esc(person) + '</em>' : '')
         + '</div>'
         + '<p class="request-status-pill">Played</p>'
         + '</div>';
     }).join('');
 
     return '<article class="display-slide" data-slide="music_board">'
-      + '<div class="display-card music-board-card music-board-card-stable">'
+      + '<div class="display-card music-board-card music-board-card-stable music-board-card-five">'
       + '<div class="music-board-head"><p class="display-kicker">Tonight’s Music</p><h1>Requests & played</h1></div>'
       + '<div class="music-board-body">'
       + '<section class="music-board-panel music-board-requests">'
