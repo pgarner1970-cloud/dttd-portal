@@ -168,16 +168,16 @@
     }
 
     return '<article class="display-slide" data-slide="up_next">'
-      + '<div class="display-card up-next-feature">'
-      + '<div class="up-next-head"><p class="display-kicker">Loaded Next</p><h1>Up next</h1></div>'
-      + '<div class="up-next-body">'
-      + '<div class="up-next-copy">'
+      + '<div class="display-card now-playing-feature up-next-feature-matched">'
+      + '<div class="now-feature-head"><p class="display-kicker">Up Next</p><h1>Coming up</h1></div>'
+      + '<div class="now-feature-body">'
+      + '<div class="now-feature-art">'
+      + (next.image ? '<img src="' + esc(next.image) + '" alt="Album artwork">' : '<div class="artwork-placeholder">♪</div>')
+      + '</div>'
+      + '<div class="now-feature-copy">'
       + '<strong>' + esc(text(next.title, 'Unknown track')) + '</strong>'
       + (next.artist ? '<span>' + esc(next.artist) + '</span>' : '')
-      + '<em>Ready on the other player</em>'
-      + '</div>'
-      + '<div class="up-next-art">'
-      + (next.image ? '<img src="' + esc(next.image) + '" alt="Album artwork">' : '<div class="artwork-placeholder">♪</div>')
+      + '<em>Loaded ready to play</em>'
       + '</div>'
       + '</div></div></article>';
   }
@@ -383,16 +383,32 @@
     return true;
   }
 
+  function normaliseSlides(baseSlides) {
+    let slides = Array.isArray(baseSlides) ? baseSlides.slice() : [];
+    if (state && state.active_event && slides.indexOf('now_playing') !== -1 && slides.indexOf('up_next') === -1) {
+      slides.splice(slides.indexOf('now_playing') + 1, 0, 'up_next');
+    }
+    slides = slides.filter(slideAllowed);
+
+    // Keep ordering stable and avoid duplicate QR slides bunching near the music slides.
+    const cleaned = [];
+    slides.forEach(name => {
+      if (cleaned.indexOf(name) === -1 || name === 'qr') cleaned.push(name);
+    });
+    return cleaned;
+  }
+
   function buildSlides(force) {
     if (!state) return;
     if (footerEvent && state.event) footerEvent.textContent = state.event.event_name || 'Dance Through The Decades';
 
-    const signature = slideContentSignature(state) + '::np:' + (currentTrack() ? (currentTrack().id || currentTrack().title || '') : '') + '::next:' + (upNextTrack() ? (upNextTrack().id || upNextTrack().title || '') : '');
     let slides = state.active_event ? (state.slides || ['welcome', 'qr', 'now_playing']) : ['standby', 'upcoming'];
-    if (state.active_event && slides.indexOf('now_playing') !== -1 && slides.indexOf('up_next') === -1) {
-      slides.splice(slides.indexOf('now_playing') + 1, 0, 'up_next');
-    }
-    slides = slides.filter(slideAllowed);
+    slides = normaliseSlides(slides);
+
+    const signature = slideContentSignature(state)
+      + '::slides:' + slides.join('|')
+      + '::np:' + (currentTrack() ? (currentTrack().id || currentTrack().title || '') : '')
+      + '::next:' + (upNextTrack() ? (upNextTrack().id || upNextTrack().title || '') : '');
 
     if (!force && signature === lastSlideSignature && stage.querySelector('.display-slide')) {
       updateActiveNowPlayingSlide();
@@ -452,9 +468,9 @@
         }
       }
 
-      // Rebuild only if the current/up-next availability changed. Otherwise update the
-      // active now-playing card in place to avoid resetting ticker animations.
-      buildSlides(false);
+      // Do not rebuild the whole slideshow during 5-second music polling.
+      // The full 15-second refresh handles slide availability; this keeps the
+      // carousel sequence stable and stops it falling into a music/QR mini-loop.
       updateActiveNowPlayingSlide();
     });
   }
@@ -463,8 +479,15 @@
     return fetchJson(stateUrl).then(data => {
       const hadSlides = !!stage.querySelector('.display-slide');
       if (data && data.ok) state = data;
-      buildSlides(!hadSlides);
-      return refreshNowPlaying();
+      return fetchJson(nowPlayingEndpoint()).then(np => {
+        if (np && np.ok) {
+          nowPlaying = np;
+          if (Array.isArray(np.tracks) && np.tracks.some(t => t.status === 'current')) {
+            lastLiveNowPlaying = np;
+          }
+        }
+        buildSlides(!hadSlides);
+      });
     }).then(() => {
       startLoop();
     });
