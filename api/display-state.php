@@ -109,6 +109,65 @@ function dttd_display_event_payload($event) {
     ];
 }
 
+function dttd_display_venue_payload($event) {
+    if (!$event) return null;
+
+    $venue = [];
+    $venueId = (int)($event['venue_id'] ?? 0);
+    if ($venueId > 0 && dttd_display_table_exists('venues')) {
+        try {
+            $stmt = db()->prepare('SELECT * FROM venues WHERE id = ? LIMIT 1');
+            $stmt->execute([$venueId]);
+            $venue = $stmt->fetch() ?: [];
+        } catch (Throwable $e) {
+            $venue = [];
+        }
+    }
+
+    $pick = function($key) use ($event, $venue) {
+        $value = isset($venue[$key]) ? trim((string)$venue[$key]) : '';
+        if ($value !== '') return $value;
+        return isset($event[$key]) ? trim((string)$event[$key]) : '';
+    };
+
+    $name = $pick('venue_name');
+    if ($name === '') return null;
+
+    $address = $pick('venue_address');
+    $postcode = $pick('venue_postcode');
+    $phone = $pick('venue_phone');
+    if ($phone === '') $phone = $pick('phone');
+    if ($phone === '') $phone = $pick('venue_telephone');
+
+    $socialLabel = $pick('venue_social_label');
+
+    $links = [];
+    $addLink = function($label, $url) use (&$links) {
+        $url = trim((string)$url);
+        if ($url === '') return;
+        if (!preg_match('~^https?://~i', $url)) return;
+        $links[] = [
+            'label' => $label,
+            'url' => $url,
+            'qr_image_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=460x460&margin=14&data=' . rawurlencode($url),
+        ];
+    };
+
+    $addLink('Facebook', $pick('venue_facebook_url'));
+    $addLink('Instagram', $pick('venue_instagram_url'));
+    $addLink($socialLabel !== '' ? $socialLabel : 'Website', $pick('venue_website_url'));
+
+    return [
+        'name' => $name,
+        'address' => $address,
+        'postcode' => $postcode,
+        'phone' => $phone,
+        'social_label' => $socialLabel,
+        'links' => $links,
+        'has_details' => ($address !== '' || $postcode !== '' || $phone !== '' || !empty($links)),
+    ];
+}
+
 function dttd_display_requests($eventId, $limit = 8) {
     if (!dttd_display_table_exists('event_requests')) return [];
     $eventId = (int)$eventId;
@@ -237,8 +296,12 @@ $requests = dttd_display_requests($eventId, 8);
 $recent = dttd_display_recent_tracks($eventId, 8);
 $upcoming = dttd_display_upcoming_events(5);
 $sponsors = dttd_display_sponsors($eventId, 6);
+$venue = dttd_display_venue_payload($event);
 
-$slides = ['welcome', 'qr', 'now_playing'];
+$slides = ['welcome'];
+if ($venue && !empty($venue['has_details'])) $slides[] = 'venue';
+$slides[] = 'qr';
+$slides[] = 'now_playing';
 if ($recent) $slides[] = 'recent';
 if ($requests) $slides[] = 'requests';
 if ($photos) $slides[] = 'photos';
@@ -254,6 +317,7 @@ dttd_display_json([
     'ok' => true,
     'active_event' => true,
     'event' => dttd_display_event_payload($event),
+    'venue' => $venue,
     'slides' => $slides,
     'requests' => $requests,
     'recent_tracks' => $recent,

@@ -55,6 +55,35 @@
     return '<strong>' + title + '</strong>' + (artist ? '<span>' + artist + '</span>' : '');
   }
 
+  function renderVenue() {
+    const venue = state && state.venue ? state.venue : null;
+    if (!venue || !venue.name) {
+      return '<article class="display-slide" data-slide="venue"><div class="display-card display-card-centre"><p class="display-kicker">Tonight’s Venue</p><h1>Thank you</h1></div></article>';
+    }
+
+    const addressBits = [venue.address, venue.postcode].filter(Boolean).map(esc).join('<br>');
+    const links = Array.isArray(venue.links) ? venue.links.slice(0, 3) : [];
+    const qrTiles = links.map(link => '<div class="venue-qr-tile">'
+      + '<img src="' + esc(link.qr_image_url || '') + '" alt="' + esc(link.label || 'Venue link') + ' QR code">'
+      + '<strong>' + esc(link.label || 'Venue link') + '</strong>'
+      + '</div>').join('');
+
+    return '<article class="display-slide" data-slide="venue">'
+      + '<div class="display-card venue-card">'
+      + '<div class="venue-head"><p class="display-kicker">Tonight’s Venue</p><h1>Thank you to our hosts</h1></div>'
+      + '<div class="venue-body">'
+      + '<div class="venue-copy">'
+      + '<span class="venue-label">Hosted by</span>'
+      + '<strong>' + esc(venue.name) + '</strong>'
+      + (addressBits ? '<p>' + addressBits + '</p>' : '')
+      + (venue.phone ? '<p class="venue-phone">Tel: ' + esc(venue.phone) + '</p>' : '')
+      + '<em>Give them a follow, tag your photos, and support the venue.</em>'
+      + '</div>'
+      + (qrTiles ? '<div class="venue-qr-grid">' + qrTiles + '</div>' : '<div class="venue-no-social">Venue social links can be added in the event details.</div>')
+      + '</div>'
+      + '</div></article>';
+  }
+
   function renderWelcome() {
     const event = state && state.event ? state.event : {};
     const isWedding = String(event.event_type || '').toLowerCase() === 'wedding';
@@ -218,6 +247,7 @@
   function renderSlide(name) {
     switch (name) {
       case 'welcome': return renderWelcome();
+      case 'venue': return renderVenue();
       case 'qr': return renderQr();
       case 'now_playing': return renderNowPlaying();
       case 'recent': return renderRecent();
