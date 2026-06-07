@@ -29,34 +29,49 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
 
 @media (max-width: 760px){.display-brand-wordmark{display:none}.display-header{gap:1rem}}
 
-/* Display-player upcoming events scroller: adapted from the public homepage ticker for HDMI screens. */
+/* Display-player upcoming events scroller: refined to match the photo-wall title layout and free more vertical space for event cards. */
 .display-coming-up-card-wrap{
   display:flex;
   flex-direction:column;
-  justify-content:center;
-  gap:clamp(28px,4vh,64px);
-  padding-inline:clamp(30px,4vw,72px);
+  justify-content:flex-start;
+  gap:clamp(16px,2vh,30px);
+  padding:clamp(24px,2.2vw,40px) clamp(34px,3.2vw,60px);
 }
 .display-coming-up-head{
-  display:flex;
-  align-items:flex-end;
-  justify-content:space-between;
-  gap:2vw;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:end;
+  gap:clamp(16px,1.5vw,28px);
   position:relative;
   z-index:1;
 }
+.display-coming-up-head > div{
+  display:contents;
+}
 .display-coming-up-head .display-kicker{
-  margin-bottom:1.2vh;
+  grid-column:1;
+  margin:0;
+  align-self:center;
+  white-space:nowrap;
 }
 .display-coming-up-head h1{
-  font-size:clamp(58px,7.6vw,146px);
+  grid-column:2;
+  justify-self:end;
+  margin:0;
+  text-align:right;
+  white-space:nowrap;
+  font-size:clamp(54px,5.6vw,108px);
+  line-height:.92;
 }
 .display-coming-up-head > span{
+  grid-column:3;
+  align-self:center;
+  justify-self:end;
   flex:0 0 auto;
   display:inline-flex;
   align-items:center;
-  min-height:clamp(46px,5vh,74px);
-  padding:0 clamp(18px,1.6vw,34px);
+  min-height:clamp(42px,4.2vh,64px);
+  padding:0 clamp(16px,1.4vw,28px);
   border-radius:999px;
   border:1px solid rgba(255,216,106,.38);
   background:rgba(255,216,106,.12);
@@ -64,33 +79,36 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
   text-transform:uppercase;
   letter-spacing:.18em;
   font-weight:950;
-  font-size:clamp(14px,1.2vw,24px);
+  font-size:clamp(13px,1vw,20px);
 }
 .display-coming-up-window{
   position:relative;
   z-index:1;
   overflow:hidden;
   width:100%;
-  padding:1vh 0 2vh;
+  flex:1;
+  display:flex;
+  align-items:center;
+  padding:.6vh 0 1.2vh;
   mask-image:linear-gradient(90deg, transparent 0, #000 6%, #000 94%, transparent 100%);
   -webkit-mask-image:linear-gradient(90deg, transparent 0, #000 6%, #000 94%, transparent 100%);
 }
 .display-coming-up-track{
   display:flex;
-  gap:clamp(18px,1.8vw,36px);
+  gap:clamp(18px,1.6vw,32px);
   width:max-content;
   will-change:transform;
   animation:displayComingTicker 44s linear infinite;
 }
 .display-coming-up-card{
-  flex:0 0 clamp(360px,28vw,560px);
-  min-height:clamp(190px,22vh,310px);
+  flex:0 0 clamp(320px,25vw,500px);
+  min-height:clamp(160px,18vh,250px);
   display:flex;
   flex-direction:column;
   justify-content:center;
-  gap:clamp(10px,1.2vh,18px);
-  padding:clamp(28px,2.6vw,54px);
-  border-radius:clamp(24px,2vw,38px);
+  gap:clamp(8px,.9vh,14px);
+  padding:clamp(20px,2vw,38px);
+  border-radius:clamp(24px,2vw,36px);
   border:1px solid rgba(255,125,243,.35);
   background:
     radial-gradient(circle at 12% 18%, rgba(255,216,106,.16), transparent 36%),
@@ -101,24 +119,25 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
   color:var(--display-gold);
   text-transform:uppercase;
   letter-spacing:.18em;
-  font-size:clamp(17px,1.35vw,30px);
+  font-size:clamp(15px,1.05vw,24px);
   line-height:1;
 }
 .display-coming-up-card span{
   display:block;
   color:#fff;
   font-weight:1000;
-  line-height:.98;
-  letter-spacing:-.045em;
-  font-size:clamp(36px,3.6vw,76px);
+  line-height:.96;
+  letter-spacing:-.04em;
+  font-size:clamp(28px,2.85vw,58px);
+  overflow-wrap:anywhere;
 }
 .display-coming-up-card em{
   display:block;
   color:rgba(255,255,255,.86);
   font-style:normal;
   font-weight:800;
-  line-height:1.25;
-  font-size:clamp(22px,1.8vw,38px);
+  line-height:1.2;
+  font-size:clamp(18px,1.35vw,28px);
 }
 @keyframes displayComingTicker{
   from{ transform:translateX(0); }
@@ -128,8 +147,19 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
   .display-coming-up-track{animation:none;}
 }
 @media (max-aspect-ratio: 4/3){
-  .display-coming-up-head{align-items:flex-start;flex-direction:column;}
-  .display-coming-up-card{flex-basis:clamp(320px,46vw,520px);}
+  .display-coming-up-head{
+    grid-template-columns:1fr;
+    align-items:flex-start;
+  }
+  .display-coming-up-head .display-kicker,
+  .display-coming-up-head h1,
+  .display-coming-up-head > span{
+    grid-column:auto;
+    justify-self:start;
+    text-align:left;
+  }
+  .display-coming-up-head h1{white-space:normal;}
+  .display-coming-up-card{flex-basis:clamp(300px,44vw,460px);}
 }
 
 /* Display photo wall refinements: show the complete uploaded image frame/logos and keep random batches readable. */
