@@ -356,21 +356,47 @@ function dttd_display_sponsors($eventId, $limit = 6) {
     }
 }
 
-$event = dttd_display_event();
-$partners = dttd_display_partners(12);
-if (!$event || empty($event['id'])) {
-    $standbySlides = ['welcome', 'upcoming'];
-    if ($partners) $standbySlides[] = 'partners';
+function dttd_display_event_is_live($event) {
+    if (!$event || empty($event['id'])) return false;
 
-    dttd_display_json([
+    try {
+        if (function_exists('dttd_event_live_now') && dttd_event_live_now($event)) return true;
+    } catch (Throwable $e) {}
+
+    $status = strtolower(trim((string)($event['status'] ?? '')));
+    if ($status === 'live') return true;
+
+    return false;
+}
+
+function dttd_display_standby_payload($partners = []) {
+    $website = 'https://dancethruthedecades.co.uk/';
+    $facebook = 'https://www.facebook.com/profile.php?id=61579454050951';
+
+    return [
         'ok' => true,
         'active_event' => false,
+        'display_mode' => 'standby',
         'event' => null,
-        'slides' => $standbySlides,
-        'upcoming_events' => dttd_display_upcoming_events(6),
+        'slides' => ['standby'],
+        'standby' => [
+            'website_url' => $website,
+            'website_label' => 'dancethruthedecades.co.uk',
+            'website_qr_image_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=560x560&margin=16&data=' . rawurlencode($website),
+            'facebook_url' => $facebook,
+            'facebook_label' => 'Facebook',
+            'facebook_qr_image_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=560x560&margin=16&data=' . rawurlencode($facebook),
+        ],
         'partners' => $partners,
         'generated_at' => date('c'),
-    ]);
+    ];
+}
+
+$event = dttd_display_event();
+$partners = dttd_display_partners(12);
+
+if (!$event || empty($event['id']) || !dttd_display_event_is_live($event)) {
+    dttd_display_json(dttd_display_standby_payload($partners));
 }
 
 $eventId = (int)$event['id'];
@@ -385,8 +411,11 @@ $venue = dttd_display_venue_payload($event);
 $slides = ['welcome'];
 if ($venue && !empty($venue['has_details'])) $slides[] = 'venue';
 $slides[] = 'qr';
+$slides[] = 'music_board';
 $slides[] = 'now_playing';
-if ($requests || $playedRequests || $recent) $slides[] = 'music_board';
+
+// Keep the dedicated music-board slide in every active event loop. It has its own
+// empty-state messages, and requests can exist even when the DJ mixer is not running.
 if ($recent) $slides[] = 'recent';
 if ($requests) $slides[] = 'requests';
 if ($photos) $slides[] = 'photos';
@@ -395,13 +424,16 @@ if ($partners) $slides[] = 'partners';
 if ($sponsors) $slides[] = 'sponsors';
 
 // Repeat the QR slide so guests regularly see the event code during the loop.
-if (in_array('qr', $slides, true) && count($slides) > 4) {
-    array_splice($slides, min(4, count($slides)), 0, ['qr']);
+if (in_array('qr', $slides, true) && count($slides) > 5) {
+    // Repeat the QR later in the loop, after the core information slides have appeared.
+    $insertAt = min(6, count($slides));
+    array_splice($slides, $insertAt, 0, ['qr']);
 }
 
 dttd_display_json([
     'ok' => true,
     'active_event' => true,
+    'display_mode' => 'live_event',
     'event' => dttd_display_event_payload($event),
     'venue' => $venue,
     'slides' => $slides,

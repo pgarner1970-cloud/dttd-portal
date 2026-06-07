@@ -370,11 +370,24 @@
   }
 
   function renderStandby() {
+    const standby = state && state.standby ? state.standby : {};
     return '<article class="display-slide" data-slide="standby">'
-      + '<div class="display-card display-card-centre display-card-hero">'
-      + '<p class="display-kicker">Dance Through The Decades</p>'
+      + '<div class="display-card standby-social-card">'
+      + '<div class="standby-social-head">'
+      + '<p class="display-kicker">Dance Thru The Decades</p>'
       + '<h1>Event display ready</h1>'
-      + '<p class="display-large-note">Set an active event in the DJ portal to show live requests, QR codes, photos and music.</p>'
+      + '</div>'
+      + '<div class="standby-social-body">'
+      + '<div class="standby-social-copy">'
+      + '<strong>Dance Thru The Decades</strong>'
+      + '<span>Music • memories • parties • celebrations</span>'
+      + '<em>Scan to visit our website or follow us on Facebook.</em>'
+      + '</div>'
+      + '<div class="standby-social-qr-grid">'
+      + '<div class="standby-social-qr"><img src="' + esc(standby.website_qr_image_url || '') + '" alt="Website QR code"><strong>Website</strong><span>' + esc(standby.website_label || 'dancethruthedecades.co.uk') + '</span></div>'
+      + '<div class="standby-social-qr"><img src="' + esc(standby.facebook_qr_image_url || '') + '" alt="Facebook QR code"><strong>Facebook</strong><span>Follow us</span></div>'
+      + '</div>'
+      + '</div>'
       + '</div></article>';
   }
 
@@ -429,6 +442,10 @@
 
   function normaliseSlides(baseSlides) {
     let slides = Array.isArray(baseSlides) ? baseSlides.slice() : [];
+    if (state && state.active_event && slides.indexOf('music_board') === -1) {
+      const qrIndex = slides.indexOf('qr');
+      slides.splice(qrIndex >= 0 ? qrIndex + 1 : 1, 0, 'music_board');
+    }
     if (state && state.active_event && slides.indexOf('now_playing') !== -1 && slides.indexOf('up_next') === -1) {
       slides.splice(slides.indexOf('now_playing') + 1, 0, 'up_next');
     }
