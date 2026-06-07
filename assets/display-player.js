@@ -168,8 +168,8 @@
     }
 
     return '<article class="display-slide" data-slide="up_next">'
-      + '<div class="display-card now-playing-feature up-next-feature-matched">'
-      + '<div class="now-feature-head"><p class="display-kicker">Up Next</p><h1>Coming up</h1></div>'
+      
+      + '<div class="now-feature-head"><p class="display-kicker">Up Next</p><h1>On the decks</h1></div>'
       + '<div class="now-feature-body">'
       + '<div class="now-feature-art">'
       + (next.image ? '<img src="' + esc(next.image) + '" alt="Album artwork">' : '<div class="artwork-placeholder">♪</div>')

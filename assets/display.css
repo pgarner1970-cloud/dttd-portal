@@ -1092,11 +1092,4 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
 }
 
 
-/* Up-next should visually match Now Playing. */
-.up-next-feature-matched .now-feature-head h1{
-  font-size:clamp(58px,6vw,116px);
-}
-
-.up-next-feature-matched .now-feature-copy em{
-  color:var(--display-muted);
-}
+/* Up-next uses the exact same visual component sizing as Now Playing. */
