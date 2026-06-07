@@ -27,8 +27,14 @@ $nowPlayingUrl = '/api/public-now-playing.php' . ($eventParam !== '' && str_star
     <div class="display-bg-orb two"></div>
 
     <header class="display-header">
-      <div class="display-brand">
-        <img src="<?= h(dttd_asset_url('assets/dttd-neon-logo.png')) ?>" alt="Dance Through The Decades">
+      <div class="display-brand" aria-label="Dance Through The Decades Events">
+        <span class="display-brand-logo">
+          <img src="<?= h(dttd_asset_url('assets/dttd-logo-inner.png?v=152')) ?>" alt="Dance Through The Decades Events">
+        </span>
+        <span class="display-brand-wordmark">
+          <strong>Dance Thru The Decades</strong>
+          <em>Event Display</em>
+        </span>
       </div>
       <div class="display-clock" data-display-clock>--:--</div>
     </header>
