@@ -372,13 +372,14 @@ function dttd_display_event_is_live($event) {
 function dttd_display_standby_payload($partners = []) {
     $website = 'https://dancethruthedecades.co.uk/';
     $facebook = 'https://www.facebook.com/profile.php?id=61579454050951';
+    $upcoming = dttd_display_upcoming_events(8);
 
     return [
         'ok' => true,
         'active_event' => false,
         'display_mode' => 'standby',
         'event' => null,
-        'slides' => ['standby'],
+        'slides' => $upcoming ? ['standby', 'upcoming'] : ['standby'],
         'standby' => [
             'website_url' => $website,
             'website_label' => 'dancethruthedecades.co.uk',
@@ -387,6 +388,7 @@ function dttd_display_standby_payload($partners = []) {
             'facebook_label' => 'Facebook',
             'facebook_qr_image_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=560x560&margin=16&data=' . rawurlencode($facebook),
         ],
+        'upcoming_events' => $upcoming,
         'partners' => $partners,
         'generated_at' => date('c'),
     ];

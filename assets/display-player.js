@@ -372,16 +372,16 @@
   function renderStandby() {
     const standby = state && state.standby ? state.standby : {};
     return '<article class="display-slide" data-slide="standby">'
-      + '<div class="display-card standby-social-card">'
+      + '<div class="display-card standby-social-card standby-social-card-refined">'
       + '<div class="standby-social-head">'
-      + '<p class="display-kicker">Dance Thru The Decades</p>'
-      + '<h1>Event display ready</h1>'
+      + '<p class="display-kicker">No current event</p>'
+      + '<h1>Dance Thru The Decades</h1>'
       + '</div>'
       + '<div class="standby-social-body">'
       + '<div class="standby-social-copy">'
-      + '<strong>Dance Thru The Decades</strong>'
-      + '<span>Music • memories • parties • celebrations</span>'
-      + '<em>Scan to visit our website or follow us on Facebook.</em>'
+      + '<strong>Find us online</strong>'
+      + '<span>Events • photos • requests • memories</span>'
+      + '<em>Scan to visit the website or follow us on Facebook.</em>'
       + '</div>'
       + '<div class="standby-social-qr-grid">'
       + '<div class="standby-social-qr"><img src="' + esc(standby.website_qr_image_url || '') + '" alt="Website QR code"><strong>Website</strong><span>' + esc(standby.website_label || 'dancethruthedecades.co.uk') + '</span></div>'
@@ -463,7 +463,7 @@
     if (!state) return;
     if (footerEvent && state.event) footerEvent.textContent = state.event.event_name || 'Dance Through The Decades';
 
-    let slides = state.active_event ? (state.slides || ['welcome', 'qr', 'now_playing']) : ['standby', 'upcoming'];
+    let slides = state.active_event ? (state.slides || ['welcome', 'qr', 'now_playing']) : (state.slides || ['standby']);
     slides = normaliseSlides(slides);
 
     const signature = slideContentSignature(state)
