@@ -196,7 +196,7 @@ function public_np_track_from_loaded($loaded, $deckLabel = '') {
     $title = trim((string)($loaded['title'] ?? $loaded['song_title'] ?? ''));
     if ($id === '' && $title === '') return null;
 
-    return [
+    return public_np_upgrade_loaded_track_artwork([
         'id' => $id,
         'title' => $title,
         'artist' => trim((string)($loaded['artist'] ?? '')),
@@ -205,7 +205,80 @@ function public_np_track_from_loaded($loaded, $deckLabel = '') {
         'deck' => $deckLabel,
         'progress_ms' => public_np_estimated_loaded_position_ms($loaded),
         'duration_ms' => isset($loaded['duration_ms']) ? (int)$loaded['duration_ms'] : null,
-    ];
+    ]);
+}
+
+function public_np_spotify_track_id($track) {
+    $id = trim((string)($track['id'] ?? $track['spotify_track_id'] ?? $track['spotify_uri'] ?? ''));
+    if ($id === '' || strpos($id, 'local:') === 0) return '';
+    if (strpos($id, 'spotify:track:') === 0) return substr($id, strlen('spotify:track:'));
+    if (preg_match('~/track/([A-Za-z0-9]+)~', $id, $m)) return $m[1];
+    if (preg_match('~^[A-Za-z0-9]{12,}$~', $id)) return $id;
+    return '';
+}
+
+function public_np_cached_artwork_for_track_id($trackId) {
+    $trackId = public_np_spotify_track_id(['id' => $trackId]);
+    if ($trackId === '') return '';
+
+    // v2 deliberately avoids older cached values that may have been saved from a
+    // small loaded-deck thumbnail. Prefer a fresh Spotify track lookup where possible.
+    $settingKey = 'display_spotify_artwork_v2_' . md5($trackId);
+    $cached = public_np_setting($settingKey, '');
+    if ($cached !== '') return $cached;
+
+    if (function_exists('dttd_spotify_config_loaded') && dttd_spotify_config_loaded() && function_exists('dttd_spotify_user_access_token') && function_exists('dttd_spotify_http_get')) {
+        try {
+            $token = dttd_spotify_user_access_token();
+            $data = dttd_spotify_http_get('https://api.spotify.com/v1/tracks/' . rawurlencode($trackId), [
+                'Authorization: Bearer ' . $token,
+                'Accept: application/json',
+            ]);
+            $image = public_np_best_spotify_image($data['album']['images'] ?? []);
+            if ($image !== '') {
+                public_np_set($settingKey, $image);
+                return $image;
+            }
+        } catch (Throwable $e) {}
+    }
+
+    if (public_np_table_exists('spotify_track_cache')) {
+        try {
+            $stmt = db()->prepare("
+                SELECT artwork_url
+                FROM spotify_track_cache
+                WHERE spotify_uri IN (?, ?, ?)
+                ORDER BY last_seen_at DESC, id DESC
+                LIMIT 1
+            ");
+            $stmt->execute([$trackId, 'spotify:track:' . $trackId, 'https://open.spotify.com/track/' . $trackId]);
+            $image = trim((string)($stmt->fetchColumn() ?: ''));
+            if ($image !== '') {
+                public_np_set($settingKey, $image);
+                return $image;
+            }
+        } catch (Throwable $e) {}
+    }
+
+    // Last chance: old cache key from the previous patch, but only after trying
+    // Spotify/cache-table sources first.
+    $oldCached = public_np_setting('display_spotify_artwork_' . md5($trackId), '');
+    return $oldCached;
+}
+
+function public_np_upgrade_loaded_track_artwork($track) {
+    if (!is_array($track)) return $track;
+    $trackId = public_np_spotify_track_id($track);
+    if ($trackId === '') return $track;
+
+    $betterImage = public_np_cached_artwork_for_track_id($trackId);
+    if ($betterImage !== '') $track['image'] = $betterImage;
+
+    if (empty($track['url'])) {
+        $track['url'] = 'https://open.spotify.com/track/' . $trackId;
+    }
+
+    return $track;
 }
 
 function public_np_loaded_track_looks_live($loaded) {
