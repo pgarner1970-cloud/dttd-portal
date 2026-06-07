@@ -387,6 +387,12 @@ function dttd_public_request_base_url($fallback = '') {
         'www.djdancethruthedecades.co.uk',
         'dj.dancethruthedecades.co.uk',
         'www.dj.dancethruthedecades.co.uk',
+
+        // Display/admin-only hosts must never be embedded in guest QR codes.
+        // The HDMI display may run from live.dancethruthedecades.co.uk, but
+        // scanned event QR links must send guests to the public website.
+        'live.dancethruthedecades.co.uk',
+        'www.live.dancethruthedecades.co.uk',
     ];
 
     if (in_array($host, $portalHosts, true)) {
