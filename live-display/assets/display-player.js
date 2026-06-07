@@ -122,20 +122,24 @@
     const endParts = countdownParts(eventEnd);
     const requestParts = countdownParts(requestClose);
     const eventCountdown = eventEnd ? countdownText(endParts) : '--:--:--';
-    const requestLine = (!requestsOpen || !requestClose || (requestParts && requestParts.expired))
-      ? 'Requests are closed for the night'
-      : 'Keep the requests coming — you’ve got ' + countdownText(requestParts) + ' left';
+    const requestsClosed = !requestsOpen || !requestClose || (requestParts && requestParts.expired);
+    const requestCountdown = requestClose && !requestsClosed ? countdownText(requestParts) : '--:--:--';
 
     return '<article class="display-slide" data-slide="event_timer">'
-      + '<div class="display-card event-timer-card">'
+      + '<div class="display-card event-timer-card event-timer-card-split">'
       + '<div class="event-timer-head"><p class="display-kicker">This Event</p><h1>Keep dancing</h1></div>'
-      + '<div class="event-timer-main">'
-      + '<p>Keep going — you’ve got</p>'
+      + '<div class="event-timer-grid">'
+      + '<section class="event-timer-panel event-timer-panel-dance">'
+      + '<p>Keep going</p>'
       + '<strong data-countdown-target="' + esc(eventEnd) + '">' + esc(eventCountdown) + '</strong>'
       + '<span>left to dance</span>'
-      + '</div>'
-      + '<div class="event-timer-requests' + ((!requestsOpen || !requestClose || (requestParts && requestParts.expired)) ? ' is-closed' : '') + '">'
-      + '<span data-request-countdown-target="' + esc(requestClose) + '">' + esc(requestLine) + '</span>'
+      + '</section>'
+      + '<section class="event-timer-panel event-timer-panel-requests' + (requestsClosed ? ' is-closed' : '') + '">'
+      + '<p>Keep the requests coming</p>'
+      + (requestsClosed
+        ? '<strong class="timer-closed-text">Closed</strong><span>Requests are closed for the night</span>'
+        : '<strong data-countdown-target="' + esc(requestClose) + '">' + esc(requestCountdown) + '</strong><span>left to send requests</span>')
+      + '</section>'
       + '</div>'
       + '</div></article>';
   }
