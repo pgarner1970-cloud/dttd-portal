@@ -724,7 +724,7 @@
   }
 
   function buildSlides(force) {
-    if (!state) return;
+    if (!state) return false;
     if (footerEvent && state.event) footerEvent.textContent = state.event.event_name || 'Dance Through The Decades';
 
     let slides = state.active_event ? (state.slides || ['welcome', 'qr', 'now_playing']) : (state.slides || ['standby']);
@@ -737,7 +737,7 @@
 
     if (!force && signature === lastSlideSignature && stage.querySelector('.display-slide')) {
       updateActiveNowPlayingSlide();
-      return;
+      return false;
     }
 
     lastSlideSignature = signature;
@@ -753,6 +753,7 @@
     }
 
     showSlide(slideIndex);
+    return true;
   }
 
   function showSlide(index) {
@@ -783,17 +784,23 @@
   }
 
   function startLoop() {
-    if (loopTimer) clearTimeout(loopTimer);
+    if (slideTimer) clearTimeout(slideTimer);
 
     function scheduleNext() {
       const slides = stage.querySelectorAll('.display-slide');
-      if (!slides.length) return;
+      if (!slides.length) {
+        slideTimer = null;
+        return;
+      }
 
       const current = slides[slideIndex] || slides[0];
       const currentName = current ? current.getAttribute('data-slide') : '';
-      loopTimer = setTimeout(function(){
+      slideTimer = setTimeout(function(){
         const latestSlides = stage.querySelectorAll('.display-slide');
-        if (!latestSlides.length) return;
+        if (!latestSlides.length) {
+          slideTimer = null;
+          return;
+        }
         slideIndex = (slideIndex + 1) % latestSlides.length;
         showSlide(slideIndex);
         scheduleNext();
@@ -842,10 +849,12 @@
             lastLiveNowPlaying = np;
           }
         }
-        buildSlides(!hadSlides);
+        return buildSlides(!hadSlides);
       });
-    }).then(() => {
-      startLoop();
+    }).then(changed => {
+      if (changed || !slideTimer) {
+        startLoop();
+      }
     });
   }
 
