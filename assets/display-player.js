@@ -169,8 +169,6 @@
       + '</div>'
       + '</div></article>';
   }
-
-
   function renderGoodnight() {
     const info = (state && state.goodnight) ? state.goodnight : {};
     const websiteQr = text(info.website_qr_image_url || '', '');
@@ -179,9 +177,8 @@
 
     return '<article class="display-slide" data-slide="goodnight">'
       + '<div class="display-card goodnight-card goodnight-card-horizontal">'
+      + '<div class="goodnight-heading-row"><p class="display-kicker">Thank You</p><h1>Good night</h1></div>'
       + '<div class="goodnight-copy">'
-      + '<p class="display-kicker">Thank You</p>'
-      + '<h1>Good night</h1>'
       + '<h2>Have a safe journey home</h2>'
       + '<p>Thanks for dancing with us tonight. Follow us on Facebook, share your memories, and check the website for future dates.</p>'
       + '<strong>Hope to see you again soon.</strong>'

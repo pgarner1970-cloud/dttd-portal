@@ -3755,3 +3755,101 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
 .display-lite .goodnight-card-horizontal .goodnight-qr-card{
   box-shadow:inset 0 1px 0 rgba(255,255,255,.06) !important;
 }
+
+
+/* Final Good night layout: kicker and title on the top row, with all other content beneath. */
+.goodnight-card-horizontal{
+  display:grid !important;
+  grid-template-columns:1fr !important;
+  grid-template-rows:auto auto auto !important;
+  align-items:start !important;
+  gap:clamp(18px,2.2vh,34px) !important;
+  padding:clamp(34px,3.6vw,68px) clamp(58px,5vw,96px) clamp(38px,3.8vw,70px) !important;
+}
+
+.goodnight-card-horizontal .goodnight-heading-row{
+  display:flex !important;
+  align-items:flex-end !important;
+  gap:clamp(22px,2vw,38px) !important;
+  min-width:0 !important;
+}
+
+.goodnight-card-horizontal .goodnight-heading-row .display-kicker{
+  margin:0 0 clamp(8px,.7vw,12px) 0 !important;
+  flex:0 0 auto !important;
+  white-space:nowrap !important;
+}
+
+.goodnight-card-horizontal .goodnight-heading-row h1{
+  margin:0 !important;
+  flex:1 1 auto !important;
+  min-width:0 !important;
+  font-size:clamp(86px,8vw,152px) !important;
+  line-height:.86 !important;
+  letter-spacing:-.065em !important;
+  white-space:nowrap !important;
+}
+
+.goodnight-card-horizontal .goodnight-copy{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:flex-start !important;
+  justify-content:flex-start !important;
+  min-height:0 !important;
+  max-width:48ch !important;
+  padding:0 !important;
+}
+
+.goodnight-card-horizontal .goodnight-copy h2{
+  margin:0 !important;
+  font-size:clamp(34px,3.05vw,58px) !important;
+  line-height:1 !important;
+}
+
+.goodnight-card-horizontal .goodnight-copy p:not(.display-kicker){
+  max-width:36ch !important;
+  margin:clamp(12px,1.2vh,20px) 0 0 !important;
+  font-size:clamp(21px,1.72vw,34px) !important;
+  line-height:1.1 !important;
+}
+
+.goodnight-card-horizontal .goodnight-copy strong{
+  margin-top:clamp(10px,1vh,16px) !important;
+  font-size:clamp(23px,1.95vw,38px) !important;
+  line-height:1 !important;
+}
+
+.goodnight-card-horizontal .goodnight-qr-grid{
+  display:grid !important;
+  grid-template-columns:repeat(2, minmax(0,1fr)) !important;
+  gap:clamp(34px,3.4vw,68px) !important;
+  align-self:end !important;
+  width:100% !important;
+  margin-top:clamp(2px,.2vh,8px) !important;
+}
+
+.goodnight-card-horizontal .goodnight-qr-card{
+  min-height:clamp(162px,16vh,220px) !important;
+  grid-template-columns:clamp(132px,10vw,180px) minmax(0,1fr) !important;
+  gap:clamp(18px,1.7vw,30px) !important;
+  padding:clamp(18px,1.65vw,28px) !important;
+}
+
+.goodnight-card-horizontal .goodnight-qr-card img{
+  width:clamp(132px,10vw,180px) !important;
+  height:clamp(132px,10vw,180px) !important;
+}
+
+.goodnight-card-horizontal .goodnight-qr-card b{
+  font-size:clamp(36px,2.9vw,56px) !important;
+  white-space:nowrap !important;
+}
+
+.goodnight-card-horizontal .goodnight-qr-card span{
+  font-size:clamp(18px,1.25vw,24px) !important;
+  white-space:nowrap !important;
+}
+
+.display-lite .goodnight-card-horizontal .goodnight-heading-row h1{
+  text-shadow:none !important;
+}
