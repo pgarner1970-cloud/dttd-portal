@@ -1561,6 +1561,50 @@ function mx_auto_unload_finished_deck($deck, $loaded, $device_id, $playback) {
     return $loaded;
 }
 
+
+function mx_clear_transferred_duplicate_loaded_deck($loadedA, $loadedB, $deviceA, $deviceB, $playbackA, $playbackB) {
+    $aHas = is_array($loadedA) && !empty($loadedA['id']);
+    $bHas = is_array($loadedB) && !empty($loadedB['id']);
+    if (!$aHas || !$bHas) return [$loadedA, $loadedB];
+
+    if (!mx_track_ids_match((string)$loadedA['id'], (string)$loadedB['id'])) {
+        return [$loadedA, $loadedB];
+    }
+
+    $activeA = (string)($playbackA['device']['id'] ?? '');
+    $activeB = (string)($playbackB['device']['id'] ?? '');
+    $currentA = (string)($playbackA['item']['id'] ?? '');
+    $currentB = (string)($playbackB['item']['id'] ?? '');
+    $playingA = !empty($playbackA['is_playing']);
+    $playingB = !empty($playbackB['is_playing']);
+
+    $aPlayingLoaded = trim((string)$deviceA) !== ''
+        && $activeA === (string)$deviceA
+        && $playingA
+        && mx_track_ids_match($currentA, (string)$loadedA['id']);
+
+    $bPlayingLoaded = trim((string)$deviceB) !== ''
+        && $activeB === (string)$deviceB
+        && $playingB
+        && mx_track_ids_match($currentB, (string)$loadedB['id']);
+
+    if ($aPlayingLoaded && !$bPlayingLoaded) {
+        // Same track is now live on A. B is a stale source copy from a handover.
+        mx_set('spotify_mixer_loaded_b', '');
+        mx_set('spotify_mixer_resume_b', '');
+        return [$loadedA, []];
+    }
+
+    if ($bPlayingLoaded && !$aPlayingLoaded) {
+        // Same track is now live on B. A is a stale source copy from a handover.
+        mx_set('spotify_mixer_loaded_a', '');
+        mx_set('spotify_mixer_resume_a', '');
+        return [[], $loadedB];
+    }
+
+    return [$loadedA, $loadedB];
+}
+
 function mx_state() {
     $playlist = mx_json('spotify_mixer_playlist', []);
     $loadedA = mx_json('spotify_mixer_loaded_a', []);
@@ -1612,6 +1656,11 @@ function mx_state() {
     // End-of-track is deliberately non-interactive: the finished deck is logged and
     // unloaded above, but the opposite loaded deck is not started automatically.
     // This avoids a standby/cue track unexpectedly taking over playback.
+
+    // Emergency transfers can briefly leave the same track loaded on both deck cards.
+    // If one deck is now actively playing that track, clear the other stale source
+    // copy without returning it to the DJ playlist or public requests.
+    [$loadedA, $loadedB] = mx_clear_transferred_duplicate_loaded_deck($loadedA, $loadedB, $deviceA, $deviceB, $playbackA, $playbackB);
 
     $activeDeviceIdA = (string)($playbackA['device']['id'] ?? '');
     $activeDeviceIdB = (string)($playbackB['device']['id'] ?? '');
@@ -2349,9 +2398,23 @@ try {
             if (!mx_decks_share_spotify_profile() && $sourceDevice) {
                 try { mx_pause($sourceDevice, $source); } catch (Throwable $ignoredSourcePause) {}
             }
+            // The track has been handed over. Clear the source deck state only; do not
+            // return it to the DJ playlist or public request queue because the same
+            // track is now live/loaded on the destination deck.
             mx_set('spotify_mixer_loaded_' . $source, '');
             mx_set('spotify_mixer_resume_' . $source, '');
             mx_json_out(['ok' => true, 'message' => 'Emergency transfer completed from Player ' . strtoupper($source) . ' to Player ' . strtoupper($target) . '.', 'state' => mx_state()]);
+        }
+
+        // If strict confirmation failed but the destination deck state was armed and
+        // the DJ can hear it playing, do not leave two deck cards claiming the same
+        // loaded track. Keep destination loaded, clear the stale source copy, and let
+        // the normal state poll continue to verify playback.
+        $targetLoaded = mx_json('spotify_mixer_loaded_' . $target, []);
+        if (is_array($targetLoaded) && !empty($targetLoaded['id']) && mx_track_ids_match((string)$targetLoaded['id'], (string)($track['id'] ?? ''))) {
+            mx_set('spotify_mixer_loaded_' . $source, '');
+            mx_set('spotify_mixer_resume_' . $source, '');
+            mx_json_out(['ok' => true, 'message' => 'Emergency transfer sent from Player ' . strtoupper($source) . ' to Player ' . strtoupper($target) . '. Source deck cleared after handover.', 'state' => mx_state()]);
         }
 
         mx_json_out(['ok' => false, 'message' => 'Emergency transfer was sent, but Player ' . strtoupper($target) . ' could not be confirmed. Player ' . strtoupper($source) . ' has been left loaded for safety.', 'state' => mx_state()]);
