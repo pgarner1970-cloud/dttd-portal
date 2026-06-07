@@ -2915,3 +2915,75 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
 .request-board-combined .request-status-coming-up-next .music-board-row-copy strong{
   color:#fff;
 }
+
+
+/* Final alignment fixes:
+   - Lite mode keeps the same played-history board layout as full mode.
+   - Long deck-status pills on DJ playlist/request boards get enough room. */
+
+/* Keep lite What we've played layout consistent with the default 2 x 5 layout.
+   Lite mode still uses reduced effects from other rules, but not a different structure. */
+.display-lite .played-card-ten .played-grid-ten,
+.display-lite .played-grid-ten{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-template-rows:repeat(5,minmax(0,1fr));
+  gap:clamp(8px,.9vh,14px) clamp(18px,1.8vw,34px);
+}
+
+.display-lite .played-grid-ten .played-tile{
+  display:grid;
+  grid-template-columns:clamp(42px,3.4vw,62px) minmax(0,1fr) auto;
+  min-height:0;
+  height:100%;
+}
+
+.display-lite .played-grid-ten .played-artwork{
+  width:clamp(42px,3.4vw,62px);
+  height:clamp(42px,3.4vw,62px);
+}
+
+.display-lite .played-grid-ten .played-tile strong{
+  font-size:clamp(17px,1.45vw,30px);
+}
+
+.display-lite .played-grid-ten .played-tile span{
+  font-size:clamp(13px,1vw,21px);
+}
+
+/* The DJ playlist needs enough status-column room for "Currently playing"
+   and "Coming up next". */
+.playlist-board-card-fixed .playlist-board-item{
+  grid-template-columns:clamp(42px,3.2vw,58px) minmax(0,1fr) clamp(122px,10.6vw,210px);
+}
+
+.display-lite .playlist-board-card-fixed .playlist-board-item{
+  grid-template-columns:clamp(38px,3vw,54px) minmax(0,1fr) clamp(118px,10.2vw,200px);
+}
+
+.playlist-board-card-fixed .request-status-pill,
+.playlist-status-currently-playing .request-status-pill,
+.playlist-status-coming-up-next .request-status-pill{
+  width:auto;
+  max-width:100%;
+  min-width:max-content;
+  justify-self:end;
+  padding:0 clamp(10px,.85vw,18px);
+  font-size:clamp(8px,.56vw,12px);
+  letter-spacing:.09em;
+}
+
+/* Apply the same width allowance to the Request board when a request is
+   currently on a deck, so those long live-status pills do not clip either. */
+.request-board-combined .request-status-currently-playing,
+.request-board-combined .request-status-coming-up-next{
+  grid-template-columns:clamp(42px,3.3vw,60px) minmax(0,1fr) clamp(122px,10.6vw,210px);
+}
+
+.request-board-combined .request-status-currently-playing .request-status-pill,
+.request-board-combined .request-status-coming-up-next .request-status-pill{
+  min-width:max-content;
+  max-width:100%;
+  padding:0 clamp(10px,.85vw,18px);
+  letter-spacing:.09em;
+}
