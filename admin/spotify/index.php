@@ -121,6 +121,14 @@ function dttd_spotify_command_label($command) {
         'healthcheck' => 'Health Check',
         'update_agent' => 'Update Agent',
         'set_volume' => 'Set Volume',
+        'display_start' => 'Start Display',
+        'display_stop' => 'Stop Display',
+        'display_restart' => 'Restart Display',
+        'display_lite' => 'Display Lite Mode',
+        'display_full' => 'Display Full Mode',
+        'display_blank' => 'Blank Display',
+        'display_wake' => 'Wake Display',
+        'display_status' => 'Display Status',
     ];
     return $labels[$command] ?? $command;
 }
@@ -279,6 +287,14 @@ $allowedNodeCommands = [
     'healthcheck',
     'update_agent',
     'set_volume',
+    'display_start',
+    'display_stop',
+    'display_restart',
+    'display_lite',
+    'display_full',
+    'display_blank',
+    'display_wake',
+    'display_status',
 ];
 
 $prepareTestTrack = dttd_spotify_prepare_track_id(dttd_spotify_tool_setting('spotify_prepare_test_track_id', ''));
@@ -384,6 +400,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['node_action'] ?? '') === '
                     }
                 }
 
+                if (in_array($command, ['display_start', 'display_restart'], true)) {
+                    $mode = strtolower(trim((string)($_POST['display_mode'] ?? 'lite')));
+                    $mode = $mode === 'full' ? 'full' : 'lite';
+                    $payload = json_encode(['mode' => $mode]);
+                }
+
+                if ($command === 'display_lite') {
+                    $payload = json_encode(['mode' => 'lite']);
+                }
+
+                if ($command === 'display_full') {
+                    $payload = json_encode(['mode' => 'full']);
+                }
+
                 $stmt = db()->prepare("
                     INSERT INTO node_commands (node_key, command, payload, status)
                     VALUES (?, ?, ?, 'pending')
@@ -420,6 +450,7 @@ admin_header('Spotify Tools - DJ Portal');
 ?>
 <style>
 .pi-node-panel{margin-top:22px}.pi-node-toolbar{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}.pi-node-toolbar p{margin:4px 0 0;color:#9fb5cd}.pi-node-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:start}.pi-node-card{border:1px solid rgba(96,145,205,.32);border-radius:18px;background:linear-gradient(180deg,rgba(14,28,44,.96),rgba(8,18,30,.96));padding:16px;box-shadow:0 14px 36px rgba(0,0,0,.22)}.pi-node-card.empty{opacity:.78;border-style:dashed}.pi-deck-title{font-size:24px;margin:0}.pi-deck-node-name{font-size:14px;color:#9fd1ff;font-weight:900;margin-top:4px}.pi-empty-deck-msg{border:1px dashed rgba(96,145,205,.35);border-radius:14px;padding:14px;color:#cfe0f4;background:rgba(255,255,255,.025);margin-top:12px}.pi-empty-deck-msg strong{display:block;color:#fff;margin-bottom:4px}.pi-node-select-actions{display:grid;gap:8px;margin-top:10px}.pi-node-select-actions button{border:1px solid rgba(34,197,94,.55);background:rgba(22,200,116,.13);color:#7dffa8;border-radius:12px;padding:10px 8px;font-weight:950;cursor:pointer;text-align:left}.pi-volume-actions{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:8px}.pi-volume-actions input{min-width:0;background:#0b1524;color:#fff;border:1px solid rgba(96,145,205,.38);border-radius:12px;padding:10px 12px;font-weight:900}.pi-volume-actions button{border:1px solid rgba(52,152,255,.55);background:rgba(52,152,255,.13);color:#9fd1ff;border-radius:12px;padding:10px 12px;font-weight:950;cursor:pointer}.pi-node-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}.pi-node-head h3{margin:0;font-size:22px}.pi-node-subtitle{margin-top:4px;color:#9fd1ff;font-size:13px;font-weight:800}.pi-node-key{display:block;color:#8fa6bd;font-size:12px;margin-top:3px;word-break:break-all}.pi-node-status{border-radius:999px;padding:6px 10px;font-weight:950;font-size:12px;text-transform:uppercase;border:1px solid rgba(148,163,184,.45);color:#cbd5e1;background:rgba(148,163,184,.12)}.pi-node-status.online{border-color:rgba(34,197,94,.65);color:#74ff9b;background:rgba(34,197,94,.12)}.pi-node-status.warning{border-color:rgba(245,158,11,.65);color:#ffc55a;background:rgba(245,158,11,.12)}.pi-node-status.offline{border-color:rgba(239,68,68,.55);color:#ff9ca3;background:rgba(239,68,68,.12)}.pi-node-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.pi-node-meta div{border:1px solid rgba(96,145,205,.18);border-radius:12px;background:rgba(255,255,255,.025);padding:9px}.pi-node-meta span{display:block;color:#8fa6bd;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}.pi-node-meta strong{display:block;color:#fff;margin-top:3px;word-break:break-word}.pi-node-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.pi-maint-actions{grid-template-columns:repeat(2,1fr)}.pi-prepare-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.pi-prepare-actions button{border:1px solid rgba(34,197,94,.55);background:rgba(22,200,116,.13);color:#7dffa8;border-radius:12px;padding:10px 8px;font-weight:950;cursor:pointer}.pi-prepare-actions button.secondary{border-color:rgba(96,145,205,.42);background:rgba(16,28,44,.9);color:#cfe0f4}.pi-assigned-deck{display:inline-flex;align-items:center;gap:8px;border-radius:999px;border:1px solid rgba(34,197,94,.55);background:rgba(34,197,94,.12);color:#7dffa8;font-weight:950;padding:7px 10px;margin:6px 0 2px}.pi-control-block{margin-top:12px}.pi-control-label{display:block;color:#8fa6bd;font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.06em;margin:12px 0 6px}.pi-deck-assign-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pi-deck-assign-actions button{border:1px solid rgba(96,145,205,.42);background:rgba(16,28,44,.9);color:#cfe0f4;border-radius:12px;padding:10px 8px;font-weight:950;cursor:pointer}.pi-deck-assign-actions button.active{border-color:rgba(34,197,94,.55);background:rgba(22,200,116,.13);color:#7dffa8}.pi-prepare-settings{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:10px;align-items:end;margin:10px 0 16px}.pi-prepare-settings label{display:grid;gap:5px;color:#9fb5cd;font-weight:900;font-size:12px;text-transform:uppercase}.pi-prepare-settings input[type=text]{width:100%;box-sizing:border-box;background:#0b1524;color:#fff;border:1px solid rgba(96,145,205,.38);border-radius:12px;padding:10px 12px;font-weight:800}.pi-prepare-settings .checkline{display:flex;align-items:center;gap:7px;color:#c8d7e8;font-weight:900;text-transform:none;font-size:13px}.pi-node-actions button{border:1px solid rgba(96,145,205,.42);background:rgba(16,28,44,.9);color:#fff;border-radius:12px;padding:10px 8px;font-weight:950;cursor:pointer}.pi-node-actions button:hover{border-color:rgba(52,152,255,.7);color:#9fd1ff}.pi-node-actions button.danger{border-color:rgba(239,68,68,.52);color:#ff9ca3}.pi-node-actions button.update{border-color:rgba(34,197,94,.55);color:#74ff9b}.pi-node-actions button.health{border-color:rgba(52,152,255,.55);color:#9fd1ff}.pi-node-empty{border:1px dashed rgba(96,145,205,.36);border-radius:16px;padding:18px;color:#c8d7e8;background:rgba(255,255,255,.025)}.pi-command-table{width:100%;border-collapse:collapse;margin-top:12px}.pi-command-table th,.pi-command-table td{border-bottom:1px solid rgba(96,145,205,.18);padding:9px 8px;text-align:left;vertical-align:top}.pi-command-table th{color:#9fb5cd;font-size:12px;text-transform:uppercase;letter-spacing:.04em}.pi-command-status{border-radius:999px;padding:3px 8px;font-weight:900;font-size:12px;background:rgba(148,163,184,.12);color:#cbd5e1}.pi-command-status.pending{background:rgba(245,158,11,.12);color:#ffc55a}.pi-command-status.completed{background:rgba(34,197,94,.12);color:#74ff9b}.pi-command-status.failed{background:rgba(239,68,68,.12);color:#ff9ca3}.pi-command-result{max-width:520px;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;font-size:12px;color:#dbeafe}.pi-diagnostics-toggle{margin:8px 0 16px;border:1px solid rgba(96,145,205,.28);border-radius:14px;background:rgba(255,255,255,.025);padding:10px 12px}.pi-diagnostics-toggle summary{cursor:pointer;color:#9fb5cd;font-weight:950;font-size:12px;text-transform:uppercase;letter-spacing:.05em}.pi-diagnostics-toggle .pi-prepare-settings{margin:10px 0 0}.pi-command-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:22px}.pi-command-heading h3{margin:0}.pi-command-refresh{display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(52,152,255,.55);background:rgba(52,152,255,.13);color:#9fd1ff;border-radius:12px;padding:10px 14px;font-weight:950;text-decoration:none}.pi-command-refresh:hover{border-color:rgba(52,152,255,.8);color:#fff}.pi-prepare-actions button{min-width:0}@media(max-width:720px){.pi-node-toolbar{display:block}.pi-node-meta{grid-template-columns:1fr}.pi-node-actions,.pi-prepare-actions,.pi-prepare-settings{grid-template-columns:1fr}.pi-command-table{font-size:13px}}
+.pi-display-actions{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}.pi-display-actions button{border:1px solid rgba(168,85,247,.55);background:rgba(168,85,247,.13);color:#d8b4fe;border-radius:12px;padding:10px 8px;font-weight:950;cursor:pointer}.pi-display-actions button.stop{border-color:rgba(239,68,68,.55);background:rgba(239,68,68,.12);color:#ffb4ba}.pi-display-actions button.wake{border-color:rgba(34,197,94,.55);background:rgba(34,197,94,.12);color:#8dffb2}.pi-display-actions select{min-width:0;background:#0b1524;color:#fff;border:1px solid rgba(168,85,247,.38);border-radius:12px;padding:10px 12px;font-weight:900}.pi-display-actions .wide{grid-column:1/-1}.pi-display-status{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.pi-display-status div{border:1px solid rgba(168,85,247,.18);border-radius:12px;background:rgba(255,255,255,.025);padding:9px}.pi-display-status span{display:block;color:#bfa7dc;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}.pi-display-status strong{display:block;color:#fff;margin-top:3px;word-break:break-word}.pi-display-hint{color:#9fb5cd;font-size:12px;margin:8px 0 0;line-height:1.35}
 </style>
 <main class="touch-wrap">
   <section class="touch-panel">
@@ -567,6 +598,9 @@ admin_header('Spotify Tools - DJ Portal');
                   <div><span>Hostname</span><strong><?= h($node['hostname'] ?? '—') ?></strong></div>
                   <div><span>Spotify name</span><strong><?= h($node['spotify_name'] ?? '—') ?></strong></div>
                   <div><span>Raspotify</span><strong><?= $raspotifyRunning ? 'Running' : 'Not running' ?></strong></div>
+                  <?php if (dttd_spotify_has_column('player_nodes', 'display_browser_running')): ?>
+                    <div><span>Display</span><strong><?= !empty($node['display_browser_running']) ? 'Running' : 'Stopped' ?></strong></div>
+                  <?php endif; ?>
                   <div><span>Deck</span><strong>Deck <?= h($deckSlot) ?></strong></div>
                   <div><span>Last seen</span><strong><?= h(dttd_spotify_last_seen_label($node)) ?></strong></div>
                 </div>
@@ -597,6 +631,33 @@ admin_header('Spotify Tools - DJ Portal');
                     <button class="danger" type="submit" name="command" value="reboot" onclick="return confirm('Reboot Deck <?= h($deckSlot) ?> node <?= h($nodeLabel) ?>?')">Reboot Deck <?= h($deckSlot) ?></button>
                     <button class="danger" type="submit" name="command" value="shutdown" onclick="return confirm('Shutdown Deck <?= h($deckSlot) ?> node <?= h($nodeLabel) ?>? You will need to physically power it back on.')">Shutdown Deck <?= h($deckSlot) ?></button>
                   </form>
+
+                  <div class="pi-display-status">
+                    <?php if (dttd_spotify_has_column('player_nodes', 'display_mode')): ?>
+                      <div><span>Display mode</span><strong><?= h((string)($node['display_mode'] ?? '—')) ?></strong></div>
+                    <?php endif; ?>
+                    <?php if (dttd_spotify_has_column('player_nodes', 'display_url')): ?>
+                      <div><span>Display URL</span><strong><?= h((string)($node['display_url'] ?? '—')) ?></strong></div>
+                    <?php endif; ?>
+                  </div>
+
+                  <form class="pi-display-actions" method="post">
+                    <input type="hidden" name="node_action" value="send_command">
+                    <input type="hidden" name="node_key" value="<?= h($node['node_key'] ?? '') ?>">
+                    <select name="display_mode" aria-label="Deck <?= h($deckSlot) ?> display mode">
+                      <option value="lite" <?= strtolower((string)($node['display_mode'] ?? '')) === 'lite' ? 'selected' : '' ?>>Lite display</option>
+                      <option value="full" <?= strtolower((string)($node['display_mode'] ?? '')) === 'full' ? 'selected' : '' ?>>Full display</option>
+                    </select>
+                    <button type="submit" name="command" value="display_start">Start Display</button>
+                    <button type="submit" name="command" value="display_restart">Restart Display</button>
+                    <button type="submit" name="command" value="display_lite">Switch Lite</button>
+                    <button type="submit" name="command" value="display_full">Switch Full</button>
+                    <button class="stop" type="submit" name="command" value="display_stop">Stop Display</button>
+                    <button type="submit" name="command" value="display_blank">Blank Screen</button>
+                    <button class="wake" type="submit" name="command" value="display_wake">Wake Screen</button>
+                    <button class="wide" type="submit" name="command" value="display_status">Display Status</button>
+                  </form>
+                  <p class="pi-display-hint">Display controls affect the HDMI browser only. They do not stop Spotify/local music playback.</p>
 
                   <form class="pi-volume-actions" method="post">
                     <input type="hidden" name="node_action" value="send_command">

@@ -35,6 +35,37 @@ if (!hash_equals($secret, $providedSecret)) {
     exit;
 }
 
+
+function dttd_player_hb_col_exists($table, $column) {
+    static $cache = [];
+    $table = preg_replace('/[^a-zA-Z0-9_]/', '', (string)$table);
+    $column = preg_replace('/[^a-zA-Z0-9_]/', '', (string)$column);
+    if ($table === '' || $column === '') return false;
+    $key = $table . '.' . $column;
+    if (array_key_exists($key, $cache)) return $cache[$key];
+    try {
+        $stmt = db()->prepare('SHOW COLUMNS FROM `' . $table . '` LIKE ?');
+        $stmt->execute([$column]);
+        return $cache[$key] = (bool)$stmt->fetch();
+    } catch (Throwable $e) {
+        return $cache[$key] = false;
+    }
+}
+
+function dttd_player_hb_optional_update($nodeKey, $values) {
+    $sets = [];
+    $params = [];
+    foreach ($values as $column => $value) {
+        if (!dttd_player_hb_col_exists('player_nodes', $column)) continue;
+        $sets[] = '`' . $column . '` = ?';
+        $params[] = $value;
+    }
+    if (!$sets) return;
+    $params[] = $nodeKey;
+    $stmt = db()->prepare('UPDATE player_nodes SET ' . implode(', ', $sets) . ' WHERE node_key = ?');
+    $stmt->execute($params);
+}
+
 /*
 |--------------------------------------------------------------------------
 | READ JSON
@@ -69,6 +100,13 @@ $displayName = trim($data['display_name'] ?? '');
 $spotifyName = trim($data['spotify_name'] ?? '');
 $ipAddress = trim($data['ip_address'] ?? $_SERVER['REMOTE_ADDR']);
 $raspotifyRunning = !empty($data['raspotify_running']) ? 1 : 0;
+$mpdRunning = !empty($data['mpd_running']) ? 1 : 0;
+$localMusicMounted = !empty($data['local_music_mounted']) ? 1 : 0;
+$displayBrowserRunning = !empty($data['display_browser_running']) ? 1 : 0;
+$displayStatus = isset($data['display_status']) && is_array($data['display_status']) ? $data['display_status'] : [];
+$displayMode = trim((string)($displayStatus['mode'] ?? ''));
+$displayUrl = trim((string)($displayStatus['url'] ?? ''));
+$displayStatusJson = json_encode($displayStatus, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
 if (!$nodeKey || !$hostname) {
 
@@ -130,6 +168,15 @@ $stmt->execute([
     ':spotify_name' => $spotifyName,
     ':ip_address' => $ipAddress,
     ':raspotify_running' => $raspotifyRunning
+]);
+
+dttd_player_hb_optional_update($nodeKey, [
+    'mpd_running' => $mpdRunning,
+    'local_music_mounted' => $localMusicMounted,
+    'display_browser_running' => $displayBrowserRunning,
+    'display_mode' => $displayMode,
+    'display_url' => $displayUrl,
+    'display_status_json' => $displayStatusJson,
 ]);
 
 /*
