@@ -585,12 +585,14 @@ renderAccountStatus();
   }
   async function doAction(params){
     if(busy) return;
+    const optimisticallyUpdated = optimisticDeckAction(params);
     busy = true;
     try{
       const data = await apiPost(params);
       if(data.state){ acceptState(data.state); }
+      else if(optimisticallyUpdated && !data.ok){ refresh(true); }
       toast(data.ok ? (data.message || 'Done') : (data.error || data.message || 'Action failed'), !!data.ok);
-    }catch(e){ toast('Action failed', false); }
+    }catch(e){ if(optimisticallyUpdated) refresh(true); toast('Action failed', false); }
     finally{ busy = false; }
   }
   function searchBadgeHtml(track){
@@ -605,6 +607,102 @@ renderAccountStatus();
     const src = String(track?.source || '').toLowerCase();
     if(src === 'local') return '<span class="source-pill local">Local</span>';
     return '<span class="source-pill spotify">Spotify</span>';
+  }
+  function updateLoadedPositionForDeck(deck, progressMs){
+    const key = 'player_' + deck;
+    const player = state?.[key] || null;
+    const loaded = player?.loaded || null;
+    if(!loaded) return;
+    const durationMs = Number(loaded.duration_ms || player?.playback?.duration_ms || 0) || 0;
+    const safeProgress = Math.max(0, Math.min(Number(progressMs || 0) || 0, durationMs || Number(progressMs || 0) || 0));
+    loaded.position_base_ms = safeProgress;
+    loaded.paused_position_ms = safeProgress;
+    loaded.position_updated_at = Date.now() / 1000;
+    if(player.playback){
+      player.playback.progress_ms = safeProgress;
+      if(durationMs) player.playback.duration_ms = durationMs;
+    }
+  }
+  function setOptimisticDeckPlayback(deck, playing){
+    if(!state) return;
+    const key = 'player_' + deck;
+    const player = state[key] || (state[key] = {});
+    const loaded = player.loaded || null;
+    if(!loaded) return;
+    const prog = deckProgress(loaded, deck);
+    updateLoadedPositionForDeck(deck, prog.progressMs);
+    player.state = playing ? 'playing' : 'standby';
+    if(isLocalTrack(loaded)){
+      loaded.local_is_playing = !!playing;
+      loaded.position_updated_at = Date.now() / 1000;
+    }
+    if(player.playback){
+      player.playback.is_playing = !!playing;
+      player.playback.progress_ms = Number(loaded.position_base_ms || loaded.paused_position_ms || prog.progressMs || 0) || 0;
+      if(playing){
+        player.playback.device_id = state['device_' + deck] || player.playback.device_id || '';
+        player.playback.track = player.playback.track || {id: loaded.id, title: loaded.title, artist: loaded.artist, image: loaded.image};
+      }
+    }
+    if(playing){
+      state.is_playing = true;
+      state.active_device_id = state['device_' + deck] || state.active_device_id || '';
+      const selectedDevice = (state.devices || []).find(d => String(d.id) === String(state.active_device_id));
+      if(selectedDevice) state.active_device_name = selectedDevice.name || state.active_device_name || '';
+      state.track = Object.assign({}, state.track || {}, {
+        id: loaded.id || state.track?.id || '',
+        title: loaded.title || state.track?.title || '',
+        artist: loaded.artist || state.track?.artist || '',
+        image: loaded.image || state.track?.image || '',
+        progress_ms: Number(loaded.position_base_ms || loaded.paused_position_ms || prog.progressMs || 0) || 0,
+        duration_ms: Number(loaded.duration_ms || player.playback?.duration_ms || 0) || null
+      });
+    } else {
+      const other = deck === 'a' ? 'b' : 'a';
+      const otherPlaying = deckIsPlaying(other);
+      if(!otherPlaying){
+        state.is_playing = false;
+        state.active_device_id = '';
+        state.active_device_name = '';
+      }
+    }
+    state._receivedAtMs = Date.now();
+    lastStateSyncAt = Date.now();
+  }
+  function optimisticDeckAction(params){
+    if(!state || !params || !params.deck) return false;
+    const action = String(params.action || '');
+    const deck = params.deck === 'b' ? 'b' : 'a';
+    const other = deck === 'a' ? 'b' : 'a';
+    if(action === 'play_toggle'){
+      const loaded = deckLoadedTrack(deck);
+      if(!loaded || deckIsPreparingLocal(deck)) return false;
+      const wasPlaying = deckIsPlaying(deck);
+      if(wasPlaying){
+        setOptimisticDeckPlayback(deck, false);
+      } else {
+        if(!state.duo_mode && deckIsPlaying(other)) setOptimisticDeckPlayback(other, false);
+        setOptimisticDeckPlayback(deck, true);
+      }
+      renderDecks();
+      return true;
+    }
+    if(action === 'seek_start' || action === 'seek_end' || action === 'seek_relative'){
+      const loaded = deckLoadedTrack(deck);
+      if(!loaded) return false;
+      const prog = deckProgress(loaded, deck);
+      let nextMs = prog.progressMs;
+      if(action === 'seek_start') nextMs = 0;
+      else if(action === 'seek_end') nextMs = Math.max(0, Number(prog.durationMs || loaded.duration_ms || 0) - 3000);
+      else nextMs = Math.max(0, nextMs + (Number(params.delta_ms || 0) || 0));
+      updateLoadedPositionForDeck(deck, nextMs);
+      if(state['player_' + deck]?.playback) state['player_' + deck].playback.progress_ms = nextMs;
+      state._receivedAtMs = Date.now();
+      lastStateSyncAt = Date.now();
+      renderDecks();
+      return true;
+    }
+    return false;
   }
   function sortCratesByName(crates){
     return (crates || []).slice().sort((a,b)=>String(a?.name || '').localeCompare(String(b?.name || ''), undefined, {sensitivity:'base', numeric:true}));
