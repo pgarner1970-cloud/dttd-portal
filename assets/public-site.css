@@ -6421,3 +6421,95 @@ body.homepage-option-one .connected-event-prompt .option-one-action-card .option
     gap:10px;
   }
 }
+
+/* v324 compact public gallery photo cards */
+.public-gallery-page .public-photo-grid-card{
+  padding:22px !important;
+}
+
+.public-gallery-page .public-grid-heading-row{
+  margin-bottom:16px !important;
+}
+
+.public-gallery-page .public-grid-heading-row h2{
+  font-size:clamp(1.9rem, 4vw, 3rem) !important;
+  line-height:.98 !important;
+}
+
+.public-gallery-page .public-photo-count{
+  padding:8px 14px !important;
+  font-size:.95rem !important;
+}
+
+.public-gallery-page .public-photo-grid{
+  grid-template-columns:repeat(4, minmax(0, 1fr)) !important;
+  gap:18px !important;
+}
+
+.public-gallery-page .public-photo-tile{
+  border-radius:20px !important;
+}
+
+.public-gallery-page .public-photo-thumb{
+  aspect-ratio:4 / 3 !important;
+  padding:8px !important;
+}
+
+.public-gallery-page .public-photo-thumb img{
+  border-radius:11px !important;
+}
+
+.public-gallery-page .public-photo-meta{
+  padding:11px 14px 13px !important;
+}
+
+.public-gallery-page .public-photo-meta h3{
+  margin:0 0 4px !important;
+  font-size:1.18rem !important;
+  line-height:1.05 !important;
+  letter-spacing:-.025em !important;
+}
+
+.public-gallery-page .public-photo-meta p{
+  margin:0 0 6px !important;
+  font-size:.95rem !important;
+  line-height:1.32 !important;
+}
+
+.public-gallery-page .public-photo-meta strong{
+  font-size:.92rem !important;
+  line-height:1.25 !important;
+}
+
+@media (min-width:1180px){
+  .public-gallery-page .public-photo-grid{
+    grid-template-columns:repeat(5, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width:1120px){
+  .public-gallery-page .public-photo-grid{
+    grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width:820px){
+  .public-gallery-page .public-photo-grid-card{
+    padding:18px !important;
+  }
+
+  .public-gallery-page .public-photo-grid{
+    grid-template-columns:repeat(2, minmax(0, 1fr)) !important;
+    gap:14px !important;
+  }
+}
+
+@media (max-width:520px){
+  .public-gallery-page .public-photo-grid{
+    grid-template-columns:1fr !important;
+  }
+
+  .public-gallery-page .public-photo-thumb{
+    aspect-ratio:4 / 3 !important;
+  }
+}
