@@ -205,15 +205,17 @@
     const events = state.upcoming_events || [];
     const cards = events.slice(0, 8).map((ev, idx) => {
       const label = idx === 0 ? 'Next event' : 'Coming soon';
-      const details = [
-        formatDate(ev.event_date),
-        ev.start_time ? esc(ev.start_time) : '',
-        ev.venue_name ? esc(ev.venue_name) : ''
-      ].filter(Boolean).join(' • ');
+      const date = formatDate(ev.event_date);
+      const start = text(ev.start_time, '');
+      const end = text(ev.end_time, '');
+      const timeText = start && end ? start + ' – ' + end : (start || end || '');
+      const dateTime = [date, timeText].filter(Boolean).join(' • ');
+      const venue = text(ev.venue_name, '');
       return '<div class="display-coming-up-card">'
-        + '<strong>' + esc(label) + '</strong>'
-        + '<span>' + esc(text(ev.event_name, 'Dance Through The Decades')) + '</span>'
-        + (details ? '<em>' + details + '</em>' : '')
+        + '<strong class="coming-eyebrow">' + esc(label) + '</strong>'
+        + '<span class="coming-title">' + esc(text(ev.event_name, 'Dance Through The Decades')) + '</span>'
+        + (dateTime ? '<em class="coming-datetime">' + esc(dateTime) + '</em>' : '')
+        + (venue ? '<small class="coming-venue">' + esc(venue) + '</small>' : '')
         + '</div>';
     });
     const rail = cards.length ? cards.concat(cards).join('') : '';

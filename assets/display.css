@@ -579,3 +579,70 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
     grid-template-columns:repeat(2,minmax(0,1fr));
   }
 }
+
+
+/* Upcoming event card format: eyebrow, event title, date/time, venue. */
+.display-coming-up-card{
+  justify-content:space-between;
+  align-items:stretch;
+  min-height:clamp(190px,22vh,285px);
+  padding:clamp(22px,2vw,38px);
+  gap:clamp(8px,.8vh,14px);
+}
+
+.display-coming-up-card .coming-eyebrow{
+  display:block;
+  flex:0 0 auto;
+  color:var(--display-gold);
+  text-transform:uppercase;
+  letter-spacing:.18em;
+  font-size:clamp(14px,.95vw,22px);
+  line-height:1;
+  min-height:1.05em;
+}
+
+.display-coming-up-card .coming-title{
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:3;
+  overflow:hidden;
+  color:#fff;
+  font-weight:1000;
+  line-height:.96;
+  letter-spacing:-.04em;
+  font-size:clamp(30px,2.55vw,54px);
+  min-height:calc(3em * .96);
+}
+
+.display-coming-up-card .coming-datetime{
+  display:block;
+  flex:0 0 auto;
+  color:rgba(255,255,255,.92);
+  font-style:normal;
+  font-weight:900;
+  line-height:1.12;
+  font-size:clamp(18px,1.28vw,28px);
+  min-height:1.15em;
+}
+
+.display-coming-up-card .coming-venue{
+  display:block;
+  flex:0 0 auto;
+  margin-top:auto;
+  padding-top:clamp(8px,.8vh,14px);
+  border-top:1px solid rgba(255,255,255,.12);
+  color:var(--display-muted);
+  font-weight:900;
+  line-height:1.12;
+  font-size:clamp(17px,1.18vw,26px);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* Neutralise the older generic card child rules for the structured upcoming card. */
+.display-coming-up-card strong.coming-eyebrow,
+.display-coming-up-card span.coming-title,
+.display-coming-up-card em.coming-datetime{
+  margin:0;
+}
