@@ -366,7 +366,7 @@ function dttd_display_played_requests($eventId, $limit = 6) {
     }
 }
 
-function dttd_display_recent_tracks($eventId, $limit = 8) {
+function dttd_display_recent_tracks($eventId, $limit = 10) {
     $eventId = (int)$eventId;
     if ($eventId <= 0 || !function_exists('dttd_history_public_track_rows')) return [];
     $out = [];
@@ -383,6 +383,7 @@ function dttd_display_recent_tracks($eventId, $limit = 8) {
 
         $out[] = [
             'id' => (int)($row['id'] ?? 0),
+            'spotify_track_id' => (string)($row['spotify_track_id'] ?? ''),
             'track_name' => (string)($row['song_title'] ?? ''),
             'artist_name' => (string)($row['artist'] ?? ''),
             'artwork_url' => dttd_display_url($row['spotify_album_image'] ?? ''),
@@ -391,6 +392,111 @@ function dttd_display_recent_tracks($eventId, $limit = 8) {
             'requester_name' => $requesterName,
         ];
     }
+    return $out;
+}
+
+
+function dttd_display_app_setting($key, $default = '') {
+    try {
+        $stmt = db()->prepare('SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1');
+        $stmt->execute([(string)$key]);
+        $row = $stmt->fetch();
+        return $row ? (string)$row['setting_value'] : (string)$default;
+    } catch (Throwable $e) {
+        return (string)$default;
+    }
+}
+
+function dttd_display_json_setting($key, $default = []) {
+    $raw = dttd_display_app_setting($key, '');
+    if ($raw === '') return $default;
+    $decoded = json_decode($raw, true);
+    return is_array($decoded) ? $decoded : $default;
+}
+
+function dttd_display_request_status_rank($status) {
+    $status = strtolower(trim((string)$status));
+    if (in_array($status, ['queued', 'approved', 'accepted', 'pending', 'new', 'requested'], true)) return 1;
+    if (in_array($status, ['played', 'complete', 'completed'], true)) return 2;
+    if (in_array($status, ['rejected', 'declined', 'cancelled', 'canceled'], true)) return 3;
+    return 2;
+}
+
+function dttd_display_is_active_request_status($status) {
+    return dttd_display_request_status_rank($status) === 1;
+}
+
+function dttd_display_clean_playlist_track($track) {
+    if (!is_array($track)) return null;
+    $title = trim((string)($track['title'] ?? $track['track_name'] ?? ''));
+    $artist = trim((string)($track['artist'] ?? $track['artist_name'] ?? ''));
+    $id = trim((string)($track['id'] ?? $track['spotify_track_id'] ?? ''));
+    $image = trim((string)($track['image'] ?? $track['artwork_url'] ?? $track['spotify_album_image'] ?? ''));
+    if ($title === '' && $id === '') return null;
+
+    $requestId = !empty($track['request_id']) ? (int)$track['request_id'] : 0;
+    $requester = trim((string)($track['guest_name'] ?? $track['requester_name'] ?? ''));
+    if ($requester === '' && !empty($track['requesters']) && is_array($track['requesters'])) {
+        $requester = trim((string)reset($track['requesters']));
+    }
+
+    return [
+        'id' => $id,
+        'track_name' => $title !== '' ? $title : 'Unknown track',
+        'artist_name' => $artist,
+        'artwork_url' => dttd_display_url($image),
+        'source' => (string)($track['source'] ?? $track['source_type'] ?? 'dj_playlist'),
+        'source_label' => (string)($track['source_label'] ?? ''),
+        'request_id' => $requestId,
+        'requester_name' => $requester,
+        'is_request' => $requestId > 0 || $requester !== '',
+        'status' => 'queued',
+    ];
+}
+
+function dttd_display_coming_up_tracks($requests, $limit = 10) {
+    $limit = max(1, min(20, (int)$limit));
+    $playlist = dttd_display_json_setting('spotify_mixer_playlist', []);
+    $out = [];
+    $seenRequestIds = [];
+    $seenTrackKeys = [];
+
+    foreach ((array)$playlist as $track) {
+        $clean = dttd_display_clean_playlist_track($track);
+        if (!$clean) continue;
+        $key = dttd_display_track_key($clean['track_name'] ?? '', $clean['artist_name'] ?? '', $clean['id'] ?? '');
+        if ($key !== '') $seenTrackKeys[$key] = true;
+        if (!empty($clean['request_id'])) $seenRequestIds[(int)$clean['request_id']] = true;
+        $out[] = $clean;
+        if (count($out) >= $limit) return $out;
+    }
+
+    foreach ((array)$requests as $req) {
+        if (!is_array($req)) continue;
+        if (!dttd_display_is_active_request_status($req['status'] ?? '')) continue;
+
+        $requestId = (int)($req['id'] ?? 0);
+        if ($requestId > 0 && isset($seenRequestIds[$requestId])) continue;
+
+        $key = dttd_display_track_key($req['track_name'] ?? '', $req['artist_name'] ?? '', $req['spotify_track_id'] ?? '');
+        if ($key !== '' && isset($seenTrackKeys[$key])) continue;
+
+        $out[] = [
+            'id' => (string)($req['spotify_track_id'] ?? ''),
+            'track_name' => (string)($req['track_name'] ?? ''),
+            'artist_name' => (string)($req['artist_name'] ?? ''),
+            'artwork_url' => dttd_display_url($req['artwork_url'] ?? ''),
+            'source' => 'request',
+            'source_label' => 'Request',
+            'request_id' => $requestId,
+            'requester_name' => (string)($req['requester_name'] ?? ''),
+            'is_request' => true,
+            'status' => (string)($req['status'] ?? 'pending'),
+        ];
+
+        if (count($out) >= $limit) break;
+    }
+
     return $out;
 }
 
@@ -545,8 +651,9 @@ if (!$event || empty($event['id']) || !dttd_display_event_is_live($event)) {
 $eventId = (int)$event['id'];
 $photos = dttd_display_photos($eventId, 12);
 $requests = dttd_display_requests($eventId, 12);
-$playedRequests = dttd_display_played_requests($eventId, 6);
+$playedRequests = dttd_display_played_requests($eventId, 10);
 $recent = dttd_display_recent_tracks($eventId, 10);
+$comingUp = dttd_display_coming_up_tracks($requests, 10);
 $upcoming = dttd_display_upcoming_events(5);
 $sponsors = dttd_display_sponsors($eventId, 6);
 $venue = dttd_display_venue_payload($event);
@@ -560,7 +667,7 @@ $slides[] = 'now_playing';
 // Keep the dedicated music-board slide in every active event loop. It has its own
 // empty-state messages, and requests can exist even when the DJ mixer is not running.
 if ($recent) $slides[] = 'recent';
-if ($requests) $slides[] = 'requests';
+if ($comingUp) $slides[] = 'requests';
 if ($photos) $slides[] = 'photos';
 if ($upcoming) $slides[] = 'upcoming';
 if ($partners) $slides[] = 'partners';
@@ -583,6 +690,7 @@ dttd_display_json([
     'requests' => $requests,
     'played_requests' => $playedRequests,
     'recent_tracks' => $recent,
+    'coming_up_tracks' => $comingUp,
     'photos' => $photos,
     'upcoming_events' => $upcoming,
     'partners' => $partners,

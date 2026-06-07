@@ -188,24 +188,46 @@
       + '</article>';
   }
 
+
+  function trackIdValue(item) {
+    return text(item && (item.spotify_track_id || item.id || item.track_id), '').replace(/^spotify:track:/, '');
+  }
+
+  function tracksMatch(a, b) {
+    if (!a || !b) return false;
+    const ida = trackIdValue(a);
+    const idb = trackIdValue(b);
+    if (ida && idb && ida === idb) return true;
+    const ta = text(a.track_name || a.title, '').trim().toLowerCase();
+    const tb = text(b.track_name || b.title, '').trim().toLowerCase();
+    const aa = text(a.artist_name || a.artist, '').trim().toLowerCase();
+    const ab = text(b.artist_name || b.artist, '').trim().toLowerCase();
+    return !!ta && ta === tb && aa === ab;
+  }
+
+  function isCurrentTrack(item) {
+    const current = currentTrack();
+    return !!current && tracksMatch(item, current);
+  }
+
   function renderRecent() {
-    // Strict history only: this slide must show real event_track_history rows.
-    // Do not fall back to loaded/current mixer payloads, otherwise it can appear to
-    // duplicate or invent entries before they have actually been logged as played.
+    // Strict history only: this slide shows real event_track_history rows.
     const tracks = Array.isArray(state.recent_tracks) ? state.recent_tracks : [];
     const rows = tracks.slice(0, 10).map((track, idx) => {
       const title = esc(text(track.track_name || track.title, 'Unknown track'));
       const artist = esc(text(track.artist_name || track.artist, ''));
       const artwork = text(track.artwork_url || track.image || track.spotify_album_image, '');
-      return '<div class="played-tile played-tile-compact">'
+      const playing = isCurrentTrack(track);
+      return '<div class="played-tile played-tile-compact' + (playing ? ' is-currently-playing' : '') + '">'
         + (artwork ? '<img class="played-artwork" src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>')
         + '<div><strong>' + title + '</strong>' + (artist ? '<span>' + artist + '</span>' : '') + '</div>'
+        + (playing ? '<p class="now-playing-pill">Playing now</p>' : '')
         + '</div>';
     }).join('');
     return '<article class="display-slide" data-slide="recent">'
-      + '<div class="display-card played-card played-card-compact">'
+      + '<div class="display-card played-card played-card-compact played-card-ten">'
       + '<div class="played-head"><p class="display-kicker">Played Tonight</p><h1>What we’ve played</h1></div>'
-      + (rows ? '<div class="played-grid played-grid-compact">' + rows + '</div>' : '<div class="display-empty">Played tracks will appear here.</div>')
+      + (rows ? '<div class="played-grid played-grid-compact played-grid-ten">' + rows + '</div>' : '<div class="display-empty">Played tracks will appear here.</div>')
       + '</div></article>';
   }
 
@@ -261,32 +283,32 @@
         return Number(b.id || 0) - Number(a.id || 0);
       });
 
-    const recent = Array.isArray(state.recent_tracks) ? state.recent_tracks : [];
+    const playedRequests = requestSource
+      .filter(requestIsPlayed)
+      .sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
 
-    const requestItems = activeRequests.slice(0, 5).map((req, idx) => {
+    const activeItems = activeRequests.slice(0, 5).map((req, idx) => {
       const status = requestStatusLabel(req.status);
       const statusClass = requestStatusClass(req.status);
       const person = text(req.requester_name, '');
-      const dedication = text(req.dedication, '');
       const artwork = requestArtwork(req);
       return '<div class="music-board-request music-board-row request-status-' + esc(statusClass) + '">'
         + '<div class="music-board-row-art">' + (artwork ? '<img class="music-board-artwork" src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>') + '</div>'
         + '<div class="music-board-row-copy"><strong>' + esc(text(req.track_name || req.title, 'Unknown track')) + '</strong>'
         + (req.artist_name || req.artist ? '<span>' + esc(text(req.artist_name || req.artist, '')) + '</span>' : '')
         + (person ? '<em>Requested by ' + esc(person) + '</em>' : '')
-        + (dedication ? '<small>' + esc(dedication) + '</small>' : '')
         + '</div>'
         + '<p class="request-status-pill">' + esc(status) + '</p>'
         + '</div>';
     }).join('');
 
-    const playedTracks = recent.slice(0, 5).map((track, idx) => {
-      const artwork = requestArtwork(track);
-      const person = text(track.requester_name || track.guest_name || '', '');
+    const playedItems = playedRequests.slice(0, 5).map((req, idx) => {
+      const artwork = requestArtwork(req);
+      const person = text(req.requester_name, '');
       return '<div class="music-board-played-track music-board-row request-status-played">'
         + '<div class="music-board-row-art">' + (artwork ? '<img class="music-board-artwork" src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>') + '</div>'
-        + '<div class="music-board-row-copy"><strong>' + esc(text(track.track_name || track.title, 'Unknown track')) + '</strong>'
-        + (track.artist_name || track.artist ? '<span>' + esc(text(track.artist_name || track.artist, '')) + '</span>' : '')
+        + '<div class="music-board-row-copy"><strong>' + esc(text(req.track_name || req.title, 'Unknown track')) + '</strong>'
+        + (req.artist_name || req.artist ? '<span>' + esc(text(req.artist_name || req.artist, '')) + '</span>' : '')
         + (person ? '<em>Requested by ' + esc(person) + '</em>' : '')
         + '</div>'
         + '<p class="request-status-pill">Played</p>'
@@ -294,50 +316,41 @@
     }).join('');
 
     return '<article class="display-slide" data-slide="music_board">'
-      + '<div class="display-card music-board-card music-board-card-stable music-board-card-five">'
-      + '<div class="music-board-head"><p class="display-kicker">Tonight’s Music</p><h1>Requests & played</h1></div>'
+      + '<div class="display-card music-board-card music-board-card-stable music-board-card-five request-board-combined">'
+      + '<div class="music-board-head"><p class="display-kicker">Tonight’s Requests</p><h1>Request board</h1></div>'
       + '<div class="music-board-body">'
       + '<section class="music-board-panel music-board-requests">'
-      + '<h2>Request queue</h2>'
-      + (requestItems ? '<div class="music-board-stack">' + requestItems + '</div>' : '<div class="music-board-empty">No waiting requests yet.</div>')
+      + '<h2>To be played</h2>'
+      + (activeItems ? '<div class="music-board-stack">' + activeItems + '</div>' : '<div class="music-board-empty">No waiting requests yet.</div>')
       + '</section>'
       + '<section class="music-board-panel music-board-played">'
-      + '<h2>What we’ve played</h2>'
-      + (playedTracks ? '<div class="music-board-played-list">' + playedTracks + '</div>' : '<div class="music-board-empty">Played tracks will appear once they are logged.</div>')
+      + '<h2>Played requests</h2>'
+      + (playedItems ? '<div class="music-board-played-list">' + playedItems + '</div>' : '<div class="music-board-empty">Played requests will appear here.</div>')
       + '</section>'
       + '</div></div></article>';
   }
 
   function renderRequests() {
-    const source = Array.isArray(state.requests) ? state.requests.slice() : [];
-    const requests = source.sort((a, b) => {
-      const rank = requestStatusRank(a.status) - requestStatusRank(b.status);
-      if (rank !== 0) return rank;
-      return Number(b.id || 0) - Number(a.id || 0);
-    });
-
-    const rows = requests.slice(0, isLite ? 4 : 6).map((req, idx) => {
-      const status = requestStatusLabel(req.status);
-      const statusClass = requestStatusClass(req.status);
-      const person = text(req.requester_name, '');
-      const dedication = text(req.dedication, '');
-      const artwork = requestArtwork(req);
-      return '<article class="request-board-item request-status-' + esc(statusClass) + '">'
-        + (artwork ? '<img class="request-board-artwork" src="' + esc(artwork) + '" alt="">' : '<div class="request-board-number">' + String(idx + 1).padStart(2, '0') + '</div>')
-        + '<div class="request-board-copy">'
-        + '<strong>' + esc(text(req.track_name || req.title, 'Unknown track')) + '</strong>'
-        + (req.artist_name || req.artist ? '<span>' + esc(text(req.artist_name || req.artist, '')) + '</span>' : '')
-        + (person ? '<em>Requested by ' + esc(person) + '</em>' : '')
-        + (dedication ? '<small>' + esc(dedication) + '</small>' : '')
+    const tracks = Array.isArray(state.coming_up_tracks) ? state.coming_up_tracks : [];
+    const rows = tracks.slice(0, isLite ? 6 : 8).map((track, idx) => {
+      const artwork = requestArtwork(track);
+      const requester = text(track.requester_name || track.guest_name || '', '');
+      const isReq = !!(track.is_request || requester || track.request_id);
+      return '<article class="playlist-board-item">'
+        + '<div class="playlist-board-art">' + (artwork ? '<img src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>') + '</div>'
+        + '<div class="playlist-board-copy">'
+        + '<strong>' + esc(text(track.track_name || track.title, 'Unknown track')) + '</strong>'
+        + (track.artist_name || track.artist ? '<span>' + esc(text(track.artist_name || track.artist, '')) + '</span>' : '')
+        + (isReq && requester ? '<em>Requested by ' + esc(requester) + '</em>' : '')
         + '</div>'
-        + '<p class="request-status-pill">' + esc(status) + '</p>'
+        + (isReq ? '<p class="request-status-pill">Request</p>' : '')
         + '</article>';
     }).join('');
 
     return '<article class="display-slide" data-slide="requests">'
-      + '<div class="display-card request-board-card">'
-      + '<div class="request-board-head"><p class="display-kicker">Requested Tonight</p><h1>Request list</h1></div>'
-      + (rows ? '<div class="request-board-grid">' + rows + '</div>' : '<div class="display-empty">Requests will appear here once guests start sending them in.</div>')
+      + '<div class="display-card playlist-board-card">'
+      + '<div class="request-board-head"><p class="display-kicker">Coming Up</p><h1>DJ playlist</h1></div>'
+      + (rows ? '<div class="playlist-board-grid">' + rows + '</div>' : '<div class="display-empty">Upcoming tracks will appear here once the DJ playlist is ready.</div>')
       + '</div></article>';
   }
 
@@ -488,6 +501,7 @@
       keyRows(data.requests),
       keyRows(data.played_requests),
       keyRows(data.recent_tracks),
+      keyRows(data.coming_up_tracks),
       keyRows(data.photos),
       keyRows(data.upcoming_events),
       keyRows(data.partners),
