@@ -2116,3 +2116,112 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
     grid-template-columns:1fr;
   }
 }
+
+
+/* Raspberry Pi / low-power display mode.
+   Enabled by adding ?mode=lite to the live-display URL. Keeps the DTTD look but removes the heaviest animation/glow work. */
+.display-lite{
+  background:linear-gradient(135deg,#08030d 0%,#160820 52%,#050208 100%);
+}
+.display-lite .display-shell:before,
+.display-lite .display-bg-orb{
+  display:none !important;
+}
+.display-lite .display-slide{
+  transform:none;
+  transition:opacity .35s linear;
+}
+.display-lite .display-card{
+  box-shadow:0 12px 32px rgba(0,0,0,.34), inset 0 0 24px rgba(255,47,179,.035);
+  background:linear-gradient(145deg,rgba(37,14,55,.94),rgba(15,5,24,.92));
+}
+.display-lite .display-card:after{
+  background:linear-gradient(135deg,rgba(255,255,255,.055),transparent 38%,rgba(68,230,255,.035));
+}
+.display-lite .display-brand-logo{
+  box-shadow:0 0 0 1px rgba(255,255,255,.14),0 0 14px rgba(255,47,179,.22);
+}
+.display-lite .display-brand-wordmark,
+.display-lite .display-clock,
+.display-lite h1,
+.display-lite .now-feature-copy strong,
+.display-lite .venue-copy strong,
+.display-lite .standby-social-copy strong{
+  text-shadow:none !important;
+}
+.display-lite .display-coming-up-window{
+  mask-image:none;
+  -webkit-mask-image:none;
+}
+.display-lite .display-coming-up-track{
+  animation:none !important;
+  transform:none !important;
+}
+.display-lite .display-coming-up-window-lite{
+  overflow:hidden;
+  flex:1;
+  display:block;
+  padding:.4vh 0 .8vh;
+}
+.display-lite .display-coming-up-static-grid{
+  height:100%;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-template-rows:repeat(2,minmax(0,1fr));
+  gap:clamp(14px,1.4vw,26px);
+}
+.display-lite .display-coming-up-static-grid .display-coming-up-card{
+  width:auto;
+  min-height:0;
+  flex:initial;
+}
+.display-lite .display-coming-up-card-wrap-lite{
+  gap:clamp(12px,1.5vh,24px);
+}
+.display-lite .display-coming-up-card-wrap-lite .display-coming-up-head h1{
+  font-size:clamp(48px,5.1vw,96px);
+}
+.display-lite .display-coming-up-card-wrap-lite .display-coming-up-card{
+  padding:clamp(16px,1.55vw,28px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 8px 24px rgba(0,0,0,.22);
+}
+.display-lite .display-coming-up-card-wrap-lite .coming-title{
+  font-size:clamp(25px,2.25vw,46px);
+  -webkit-line-clamp:2;
+  min-height:calc(2em * .96);
+}
+.display-lite .display-coming-up-card-wrap-lite .coming-datetime{
+  font-size:clamp(16px,1.12vw,23px);
+}
+.display-lite .display-coming-up-card-wrap-lite .coming-venue{
+  font-size:clamp(15px,1vw,21px);
+}
+.display-lite .photo-cell,
+.display-lite .display-partner-tile,
+.display-lite .played-tile,
+.display-lite .music-board-panel,
+.display-lite .request-board-item,
+.display-lite .venue-qr-tile,
+.display-lite .standby-social-qr,
+.display-lite .display-partner-qr{
+  box-shadow:0 8px 24px rgba(0,0,0,.25) !important;
+}
+.display-lite .now-feature-art,
+.display-lite .up-next-feature-fixed .now-feature-art{
+  box-shadow:0 10px 30px rgba(0,0,0,.28) !important;
+}
+.display-lite .photo-grid{
+  gap:clamp(18px,2vw,36px);
+}
+.display-lite .photo-cell img,
+.display-lite .played-artwork,
+.display-lite .now-feature-art img,
+.display-lite .display-partner-logo img{
+  image-rendering:auto;
+}
+@media (max-aspect-ratio: 4/3){
+  .display-lite .display-coming-up-static-grid{
+    grid-template-columns:1fr;
+    grid-template-rows:repeat(4,minmax(0,1fr));
+  }
+}

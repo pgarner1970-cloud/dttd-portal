@@ -12,6 +12,8 @@ if (isset($_GET['event_id'])) {
 }
 $stateUrl = '/api/display-state.php' . ($eventParam !== '' ? '?' . $eventParam : '');
 $nowPlayingUrl = '/api/public-now-playing.php' . ($eventParam !== '' && str_starts_with($eventParam, 'event_id=') ? '?' . $eventParam : '');
+$displayMode = (isset($_GET['mode']) && strtolower((string)$_GET['mode']) === 'lite') ? 'lite' : 'full';
+$bodyClass = 'display-body' . ($displayMode === 'lite' ? ' display-lite' : '');
 ?><!doctype html>
 <html lang="en">
 <head>
@@ -23,8 +25,8 @@ $nowPlayingUrl = '/api/public-now-playing.php' . ($eventParam !== '' && str_star
   <link rel="icon" href="/assets/favicon-dj-192.png">
   <link rel="stylesheet" href="/assets/display.css">
 </head>
-<body class="display-body">
-  <main class="display-shell" data-state-url="<?= h($stateUrl) ?>" data-now-playing-url="<?= h($nowPlayingUrl) ?>">
+<body class="<?= h($bodyClass) ?>">
+  <main class="display-shell" data-state-url="<?= h($stateUrl) ?>" data-now-playing-url="<?= h($nowPlayingUrl) ?>" data-display-mode="<?= h($displayMode) ?>">
     <div class="display-bg-orb one"></div>
     <div class="display-bg-orb two"></div>
 

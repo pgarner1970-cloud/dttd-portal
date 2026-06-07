@@ -5,6 +5,7 @@
 
   const stateUrl = shell.dataset.stateUrl || '/api/display-state.php';
   const nowPlayingUrl = shell.dataset.nowPlayingUrl || '/api/public-now-playing.php';
+  const isLite = shell.dataset.displayMode === 'lite' || (new URLSearchParams(window.location.search).get('mode') || '').toLowerCase() === 'lite';
   const footerEvent = document.querySelector('[data-display-footer-event]');
   const clock = document.querySelector('[data-display-clock]');
 
@@ -286,7 +287,7 @@
   }
   function renderPhotos() {
     const photos = state.photos || [];
-    const selected = shuffledPhotos(photos, 3);
+    const selected = shuffledPhotos(photos, isLite ? 2 : 3);
     const countClass = ' photo-count-' + Math.max(1, Math.min(selected.length, 3));
     const cells = selected.map(photo => '<div class="photo-cell"><img src="' + esc(photo.image_url) + '" alt="Guest photo"></div>').join('');
     return '<article class="display-slide" data-slide="photos">'
@@ -298,7 +299,8 @@
 
   function renderUpcoming() {
     const events = state.upcoming_events || [];
-    const cards = events.slice(0, 8).map((ev, idx) => {
+    const limit = isLite ? 4 : 8;
+    const cards = events.slice(0, limit).map((ev, idx) => {
       const label = idx === 0 ? 'Next event' : 'Coming soon';
       const date = formatDate(ev.event_date);
       const start = text(ev.start_time, '');
@@ -313,11 +315,11 @@
         + (venue ? '<small class="coming-venue">' + esc(venue) + '</small>' : '')
         + '</div>';
     });
-    const rail = cards.length ? cards.concat(cards).join('') : '';
+    const rail = cards.length ? (isLite ? cards.join('') : cards.concat(cards).join('')) : '';
     return '<article class="display-slide" data-slide="upcoming">'
-      + '<div class="display-card display-coming-up-card-wrap">'
+      + '<div class="display-card display-coming-up-card-wrap' + (isLite ? ' display-coming-up-card-wrap-lite' : '') + '">'
       + '<div class="display-coming-up-head display-coming-up-head-no-pill"><div><p class="display-kicker">Coming Up</p><h1>What’s happening</h1></div></div>'
-      + (rail ? '<div class="display-coming-up-window"><div class="display-coming-up-track">' + rail + '</div></div>' : '<div class="display-empty">Upcoming public events will appear here.</div>')
+      + (rail ? '<div class="display-coming-up-window' + (isLite ? ' display-coming-up-window-lite' : '') + '"><div class="' + (isLite ? 'display-coming-up-static-grid' : 'display-coming-up-track') + '">' + rail + '</div></div>' : '<div class="display-empty">Upcoming public events will appear here.</div>')
       + '<div class="display-coming-up-footer"><span>See our website for full details</span><strong>dancethruthedecades.co.uk</strong></div>'
       + '</div></article>';
   }
@@ -516,7 +518,7 @@
       if (!slides.length) return;
       slideIndex = (slideIndex + 1) % slides.length;
       showSlide(slideIndex);
-    }, 12000);
+    }, isLite ? 14500 : 12000);
   }
 
   function fetchJson(url) {
