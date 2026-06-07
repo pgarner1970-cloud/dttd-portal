@@ -3970,3 +3970,17 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
 .display-lite .goodnight-card-horizontal .goodnight-heading-row h1{
   text-shadow:none !important;
 }
+
+
+.goodnight-card-horizontal .goodnight-heading-row .goodnight-heart{
+  color:#ff4d6d !important;
+  text-shadow:0 0 16px rgba(255,77,109,.35) !important;
+  font-size:.82em !important;
+  vertical-align:0.06em !important;
+  display:inline-block !important;
+  margin-left:0.12em !important;
+}
+
+.display-lite .goodnight-card-horizontal .goodnight-heading-row .goodnight-heart{
+  text-shadow:none !important;
+}
