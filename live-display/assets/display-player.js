@@ -136,7 +136,7 @@
       + '</section>'
       + '<section class="event-timer-panel event-timer-panel-requests' + (requestsClosed ? ' is-closed event-timer-panel-requests-closed' : '') + '">'
       + (requestsClosed
-        ? '<p>Requests are closed</p><strong class="timer-closed-text timer-closed-message">for tonight</strong><span>Thanks for helping shape the soundtrack.</span>'
+        ? '<p>Requests are closed</p><strong class="timer-closed-message">for tonight</strong><span>Thanks for helping shape the soundtrack.</span>'
         : '<p>Keep the requests coming</p><strong data-countdown-target="' + esc(requestClose) + '">' + esc(requestCountdown) + '</strong><span>left to send requests</span>')
       + '</section>'
       + '</div>'
@@ -774,6 +774,44 @@
     active.classList.add('active');
   }
 
+
+  function slideCountdownElement() {
+    let el = document.querySelector('[data-slide-countdown]');
+    if (el) return el;
+
+    const dot = document.querySelector('.display-progress-dot, .display-footer-dot, .footer-progress-dot, .display-loop-dot');
+    if (!dot || !dot.parentNode) return null;
+
+    let wrap = dot.closest('.display-progress-wrap');
+    if (!wrap) {
+      wrap = document.createElement('span');
+      wrap.className = 'display-progress-wrap';
+      dot.parentNode.insertBefore(wrap, dot);
+      wrap.appendChild(dot);
+    }
+
+    el = document.createElement('span');
+    el.className = 'display-slide-countdown';
+    el.setAttribute('data-slide-countdown', '');
+    el.textContent = '--';
+    wrap.appendChild(el);
+    return el;
+  }
+
+  function updateSlideCountdownDisplay(secondsRemaining, totalSeconds) {
+    const el = slideCountdownElement();
+    if (!el) return;
+
+    const safeRemaining = Math.max(0, Math.ceil(Number(secondsRemaining) || 0));
+    const safeTotal = Math.max(1, Math.ceil(Number(totalSeconds) || 1));
+
+    el.textContent = String(safeRemaining) + 's';
+    el.setAttribute('aria-label', String(safeRemaining) + ' seconds until next slide');
+
+    const progress = Math.max(0, Math.min(1, safeRemaining / safeTotal));
+    el.style.setProperty('--slide-countdown-progress', String(progress));
+  }
+
   function slideDurationMs(slideName) {
     const durations = state && state.slide_durations ? state.slide_durations : {};
     const seconds = Number(durations[slideName] || 0);
@@ -795,7 +833,28 @@
 
       const current = slides[slideIndex] || slides[0];
       const currentName = current ? current.getAttribute('data-slide') : '';
+      const durationMs = slideDurationMs(currentName);
+      const totalSeconds = Math.max(1, Math.round(durationMs / 1000));
+      const startedAt = Date.now();
+
+      updateSlideCountdownDisplay(totalSeconds, totalSeconds);
+
+      if (window.dttdSlideCountdownTimer) {
+        clearInterval(window.dttdSlideCountdownTimer);
+      }
+
+      window.dttdSlideCountdownTimer = setInterval(function(){
+        const elapsed = Date.now() - startedAt;
+        const remainingMs = Math.max(0, durationMs - elapsed);
+        updateSlideCountdownDisplay(remainingMs / 1000, totalSeconds);
+      }, 250);
+
       slideTimer = setTimeout(function(){
+        if (window.dttdSlideCountdownTimer) {
+          clearInterval(window.dttdSlideCountdownTimer);
+          window.dttdSlideCountdownTimer = null;
+        }
+
         const latestSlides = stage.querySelectorAll('.display-slide');
         if (!latestSlides.length) {
           slideTimer = null;
@@ -804,7 +863,7 @@
         slideIndex = (slideIndex + 1) % latestSlides.length;
         showSlide(slideIndex);
         scheduleNext();
-      }, slideDurationMs(currentName));
+      }, durationMs);
     }
 
     scheduleNext();
