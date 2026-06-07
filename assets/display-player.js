@@ -164,11 +164,15 @@
   function renderUpNext() {
     const next = upNextTrack();
     if (!next) {
-      return '<article class="display-slide" data-slide="up_next"><div class="display-card display-card-centre"><p class="display-kicker">Up Next</p><h1>More music soon</h1></div></article>';
+      return '<article class="display-slide" data-slide="up_next">'
+        + '<div class="display-card display-card-centre">'
+        + '<p class="display-kicker">Up Next</p>'
+        + '<h1>More music soon</h1>'
+        + '</div></article>';
     }
 
     return '<article class="display-slide" data-slide="up_next">'
-      
+      + '<div class="display-card now-playing-feature up-next-feature-fixed">'
       + '<div class="now-feature-head"><p class="display-kicker">Up Next</p><h1>On the decks</h1></div>'
       + '<div class="now-feature-body">'
       + '<div class="now-feature-art">'
@@ -179,7 +183,9 @@
       + (next.artist ? '<span>' + esc(next.artist) + '</span>' : '')
       + '<em>Loaded ready to play</em>'
       + '</div>'
-      + '</div></div></article>';
+      + '</div>'
+      + '</div>'
+      + '</article>';
   }
 
   function renderRecent() {
