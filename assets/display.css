@@ -1770,3 +1770,39 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
     grid-template-columns:1fr;
   }
 }
+
+
+/* Partners slide logo containment: keep mixed partner logos fully inside their panels. */
+.display-partner-logo{
+  padding:clamp(22px,2.1vw,42px);
+}
+
+.display-partner-logo img{
+  width:auto;
+  height:auto;
+  max-width:82%;
+  max-height:72%;
+  object-fit:contain;
+  object-position:center;
+}
+
+.display-partner-logo.partner-logo-bg-light img,
+.display-partner-logo.partner-logo-bg-dark img,
+.display-partner-logo.partner-logo-bg-neon_pink img,
+.display-partner-logo.partner-logo-bg-starburst img,
+.display-partner-logo.partner-logo-bg-radial_neon img{
+  max-width:82%;
+  max-height:72%;
+}
+
+/* Give very wide logos a little more horizontal room but stop them touching the edges. */
+.display-partner-logo img[src*="DJ_Supplies"],
+.display-partner-logo img[src*="djsupplies"]{
+  max-width:78%;
+  max-height:64%;
+}
+
+/* Keep QR and text stable while logo area breathes. */
+.display-partner-tile{
+  grid-template-rows:clamp(120px,18vh,200px) minmax(0,1fr);
+}
