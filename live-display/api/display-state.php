@@ -788,17 +788,19 @@ function dttd_display_upcoming_events($limit = 5, $currentEventId = 0) {
             WHERE is_public = 1
               AND is_active = 1
               AND status IN ('scheduled','live')
-              AND event_date >= DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+              AND event_date >= CURDATE()
             ORDER BY
               CASE WHEN id = ? THEN 0 WHEN status = 'live' THEN 1 ELSE 2 END ASC,
               event_date ASC, COALESCE(start_time, '00:00:00') ASC, id ASC
-            LIMIT " . $limit . "
+            LIMIT " . ($limit * 3) . "
         ");
         $stmt->execute([$currentEventId]);
         $rows = [];
+        $now = time();
 
         foreach ($stmt->fetchAll() as $row) {
             $rowId = (int)$row['id'];
+            $status = strtolower(trim((string)($row['status'] ?? '')));
             $isCurrent = $currentEventId > 0 && $rowId === $currentEventId;
 
             try {
@@ -807,8 +809,24 @@ function dttd_display_upcoming_events($limit = 5, $currentEventId = 0) {
                 }
             } catch (Throwable $e) {}
 
-            if (!$isCurrent && strtolower(trim((string)($row['status'] ?? ''))) === 'live') {
+            if (!$isCurrent && $status === 'live') {
                 $isCurrent = true;
+            }
+
+            $endTs = 0;
+            if (!empty($row['event_date'])) {
+                $endTime = $endCol !== '' && !empty($row['end_time']) ? (string)$row['end_time'] : (!empty($row['start_time']) ? (string)$row['start_time'] : '23:59:59');
+                $endTs = strtotime((string)$row['event_date'] . ' ' . $endTime);
+                $middayTs = strtotime((string)$row['event_date'] . ' 12:00');
+                if ($endTs && $middayTs && $endTs < $middayTs) {
+                    $endTs = strtotime('+1 day', $endTs);
+                }
+            }
+
+            // Do not show events that have already finished in the standby/upcoming list.
+            // The only exception is a genuine current/live event.
+            if (!$isCurrent && $endTs && $endTs < $now) {
+                continue;
             }
 
             $rows[] = [
@@ -822,6 +840,8 @@ function dttd_display_upcoming_events($limit = 5, $currentEventId = 0) {
                 'is_current_event' => $isCurrent,
                 'display_label' => $isCurrent ? 'This event' : '',
             ];
+
+            if (count($rows) >= $limit) break;
         }
 
         usort($rows, function($a, $b) {
@@ -833,7 +853,7 @@ function dttd_display_upcoming_events($limit = 5, $currentEventId = 0) {
             return strcmp($ad, $bd);
         });
 
-        return $rows;
+        return array_slice($rows, 0, $limit);
     } catch (Throwable $e) {
         return [];
     }
@@ -926,6 +946,107 @@ function dttd_display_goodnight_window_seconds() {
     return 10 * 60;
 }
 
+
+function dttd_display_setting_set_value($key, $value) {
+    try {
+        if (!dttd_display_table_exists('app_settings')) return false;
+        $stmt = db()->prepare("
+            INSERT INTO app_settings (setting_key, setting_value, updated_at)
+            VALUES (?, ?, NOW())
+            ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = NOW()
+        ");
+        $stmt->execute([(string)$key, (string)$value]);
+        return true;
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
+function dttd_display_setting_delete_value($key) {
+    try {
+        if (!dttd_display_table_exists('app_settings')) return false;
+        $stmt = db()->prepare("DELETE FROM app_settings WHERE setting_key = ?");
+        $stmt->execute([(string)$key]);
+        return true;
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
+function dttd_display_goodnight_pre_end_seconds() {
+    return 5 * 60;
+}
+
+function dttd_display_goodnight_started_key($event) {
+    return 'display_goodnight_started_at_' . (int)($event['id'] ?? 0);
+}
+
+function dttd_display_goodnight_started_at($event) {
+    $key = dttd_display_goodnight_started_key($event);
+    $raw = dttd_display_app_setting_value($key, '');
+    $ts = $raw !== '' ? strtotime($raw) : 0;
+    return $ts ?: 0;
+}
+
+function dttd_display_set_goodnight_started_at($event, $timestamp = null) {
+    $timestamp = $timestamp ?: time();
+    $key = dttd_display_goodnight_started_key($event);
+    dttd_display_setting_set_value($key, date('c', $timestamp));
+    return $timestamp;
+}
+
+function dttd_display_clear_goodnight_started_at($event) {
+    if (!$event || empty($event['id'])) return;
+    dttd_display_setting_delete_value(dttd_display_goodnight_started_key($event));
+}
+
+function dttd_display_goodnight_trigger_ready($event) {
+    if (!$event || empty($event['id'])) return false;
+    if (!dttd_display_decks_are_clear()) return false;
+
+    $endTs = dttd_display_event_end_timestamp($event);
+    if (!$endTs) return false;
+
+    $now = time();
+    return $now >= ($endTs - dttd_display_goodnight_pre_end_seconds());
+}
+
+function dttd_display_goodnight_window_active($event) {
+    if (!$event || empty($event['id'])) return false;
+
+    $startedAt = dttd_display_goodnight_started_at($event);
+    if (!$startedAt) return false;
+
+    $now = time();
+    return $now >= $startedAt && $now <= ($startedAt + dttd_display_goodnight_window_seconds());
+}
+
+function dttd_display_recent_or_live_event_context($event) {
+    if (!$event || empty($event['id'])) return false;
+
+    try {
+        if (function_exists('dttd_event_live_now') && dttd_event_live_now($event)) return true;
+    } catch (Throwable $e) {}
+
+    $status = strtolower(trim((string)($event['status'] ?? '')));
+    if ($status === 'live') return true;
+
+    $endTs = dttd_display_event_end_timestamp($event);
+    if (!$endTs) return dttd_display_event_has_started($event);
+
+    $now = time();
+    if ($now < $endTs) {
+        return dttd_display_event_has_started($event);
+    }
+
+    $startedAt = dttd_display_goodnight_started_at($event);
+    if ($startedAt && $now <= ($startedAt + dttd_display_goodnight_window_seconds())) {
+        return true;
+    }
+
+    return !dttd_display_decks_are_clear();
+}
+
 function dttd_display_event_has_started($event) {
     if (!$event || empty($event['id'])) return false;
 
@@ -945,26 +1066,46 @@ function dttd_display_event_finished_timestamp($event) {
 }
 
 function dttd_display_event_in_post_finish_hold($event) {
-    $endTs = dttd_display_event_finished_timestamp($event);
+    if (!$event || empty($event['id'])) return false;
+
+    $endTs = dttd_display_event_end_timestamp($event);
     if (!$endTs) return false;
 
     $now = time();
-    $goodnightEnd = $endTs + dttd_display_goodnight_window_seconds();
 
-    // From event end until the goodnight period has expired, or while a deck is
-    // still loaded, keep the live-event display context rather than dropping to
-    // the no-current-event standby page.
-    if ($now <= $goodnightEnd) return true;
+    // Before the end time: hold the live context during the final five minutes
+    // if the decks are clear so Good night can take over slightly early.
+    if ($now >= ($endTs - dttd_display_goodnight_pre_end_seconds()) && $now < $endTs) {
+        return dttd_display_decks_are_clear();
+    }
 
-    return !dttd_display_decks_are_clear();
+    if ($now >= $endTs) {
+        // Hold live context while Good night is active, or while there is still
+        // something loaded on either deck after the event time.
+        return dttd_display_goodnight_window_active($event) || !dttd_display_decks_are_clear();
+    }
+
+    return false;
 }
 
 function dttd_display_standby_allowed_for_event($event) {
     if (!$event || empty($event['id'])) return true;
 
-    $endTs = dttd_display_event_finished_timestamp($event);
-    if ($endTs) {
-        return time() > ($endTs + dttd_display_goodnight_window_seconds()) && dttd_display_decks_are_clear();
+    // Standby is only allowed once we are outside any live/goodnight context,
+    // and both decks are clear.
+    if (!dttd_display_decks_are_clear()) return false;
+    if (dttd_display_goodnight_window_active($event)) return false;
+    if (dttd_display_goodnight_trigger_ready($event) && !dttd_display_goodnight_started_at($event)) return false;
+
+    $endTs = dttd_display_event_end_timestamp($event);
+    if ($endTs && time() >= $endTs) {
+        $startedAt = dttd_display_goodnight_started_at($event);
+        if ($startedAt) {
+            return time() > ($startedAt + dttd_display_goodnight_window_seconds());
+        }
+        // If Good night was never started for this event, allow the main state
+        // machine to start it before standby can take over.
+        return false;
     }
 
     return !dttd_display_event_has_started($event) && !dttd_display_event_is_live($event);
@@ -973,20 +1114,20 @@ function dttd_display_standby_allowed_for_event($event) {
 function dttd_display_goodnight_active($event) {
     if (!$event || empty($event['id'])) return false;
 
-    $endTs = dttd_display_event_end_timestamp($event);
-    if (!$endTs) return false;
-
-    $now = time();
-
-    // Show the Good night page only briefly after the event has finished.
-    // After this grace period, the display should drop back to normal standby/no-current-event mode,
-    // but only if both decks are clear.
-    $goodnightWindowSeconds = dttd_display_goodnight_window_seconds();
-    if ($now < $endTs || $now > ($endTs + $goodnightWindowSeconds)) {
-        return false;
+    // If Good night has already started, keep it for a full 10 minutes from
+    // that start point, even if the event ended part-way through that window.
+    if (dttd_display_goodnight_window_active($event)) {
+        return true;
     }
 
-    return dttd_display_decks_are_clear();
+    // Start Good night once the event is within five minutes of finishing, or
+    // has finished, provided both decks are clear.
+    if (dttd_display_goodnight_trigger_ready($event)) {
+        dttd_display_set_goodnight_started_at($event);
+        return true;
+    }
+
+    return false;
 }
 
 function dttd_display_goodnight_payload($event, $partners = []) {
@@ -1023,7 +1164,7 @@ function dttd_display_event_is_live($event) {
     $status = strtolower(trim((string)($event['status'] ?? '')));
     if ($status === 'live') return true;
 
-    // If the event has only just finished or music is still loaded, keep the live display context.
+    // Keep the live display context during the end-of-night handover.
     if (function_exists('dttd_display_event_in_post_finish_hold') && dttd_display_event_in_post_finish_hold($event)) {
         return true;
     }
@@ -1073,7 +1214,7 @@ $requests = dttd_display_requests($eventId, 12);
 $playedRequests = dttd_display_played_requests($eventId, 10);
 $recent = dttd_display_recent_tracks($eventId, 10);
 $comingUp = dttd_display_coming_up_tracks($requests, 10);
-$upcoming = dttd_display_upcoming_events(5);
+$upcoming = dttd_display_upcoming_events(5, $eventId);
 $sponsors = dttd_display_sponsors($eventId, 6);
 $venue = dttd_display_venue_payload($event);
 
