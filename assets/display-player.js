@@ -75,10 +75,14 @@
     const code = text(event.event_code, '');
     return '<article class="display-slide" data-slide="qr">'
       + '<div class="display-grid two-col qr-layout">'
-      + '<div class="display-card">'
+      + '<div class="display-card qr-copy-card">'
       + '<p class="display-kicker">Join tonight\'s event</p>'
-      + '<h1>Scan the QR code</h1>'
-      + '<p class="display-large-note">Request songs, upload your photos and see what\'s playing.</p>'
+      + '<h1 class="qr-title">Scan the QR code</h1>'
+      + '<ul class="qr-benefits">'
+      + '<li>Request songs</li>'
+      + '<li>Upload your photos</li>'
+      + '<li>See what\'s playing</li>'
+      + '</ul>'
       + (code ? '<div class="event-code-big"><span>Event code</span><strong>' + esc(code) + '</strong></div>' : '')
       + '</div>'
       + '<div class="display-card qr-card">'
