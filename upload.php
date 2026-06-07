@@ -22,7 +22,7 @@ try {
 try {
     if (function_exists('dttd_event_from_access_cookie')) {
         $candidate = dttd_event_from_access_cookie(false);
-        if ($candidate && photo_can_select_event($candidate)) {
+        if ($candidate && photo_can_select_event($candidate, true)) {
             $rememberedEvent = $candidate;
         }
     }
@@ -63,7 +63,7 @@ if (!$currentEvent && $rememberedEvent) {
  * the upload target to another public or past event.
  */
 $uploadEventLocked = false;
-if ($rememberedEvent && !empty($rememberedEvent['id']) && photo_can_select_event($rememberedEvent)) {
+if ($rememberedEvent && !empty($rememberedEvent['id']) && photo_can_select_event($rememberedEvent, true)) {
     $selectedEvent = $rememberedEvent;
     $selectedEventId = (int)$rememberedEvent['id'];
     $uploadEventLocked = true;
@@ -75,8 +75,8 @@ $success = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!$selectedEvent || !photo_can_select_event($selectedEvent)) {
-        $error = 'Please choose a valid current or past event.';
+    if (!$selectedEvent || !photo_can_select_event($selectedEvent, $uploadEventLocked)) {
+        $error = 'Please choose a valid current or recent public event.';
     } elseif (!isset($_FILES['photo_upload']) || !is_array($_FILES['photo_upload'])) {
         $error = 'Please choose a photo to upload.';
     } elseif (($_FILES['photo_upload']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {

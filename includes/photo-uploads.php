@@ -111,6 +111,19 @@ function photo_current_upload_event() {
     return null;
 }
 
+function photo_event_is_public_night($event) {
+    if (!$event) {
+        return false;
+    }
+
+    $eventType = strtolower(trim((string)($event['event_type'] ?? 'public')));
+    if ($eventType === '') {
+        $eventType = 'public';
+    }
+
+    return $eventType === 'public';
+}
+
 function photo_selectable_events() {
     $events = [];
     $seen = [];
@@ -120,13 +133,14 @@ function photo_selectable_events() {
             SELECT *
             FROM events
             WHERE event_date IS NOT NULL
-              AND event_date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+              AND event_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
               AND event_date <= CURDATE()
+              AND (event_type IS NULL OR event_type = '' OR LOWER(event_type) = 'public')
             ORDER BY event_date ASC, COALESCE(start_time, '00:00:00') ASC, id ASC
         ");
         foreach ($stmt->fetchAll() as $event) {
             $id = (int)($event['id'] ?? 0);
-            if ($id && !isset($seen[$id])) {
+            if ($id && !isset($seen[$id]) && photo_can_select_event($event, false)) {
                 $events[] = $event;
                 $seen[$id] = true;
             }
@@ -135,7 +149,7 @@ function photo_selectable_events() {
     }
 
     $current = photo_current_upload_event();
-    if ($current) {
+    if ($current && photo_can_select_event($current, false)) {
         $id = (int)($current['id'] ?? 0);
         if ($id && !isset($seen[$id])) {
             $events[] = $current;
@@ -174,15 +188,29 @@ function photo_event_label($event) {
     return implode(' — ', $parts);
 }
 
-function photo_can_select_event($event) {
+function photo_can_select_event($event, $allowPrivate = false) {
     if (!$event || empty($event['event_date'])) {
+        return false;
+    }
+
+    if (!$allowPrivate && !photo_event_is_public_night($event)) {
         return false;
     }
 
     try {
         $eventDate = new DateTime($event['event_date']);
         $today = new DateTime(date('Y-m-d'));
-        return $eventDate <= $today;
+        if ($eventDate > $today) {
+            return false;
+        }
+
+        if ($allowPrivate) {
+            return true;
+        }
+
+        $sixMonthsAgo = new DateTime(date('Y-m-d'));
+        $sixMonthsAgo->modify('-6 months');
+        return $eventDate >= $sixMonthsAgo;
     } catch (Throwable $e) {
         photo_overlay_log('Render failed: ' . $e->getMessage());
         return false;
