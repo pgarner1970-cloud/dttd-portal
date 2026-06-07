@@ -2215,3 +2215,161 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
   width:clamp(44px,3.7vw,64px);
   height:clamp(44px,3.7vw,64px);
 }
+
+
+/* Stabilise combined Requests & played board row layout.
+   Keeps artwork and status pills inside each row and prevents clipping/overflow. */
+.music-board-card-stable{
+  overflow:hidden;
+}
+
+.music-board-card-stable .music-board-body{
+  min-height:0;
+  height:100%;
+  overflow:hidden;
+}
+
+.music-board-card-stable .music-board-panel{
+  min-width:0;
+  min-height:0;
+  overflow:hidden;
+}
+
+.music-board-card-stable .music-board-stack,
+.music-board-card-stable .music-board-played-list{
+  min-height:0;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  gap:clamp(8px,1vh,14px);
+}
+
+.music-board-card-stable .music-board-row,
+.music-board-card-stable .music-board-request,
+.music-board-card-stable .music-board-played-track{
+  position:relative;
+  min-width:0;
+  width:100%;
+  box-sizing:border-box;
+  display:grid;
+  grid-template-columns:clamp(48px,4.1vw,72px) minmax(0,1fr) clamp(74px,5.4vw,108px);
+  align-items:center;
+  column-gap:clamp(10px,1vw,18px);
+  min-height:0;
+  height:auto;
+  padding:clamp(8px,.85vw,14px) clamp(10px,1vw,18px);
+  border-radius:clamp(14px,1.25vw,24px);
+  overflow:hidden;
+}
+
+.music-board-card-stable .music-board-request{
+  max-height:clamp(92px,10.6vh,125px);
+}
+
+.music-board-card-stable .music-board-played-track{
+  max-height:clamp(62px,7.5vh,88px);
+}
+
+.music-board-card-stable .music-board-row-art{
+  width:clamp(48px,4.1vw,72px);
+  height:clamp(48px,4.1vw,72px);
+  display:grid;
+  place-items:center;
+  min-width:0;
+  overflow:hidden;
+}
+
+.music-board-card-stable .music-board-played-track .music-board-row-art{
+  width:clamp(42px,3.4vw,58px);
+  height:clamp(42px,3.4vw,58px);
+}
+
+.music-board-card-stable .music-board-artwork{
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:cover;
+  border-radius:clamp(8px,.75vw,14px);
+  margin:0;
+}
+
+.music-board-card-stable .music-board-row-art b{
+  width:clamp(38px,3.2vw,54px);
+  height:clamp(38px,3.2vw,54px);
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:rgba(68,230,255,.14);
+  border:1px solid rgba(68,230,255,.32);
+  color:var(--display-cyan);
+  font-weight:1000;
+}
+
+.music-board-card-stable .music-board-row-copy{
+  min-width:0;
+  overflow:hidden;
+}
+
+.music-board-card-stable .music-board-row-copy strong{
+  display:block;
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  line-height:1.02;
+  font-size:clamp(18px,1.55vw,31px);
+  margin:0;
+}
+
+.music-board-card-stable .music-board-played-track .music-board-row-copy strong{
+  font-size:clamp(15px,1.18vw,23px);
+}
+
+.music-board-card-stable .music-board-row-copy span,
+.music-board-card-stable .music-board-row-copy em{
+  display:block;
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  line-height:1.08;
+  margin-top:.18vh;
+  font-size:clamp(13px,1vw,20px);
+}
+
+.music-board-card-stable .music-board-row-copy small{
+  display:-webkit-box;
+  -webkit-line-clamp:1;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+  line-height:1.1;
+  margin-top:.2vh;
+  font-size:clamp(11px,.82vw,16px);
+}
+
+.music-board-card-stable .request-status-pill{
+  position:static;
+  align-self:center;
+  justify-self:end;
+  margin:0;
+  min-width:0;
+  width:auto;
+  max-width:100%;
+  min-height:clamp(24px,2.4vh,34px);
+  padding:0 clamp(8px,.7vw,14px);
+  font-size:clamp(8px,.62vw,13px);
+  line-height:1;
+  white-space:nowrap;
+  overflow:hidden;
+}
+
+.display-lite .music-board-card-stable .music-board-row,
+.display-lite .music-board-card-stable .music-board-request,
+.display-lite .music-board-card-stable .music-board-played-track{
+  grid-template-columns:clamp(42px,3.6vw,60px) minmax(0,1fr) clamp(66px,5vw,96px);
+}
+
+.display-lite .music-board-card-stable .music-board-row-art{
+  width:clamp(42px,3.6vw,60px);
+  height:clamp(42px,3.6vw,60px);
+}

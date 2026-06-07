@@ -255,9 +255,9 @@
       const person = text(req.requester_name, '');
       const dedication = text(req.dedication, '');
       const artwork = requestArtwork(req);
-      return '<div class="music-board-request waiting request-status-' + esc(statusClass) + '">'
-        + (artwork ? '<img class="music-board-artwork" src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>')
-        + '<div><strong>' + esc(text(req.track_name || req.title, 'Unknown track')) + '</strong>'
+      return '<div class="music-board-request music-board-row request-status-' + esc(statusClass) + '">'
+        + '<div class="music-board-row-art">' + (artwork ? '<img class="music-board-artwork" src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>') + '</div>'
+        + '<div class="music-board-row-copy"><strong>' + esc(text(req.track_name || req.title, 'Unknown track')) + '</strong>'
         + (req.artist_name || req.artist ? '<span>' + esc(text(req.artist_name || req.artist, '')) + '</span>' : '')
         + (person ? '<em>Requested by ' + esc(person) + '</em>' : '')
         + (dedication ? '<small>' + esc(dedication) + '</small>' : '')
@@ -266,13 +266,15 @@
         + '</div>';
     }).join('');
 
-    const playedTracks = recent.slice(0, isLite ? 5 : 8).map((track, idx) => {
+    const playedTracks = recent.slice(0, isLite ? 5 : 7).map((track, idx) => {
       const artwork = requestArtwork(track);
-      return '<div class="music-board-played-track">'
-        + (artwork ? '<img class="music-board-artwork" src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>')
-        + '<div><strong>' + esc(text(track.track_name || track.title, 'Unknown track')) + '</strong>'
+      return '<div class="music-board-played-track music-board-row request-status-played">'
+        + '<div class="music-board-row-art">' + (artwork ? '<img class="music-board-artwork" src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>') + '</div>'
+        + '<div class="music-board-row-copy"><strong>' + esc(text(track.track_name || track.title, 'Unknown track')) + '</strong>'
         + (track.artist_name || track.artist ? '<span>' + esc(text(track.artist_name || track.artist, '')) + '</span>' : '')
-        + '</div><p class="request-status-pill">Played</p></div>';
+        + '</div>'
+        + '<p class="request-status-pill">Played</p>'
+        + '</div>';
     }).join('');
 
     return '<article class="display-slide" data-slide="music_board">'
