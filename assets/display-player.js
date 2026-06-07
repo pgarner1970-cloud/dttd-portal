@@ -95,33 +95,42 @@
     const current = tracks.find(t => t.status === 'current') || tracks[0] || null;
     if (!current) {
       return '<article class="display-slide" data-slide="now_playing">'
-        + '<div class="display-card display-card-centre">'
-        + '<p class="display-kicker">Now Playing</p>'
-        + '<h1>Music all night</h1>'
-        + '<p class="display-muted">The current track will appear here when playback is detected.</p>'
-        + '</div></article>';
+        + '<div class="display-card now-playing-feature now-playing-standby">'
+        + '<div class="now-feature-head"><p class="display-kicker">Now Playing</p><h1>Music all night</h1></div>'
+        + '<div class="now-feature-body">'
+        + '<div class="now-feature-note"><strong>Current track</strong><span>The current track will appear here when playback is detected.</span></div>'
+        + '</div></div></article>';
     }
     return '<article class="display-slide" data-slide="now_playing">'
-      + '<div class="display-grid two-col now-layout">'
-      + '<div class="display-card artwork-card">'
+      + '<div class="display-card now-playing-feature">'
+      + '<div class="now-feature-head"><p class="display-kicker">Now Playing</p><h1>On the decks</h1></div>'
+      + '<div class="now-feature-body">'
+      + '<div class="now-feature-art">'
       + (current.image ? '<img src="' + esc(current.image) + '" alt="Album artwork">' : '<div class="artwork-placeholder">♪</div>')
       + '</div>'
-      + '<div class="display-card now-copy">'
-      + '<p class="display-kicker">Now Playing' + (current.deck ? ' • Deck ' + esc(current.deck) : '') + '</p>'
-      + '<h1>' + esc(text(current.title, 'Unknown track')) + '</h1>'
-      + (current.artist ? '<h2>' + esc(current.artist) + '</h2>' : '')
-      + '<p class="display-large-note">Keep the requests coming.</p>'
+      + '<div class="now-feature-copy">'
+      + (current.deck ? '<p class="now-deck-pill">Deck ' + esc(current.deck) + '</p>' : '')
+      + '<strong>' + esc(text(current.title, 'Unknown track')) + '</strong>'
+      + (current.artist ? '<span>' + esc(current.artist) + '</span>' : '')
+      + '<em>Keep the requests coming</em>'
+      + '</div>'
       + '</div></div></article>';
   }
 
   function renderRecent() {
     const tracks = nowPlaying && Array.isArray(nowPlaying.tracks) && nowPlaying.tracks.length ? nowPlaying.tracks.filter(t => t.status !== 'current') : (state.recent_tracks || []);
-    const rows = tracks.slice(0, 6).map((track, idx) => '<li><b>' + String(idx + 1).padStart(2, '0') + '</b><div>' + trackLine(track) + '</div></li>').join('');
+    const rows = tracks.slice(0, 8).map((track, idx) => {
+      const title = esc(text(track.track_name || track.title, 'Unknown track'));
+      const artist = esc(text(track.artist_name || track.artist, ''));
+      return '<div class="played-tile">'
+        + '<b>' + String(idx + 1).padStart(2, '0') + '</b>'
+        + '<div><strong>' + title + '</strong>' + (artist ? '<span>' + artist + '</span>' : '') + '</div>'
+        + '</div>';
+    }).join('');
     return '<article class="display-slide" data-slide="recent">'
-      + '<div class="display-card list-card">'
-      + '<p class="display-kicker">Recently Played</p>'
-      + '<h1>Tracks played tonight</h1>'
-      + (rows ? '<ol class="display-track-list">' + rows + '</ol>' : '<div class="display-empty">Played tracks will appear here.</div>')
+      + '<div class="display-card played-card">'
+      + '<div class="played-head"><p class="display-kicker">Played Tonight</p><h1>What we’ve played</h1></div>'
+      + (rows ? '<div class="played-grid">' + rows + '</div>' : '<div class="display-empty">Played tracks will appear here.</div>')
       + '</div></article>';
   }
 
