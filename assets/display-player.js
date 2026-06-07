@@ -189,19 +189,22 @@
   }
 
   function renderRecent() {
-    const tracks = nowPlaying && Array.isArray(nowPlaying.tracks) && nowPlaying.tracks.length ? nowPlaying.tracks.filter(t => t.status !== 'current') : (state.recent_tracks || []);
-    const rows = tracks.slice(0, 8).map((track, idx) => {
+    const stateTracks = Array.isArray(state.recent_tracks) ? state.recent_tracks : [];
+    const npTracks = nowPlaying && Array.isArray(nowPlaying.tracks) ? nowPlaying.tracks.filter(t => t.status !== 'current') : [];
+    const tracks = stateTracks.length ? stateTracks : npTracks;
+    const rows = tracks.slice(0, 10).map((track, idx) => {
       const title = esc(text(track.track_name || track.title, 'Unknown track'));
       const artist = esc(text(track.artist_name || track.artist, ''));
-      return '<div class="played-tile">'
-        + '<b>' + String(idx + 1).padStart(2, '0') + '</b>'
+      const artwork = text(track.artwork_url || track.image || track.spotify_album_image, '');
+      return '<div class="played-tile played-tile-compact">'
+        + (artwork ? '<img class="played-artwork" src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>')
         + '<div><strong>' + title + '</strong>' + (artist ? '<span>' + artist + '</span>' : '') + '</div>'
         + '</div>';
     }).join('');
     return '<article class="display-slide" data-slide="recent">'
-      + '<div class="display-card played-card">'
+      + '<div class="display-card played-card played-card-compact">'
       + '<div class="played-head"><p class="display-kicker">Played Tonight</p><h1>What we’ve played</h1></div>'
-      + (rows ? '<div class="played-grid">' + rows + '</div>' : '<div class="display-empty">Played tracks will appear here.</div>')
+      + (rows ? '<div class="played-grid played-grid-compact">' + rows + '</div>' : '<div class="display-empty">Played tracks will appear here.</div>')
       + '</div></article>';
   }
 

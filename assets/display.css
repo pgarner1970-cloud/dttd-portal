@@ -1717,3 +1717,56 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
   font-size:clamp(11px,.78vw,16px);
   line-height:1.08;
 }
+
+
+/* Recently played slide: compact artwork rows to show more tracks clearly. */
+.played-card-compact{
+  gap:clamp(14px,1.8vh,28px);
+  padding:clamp(22px,2.4vw,44px) clamp(32px,3.2vw,62px);
+}
+
+.played-card-compact .played-head h1{
+  font-size:clamp(48px,5.2vw,100px);
+}
+
+.played-grid-compact{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:clamp(10px,1vh,17px) clamp(16px,1.5vw,28px);
+  align-content:start;
+}
+
+.played-tile-compact{
+  min-height:clamp(64px,7.5vh,96px);
+  grid-template-columns:clamp(54px,4.8vw,84px) minmax(0,1fr);
+  gap:clamp(12px,1.1vw,20px);
+  padding:clamp(9px,.9vw,15px);
+}
+
+.played-tile-compact .played-artwork{
+  width:clamp(54px,4.8vw,84px);
+  height:clamp(54px,4.8vw,84px);
+  display:block;
+  object-fit:cover;
+  border-radius:clamp(12px,1vw,18px);
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 8px 22px rgba(0,0,0,.32);
+}
+
+.played-tile-compact b{
+  width:clamp(54px,4.8vw,84px);
+  height:clamp(54px,4.8vw,84px);
+}
+
+.played-tile-compact strong{
+  font-size:clamp(20px,1.65vw,34px);
+}
+
+.played-tile-compact span{
+  font-size:clamp(15px,1.15vw,24px);
+}
+
+@media (max-aspect-ratio: 4/3){
+  .played-grid-compact{
+    grid-template-columns:1fr;
+  }
+}
