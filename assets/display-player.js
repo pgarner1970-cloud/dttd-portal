@@ -189,9 +189,10 @@
   }
 
   function renderRecent() {
-    const stateTracks = Array.isArray(state.recent_tracks) ? state.recent_tracks : [];
-    const npTracks = nowPlaying && Array.isArray(nowPlaying.tracks) ? nowPlaying.tracks.filter(t => t.status !== 'current') : [];
-    const tracks = stateTracks.length ? stateTracks : npTracks;
+    // Strict history only: this slide must show real event_track_history rows.
+    // Do not fall back to loaded/current mixer payloads, otherwise it can appear to
+    // duplicate or invent entries before they have actually been logged as played.
+    const tracks = Array.isArray(state.recent_tracks) ? state.recent_tracks : [];
     const rows = tracks.slice(0, 10).map((track, idx) => {
       const title = esc(text(track.track_name || track.title, 'Unknown track'));
       const artist = esc(text(track.artist_name || track.artist, ''));
@@ -213,7 +214,7 @@
     const playedRequests = state.played_requests || [];
     const recent = state.recent_tracks || [];
 
-    const requestItems = requests.slice(0, 3).map((req, idx) => {
+    const requestItems = requests.slice(0, 5).map((req, idx) => {
       const person = text(req.requester_name, '');
       const dedication = text(req.dedication, '');
       return '<div class="music-board-request waiting">'
@@ -225,7 +226,7 @@
         + '</div></div>';
     }).join('');
 
-    const playedRequestItems = playedRequests.slice(0, 2).map((req) => {
+    const playedRequestItems = playedRequests.slice(0, 3).map((req) => {
       const person = text(req.requester_name, '');
       const dedication = text(req.dedication, '');
       return '<div class="music-board-request played">'
