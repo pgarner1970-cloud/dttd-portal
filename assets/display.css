@@ -646,3 +646,15 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
 .display-coming-up-card em.coming-datetime{
   margin:0;
 }
+
+
+/* Keep the upcoming-events ticker on the compositor and avoid animation restarts/glitches during display refreshes. */
+.display-coming-up-window,
+.display-coming-up-track{
+  backface-visibility:hidden;
+  transform:translateZ(0);
+}
+
+.display-coming-up-track{
+  contain:layout paint;
+}

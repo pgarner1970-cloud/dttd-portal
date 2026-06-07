@@ -14,6 +14,7 @@
   let slideIndex = 0;
   let slideTimer = null;
   let refreshTimer = null;
+  let lastSlideSignature = '';
 
   function esc(value) {
     return String(value == null ? '' : value)
@@ -263,12 +264,58 @@
     }
   }
 
-  function buildSlides() {
+  function slideContentSignature(data) {
+    if (!data) return '';
+    const event = data.event || {};
+    const keyRows = (rows) => Array.isArray(rows) ? rows.map(row => row && (row.id || row.event_code || row.event_name || row.track_name || row.title || row.image_url || row.name || '')).join(',') : '';
+    return [
+      data.active_event ? 'active' : 'standby',
+      event.id || '',
+      Array.isArray(data.slides) ? data.slides.join('|') : '',
+      keyRows(data.requests),
+      keyRows(data.photos),
+      keyRows(data.upcoming_events),
+      keyRows(data.sponsors),
+      data.venue && data.venue.name ? data.venue.name : ''
+    ].join('::');
+  }
+
+  function updateActiveNowPlayingSlide() {
+    const active = stage.querySelector('.display-slide.active[data-slide="now_playing"]');
+    if (!active) return false;
+    const replacement = document.createElement('div');
+    replacement.innerHTML = renderNowPlaying();
+    const next = replacement.firstElementChild;
+    if (!next) return false;
+    next.classList.add('active');
+    active.replaceWith(next);
+    return true;
+  }
+
+  function buildSlides(force) {
     if (!state) return;
     if (footerEvent && state.event) footerEvent.textContent = state.event.event_name || 'Dance Through The Decades';
+
+    const signature = slideContentSignature(state);
     const slides = state.active_event ? (state.slides || ['welcome', 'qr', 'now_playing']) : ['standby', 'upcoming'];
+
+    if (!force && signature === lastSlideSignature && stage.querySelector('.display-slide')) {
+      updateActiveNowPlayingSlide();
+      return;
+    }
+
+    lastSlideSignature = signature;
+    const currentActive = stage.querySelector('.display-slide.active');
+    const currentName = currentActive ? currentActive.getAttribute('data-slide') : '';
     stage.innerHTML = slides.map(renderSlide).join('');
-    slideIndex = Math.min(slideIndex, Math.max(0, slides.length - 1));
+
+    if (currentName) {
+      const newIndex = slides.indexOf(currentName);
+      slideIndex = newIndex >= 0 ? newIndex : Math.min(slideIndex, Math.max(0, slides.length - 1));
+    } else {
+      slideIndex = Math.min(slideIndex, Math.max(0, slides.length - 1));
+    }
+
     showSlide(slideIndex);
   }
 
@@ -309,13 +356,18 @@
           lastLiveNowPlaying = np;
         }
       }
-      buildSlides();
+
+      // Do not rebuild the whole display for now-playing polling. Rebuilding resets
+      // CSS animations such as the What's Happening ticker, which causes visible jumps.
+      updateActiveNowPlayingSlide();
     });
   }
 
   function refresh() {
     return fetchJson(stateUrl).then(data => {
+      const hadSlides = !!stage.querySelector('.display-slide');
       if (data && data.ok) state = data;
+      buildSlides(!hadSlides);
       return refreshNowPlaying();
     }).then(() => {
       startLoop();
