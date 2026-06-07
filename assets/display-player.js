@@ -209,6 +209,34 @@
       + '</div></article>';
   }
 
+
+  function requestStatusLabel(status) {
+    const normalised = text(status, 'pending').toLowerCase().replace(/[_-]+/g, ' ');
+    if (normalised === 'approved' || normalised === 'accepted' || normalised === 'queued') return 'Accepted';
+    if (normalised === 'pending' || normalised === 'new' || normalised === 'requested') return 'Waiting';
+    if (normalised === 'played' || normalised === 'complete' || normalised === 'completed') return 'Played';
+    if (normalised === 'rejected' || normalised === 'declined') return 'Rejected';
+    if (normalised === 'cancelled' || normalised === 'canceled') return 'Cancelled';
+    return normalised ? normalised.replace(/\b\w/g, ch => ch.toUpperCase()) : 'Waiting';
+  }
+
+  function requestStatusClass(status) {
+    return requestStatusLabel(status).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  }
+
+  function requestStatusRank(status) {
+    const normalised = text(status, 'pending').toLowerCase();
+    if (['queued', 'approved', 'accepted'].includes(normalised)) return 1;
+    if (['pending', 'new', 'requested'].includes(normalised)) return 2;
+    if (['played', 'complete', 'completed'].includes(normalised)) return 3;
+    if (['rejected', 'declined', 'cancelled', 'canceled'].includes(normalised)) return 4;
+    return 3;
+  }
+
+  function requestArtwork(item) {
+    return text(item.artwork_url || item.image || item.spotify_album_image || item.album_image || '', '');
+  }
+
   function renderMusicBoard() {
     const requestSource = Array.isArray(state.requests) ? state.requests.slice() : [];
     const requests = requestSource
