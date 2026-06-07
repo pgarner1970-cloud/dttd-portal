@@ -213,7 +213,7 @@
     const playedRequests = state.played_requests || [];
     const recent = state.recent_tracks || [];
 
-    const requestItems = requests.slice(0, 5).map((req, idx) => {
+    const requestItems = requests.slice(0, 3).map((req, idx) => {
       const person = text(req.requester_name, '');
       const dedication = text(req.dedication, '');
       return '<div class="music-board-request waiting">'
@@ -225,7 +225,7 @@
         + '</div></div>';
     }).join('');
 
-    const playedRequestItems = playedRequests.slice(0, 3).map((req) => {
+    const playedRequestItems = playedRequests.slice(0, 2).map((req) => {
       const person = text(req.requester_name, '');
       const dedication = text(req.dedication, '');
       return '<div class="music-board-request played">'
