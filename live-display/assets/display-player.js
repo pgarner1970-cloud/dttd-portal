@@ -680,6 +680,7 @@
       data.active_event ? 'active' : 'standby',
       event.id || '',
       Array.isArray(data.slides) ? data.slides.join('|') : '',
+      JSON.stringify(data.slide_durations || {}),
       keyRows(data.requests),
       keyRows(data.played_requests),
       keyRows(data.recent_tracks),
@@ -773,14 +774,34 @@
     active.classList.add('active');
   }
 
+  function slideDurationMs(slideName) {
+    const durations = state && state.slide_durations ? state.slide_durations : {};
+    const seconds = Number(durations[slideName] || 0);
+    if (Number.isFinite(seconds) && seconds >= 5) {
+      return Math.max(5000, Math.min(60000, seconds * 1000));
+    }
+    return isLite ? 14500 : 12000;
+  }
+
   function startLoop() {
-    if (slideTimer) clearInterval(slideTimer);
-    slideTimer = setInterval(function(){
+    if (loopTimer) clearTimeout(loopTimer);
+
+    function scheduleNext() {
       const slides = stage.querySelectorAll('.display-slide');
       if (!slides.length) return;
-      slideIndex = (slideIndex + 1) % slides.length;
-      showSlide(slideIndex);
-    }, isLite ? 14500 : 12000);
+
+      const current = slides[slideIndex] || slides[0];
+      const currentName = current ? current.getAttribute('data-slide') : '';
+      loopTimer = setTimeout(function(){
+        const latestSlides = stage.querySelectorAll('.display-slide');
+        if (!latestSlides.length) return;
+        slideIndex = (slideIndex + 1) % latestSlides.length;
+        showSlide(slideIndex);
+        scheduleNext();
+      }, slideDurationMs(currentName));
+    }
+
+    scheduleNext();
   }
 
   function fetchJson(url) {

@@ -100,6 +100,132 @@ function dttd_display_event() {
     }
 }
 
+
+function dttd_display_slide_table_exists() {
+    static $exists = null;
+    if ($exists !== null) return $exists;
+
+    try {
+        $stmt = db()->query("SHOW TABLES LIKE 'display_slide_settings'");
+        $exists = (bool)$stmt->fetch();
+    } catch (Throwable $e) {
+        $exists = false;
+    }
+
+    return $exists;
+}
+
+function dttd_display_slide_defaults() {
+    return [
+        'venue' => ['label' => 'Venue / hosts', 'enabled' => 1, 'duration_seconds' => 20, 'priority' => 'low', 'weight' => 1, 'sort_order' => 10],
+        'qr' => ['label' => 'Event QR code', 'enabled' => 1, 'duration_seconds' => 20, 'priority' => 'high', 'weight' => 3, 'sort_order' => 20],
+        'event_timer' => ['label' => 'Keep dancing timer', 'enabled' => 1, 'duration_seconds' => 20, 'priority' => 'high', 'weight' => 3, 'sort_order' => 30],
+        'music_board' => ['label' => 'Request board', 'enabled' => 1, 'duration_seconds' => 15, 'priority' => 'high', 'weight' => 3, 'sort_order' => 40],
+        'now_playing' => ['label' => 'Now playing', 'enabled' => 1, 'duration_seconds' => 15, 'priority' => 'normal', 'weight' => 2, 'sort_order' => 50],
+        'up_next' => ['label' => 'Up next', 'enabled' => 1, 'duration_seconds' => 15, 'priority' => 'normal', 'weight' => 2, 'sort_order' => 60],
+        'recent' => ['label' => 'What we’ve played', 'enabled' => 1, 'duration_seconds' => 15, 'priority' => 'normal', 'weight' => 2, 'sort_order' => 70],
+        'requests' => ['label' => 'DJ playlist / coming up', 'enabled' => 1, 'duration_seconds' => 15, 'priority' => 'normal', 'weight' => 2, 'sort_order' => 80],
+        'photos' => ['label' => 'Photos', 'enabled' => 1, 'duration_seconds' => 15, 'priority' => 'normal', 'weight' => 2, 'sort_order' => 90],
+        'partners' => ['label' => 'Partners', 'enabled' => 1, 'duration_seconds' => 20, 'priority' => 'low', 'weight' => 1, 'sort_order' => 100],
+        'upcoming' => ['label' => 'What’s happening', 'enabled' => 1, 'duration_seconds' => 20, 'priority' => 'low', 'weight' => 1, 'sort_order' => 110],
+        'sponsors' => ['label' => 'Sponsors', 'enabled' => 1, 'duration_seconds' => 20, 'priority' => 'low', 'weight' => 1, 'sort_order' => 120],
+    ];
+}
+
+function dttd_display_slide_settings() {
+    $settings = dttd_display_slide_defaults();
+
+    if (!dttd_display_slide_table_exists()) {
+        return $settings;
+    }
+
+    try {
+        $rows = db()->query("SELECT * FROM display_slide_settings ORDER BY sort_order ASC, id ASC")->fetchAll();
+        foreach ($rows as $row) {
+            $key = (string)($row['slide_key'] ?? '');
+            if ($key === '' || !isset($settings[$key])) continue;
+
+            $settings[$key]['label'] = (string)($row['slide_label'] ?? $settings[$key]['label']);
+            $settings[$key]['enabled'] = !empty($row['enabled']) ? 1 : 0;
+            $settings[$key]['duration_seconds'] = max(5, min(60, (int)($row['duration_seconds'] ?? $settings[$key]['duration_seconds'])));
+            $settings[$key]['priority'] = (string)($row['priority'] ?? $settings[$key]['priority']);
+            $settings[$key]['weight'] = max(1, min(4, (int)($row['weight'] ?? $settings[$key]['weight'])));
+            $settings[$key]['sort_order'] = (int)($row['sort_order'] ?? $settings[$key]['sort_order']);
+        }
+    } catch (Throwable $e) {}
+
+    uasort($settings, function($a, $b) {
+        return ((int)$a['sort_order']) <=> ((int)$b['sort_order']);
+    });
+
+    return $settings;
+}
+
+function dttd_display_available_slides($available, $settings) {
+    $availableLookup = array_fill_keys((array)$available, true);
+    $out = [];
+
+    foreach ($settings as $key => $setting) {
+        if (empty($setting['enabled'])) continue;
+        if (!isset($availableLookup[$key])) continue;
+        $out[] = $key;
+    }
+
+    return $out;
+}
+
+function dttd_display_weighted_slides($slides, $settings) {
+    $slides = array_values(array_unique((array)$slides));
+    if (!$slides) return [];
+
+    $weighted = [];
+    foreach ($slides as $slide) {
+        $weight = max(1, min(4, (int)($settings[$slide]['weight'] ?? 1)));
+        for ($i = 0; $i < $weight; $i++) {
+            $weighted[] = $slide;
+        }
+    }
+
+    if (count($weighted) <= 1) {
+        return $weighted;
+    }
+
+    $result = [];
+    $counts = array_count_values($weighted);
+    $last = '';
+
+    while (array_sum($counts) > 0) {
+        arsort($counts);
+        $picked = '';
+
+        foreach ($counts as $slide => $count) {
+            if ($count <= 0) continue;
+            if ($slide !== $last || count(array_filter($counts)) === 1) {
+                $picked = $slide;
+                break;
+            }
+        }
+
+        if ($picked === '') {
+            break;
+        }
+
+        $result[] = $picked;
+        $counts[$picked]--;
+        $last = $picked;
+    }
+
+    return $result;
+}
+
+function dttd_display_slide_durations($settings) {
+    $out = [];
+    foreach ($settings as $key => $setting) {
+        $out[$key] = max(5, min(60, (int)($setting['duration_seconds'] ?? 15)));
+    }
+    return $out;
+}
+
 function dttd_display_event_payload($event) {
     if (!$event) return null;
     $joinUrl = !empty($event['event_code']) ? dttd_public_event_join_url($event['event_code'], 'event') : '';
@@ -696,28 +822,28 @@ $upcoming = dttd_display_upcoming_events(5);
 $sponsors = dttd_display_sponsors($eventId, 6);
 $venue = dttd_display_venue_payload($event);
 
-$slides = ['welcome'];
-if ($venue && !empty($venue['has_details'])) $slides[] = 'venue';
-$slides[] = 'qr';
-$slides[] = 'event_timer';
-$slides[] = 'music_board';
-$slides[] = 'now_playing';
+$slideSettings = dttd_display_slide_settings();
 
-// Keep the dedicated music-board slide in every active event loop. It has its own
-// empty-state messages, and requests can exist even when the DJ mixer is not running.
-if ($recent) $slides[] = 'recent';
-if ($comingUp) $slides[] = 'requests';
-if ($photos) $slides[] = 'photos';
-if ($upcoming) $slides[] = 'upcoming';
-if ($partners) $slides[] = 'partners';
-if ($sponsors) $slides[] = 'sponsors';
+$availableSlides = [];
+if ($venue && !empty($venue['has_details'])) $availableSlides[] = 'venue';
+$availableSlides[] = 'qr';
+$availableSlides[] = 'event_timer';
+$availableSlides[] = 'music_board';
+$availableSlides[] = 'now_playing';
+if ($recent) $availableSlides[] = 'recent';
+if ($comingUp) $availableSlides[] = 'requests';
+if ($photos) $availableSlides[] = 'photos';
+if ($upcoming) $availableSlides[] = 'upcoming';
+if ($partners) $availableSlides[] = 'partners';
+if ($sponsors) $availableSlides[] = 'sponsors';
 
-// Repeat the QR slide so guests regularly see the event code during the loop.
-if (in_array('qr', $slides, true) && count($slides) > 5) {
-    // Repeat the QR later in the loop, after the core information slides have appeared.
-    $insertAt = min(6, count($slides));
-    array_splice($slides, $insertAt, 0, ['qr']);
+$slides = dttd_display_available_slides($availableSlides, $slideSettings);
+if (!$slides) {
+    $slides = ['qr'];
 }
+
+$slides = dttd_display_weighted_slides($slides, $slideSettings);
+$slideDurations = dttd_display_slide_durations($slideSettings);
 
 dttd_display_json([
     'ok' => true,
@@ -726,6 +852,8 @@ dttd_display_json([
     'event' => dttd_display_event_payload($event),
     'venue' => $venue,
     'slides' => $slides,
+    'slide_durations' => $slideDurations,
+    'slide_settings' => $slideSettings,
     'requests' => $requests,
     'played_requests' => $playedRequests,
     'recent_tracks' => $recent,

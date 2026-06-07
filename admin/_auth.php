@@ -49,6 +49,7 @@ function admin_url($path = '') {
         'requests' => 'requests.php',
         'settings' => 'settings.php',
         'tools' => 'tools.php',
+        'display-slides' => 'display-slides.php',
     ];
 
     if (isset($dttd_admin_route_aliases[$path])) {
@@ -72,7 +73,7 @@ function admin_nav_active($page) {
         'venues' => ['venues.php', 'venue-edit.php'],
         'settings' => ['settings.php'],
         'photos' => ['event-photos.php'],
-        'tools' => ['tools.php', 'local-music.php', 'events.php', 'event-edit.php', 'event-qr.php', 'venues.php', 'venue-edit.php', 'partners.php', 'partner-edit.php', 'sponsors.php', 'event-sponsors.php', 'quote-add.php', 'quotes.php', 'quote-save.php', 'quote-pdf.php', 'quote-convert.php', 'invoices.php', 'request-debug.php', 'events-diagnostic.php', 'regenerate-photo-frames.php', 'repair-upload-paths.php', 'upload-path-check.php'],
+        'tools' => ['tools.php', 'display-slides.php', 'local-music.php', 'events.php', 'event-edit.php', 'event-qr.php', 'venues.php', 'venue-edit.php', 'partners.php', 'partner-edit.php', 'sponsors.php', 'event-sponsors.php', 'quote-add.php', 'quotes.php', 'quote-save.php', 'quote-pdf.php', 'quote-convert.php', 'invoices.php', 'request-debug.php', 'events-diagnostic.php', 'regenerate-photo-frames.php', 'repair-upload-paths.php', 'upload-path-check.php'],
     ];
 
     return in_array($script, $map[$page] ?? [], true) ? 'active' : '';

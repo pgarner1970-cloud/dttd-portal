@@ -65,6 +65,12 @@ admin_header('Admin Tools - DJ Portal');
         <strong>Local music</strong>
         <span>Review local SSD tracks synced from the Lenovo scanner</span>
       </a>
+
+      <a class="admin-home-card" href="display-slides.php">
+        <span class="admin-home-icon">▣</span>
+        <strong>Live display slides</strong>
+        <span>Choose display cards, timings and priority weighting</span>
+      </a>
     </div>
   </section>
 
