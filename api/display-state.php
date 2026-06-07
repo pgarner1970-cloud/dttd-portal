@@ -892,6 +892,62 @@ function dttd_display_sponsors($eventId, $limit = 6) {
     }
 }
 
+
+function dttd_display_decode_setting_json($key) {
+    try {
+        if (!dttd_display_table_exists('app_settings')) return [];
+        $stmt = db()->prepare("SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1");
+        $stmt->execute([(string)$key]);
+        $raw = $stmt->fetchColumn();
+        if ($raw === false || $raw === null || trim((string)$raw) === '') return [];
+        $decoded = json_decode((string)$raw, true);
+        return is_array($decoded) ? $decoded : [];
+    } catch (Throwable $e) {
+        return [];
+    }
+}
+
+function dttd_display_decks_are_clear() {
+    $loadedA = dttd_display_decode_setting_json('spotify_mixer_loaded_a');
+    $loadedB = dttd_display_decode_setting_json('spotify_mixer_loaded_b');
+
+    $aLoaded = is_array($loadedA) && trim((string)($loadedA['id'] ?? $loadedA['track_id'] ?? $loadedA['spotify_track_id'] ?? '')) !== '';
+    $bLoaded = is_array($loadedB) && trim((string)($loadedB['id'] ?? $loadedB['track_id'] ?? $loadedB['spotify_track_id'] ?? '')) !== '';
+
+    return !$aLoaded && !$bLoaded;
+}
+
+function dttd_display_goodnight_active($event) {
+    if (!$event || empty($event['id'])) return false;
+    $endTs = dttd_display_event_end_timestamp($event);
+    if (!$endTs || time() < $endTs) return false;
+    return dttd_display_decks_are_clear();
+}
+
+function dttd_display_goodnight_payload($event, $partners = []) {
+    $website = 'https://dancethruthedecades.co.uk/';
+    $facebook = 'https://www.facebook.com/profile.php?id=61579454050951';
+
+    return [
+        'ok' => true,
+        'active_event' => false,
+        'display_mode' => 'goodnight',
+        'event' => dttd_display_event_payload($event),
+        'slides' => ['goodnight'],
+        'slide_durations' => ['goodnight' => 30],
+        'goodnight' => [
+            'website_url' => $website,
+            'website_label' => 'dancethruthedecades.co.uk',
+            'website_qr_image_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=560x560&margin=16&data=' . rawurlencode($website),
+            'facebook_url' => $facebook,
+            'facebook_label' => 'Facebook',
+            'facebook_qr_image_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=560x560&margin=16&data=' . rawurlencode($facebook),
+        ],
+        'partners' => $partners,
+        'generated_at' => date('c'),
+    ];
+}
+
 function dttd_display_event_is_live($event) {
     if (!$event || empty($event['id'])) return false;
 
@@ -908,7 +964,7 @@ function dttd_display_event_is_live($event) {
 function dttd_display_standby_payload($partners = []) {
     $website = 'https://dancethruthedecades.co.uk/';
     $facebook = 'https://www.facebook.com/profile.php?id=61579454050951';
-    $upcoming = dttd_display_upcoming_events(8, $eventId);
+    $upcoming = dttd_display_upcoming_events(8, 0);
 
     return [
         'ok' => true,
@@ -932,6 +988,10 @@ function dttd_display_standby_payload($partners = []) {
 
 $event = dttd_display_event();
 $partners = dttd_display_partners(12);
+
+if ($event && !empty($event['id']) && dttd_display_goodnight_active($event)) {
+    dttd_display_json(dttd_display_goodnight_payload($event, $partners));
+}
 
 if (!$event || empty($event['id']) || !dttd_display_event_is_live($event)) {
     dttd_display_json(dttd_display_standby_payload($partners));

@@ -170,6 +170,29 @@
       + '</div></article>';
   }
 
+
+  function renderGoodnight() {
+    const info = (state && state.goodnight) ? state.goodnight : {};
+    const websiteQr = text(info.website_qr_image_url || '', '');
+    const facebookQr = text(info.facebook_qr_image_url || '', '');
+    const websiteLabel = text(info.website_label || 'dancethruthedecades.co.uk', 'dancethruthedecades.co.uk');
+
+    return '<article class="display-slide" data-slide="goodnight">'
+      + '<div class="display-card goodnight-card">'
+      + '<div class="goodnight-copy">'
+      + '<p class="display-kicker">Thank You</p>'
+      + '<h1>Good night</h1>'
+      + '<h2>Have a safe journey home</h2>'
+      + '<p>Thanks for dancing with us tonight. Follow us on Facebook, share your memories, and check the website for future dates.</p>'
+      + '<strong>Hope to see you again soon.</strong>'
+      + '</div>'
+      + '<div class="goodnight-qr-grid">'
+      + '<div class="goodnight-qr-card">' + (facebookQr ? '<img src="' + esc(facebookQr) + '" alt="Facebook QR code">' : '') + '<b>Facebook</b><span>Follow us</span></div>'
+      + '<div class="goodnight-qr-card">' + (websiteQr ? '<img src="' + esc(websiteQr) + '" alt="Website QR code">' : '') + '<b>Website</b><span>' + esc(websiteLabel) + '</span></div>'
+      + '</div>'
+      + '</div></article>';
+  }
+
   function renderWelcome() {
     const event = state && state.event ? state.event : {};
     const isWedding = String(event.event_type || '').toLowerCase() === 'wedding';
@@ -653,6 +676,7 @@
 
   function renderSlide(name) {
     switch (name) {
+      case 'goodnight': return renderGoodnight();
       case 'welcome': return renderWelcome();
       case 'venue': return renderVenue();
       case 'qr': return renderQr();
@@ -675,7 +699,7 @@
     const event = data.event || {};
     const keyRows = (rows) => Array.isArray(rows) ? rows.map(row => row && (row.id || row.event_code || row.event_name || row.track_name || row.title || row.image_url || row.name || '')).join(',') : '';
     return [
-      data.active_event ? 'active' : 'standby',
+      data.display_mode || (data.active_event ? 'active' : 'standby'),
       event.id || '',
       Array.isArray(data.slides) ? data.slides.join('|') : '',
       JSON.stringify(data.slide_durations || {}),
@@ -687,7 +711,8 @@
       keyRows(data.upcoming_events),
       keyRows(data.partners),
       keyRows(data.sponsors),
-      data.venue && data.venue.name ? data.venue.name : ''
+      data.venue && data.venue.name ? data.venue.name : '',
+      data.goodnight && data.goodnight.website_label ? data.goodnight.website_label : ''
     ].join('::');
   }
 
