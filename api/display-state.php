@@ -99,6 +99,25 @@ function dttd_display_event() {
 function dttd_display_event_payload($event) {
     if (!$event) return null;
     $joinUrl = !empty($event['event_code']) ? dttd_public_event_join_url($event['event_code'], 'event') : '';
+
+    $eventEndIso = '';
+    if (!empty($event['event_date']) && !empty($event['end_time'])) {
+        $endTs = strtotime((string)$event['event_date'] . ' ' . (string)$event['end_time']);
+        $startOfDay = strtotime((string)$event['event_date'] . ' 12:00');
+        if ($endTs && $startOfDay && $endTs < $startOfDay) {
+            $endTs = strtotime('+1 day', $endTs);
+        }
+        if ($endTs) $eventEndIso = date('c', $endTs);
+    }
+
+    $requestsCloseIso = '';
+    if (function_exists('dttd_event_request_close_iso')) {
+        $requestsCloseIso = dttd_event_request_close_iso($event);
+    } elseif (!empty($event['requests_close_at'])) {
+        $closeTs = strtotime((string)$event['requests_close_at']);
+        if ($closeTs) $requestsCloseIso = date('c', $closeTs);
+    }
+
     return [
         'id' => (int)($event['id'] ?? 0),
         'event_name' => (string)($event['event_name'] ?? 'Tonight\'s Event'),
@@ -109,6 +128,10 @@ function dttd_display_event_payload($event) {
         'event_date' => (string)($event['event_date'] ?? ''),
         'start_time' => isset($event['start_time']) ? substr((string)$event['start_time'], 0, 5) : '',
         'end_time' => isset($event['end_time']) ? substr((string)$event['end_time'], 0, 5) : '',
+        'event_end_iso' => $eventEndIso,
+        'requests_close_at' => (string)($event['requests_close_at'] ?? ''),
+        'requests_close_iso' => $requestsCloseIso,
+        'requests_open' => function_exists('event_requests_open') ? event_requests_open($event) : ($requestsCloseIso === '' || strtotime($requestsCloseIso) > time()),
         'is_public' => !empty($event['is_public']),
         'is_live_now' => function_exists('dttd_event_live_now') ? dttd_event_live_now($event) : false,
         'join_url' => $joinUrl,
@@ -672,6 +695,7 @@ $venue = dttd_display_venue_payload($event);
 $slides = ['welcome'];
 if ($venue && !empty($venue['has_details'])) $slides[] = 'venue';
 $slides[] = 'qr';
+$slides[] = 'event_timer';
 $slides[] = 'music_board';
 $slides[] = 'now_playing';
 

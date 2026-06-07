@@ -74,6 +74,72 @@
     return true;
   }
 
+
+  function countdownParts(iso) {
+    if (!iso) return null;
+    const target = Date.parse(iso);
+    if (!target) return null;
+    const diff = Math.max(0, target - Date.now());
+    return {
+      total: diff,
+      hours: Math.floor(diff / 3600000),
+      minutes: Math.floor((diff % 3600000) / 60000),
+      seconds: Math.floor((diff % 60000) / 1000),
+      expired: diff <= 0
+    };
+  }
+
+  function countdownText(parts) {
+    if (!parts) return '--:--:--';
+    return String(parts.hours).padStart(2, '0') + ':' + String(parts.minutes).padStart(2, '0') + ':' + String(parts.seconds).padStart(2, '0');
+  }
+
+  function updateCountdownElements(root) {
+    const scope = root || document;
+    scope.querySelectorAll('[data-countdown-target]').forEach(el => {
+      const parts = countdownParts(el.getAttribute('data-countdown-target'));
+      el.textContent = countdownText(parts);
+      el.classList.toggle('is-expired', !!parts && parts.expired);
+    });
+
+    scope.querySelectorAll('[data-request-countdown-target]').forEach(el => {
+      const parts = countdownParts(el.getAttribute('data-request-countdown-target'));
+      if (!parts || parts.expired) {
+        el.textContent = 'Requests are closed for the night';
+        el.classList.add('is-closed');
+      } else {
+        el.textContent = 'Keep the requests coming — you’ve got ' + countdownText(parts) + ' left';
+        el.classList.remove('is-closed');
+      }
+    });
+  }
+
+  function renderEventTimer() {
+    const event = state && state.event ? state.event : {};
+    const eventEnd = text(event.event_end_iso || '', '');
+    const requestClose = text(event.requests_close_iso || '', '');
+    const requestsOpen = event.requests_open !== false;
+    const endParts = countdownParts(eventEnd);
+    const requestParts = countdownParts(requestClose);
+    const eventCountdown = eventEnd ? countdownText(endParts) : '--:--:--';
+    const requestLine = (!requestsOpen || !requestClose || (requestParts && requestParts.expired))
+      ? 'Requests are closed for the night'
+      : 'Keep the requests coming — you’ve got ' + countdownText(requestParts) + ' left';
+
+    return '<article class="display-slide" data-slide="event_timer">'
+      + '<div class="display-card event-timer-card">'
+      + '<div class="event-timer-head"><p class="display-kicker">This Event</p><h1>Keep dancing</h1></div>'
+      + '<div class="event-timer-main">'
+      + '<p>Keep going — you’ve got</p>'
+      + '<strong data-countdown-target="' + esc(eventEnd) + '">' + esc(eventCountdown) + '</strong>'
+      + '<span>left to dance</span>'
+      + '</div>'
+      + '<div class="event-timer-requests' + ((!requestsOpen || !requestClose || (requestParts && requestParts.expired)) ? ' is-closed' : '') + '">'
+      + '<span data-request-countdown-target="' + esc(requestClose) + '">' + esc(requestLine) + '</span>'
+      + '</div>'
+      + '</div></article>';
+  }
+
   function renderVenue() {
     const venue = state && state.venue ? state.venue : null;
     if (!venue || !venue.name) {
@@ -562,6 +628,7 @@
       case 'welcome': return renderWelcome();
       case 'venue': return renderVenue();
       case 'qr': return renderQr();
+      case 'event_timer': return renderEventTimer();
       case 'now_playing': return renderNowPlaying();
       case 'up_next': return renderUpNext();
       case 'recent': return renderRecent();
@@ -734,6 +801,7 @@
 
   setClock();
   setInterval(setClock, 15000);
+  setInterval(function(){ updateCountdownElements(document); }, 1000);
   refresh();
   refreshTimer = setInterval(refresh, 15000);
   setInterval(refreshNowPlaying, 5000);
