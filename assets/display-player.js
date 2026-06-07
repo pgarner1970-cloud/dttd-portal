@@ -75,7 +75,6 @@
       + '<div class="venue-head"><p class="display-kicker">Tonight’s Venue</p><h1>Thank you to our hosts</h1></div>'
       + '<div class="venue-body">'
       + '<div class="venue-copy">'
-      + '<span class="venue-label">Hosted by</span>'
       + '<strong>' + esc(venue.name) + '</strong>'
       + (addressBits ? '<p>' + addressBits + '</p>' : '')
       + (venue.phone ? '<p class="venue-phone">Tel: ' + esc(venue.phone) + '</p>' : '')

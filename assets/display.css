@@ -681,3 +681,8 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
 .now-deck-pill{
   display:none !important;
 }
+
+
+/* Venue slide refinement: remove the extra hosted-by pill and give the venue name more space. */
+.venue-label{display:none !important;}
+.venue-copy{gap:clamp(10px,1.15vh,18px);}
