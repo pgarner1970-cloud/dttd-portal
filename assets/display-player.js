@@ -351,13 +351,31 @@
   }
 
 
-  function playlistTrackKey(item) {
-    if (!item) return '';
+  function playlistTrackKeys(item) {
+    if (!item) return [];
+    const keys = [];
     const id = trackIdValue(item);
-    if (id) return 'id:' + id;
-    const title = text(item.track_name || item.title, '').trim().toLowerCase();
-    const artist = text(item.artist_name || item.artist, '').trim().toLowerCase();
-    return title ? 'txt:' + title + '|' + artist : '';
+    const requestId = text(item.request_id || item.requestId || '', '').trim();
+    const title = text(item.track_name || item.title, '').trim().toLowerCase()
+      .replace(/[’']/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const artist = text(item.artist_name || item.artist, '').trim().toLowerCase()
+      .replace(/[’']/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (requestId) keys.push('req:' + requestId);
+    if (id) keys.push('id:' + id);
+    if (title) keys.push('txt:' + title + '|' + artist);
+    return keys;
+  }
+
+  function playlistTrackKey(item) {
+    const keys = playlistTrackKeys(item);
+    return keys.length ? keys[0] : '';
   }
 
   function deckTrackToPlaylistItem(track, statusLabel, statusClass) {
@@ -383,9 +401,9 @@
 
     function addItem(item) {
       if (!item) return;
-      const key = playlistTrackKey(item);
-      if (key && seen[key]) return;
-      if (key) seen[key] = true;
+      const keys = playlistTrackKeys(item);
+      if (keys.some(key => seen[key])) return;
+      keys.forEach(key => { if (key) seen[key] = true; });
       items.push(item);
     }
 
