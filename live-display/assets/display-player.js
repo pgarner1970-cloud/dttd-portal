@@ -464,14 +464,15 @@
     const events = state.upcoming_events || [];
     const limit = isLite ? 4 : 8;
     const cards = events.slice(0, limit).map((ev, idx) => {
-      const label = idx === 0 ? 'Next event' : 'Coming soon';
+      const isCurrent = !!ev.is_current_event;
+      const label = isCurrent ? 'Current event' : (idx === 0 ? 'Next event' : 'Coming soon');
       const date = formatDate(ev.event_date);
       const start = text(ev.start_time, '');
       const end = text(ev.end_time, '');
       const timeText = start && end ? start + ' – ' + end : (start || end || '');
       const dateTime = [date, timeText].filter(Boolean).join(' • ');
       const venue = text(ev.venue_name, '');
-      return '<div class="display-coming-up-card">'
+      return '<div class="display-coming-up-card' + (isCurrent ? ' display-coming-up-card-current' : '') + '">'
         + '<strong class="coming-eyebrow">' + esc(label) + '</strong>'
         + '<span class="coming-title">' + esc(text(ev.event_name, 'Dance Through The Decades')) + '</span>'
         + (dateTime ? '<em class="coming-datetime">' + esc(dateTime) + '</em>' : '')

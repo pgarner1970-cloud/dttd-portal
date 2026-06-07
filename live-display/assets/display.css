@@ -2987,3 +2987,38 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
   padding:0 clamp(10px,.85vw,18px);
   letter-spacing:.09em;
 }
+
+
+/* What's Happening: highlight the live/running event as the current event. */
+.display-coming-up-card-current{
+  border-color:rgba(72,255,170,.58);
+  background:
+    radial-gradient(circle at 12% 8%, rgba(72,255,170,.24), transparent 34%),
+    linear-gradient(135deg, rgba(72,255,170,.16), rgba(255,255,255,.055));
+  box-shadow:
+    0 0 0 1px rgba(72,255,170,.18) inset,
+    0 0 34px rgba(72,255,170,.22),
+    0 18px 52px rgba(0,0,0,.26);
+}
+
+.display-coming-up-card-current .coming-eyebrow{
+  color:#9cffd0;
+  text-shadow:0 0 14px rgba(72,255,170,.38);
+}
+
+.display-coming-up-card-current .coming-eyebrow::before{
+  content:'';
+  display:inline-block;
+  width:.62em;
+  height:.62em;
+  margin-right:.45em;
+  border-radius:50%;
+  background:#48ffaa;
+  box-shadow:0 0 16px rgba(72,255,170,.85);
+  vertical-align:.02em;
+}
+
+.display-lite .display-coming-up-card-current{
+  box-shadow:0 0 0 1px rgba(72,255,170,.22) inset;
+  background:rgba(72,255,170,.12);
+}

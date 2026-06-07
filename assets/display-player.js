@@ -461,26 +461,28 @@
 
   function renderUpcoming() {
     const events = state.upcoming_events || [];
-    const cards = events.slice(0, 8).map((ev, idx) => {
-      const label = idx === 0 ? 'Next event' : 'Coming soon';
+    const limit = isLite ? 4 : 8;
+    const cards = events.slice(0, limit).map((ev, idx) => {
+      const isCurrent = !!ev.is_current_event;
+      const label = isCurrent ? 'Current event' : (idx === 0 ? 'Next event' : 'Coming soon');
       const date = formatDate(ev.event_date);
       const start = text(ev.start_time, '');
       const end = text(ev.end_time, '');
       const timeText = start && end ? start + ' – ' + end : (start || end || '');
       const dateTime = [date, timeText].filter(Boolean).join(' • ');
       const venue = text(ev.venue_name, '');
-      return '<div class="display-coming-up-card">'
+      return '<div class="display-coming-up-card' + (isCurrent ? ' display-coming-up-card-current' : '') + '">'
         + '<strong class="coming-eyebrow">' + esc(label) + '</strong>'
         + '<span class="coming-title">' + esc(text(ev.event_name, 'Dance Through The Decades')) + '</span>'
         + (dateTime ? '<em class="coming-datetime">' + esc(dateTime) + '</em>' : '')
         + (venue ? '<small class="coming-venue">' + esc(venue) + '</small>' : '')
         + '</div>';
     });
-    const rail = cards.length ? cards.concat(cards).join('') : '';
+    const rail = cards.length ? (isLite ? cards.join('') : cards.concat(cards).join('')) : '';
     return '<article class="display-slide" data-slide="upcoming">'
-      + '<div class="display-card display-coming-up-card-wrap">'
+      + '<div class="display-card display-coming-up-card-wrap' + (isLite ? ' display-coming-up-card-wrap-lite' : '') + '">'
       + '<div class="display-coming-up-head display-coming-up-head-no-pill"><div><p class="display-kicker">Coming Up</p><h1>What’s happening</h1></div></div>'
-      + (rail ? '<div class="display-coming-up-window"><div class="display-coming-up-track">' + rail + '</div></div>' : '<div class="display-empty">Upcoming public events will appear here.</div>')
+      + (rail ? '<div class="display-coming-up-window' + (isLite ? ' display-coming-up-window-lite' : '') + '"><div class="' + (isLite ? 'display-coming-up-static-grid' : 'display-coming-up-track') + '">' + rail + '</div></div>' : '<div class="display-empty">Upcoming public events will appear here.</div>')
       + '<div class="display-coming-up-footer"><span>See our website for full details</span><strong>dancethruthedecades.co.uk</strong></div>'
       + '</div></article>';
   }

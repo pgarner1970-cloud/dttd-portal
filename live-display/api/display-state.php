@@ -532,16 +532,27 @@ function dttd_display_upcoming_events($limit = 5) {
     if (!dttd_display_table_exists('events')) return [];
     $limit = max(1, min(12, (int)$limit));
     try {
-        $stmt = db()->prepare("\n            SELECT id, event_name, venue_name, event_date, start_time, event_code, public_slug\n            FROM events\n            WHERE is_public = 1\n              AND is_active = 1\n              AND status IN ('scheduled','live')\n              AND event_date >= CURDATE()\n            ORDER BY event_date ASC, COALESCE(start_time, '00:00:00') ASC, id ASC\n            LIMIT " . $limit . "\n        ");
+        $endCol = dttd_display_col_exists('events', 'end_time') ? 'end_time' : '';
+        $stmt = db()->prepare("\n            SELECT id, event_name, venue_name, event_date, start_time, status, event_code, public_slug"
+            . ($endCol !== '' ? ", end_time" : "") . "\n            FROM events\n            WHERE is_public = 1\n              AND is_active = 1\n              AND status IN ('scheduled','live')\n              AND event_date >= CURDATE()\n            ORDER BY\n              CASE WHEN status = 'live' THEN 0 ELSE 1 END ASC,\n              event_date ASC, COALESCE(start_time, '00:00:00') ASC, id ASC\n            LIMIT " . $limit . "\n        ");
         $stmt->execute();
         $rows = [];
         foreach ($stmt->fetchAll() as $row) {
+            $isCurrent = false;
+            try {
+                if (function_exists('dttd_event_live_now') && dttd_event_live_now($row)) $isCurrent = true;
+            } catch (Throwable $e) {}
+            if (!$isCurrent && strtolower(trim((string)($row['status'] ?? ''))) === 'live') $isCurrent = true;
+
             $rows[] = [
                 'id' => (int)$row['id'],
                 'event_name' => (string)$row['event_name'],
                 'venue_name' => (string)($row['venue_name'] ?? ''),
                 'event_date' => (string)($row['event_date'] ?? ''),
                 'start_time' => isset($row['start_time']) ? substr((string)$row['start_time'], 0, 5) : '',
+                'end_time' => $endCol !== '' && isset($row['end_time']) ? substr((string)$row['end_time'], 0, 5) : '',
+                'status' => (string)($row['status'] ?? ''),
+                'is_current_event' => $isCurrent,
             ];
         }
         return $rows;
