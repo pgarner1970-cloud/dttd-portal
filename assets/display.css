@@ -1382,3 +1382,108 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
     grid-template-columns:1fr;
   }
 }
+
+
+/* Partners slide layout refinement: contain variable logo shapes and reduce text pressure. */
+.display-partners-card{
+  gap:clamp(14px,1.8vh,28px);
+}
+
+.display-partners-grid{
+  gap:clamp(20px,2vw,40px);
+  align-items:stretch;
+}
+
+.display-partner-tile{
+  grid-template-columns:minmax(0,1fr) clamp(142px,12vw,210px);
+  grid-template-rows:clamp(112px,17vh,190px) minmax(0,1fr);
+  align-items:stretch;
+  gap:clamp(12px,1.2vw,22px);
+  padding:clamp(16px,1.55vw,28px);
+}
+
+.display-partner-logo{
+  grid-column:1 / 2;
+  grid-row:1 / 2;
+  width:100%;
+  height:100%;
+  min-height:0;
+  overflow:hidden;
+  padding:clamp(14px,1.35vw,24px);
+}
+
+.display-partner-logo img{
+  display:block;
+  width:100%;
+  height:100%;
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+  object-position:center;
+}
+
+.display-partner-copy{
+  grid-column:1 / 2;
+  grid-row:2 / 3;
+  min-height:0;
+  align-self:start;
+}
+
+.display-partner-copy p{
+  margin:0 0 clamp(6px,.65vh,10px);
+  font-size:clamp(12px,.82vw,18px);
+  line-height:1.05;
+  letter-spacing:.15em;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.display-partner-copy h2{
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:3;
+  overflow:hidden;
+  font-size:clamp(24px,2.25vw,44px);
+  line-height:.98;
+  letter-spacing:-.035em;
+}
+
+.display-partner-copy em{
+  -webkit-line-clamp:2;
+  margin-top:clamp(7px,.75vh,12px);
+  font-size:clamp(13px,1vw,20px);
+  line-height:1.15;
+}
+
+.display-partner-qr{
+  grid-column:2 / 3;
+  grid-row:1 / 3;
+  align-self:center;
+  justify-self:center;
+  width:min(100%,20vh);
+  min-width:132px;
+  max-width:205px;
+  padding:clamp(10px,.85vw,16px);
+}
+
+.display-partner-qr strong{
+  font-size:clamp(11px,.75vw,16px);
+  letter-spacing:.1em;
+}
+
+@media (min-aspect-ratio: 16/10){
+  .display-partner-copy h2{
+    font-size:clamp(24px,2.05vw,40px);
+  }
+
+  .display-partner-copy em{
+    font-size:clamp(13px,.95vw,18px);
+  }
+}
+
+@media (max-aspect-ratio: 4/3){
+  .display-partner-tile{
+    grid-template-columns:minmax(0,1fr) clamp(132px,24vw,190px);
+  }
+}
