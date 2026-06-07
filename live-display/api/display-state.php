@@ -677,24 +677,45 @@ function dttd_display_photos($eventId, $limit = 12) {
     }
 }
 
-function dttd_display_upcoming_events($limit = 5) {
+function dttd_display_upcoming_events($limit = 5, $currentEventId = 0) {
     if (!dttd_display_table_exists('events')) return [];
     $limit = max(1, min(12, (int)$limit));
+    $currentEventId = (int)$currentEventId;
+
     try {
         $endCol = dttd_display_col_exists('events', 'end_time') ? 'end_time' : '';
-        $stmt = db()->prepare("\n            SELECT id, event_name, venue_name, event_date, start_time, status, event_code, public_slug"
-            . ($endCol !== '' ? ", end_time" : "") . "\n            FROM events\n            WHERE is_public = 1\n              AND is_active = 1\n              AND status IN ('scheduled','live')\n              AND event_date >= CURDATE()\n            ORDER BY\n              CASE WHEN status = 'live' THEN 0 ELSE 1 END ASC,\n              event_date ASC, COALESCE(start_time, '00:00:00') ASC, id ASC\n            LIMIT " . $limit . "\n        ");
-        $stmt->execute();
+        $stmt = db()->prepare("
+            SELECT id, event_name, venue_name, event_date, start_time, status, event_code, public_slug"
+            . ($endCol !== '' ? ", end_time" : "") . "
+            FROM events
+            WHERE is_public = 1
+              AND is_active = 1
+              AND status IN ('scheduled','live')
+              AND event_date >= DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+            ORDER BY
+              CASE WHEN id = ? THEN 0 WHEN status = 'live' THEN 1 ELSE 2 END ASC,
+              event_date ASC, COALESCE(start_time, '00:00:00') ASC, id ASC
+            LIMIT " . $limit . "
+        ");
+        $stmt->execute([$currentEventId]);
         $rows = [];
+
         foreach ($stmt->fetchAll() as $row) {
-            $isCurrent = false;
+            $rowId = (int)$row['id'];
+            $isCurrent = $currentEventId > 0 && $rowId === $currentEventId;
+
             try {
-                if (function_exists('dttd_event_live_now') && dttd_event_live_now($row)) $isCurrent = true;
+                if (!$isCurrent && function_exists('dttd_event_live_now') && dttd_event_live_now($row)) {
+                    $isCurrent = true;
+                }
             } catch (Throwable $e) {}
-            if (!$isCurrent && strtolower(trim((string)($row['status'] ?? ''))) === 'live') $isCurrent = true;
+
+            if (!$isCurrent && strtolower(trim((string)($row['status'] ?? ''))) === 'live') {
+                $isCurrent = true;
+            }
 
             $rows[] = [
-                'id' => (int)$row['id'],
+                'id' => $rowId,
                 'event_name' => (string)$row['event_name'],
                 'venue_name' => (string)($row['venue_name'] ?? ''),
                 'event_date' => (string)($row['event_date'] ?? ''),
@@ -702,8 +723,19 @@ function dttd_display_upcoming_events($limit = 5) {
                 'end_time' => $endCol !== '' && isset($row['end_time']) ? substr((string)$row['end_time'], 0, 5) : '',
                 'status' => (string)($row['status'] ?? ''),
                 'is_current_event' => $isCurrent,
+                'display_label' => $isCurrent ? 'This event' : '',
             ];
         }
+
+        usort($rows, function($a, $b) {
+            if (!empty($a['is_current_event']) !== !empty($b['is_current_event'])) {
+                return !empty($a['is_current_event']) ? -1 : 1;
+            }
+            $ad = (string)($a['event_date'] ?? '') . ' ' . (string)($a['start_time'] ?? '');
+            $bd = (string)($b['event_date'] ?? '') . ' ' . (string)($b['start_time'] ?? '');
+            return strcmp($ad, $bd);
+        });
+
         return $rows;
     } catch (Throwable $e) {
         return [];
@@ -783,7 +815,7 @@ function dttd_display_event_is_live($event) {
 function dttd_display_standby_payload($partners = []) {
     $website = 'https://dancethruthedecades.co.uk/';
     $facebook = 'https://www.facebook.com/profile.php?id=61579454050951';
-    $upcoming = dttd_display_upcoming_events(8);
+    $upcoming = dttd_display_upcoming_events(8, $eventId);
 
     return [
         'ok' => true,
