@@ -134,10 +134,10 @@ $homepageEventAlreadyConnected = function_exists('dttd_event_from_access_cookie'
 // Guests must enter the event code or scan the QR code shown at the venue.
 // If this browser is already attached to the live event, go directly to the requested feature.
 $eventAccessBaseUrl = '/event.php';
-$liveEventInfoUrl = $homepageEventAlreadyConnected ? '/event.php' : '/event.php?next=event';
-$liveEventRequestUrl = $homepageEventAlreadyConnected ? '/request.php' : '/event.php?next=request';
-$liveEventUploadUrl = $homepageEventAlreadyConnected ? '/upload.php' : '/event.php?next=upload';
-$liveEventSelfieUrl = $homepageEventAlreadyConnected ? '/upload.php?selfie=1' : '/event.php?next=selfie';
+$liveEventInfoUrl = $homepageEventAlreadyConnected ? '/event.php' : '/event.php?next=event&live=1';
+$liveEventRequestUrl = $homepageEventAlreadyConnected ? '/request.php' : '/event.php?next=request&live=1';
+$liveEventUploadUrl = $homepageEventAlreadyConnected ? '/upload.php' : '/event.php?next=upload&live=1';
+$liveEventSelfieUrl = $homepageEventAlreadyConnected ? '/upload.php?selfie=1' : '/event.php?next=selfie&live=1';
 
 // Keep the older variable names as aliases for any remaining template branches.
 $privateEventInfoUrl = $liveEventInfoUrl;
@@ -448,10 +448,10 @@ $public_current = 'home';
     upload: '/upload.php',
     selfie: '/upload.php?selfie=1'
   } : {
-    event: '/event.php?next=event',
-    request: '/event.php?next=request',
-    upload: '/event.php?next=upload',
-    selfie: '/event.php?next=selfie'
+    event: '/event.php?next=event&live=1',
+    request: '/event.php?next=request&live=1',
+    upload: '/event.php?next=upload&live=1',
+    selfie: '/event.php?next=selfie&live=1'
   };
 
   strip.querySelectorAll('[data-event-action]').forEach(function(link){

@@ -1072,6 +1072,17 @@ $hasEventAccess = false;
 $publicDetailsMode = false;
 
 $accessNextKey = function_exists('dttd_event_access_next_key') ? dttd_event_access_next_key('event') : 'event';
+$forceLiveEventGate = !empty($_GET['live']) || !empty($_POST['live']);
+$currentLiveEvent = null;
+
+if ($forceLiveEventGate) {
+    try {
+        $currentLiveEvent = active_event();
+    } catch (Throwable $e) {
+        $currentLiveEvent = null;
+    }
+}
+
 $is_access_attempt = isset($_GET['code']) || isset($_GET['token']) || isset($_GET['access']) || isset($_POST['event_access_code']) || isset($_POST['event_code']) || isset($_POST['code']) || isset($_POST['token']) || isset($_POST['access']);
 
 if ($is_access_attempt) {
@@ -1079,17 +1090,45 @@ if ($is_access_attempt) {
     $gate_error = $access_error;
 }
 
-if ($slug !== '') {
+if ($forceLiveEventGate && $currentLiveEvent) {
+    $cookieEvent = dttd_event_from_access_cookie(false);
+    $hasCurrentLiveAccess = $cookieEvent
+        && (int)($cookieEvent['id'] ?? 0) === (int)($currentLiveEvent['id'] ?? 0)
+        && dttd_event_access_allowed($cookieEvent);
+
+    if ($hasCurrentLiveAccess && !$is_access_attempt) {
+        $target = function_exists('dttd_event_access_redirect_for_next') ? dttd_event_access_redirect_for_next($accessNextKey) : '/event.php';
+        if ($target && $target !== '/event.php' && !headers_sent()) {
+            header('Location: ' . $target);
+            exit;
+        }
+
+        $event = $cookieEvent;
+        $hasEventAccess = true;
+    } else {
+        // The homepage has asked to join the live event. Do not let an old
+        // remembered event cookie silently open the wrong event page.
+        if ($cookieEvent && (int)($cookieEvent['id'] ?? 0) !== (int)($currentLiveEvent['id'] ?? 0) && function_exists('dttd_clear_event_access_cookie')) {
+            dttd_clear_event_access_cookie();
+        }
+
+        $event = null;
+        $hasEventAccess = false;
+        $publicDetailsMode = false;
+    }
+} elseif ($slug !== '') {
     $event = public_find_event_by_slug($slug);
     $publicDetailsMode = true;
 }
 
-if (!$event) {
-    $event = dttd_event_from_access_cookie(false);
-    $hasEventAccess = (bool)$event && dttd_event_access_allowed($event);
-} else {
-    $cookieEvent = dttd_event_from_access_cookie(false);
-    $hasEventAccess = $cookieEvent && (int)$cookieEvent['id'] === (int)$event['id'] && dttd_event_access_allowed($cookieEvent);
+if (!$forceLiveEventGate || !$currentLiveEvent || $event) {
+    if (!$event) {
+        $event = dttd_event_from_access_cookie(false);
+        $hasEventAccess = (bool)$event && dttd_event_access_allowed($event);
+    } else {
+        $cookieEvent = dttd_event_from_access_cookie(false);
+        $hasEventAccess = $cookieEvent && (int)$cookieEvent['id'] === (int)$event['id'] && dttd_event_access_allowed($cookieEvent);
+    }
 }
 
 $showGate = (!$event && !$publicDetailsMode);
@@ -1157,6 +1196,7 @@ $GLOBALS['public_current_mixer_tracks'] = $hasEventAccess ? public_loaded_mixer_
 
           <form class="public-access-form" method="post" action="/event.php">
             <input type="hidden" name="next" value="<?= public_h($accessNextKey) ?>">
+            <?php if ($forceLiveEventGate): ?><input type="hidden" name="live" value="1"><?php endif; ?>
             <label for="event_access_code">Event code</label>
             <input id="event_access_code" name="event_access_code" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="Example: 5MKDP2" required>
             <button class="public-neon-btn" type="submit">Continue</button>
