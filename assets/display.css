@@ -686,3 +686,41 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
 /* Venue slide refinement: remove the extra hosted-by pill and give the venue name more space. */
 .venue-label{display:none !important;}
 .venue-copy{gap:clamp(10px,1.15vh,18px);}
+
+
+/* Upcoming events slide website footer callout. */
+.display-coming-up-footer{
+  position:relative;
+  z-index:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:clamp(18px,1.8vw,34px);
+  margin-top:auto;
+  padding-top:clamp(10px,1.2vh,18px);
+  border-top:1px solid rgba(255,255,255,.12);
+  color:var(--display-muted);
+  text-align:center;
+  font-weight:900;
+  line-height:1;
+}
+
+.display-coming-up-footer span{
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  font-size:clamp(15px,1.05vw,22px);
+}
+
+.display-coming-up-footer strong{
+  color:var(--display-gold);
+  font-size:clamp(24px,2.1vw,42px);
+  letter-spacing:.02em;
+  white-space:nowrap;
+}
+
+@media (max-aspect-ratio: 4/3){
+  .display-coming-up-footer{
+    flex-direction:column;
+    gap:.8vh;
+  }
+}
