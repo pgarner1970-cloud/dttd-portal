@@ -11,6 +11,21 @@ if (isset($_GET['event_id'])) {
 }
 $stateUrl = '/api/display-state.php' . ($eventParam !== '' ? '?' . $eventParam : '');
 $nowPlayingUrl = '/api/public-now-playing.php' . ($eventParam !== '' && str_starts_with($eventParam, 'event_id=') ? '?' . $eventParam : '');
+
+function dttd_display_asset_version($relativePath) {
+    $relativePath = ltrim((string)$relativePath, '/');
+    $fullPath = __DIR__ . '/' . $relativePath;
+    if (is_file($fullPath)) {
+        return (string)filemtime($fullPath);
+    }
+    return (string)time();
+}
+
+function dttd_display_local_asset($relativePath) {
+    $relativePath = ltrim((string)$relativePath, '/');
+    return '/' . $relativePath . '?v=' . rawurlencode(dttd_display_asset_version($relativePath));
+}
+
 ?><!doctype html>
 <html lang="en">
 <head>
@@ -18,8 +33,8 @@ $nowPlayingUrl = '/api/public-now-playing.php' . ($eventParam !== '' && str_star
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <?= dttd_cache_meta_tags() ?>
   <title>Dance Through The Decades — Event Display</title>
-  <link rel="icon" href="<?= h(dttd_asset_url('assets/favicon-dj-192.png')) ?>">
-  <link rel="stylesheet" href="<?= h(dttd_asset_url('assets/display.css')) ?>">
+  <link rel="icon" href="<?= h(dttd_asset_url('assets/favicon-dj-192.png') . '?v=' . rawurlencode(dttd_display_asset_version('assets/favicon-dj-192.png'))) ?>">
+  <link rel="stylesheet" href="<?= h(dttd_asset_url('assets/display.css') . '?v=' . rawurlencode(dttd_display_asset_version('assets/display.css'))) ?>">
 </head>
 <body class="display-body">
   <main class="display-shell" data-state-url="<?= h($stateUrl) ?>" data-now-playing-url="<?= h($nowPlayingUrl) ?>">
@@ -29,7 +44,7 @@ $nowPlayingUrl = '/api/public-now-playing.php' . ($eventParam !== '' && str_star
     <header class="display-header">
       <div class="display-brand" aria-label="Dance Through The Decades Events">
         <span class="display-brand-logo">
-          <img src="<?= h(dttd_asset_url('assets/dttd-logo-inner.png?v=152')) ?>" alt="Dance Through The Decades Events">
+          <img src="<?= h(dttd_asset_url('assets/dttd-logo-inner.png') . '?v=' . rawurlencode(dttd_display_asset_version('assets/dttd-logo-inner.png'))) ?>" alt="Dance Through The Decades Events">
         </span>
         <span class="display-brand-wordmark">
           <strong>Dance Thru The Decades</strong>
@@ -55,6 +70,6 @@ $nowPlayingUrl = '/api/public-now-playing.php' . ($eventParam !== '' && str_star
       <span>Requests • Photos • Music • Memories</span>
     </footer>
   </main>
-  <script src="<?= h(dttd_asset_url('assets/display-player.js')) ?>"></script>
+  <script src="<?= h(dttd_asset_url('assets/display-player.js') . '?v=' . rawurlencode(dttd_display_asset_version('assets/display-player.js'))) ?>"></script>
 </body>
 </html>

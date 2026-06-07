@@ -2227,21 +2227,50 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
 }
 
 
-/* Request/dedication display: status ordering, visible status and artwork thumbnails. */
+/* Request and music-board artwork/status improvements. */
 .request-board-item{
   grid-template-columns:clamp(54px,4.4vw,82px) minmax(0,1fr) auto;
+}
+
+.request-board-artwork,
+.music-board-artwork{
+  width:clamp(48px,4vw,76px);
+  height:clamp(48px,4vw,76px);
+  align-self:center;
+  justify-self:center;
+  display:block;
+  object-fit:cover;
+  border-radius:clamp(10px,.9vw,16px);
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 8px 22px rgba(0,0,0,.30);
 }
 
 .request-board-artwork{
   width:clamp(54px,4.4vw,82px);
   height:clamp(54px,4.4vw,82px);
-  align-self:center;
-  justify-self:center;
-  display:block;
-  object-fit:cover;
-  border-radius:clamp(12px,1vw,18px);
-  border:1px solid rgba(255,255,255,.16);
-  box-shadow:0 8px 22px rgba(0,0,0,.30);
+}
+
+.music-board-request{
+  grid-template-columns:clamp(48px,4vw,76px) minmax(0,1fr) auto;
+}
+
+.music-board-played-track{
+  grid-template-columns:clamp(44px,3.5vw,62px) minmax(0,1fr) auto;
+}
+
+.music-board-played-track .music-board-artwork{
+  width:clamp(42px,3.4vw,58px);
+  height:clamp(42px,3.4vw,58px);
+  border-radius:clamp(8px,.75vw,13px);
+}
+
+.music-board-request .request-status-pill,
+.music-board-played-track .request-status-pill{
+  min-width:clamp(72px,5vw,100px);
+  align-self:start;
+  justify-self:end;
+  font-size:clamp(9px,.62vw,13px);
+  padding:0 clamp(8px,.7vw,14px);
 }
 
 .request-status-pill{
@@ -2263,7 +2292,8 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
   color:#ffe88f;
 }
 
-.request-status-played .request-status-pill{
+.request-status-played .request-status-pill,
+.music-board-played-track .request-status-pill{
   background:rgba(58,255,167,.16);
   border-color:rgba(58,255,167,.32);
   color:#aaffd9;
@@ -2289,7 +2319,8 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
   grid-template-columns:clamp(46px,4vw,68px) minmax(0,1fr) auto;
 }
 
-.display-lite .request-board-artwork{
-  width:clamp(46px,4vw,68px);
-  height:clamp(46px,4vw,68px);
+.display-lite .request-board-artwork,
+.display-lite .music-board-artwork{
+  width:clamp(44px,3.7vw,64px);
+  height:clamp(44px,3.7vw,64px);
 }

@@ -211,27 +211,40 @@
   }
 
   function renderMusicBoard() {
-    const requests = state.requests || [];
-    const recent = state.recent_tracks || [];
+    const requestSource = Array.isArray(state.requests) ? state.requests.slice() : [];
+    const requests = requestSource
+      .sort((a, b) => {
+        const rank = requestStatusRank(a.status) - requestStatusRank(b.status);
+        if (rank !== 0) return rank;
+        return Number(b.id || 0) - Number(a.id || 0);
+      });
 
-    const requestItems = requests.slice(0, 5).map((req, idx) => {
+    const recent = Array.isArray(state.recent_tracks) ? state.recent_tracks : [];
+
+    const requestItems = requests.slice(0, isLite ? 3 : 4).map((req, idx) => {
+      const status = requestStatusLabel(req.status);
+      const statusClass = requestStatusClass(req.status);
       const person = text(req.requester_name, '');
       const dedication = text(req.dedication, '');
-      return '<div class="music-board-request waiting">'
-        + '<b>' + String(idx + 1).padStart(2, '0') + '</b>'
+      const artwork = requestArtwork(req);
+      return '<div class="music-board-request waiting request-status-' + esc(statusClass) + '">'
+        + (artwork ? '<img class="music-board-artwork" src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>')
         + '<div><strong>' + esc(text(req.track_name || req.title, 'Unknown track')) + '</strong>'
         + (req.artist_name || req.artist ? '<span>' + esc(text(req.artist_name || req.artist, '')) + '</span>' : '')
         + (person ? '<em>Requested by ' + esc(person) + '</em>' : '')
         + (dedication ? '<small>' + esc(dedication) + '</small>' : '')
-        + '</div></div>';
+        + '</div>'
+        + '<p class="request-status-pill">' + esc(status) + '</p>'
+        + '</div>';
     }).join('');
 
-    const playedTracks = recent.slice(0, 8).map((track, idx) => {
+    const playedTracks = recent.slice(0, isLite ? 5 : 8).map((track, idx) => {
+      const artwork = requestArtwork(track);
       return '<div class="music-board-played-track">'
-        + '<b>' + String(idx + 1).padStart(2, '0') + '</b>'
+        + (artwork ? '<img class="music-board-artwork" src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>')
         + '<div><strong>' + esc(text(track.track_name || track.title, 'Unknown track')) + '</strong>'
         + (track.artist_name || track.artist ? '<span>' + esc(text(track.artist_name || track.artist, '')) + '</span>' : '')
-        + '</div></div>';
+        + '</div><p class="request-status-pill">Played</p></div>';
     }).join('');
 
     return '<article class="display-slide" data-slide="music_board">'
@@ -249,25 +262,6 @@
       + '</div></div></article>';
   }
 
-  function requestStatusLabel(status) {
-    const normalised = text(status, 'pending').toLowerCase().replace(/[_-]+/g, ' ');
-    if (normalised === 'approved' || normalised === 'accepted' || normalised === 'queued') return 'Accepted';
-    if (normalised === 'pending' || normalised === 'new' || normalised === 'requested') return 'Waiting';
-    if (normalised === 'played' || normalised === 'complete' || normalised === 'completed') return 'Played';
-    if (normalised === 'rejected' || normalised === 'declined') return 'Rejected';
-    if (normalised === 'cancelled' || normalised === 'canceled') return 'Cancelled';
-    return normalised ? normalised.replace(/\b\w/g, ch => ch.toUpperCase()) : 'Waiting';
-  }
-
-  function requestStatusRank(status) {
-    const normalised = text(status, 'pending').toLowerCase();
-    if (['queued', 'approved', 'accepted'].includes(normalised)) return 1;
-    if (['pending', 'new', 'requested'].includes(normalised)) return 2;
-    if (['played', 'complete', 'completed'].includes(normalised)) return 3;
-    if (['rejected', 'declined', 'cancelled', 'canceled'].includes(normalised)) return 4;
-    return 3;
-  }
-
   function renderRequests() {
     const source = Array.isArray(state.requests) ? state.requests.slice() : [];
     const requests = source.sort((a, b) => {
@@ -278,10 +272,10 @@
 
     const rows = requests.slice(0, isLite ? 4 : 6).map((req, idx) => {
       const status = requestStatusLabel(req.status);
-      const statusClass = status.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const statusClass = requestStatusClass(req.status);
       const person = text(req.requester_name, '');
       const dedication = text(req.dedication, '');
-      const artwork = text(req.artwork_url || req.image || req.spotify_album_image, '');
+      const artwork = requestArtwork(req);
       return '<article class="request-board-item request-status-' + esc(statusClass) + '">'
         + (artwork ? '<img class="request-board-artwork" src="' + esc(artwork) + '" alt="">' : '<div class="request-board-number">' + String(idx + 1).padStart(2, '0') + '</div>')
         + '<div class="request-board-copy">'
