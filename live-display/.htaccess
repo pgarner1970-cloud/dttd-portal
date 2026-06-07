@@ -1,0 +1,19 @@
+Options -Indexes -MultiViews
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^$ index.php [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header always set X-Robots-Tag "noindex, nofollow, noarchive"
+  <FilesMatch "\.(php)$">
+    Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0, private"
+    Header always set Pragma "no-cache"
+    Header always set Expires "Thu, 01 Jan 1970 00:00:00 GMT"
+  </FilesMatch>
+  <FilesMatch "\.(css|js)$">
+    Header always set Cache-Control "no-cache, must-revalidate, max-age=0"
+  </FilesMatch>
+</IfModule>
