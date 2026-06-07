@@ -724,3 +724,31 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
     gap:.8vh;
   }
 }
+
+
+/* Upcoming events header refinement: remove the Public Events pill and right-align the title. */
+.display-coming-up-head-no-pill{
+  grid-template-columns:auto 1fr;
+}
+
+.display-coming-up-head-no-pill h1{
+  grid-column:2;
+  justify-self:end;
+  text-align:right;
+}
+
+.display-coming-up-head-no-pill > span{
+  display:none !important;
+}
+
+@media (max-aspect-ratio: 4/3){
+  .display-coming-up-head-no-pill{
+    grid-template-columns:1fr;
+  }
+
+  .display-coming-up-head-no-pill h1{
+    grid-column:auto;
+    justify-self:start;
+    text-align:left;
+  }
+}

@@ -222,7 +222,7 @@
     const rail = cards.length ? cards.concat(cards).join('') : '';
     return '<article class="display-slide" data-slide="upcoming">'
       + '<div class="display-card display-coming-up-card-wrap">'
-      + '<div class="display-coming-up-head"><div><p class="display-kicker">Coming Up</p><h1>What’s happening</h1></div><span>Public events</span></div>'
+      + '<div class="display-coming-up-head display-coming-up-head-no-pill"><div><p class="display-kicker">Coming Up</p><h1>What’s happening</h1></div></div>'
       + (rail ? '<div class="display-coming-up-window"><div class="display-coming-up-track">' + rail + '</div></div>' : '<div class="display-empty">Upcoming public events will appear here.</div>')
       + '<div class="display-coming-up-footer"><span>See our website for full details</span><strong>dancethruthedecades.co.uk</strong></div>'
       + '</div></article>';
