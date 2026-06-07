@@ -140,13 +140,26 @@
       + '</div></article>';
   }
 
+
+  function shuffledPhotos(photos, limit) {
+    const pool = Array.isArray(photos) ? photos.slice() : [];
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = pool[i];
+      pool[i] = pool[j];
+      pool[j] = tmp;
+    }
+    return pool.slice(0, limit);
+  }
   function renderPhotos() {
     const photos = state.photos || [];
-    const cells = photos.slice(0, 9).map(photo => '<div class="photo-cell"><img src="' + esc(photo.image_url) + '" alt="Guest photo"></div>').join('');
+    const selected = shuffledPhotos(photos, 3);
+    const countClass = ' photo-count-' + Math.max(1, Math.min(selected.length, 3));
+    const cells = selected.map(photo => '<div class="photo-cell"><img src="' + esc(photo.image_url) + '" alt="Guest photo"></div>').join('');
     return '<article class="display-slide" data-slide="photos">'
       + '<div class="display-card photos-card">'
       + '<div class="photos-title"><p class="display-kicker">Photos from tonight</p><h1>Shared memories</h1></div>'
-      + (cells ? '<div class="photo-grid">' + cells + '</div>' : '<div class="display-empty">Approved guest photos will appear here.</div>')
+      + (cells ? '<div class="photo-grid' + countClass + '">' + cells + '</div>' : '<div class="display-empty">Approved guest photos will appear here.</div>')
       + '</div></article>';
   }
 
