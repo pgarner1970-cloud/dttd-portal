@@ -168,7 +168,7 @@ function dttd_display_venue_payload($event) {
     ];
 }
 
-function dttd_display_requests($eventId, $limit = 8) {
+function dttd_display_requests($eventId, $limit = 12) {
     if (!dttd_display_table_exists('event_requests')) return [];
     $eventId = (int)$eventId;
     if ($eventId <= 0) return [];
@@ -185,6 +185,43 @@ function dttd_display_requests($eventId, $limit = 8) {
                 'requester_name' => (string)($row['requester_name'] ?? ''),
                 'dedication' => (string)($row['dedication'] ?? ''),
                 'status' => (string)($row['status'] ?? ''),
+            ];
+        }
+        return $rows;
+    } catch (Throwable $e) {
+        return [];
+    }
+}
+
+function dttd_display_played_requests($eventId, $limit = 6) {
+    if (!dttd_display_table_exists('event_requests')) return [];
+    $eventId = (int)$eventId;
+    if ($eventId <= 0) return [];
+    $limit = max(1, min(12, (int)$limit));
+
+    $playedCol = dttd_display_col_exists('event_requests', 'played_at') ? 'played_at' : '';
+    $orderExpr = $playedCol !== '' ? 'COALESCE(played_at, approved_at, created_at)' : 'COALESCE(approved_at, created_at)';
+
+    try {
+        $stmt = db()->prepare("
+            SELECT id, track_name, artist_name, requester_name, dedication, status, created_at, approved_at" . ($playedCol !== '' ? ", played_at" : "") . "
+            FROM event_requests
+            WHERE event_id = ?
+              AND LOWER(COALESCE(status, 'pending')) = 'played'
+            ORDER BY " . $orderExpr . " DESC, id DESC
+            LIMIT " . $limit . "
+        ");
+        $stmt->execute([$eventId]);
+        $rows = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $rows[] = [
+                'id' => (int)$row['id'],
+                'track_name' => (string)$row['track_name'],
+                'artist_name' => (string)($row['artist_name'] ?? ''),
+                'requester_name' => (string)($row['requester_name'] ?? ''),
+                'dedication' => (string)($row['dedication'] ?? ''),
+                'status' => (string)($row['status'] ?? ''),
+                'played_at' => (string)($row['played_at'] ?? ($row['approved_at'] ?? $row['created_at'] ?? '')),
             ];
         }
         return $rows;
@@ -292,8 +329,9 @@ if (!$event || empty($event['id'])) {
 
 $eventId = (int)$event['id'];
 $photos = dttd_display_photos($eventId, 12);
-$requests = dttd_display_requests($eventId, 8);
-$recent = dttd_display_recent_tracks($eventId, 8);
+$requests = dttd_display_requests($eventId, 12);
+$playedRequests = dttd_display_played_requests($eventId, 6);
+$recent = dttd_display_recent_tracks($eventId, 10);
 $upcoming = dttd_display_upcoming_events(5);
 $sponsors = dttd_display_sponsors($eventId, 6);
 $venue = dttd_display_venue_payload($event);
@@ -302,6 +340,7 @@ $slides = ['welcome'];
 if ($venue && !empty($venue['has_details'])) $slides[] = 'venue';
 $slides[] = 'qr';
 $slides[] = 'now_playing';
+if ($requests || $playedRequests || $recent) $slides[] = 'music_board';
 if ($recent) $slides[] = 'recent';
 if ($requests) $slides[] = 'requests';
 if ($photos) $slides[] = 'photos';
@@ -320,6 +359,7 @@ dttd_display_json([
     'venue' => $venue,
     'slides' => $slides,
     'requests' => $requests,
+    'played_requests' => $playedRequests,
     'recent_tracks' => $recent,
     'photos' => $photos,
     'upcoming_events' => $upcoming,
