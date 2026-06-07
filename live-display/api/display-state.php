@@ -179,6 +179,62 @@ function dttd_display_venue_payload($event) {
     ];
 }
 
+
+function dttd_display_track_key($title, $artist = '', $spotifyId = '') {
+    $spotifyId = trim((string)$spotifyId);
+    if ($spotifyId !== '') return 'id:' . strtolower($spotifyId);
+    $title = strtolower(trim(preg_replace('/\s+/', ' ', (string)$title)));
+    $artist = strtolower(trim(preg_replace('/\s+/', ' ', (string)$artist)));
+    return $title !== '' ? 'txt:' . $title . '|' . $artist : '';
+}
+
+function dttd_display_played_request_lookup($eventId) {
+    $eventId = (int)$eventId;
+    $lookup = ['ids' => [], 'tracks' => []];
+
+    if ($eventId <= 0 || !dttd_display_table_exists('event_track_history')) {
+        return $lookup;
+    }
+
+    try {
+        $requestCol = dttd_display_col_exists('event_track_history', 'request_id') ? 'request_id' : '';
+        $spotifyCol = dttd_display_col_exists('event_track_history', 'spotify_track_id') ? 'spotify_track_id' : '';
+        $artworkCol = dttd_display_col_exists('event_track_history', 'artwork_url') ? 'artwork_url' : '';
+
+        $stmt = db()->prepare("
+            SELECT id, track_name, artist_name, played_at"
+            . ($requestCol !== '' ? ", request_id" : "")
+            . ($spotifyCol !== '' ? ", spotify_track_id" : "")
+            . ($artworkCol !== '' ? ", artwork_url" : "") . "
+            FROM event_track_history
+            WHERE event_id = ?
+            ORDER BY played_at DESC, id DESC
+            LIMIT 200
+        ");
+        $stmt->execute([$eventId]);
+
+        foreach ($stmt->fetchAll() as $row) {
+            $requestId = (int)($row['request_id'] ?? 0);
+            if ($requestId > 0) {
+                $lookup['ids'][$requestId] = [
+                    'played_at' => (string)($row['played_at'] ?? ''),
+                    'artwork_url' => dttd_display_url($row['artwork_url'] ?? ''),
+                ];
+            }
+
+            $key = dttd_display_track_key($row['track_name'] ?? '', $row['artist_name'] ?? '', $row['spotify_track_id'] ?? '');
+            if ($key !== '' && !isset($lookup['tracks'][$key])) {
+                $lookup['tracks'][$key] = [
+                    'played_at' => (string)($row['played_at'] ?? ''),
+                    'artwork_url' => dttd_display_url($row['artwork_url'] ?? ''),
+                ];
+            }
+        }
+    } catch (Throwable $e) {}
+
+    return $lookup;
+}
+
 function dttd_display_requests($eventId, $limit = 12) {
     if (!dttd_display_table_exists('event_requests')) return [];
     $eventId = (int)$eventId;
@@ -192,13 +248,16 @@ function dttd_display_requests($eventId, $limit = 12) {
             break;
         }
     }
+    $spotifyCol = dttd_display_col_exists('event_requests', 'spotify_track_id') ? 'spotify_track_id' : '';
     $playedCol = dttd_display_col_exists('event_requests', 'played_at') ? 'played_at' : '';
     $rejectedCol = dttd_display_col_exists('event_requests', 'rejected_at') ? 'rejected_at' : '';
+    $playedLookup = dttd_display_played_request_lookup($eventId);
 
     try {
         $stmt = db()->prepare("
             SELECT id, track_name, artist_name, requester_name, dedication, status, created_at, approved_at"
             . ($artworkCol !== '' ? ", " . $artworkCol . " AS display_artwork_url" : "")
+            . ($spotifyCol !== '' ? ", spotify_track_id" : "")
             . ($playedCol !== '' ? ", played_at" : "")
             . ($rejectedCol !== '' ? ", rejected_at" : "") . "
             FROM event_requests
@@ -222,18 +281,52 @@ function dttd_display_requests($eventId, $limit = 12) {
         $stmt->execute([$eventId]);
         $rows = [];
         foreach ($stmt->fetchAll() as $row) {
+            $requestId = (int)$row['id'];
+            $status = strtolower(trim((string)($row['status'] ?? '')));
+            $status = $status !== '' ? $status : 'pending';
+
+            $playedMatch = $playedLookup['ids'][$requestId] ?? null;
+            if (!$playedMatch) {
+                $trackKey = dttd_display_track_key($row['track_name'] ?? '', $row['artist_name'] ?? '', $row['spotify_track_id'] ?? '');
+                $playedMatch = $trackKey !== '' ? ($playedLookup['tracks'][$trackKey] ?? null) : null;
+            }
+
+            $playedAt = (string)($row['played_at'] ?? '');
+            $artworkUrl = dttd_display_url($row['display_artwork_url'] ?? '');
+
+            if ($playedMatch && !in_array($status, ['rejected','declined','cancelled','canceled'], true)) {
+                $status = 'played';
+                if ($playedAt === '') $playedAt = (string)($playedMatch['played_at'] ?? '');
+                if ($artworkUrl === '') $artworkUrl = (string)($playedMatch['artwork_url'] ?? '');
+            }
+
             $rows[] = [
-                'id' => (int)$row['id'],
+                'id' => $requestId,
                 'track_name' => (string)$row['track_name'],
                 'artist_name' => (string)($row['artist_name'] ?? ''),
                 'requester_name' => (string)($row['requester_name'] ?? ''),
                 'dedication' => (string)($row['dedication'] ?? ''),
-                'status' => (string)($row['status'] ?? ''),
-                'artwork_url' => dttd_display_url($row['display_artwork_url'] ?? ''),
-                'played_at' => (string)($row['played_at'] ?? ''),
+                'status' => $status,
+                'artwork_url' => $artworkUrl,
+                'played_at' => $playedAt,
                 'rejected_at' => (string)($row['rejected_at'] ?? ''),
             ];
         }
+
+        usort($rows, function($a, $b) {
+            $rank = function($status) {
+                $s = strtolower((string)$status);
+                if (in_array($s, ['queued','approved','accepted','pending','new','requested'], true)) return 1;
+                if (in_array($s, ['played','complete','completed'], true)) return 2;
+                if (in_array($s, ['rejected','declined','cancelled','canceled'], true)) return 3;
+                return 2;
+            };
+            $ra = $rank($a['status'] ?? '');
+            $rb = $rank($b['status'] ?? '');
+            if ($ra !== $rb) return $ra <=> $rb;
+            return ((int)($b['id'] ?? 0)) <=> ((int)($a['id'] ?? 0));
+        });
+
         return $rows;
     } catch (Throwable $e) {
         return [];
