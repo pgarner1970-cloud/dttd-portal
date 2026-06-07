@@ -348,6 +348,32 @@
     return null;
   }
 
+
+  function renderRequestQueueEmpty() {
+    const event = state && state.event ? state.event : {};
+    const requestClose = text(event.requests_close_iso || '', '');
+    const requestsOpen = event.requests_open !== false;
+    const parts = countdownParts(requestClose);
+    const closed = !requestsOpen || !requestClose || (parts && parts.expired);
+    const timer = requestClose ? countdownText(parts) : '';
+
+    if (closed) {
+      return '<div class="request-empty-callout request-empty-closed">'
+        + '<p class="request-empty-kicker">Requests Closed</p>'
+        + '<strong>Requests are closed for the night</strong>'
+        + '<span>Thanks for helping shape the soundtrack.</span>'
+        + '</div>';
+    }
+
+    return '<div class="request-empty-callout">'
+      + '<p class="request-empty-kicker">Your Turn</p>'
+      + '<strong>Come on — get your requests in!</strong>'
+      + '<span>Scan the QR code or use the event page to send us your favourite track.</span>'
+      + '<b data-countdown-target="' + esc(requestClose) + '">' + esc(timer) + '</b>'
+      + '<em>left to send requests</em>'
+      + '</div>';
+  }
+
   function renderMusicBoard() {
     const requestSource = Array.isArray(state.requests) ? state.requests.slice() : [];
     const activeRequests = requestSource
@@ -408,7 +434,7 @@
       + '<div class="music-board-body">'
       + '<section class="music-board-panel music-board-requests">'
       + '<h2>To be played</h2>'
-      + (activeItems ? '<div class="music-board-stack">' + activeItems + '</div>' : '<div class="music-board-empty">No waiting requests yet.</div>')
+      + (activeItems ? '<div class="music-board-stack">' + activeItems + '</div>' : renderRequestQueueEmpty())
       + '</section>'
       + '<section class="music-board-panel music-board-played">'
       + '<h2>Played requests</h2>'
