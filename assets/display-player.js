@@ -141,7 +141,6 @@
       + (current.image ? '<img src="' + esc(current.image) + '" alt="Album artwork">' : '<div class="artwork-placeholder">♪</div>')
       + '</div>'
       + '<div class="now-feature-copy">'
-      + (current.deck ? '<p class="now-deck-pill">Deck ' + esc(current.deck) + '</p>' : '')
       + '<strong>' + esc(text(current.title, 'Unknown track')) + '</strong>'
       + (current.artist ? '<span>' + esc(current.artist) + '</span>' : '')
       + '<em>Keep the requests coming</em>'

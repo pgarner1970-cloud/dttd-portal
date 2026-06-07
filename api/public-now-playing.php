@@ -124,6 +124,14 @@ function public_np_public_track($track, $status, $playedAt = '') {
     ];
 }
 
+function public_np_best_spotify_image($images) {
+    if (!is_array($images) || !$images) return '';
+    usort($images, function($a, $b) {
+        return ((int)($b['width'] ?? 0)) <=> ((int)($a['width'] ?? 0));
+    });
+    return (string)($images[0]['url'] ?? '');
+}
+
 function public_np_track_from_playback($playback, $deckLabel = '') {
     if (!is_array($playback) || empty($playback['is_playing'])) return null;
     $item = $playback['item'] ?? null;
@@ -138,11 +146,7 @@ function public_np_track_from_playback($playback, $deckLabel = '') {
     }
 
     $images = $item['album']['images'] ?? [];
-    $image = '';
-    if ($images) {
-        $last = end($images);
-        $image = (string)($last['url'] ?? ($images[0]['url'] ?? ''));
-    }
+    $image = public_np_best_spotify_image($images);
 
     return [
         'id' => $id,
@@ -263,7 +267,13 @@ function public_np_deck_current_candidate($deck, $deviceId, $playback, $loaded) 
         $sameLoadedTrack = $loadedId !== '' && public_np_track_ids_match($currentId, $loadedId);
 
         if ($sameDevice && $sameLoadedTrack) {
-            $candidate = public_np_track_from_loaded($loaded, $deckLabel) ?: public_np_track_from_playback($playback, $deckLabel);
+            $loadedTrack = public_np_track_from_loaded($loaded, $deckLabel);
+            $playbackTrack = public_np_track_from_playback($playback, $deckLabel);
+            $candidate = $loadedTrack ?: $playbackTrack;
+            if ($candidate && $playbackTrack) {
+                if (!empty($playbackTrack['image'])) $candidate['image'] = $playbackTrack['image'];
+                if (!empty($playbackTrack['url'])) $candidate['url'] = $playbackTrack['url'];
+            }
             if ($candidate) {
                 if (isset($playback['progress_ms'])) $candidate['progress_ms'] = (int)$playback['progress_ms'];
                 if (isset($playback['item']['duration_ms'])) $candidate['duration_ms'] = (int)$playback['item']['duration_ms'];

@@ -658,3 +658,26 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
 .display-coming-up-track{
   contain:layout paint;
 }
+
+
+/* Now-playing artwork refinement: use a slightly smaller artwork panel so low-res source art is less visibly blurred. */
+.now-feature-body{
+  grid-template-columns:minmax(220px,.58fr) minmax(0,1.42fr);
+  gap:clamp(30px,3.4vw,72px);
+}
+
+.now-feature-art{
+  width:min(100%,39vh);
+  max-width:460px;
+  padding:clamp(8px,.7vw,14px);
+  border-radius:clamp(22px,1.8vw,34px);
+}
+
+.now-feature-art img,
+.now-feature-art .artwork-placeholder{
+  border-radius:clamp(16px,1.4vw,26px);
+}
+
+.now-deck-pill{
+  display:none !important;
+}
