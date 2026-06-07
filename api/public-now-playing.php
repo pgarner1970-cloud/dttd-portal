@@ -356,6 +356,43 @@ function public_np_current_spotify_track() {
     return null;
 }
 
+
+function public_np_loaded_deck_tracks() {
+    $out = [];
+    foreach (['a' => 'A', 'b' => 'B'] as $deck => $label) {
+        $loaded = public_np_json_setting('spotify_mixer_loaded_' . $deck, []);
+        $track = public_np_track_from_loaded($loaded, $label);
+        if (!$track) continue;
+        $track['deck'] = $label;
+        $track['_is_live'] = public_np_loaded_track_looks_live($loaded) || !empty($loaded['local_is_playing']);
+        $out[] = $track;
+    }
+    return $out;
+}
+
+function public_np_up_next_track($current) {
+    $loaded = public_np_loaded_deck_tracks();
+    if (!$loaded) return null;
+
+    $currentDeck = strtoupper(trim((string)($current['deck'] ?? '')));
+    $currentId = trim((string)($current['id'] ?? ''));
+
+    foreach ($loaded as $track) {
+        $deck = strtoupper(trim((string)($track['deck'] ?? '')));
+        $id = trim((string)($track['id'] ?? ''));
+
+        if ($currentDeck !== '' && $deck === $currentDeck) continue;
+        if ($currentId !== '' && $id !== '' && public_np_track_ids_match($currentId, $id)) continue;
+        if (!empty($track['_is_live'])) continue;
+
+        unset($track['_is_live']);
+        return $track;
+    }
+
+    return null;
+}
+
+
 $requestedEventId = isset($_GET['event_id']) ? (int)$_GET['event_id'] : 0;
 $event = public_np_active_event($requestedEventId);
 if (!$event || empty($event['id'])) {
@@ -375,6 +412,7 @@ if ($cachedRaw !== '') {
 }
 
 $current = public_np_current_spotify_track();
+$upNext = public_np_up_next_track($current);
 $historyRows = function_exists('dttd_history_public_track_rows') ? dttd_history_public_track_rows($eventId, 10) : [];
 $tracks = [];
 $seen = [];
@@ -400,6 +438,8 @@ $payload = [
     'active_event' => true,
     'event_id' => $eventId,
     'has_live_current' => (bool)$current,
+    'has_up_next' => (bool)$upNext,
+    'up_next' => $upNext ? public_np_public_track($upNext, 'up_next', '') : null,
     'track_count' => count($tracks),
     'tracks' => $tracks,
     'generated_at' => date('c'),

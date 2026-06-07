@@ -57,6 +57,22 @@
     return '<strong>' + title + '</strong>' + (artist ? '<span>' + artist + '</span>' : '');
   }
 
+  function currentTrack() {
+    const source = nowPlaying && Array.isArray(nowPlaying.tracks) && nowPlaying.tracks.length ? nowPlaying : lastLiveNowPlaying;
+    const tracks = source && Array.isArray(source.tracks) ? source.tracks : [];
+    return tracks.find(t => t.status === 'current') || null;
+  }
+
+  function upNextTrack() {
+    return nowPlaying && nowPlaying.up_next ? nowPlaying.up_next : null;
+  }
+
+  function slideAllowed(name) {
+    if (name === 'now_playing') return !!currentTrack();
+    if (name === 'up_next') return !!upNextTrack();
+    return true;
+  }
+
   function renderVenue() {
     const venue = state && state.venue ? state.venue : null;
     if (!venue || !venue.name) {
@@ -121,9 +137,7 @@
   }
 
   function renderNowPlaying() {
-    const source = nowPlaying && Array.isArray(nowPlaying.tracks) && nowPlaying.tracks.length ? nowPlaying : lastLiveNowPlaying;
-    const tracks = source && Array.isArray(source.tracks) ? source.tracks : [];
-    const current = tracks.find(t => t.status === 'current') || null;
+    const current = currentTrack();
     if (!current) {
       return '<article class="display-slide" data-slide="now_playing">'
         + '<div class="display-card now-playing-feature now-playing-standby">'
@@ -143,6 +157,27 @@
       + '<strong>' + esc(text(current.title, 'Unknown track')) + '</strong>'
       + (current.artist ? '<span>' + esc(current.artist) + '</span>' : '')
       + '<em>Keep the requests coming</em>'
+      + '</div>'
+      + '</div></div></article>';
+  }
+
+  function renderUpNext() {
+    const next = upNextTrack();
+    if (!next) {
+      return '<article class="display-slide" data-slide="up_next"><div class="display-card display-card-centre"><p class="display-kicker">Up Next</p><h1>More music soon</h1></div></article>';
+    }
+
+    return '<article class="display-slide" data-slide="up_next">'
+      + '<div class="display-card up-next-feature">'
+      + '<div class="up-next-head"><p class="display-kicker">Loaded Next</p><h1>Up next</h1></div>'
+      + '<div class="up-next-body">'
+      + '<div class="up-next-copy">'
+      + '<strong>' + esc(text(next.title, 'Unknown track')) + '</strong>'
+      + (next.artist ? '<span>' + esc(next.artist) + '</span>' : '')
+      + '<em>Ready on the other player</em>'
+      + '</div>'
+      + '<div class="up-next-art">'
+      + (next.image ? '<img src="' + esc(next.image) + '" alt="Album artwork">' : '<div class="artwork-placeholder">♪</div>')
       + '</div>'
       + '</div></div></article>';
   }
@@ -254,6 +289,7 @@
       case 'venue': return renderVenue();
       case 'qr': return renderQr();
       case 'now_playing': return renderNowPlaying();
+      case 'up_next': return renderUpNext();
       case 'recent': return renderRecent();
       case 'requests': return renderRequests();
       case 'photos': return renderPhotos();
@@ -295,8 +331,12 @@
     if (!state) return;
     if (footerEvent && state.event) footerEvent.textContent = state.event.event_name || 'Dance Through The Decades';
 
-    const signature = slideContentSignature(state);
-    const slides = state.active_event ? (state.slides || ['welcome', 'qr', 'now_playing']) : ['standby', 'upcoming'];
+    const signature = slideContentSignature(state) + '::np:' + (currentTrack() ? (currentTrack().id || currentTrack().title || '') : '') + '::next:' + (upNextTrack() ? (upNextTrack().id || upNextTrack().title || '') : '');
+    let slides = state.active_event ? (state.slides || ['welcome', 'qr', 'now_playing']) : ['standby', 'upcoming'];
+    if (state.active_event && slides.indexOf('now_playing') !== -1 && slides.indexOf('up_next') === -1) {
+      slides.splice(slides.indexOf('now_playing') + 1, 0, 'up_next');
+    }
+    slides = slides.filter(slideAllowed);
 
     if (!force && signature === lastSlideSignature && stage.querySelector('.display-slide')) {
       updateActiveNowPlayingSlide();
@@ -356,8 +396,9 @@
         }
       }
 
-      // Do not rebuild the whole display for now-playing polling. Rebuilding resets
-      // CSS animations such as the What's Happening ticker, which causes visible jumps.
+      // Rebuild only if the current/up-next availability changed. Otherwise update the
+      // active now-playing card in place to avoid resetting ticker animations.
+      buildSlides(false);
       updateActiveNowPlayingSlide();
     });
   }
