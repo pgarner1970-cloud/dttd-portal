@@ -73,75 +73,6 @@
     return true;
   }
 
-
-  function countdownParts(iso) {
-    if (!iso) return null;
-    const target = Date.parse(iso);
-    if (!target) return null;
-    const diff = Math.max(0, target - Date.now());
-    return {
-      total: diff,
-      hours: Math.floor(diff / 3600000),
-      minutes: Math.floor((diff % 3600000) / 60000),
-      seconds: Math.floor((diff % 60000) / 1000),
-      expired: diff <= 0
-    };
-  }
-
-  function countdownText(parts) {
-    if (!parts) return '--:--:--';
-    return String(parts.hours).padStart(2, '0') + ':' + String(parts.minutes).padStart(2, '0') + ':' + String(parts.seconds).padStart(2, '0');
-  }
-
-  function updateCountdownElements(root) {
-    const scope = root || document;
-    scope.querySelectorAll('[data-countdown-target]').forEach(el => {
-      const parts = countdownParts(el.getAttribute('data-countdown-target'));
-      el.textContent = countdownText(parts);
-      el.classList.toggle('is-expired', !!parts && parts.expired);
-    });
-
-    scope.querySelectorAll('[data-request-countdown-target]').forEach(el => {
-      const parts = countdownParts(el.getAttribute('data-request-countdown-target'));
-      if (!parts || parts.expired) {
-        el.textContent = 'Requests are closed for the night';
-        el.classList.add('is-closed');
-      } else {
-        el.textContent = 'Keep the requests coming — you’ve got ' + countdownText(parts) + ' left';
-        el.classList.remove('is-closed');
-      }
-    });
-  }
-
-  function renderEventTimer() {
-    const event = state && state.event ? state.event : {};
-    const eventEnd = text(event.event_end_iso || '', '');
-    const requestClose = text(event.requests_close_iso || '', '');
-    const requestsOpen = event.requests_open !== false;
-    const endParts = countdownParts(eventEnd);
-    const requestParts = countdownParts(requestClose);
-    const eventCountdown = eventEnd ? countdownText(endParts) : '--:--:--';
-    const requestsClosed = !requestsOpen || !requestClose || (requestParts && requestParts.expired);
-    const requestCountdown = requestClose && !requestsClosed ? countdownText(requestParts) : '--:--:--';
-
-    return '<article class="display-slide" data-slide="event_timer">'
-      + '<div class="display-card event-timer-card event-timer-card-split">'
-      + '<div class="event-timer-head"><p class="display-kicker">This Event</p><h1>Keep dancing</h1></div>'
-      + '<div class="event-timer-grid">'
-      + '<section class="event-timer-panel event-timer-panel-dance">'
-      + '<p>Keep going</p>'
-      + '<strong data-countdown-target="' + esc(eventEnd) + '">' + esc(eventCountdown) + '</strong>'
-      + '<span>left to dance</span>'
-      + '</section>'
-      + '<section class="event-timer-panel event-timer-panel-requests' + (requestsClosed ? ' is-closed event-timer-panel-requests-closed' : '') + '">'
-      + (requestsClosed
-        ? '<p>Requests are closed</p><strong class="timer-closed-message">for tonight</strong><span>Thanks for helping shape the soundtrack.</span>'
-        : '<p>Keep the requests coming</p><strong data-countdown-target="' + esc(requestClose) + '">' + esc(requestCountdown) + '</strong><span>left to send requests</span>')
-      + '</section>'
-      + '</div>'
-      + '</div></article>';
-  }
-
   function renderVenue() {
     const venue = state && state.venue ? state.venue : null;
     if (!venue || !venue.name) {
@@ -169,6 +100,7 @@
       + '</div>'
       + '</div></article>';
   }
+
   function renderGoodnight() {
     const info = (state && state.goodnight) ? state.goodnight : {};
     const websiteQr = text(info.website_qr_image_url || '', '');
@@ -277,277 +209,88 @@
       + '</article>';
   }
 
-
-  function trackIdValue(item) {
-    return text(item && (item.spotify_track_id || item.id || item.track_id), '').replace(/^spotify:track:/, '');
-  }
-
-  function tracksMatch(a, b) {
-    if (!a || !b) return false;
-    const ida = trackIdValue(a);
-    const idb = trackIdValue(b);
-    if (ida && idb && ida === idb) return true;
-    const ta = text(a.track_name || a.title, '').trim().toLowerCase();
-    const tb = text(b.track_name || b.title, '').trim().toLowerCase();
-    const aa = text(a.artist_name || a.artist, '').trim().toLowerCase();
-    const ab = text(b.artist_name || b.artist, '').trim().toLowerCase();
-    return !!ta && ta === tb && aa === ab;
-  }
-
-  function isCurrentTrack(item) {
-    const current = currentTrack();
-    return !!current && tracksMatch(item, current);
-  }
-
   function renderRecent() {
-    // Strict history only: this slide shows real event_track_history rows.
+    // Strict history only: this slide must show real event_track_history rows.
+    // Do not fall back to loaded/current mixer payloads, otherwise it can appear to
+    // duplicate or invent entries before they have actually been logged as played.
     const tracks = Array.isArray(state.recent_tracks) ? state.recent_tracks : [];
     const rows = tracks.slice(0, 10).map((track, idx) => {
       const title = esc(text(track.track_name || track.title, 'Unknown track'));
       const artist = esc(text(track.artist_name || track.artist, ''));
       const artwork = text(track.artwork_url || track.image || track.spotify_album_image, '');
-      const playing = isCurrentTrack(track);
-      return '<div class="played-tile played-tile-compact' + (playing ? ' is-currently-playing' : '') + '">'
+      return '<div class="played-tile played-tile-compact">'
         + (artwork ? '<img class="played-artwork" src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>')
         + '<div><strong>' + title + '</strong>' + (artist ? '<span>' + artist + '</span>' : '') + '</div>'
-        + (playing ? '<p class="now-playing-pill">Playing now</p>' : '')
         + '</div>';
     }).join('');
     return '<article class="display-slide" data-slide="recent">'
-      + '<div class="display-card played-card played-card-compact played-card-ten">'
+      + '<div class="display-card played-card played-card-compact">'
       + '<div class="played-head"><p class="display-kicker">Played Tonight</p><h1>What we’ve played</h1></div>'
-      + (rows ? '<div class="played-grid played-grid-compact played-grid-ten">' + rows + '</div>' : '<div class="display-empty">Played tracks will appear here.</div>')
+      + (rows ? '<div class="played-grid played-grid-compact">' + rows + '</div>' : '<div class="display-empty">Played tracks will appear here.</div>')
       + '</div></article>';
   }
 
-
-  function requestStatusLabel(status) {
-    const normalised = text(status, 'pending').toLowerCase().replace(/[_-]+/g, ' ');
-    if (normalised === 'approved' || normalised === 'accepted' || normalised === 'queued') return 'Accepted';
-    if (normalised === 'pending' || normalised === 'new' || normalised === 'requested') return 'Waiting';
-    if (normalised === 'played' || normalised === 'complete' || normalised === 'completed') return 'Played';
-    if (normalised === 'rejected' || normalised === 'declined') return 'Rejected';
-    if (normalised === 'cancelled' || normalised === 'canceled') return 'Cancelled';
-    return normalised ? normalised.replace(/\b\w/g, ch => ch.toUpperCase()) : 'Waiting';
-  }
-
-  function requestStatusClass(status) {
-    return requestStatusLabel(status).toLowerCase().replace(/[^a-z0-9]+/g, '-');
-  }
-
-  function requestStatusRank(status) {
-    const normalised = text(status, 'pending').toLowerCase();
-    if (['queued', 'approved', 'accepted'].includes(normalised)) return 1;
-    if (['pending', 'new', 'requested'].includes(normalised)) return 2;
-    if (['played', 'complete', 'completed'].includes(normalised)) return 3;
-    if (['rejected', 'declined', 'cancelled', 'canceled'].includes(normalised)) return 4;
-    return 3;
-  }
-
-  function requestArtwork(item) {
-    return text(item.artwork_url || item.image || item.spotify_album_image || item.album_image || '', '');
-  }
-
-
-  function requestIsPlayed(item) {
-    return requestStatusLabel(item && item.status).toLowerCase() === 'played';
-  }
-
-  function requestIsRejected(item) {
-    const label = requestStatusLabel(item && item.status).toLowerCase();
-    return label === 'rejected' || label === 'cancelled';
-  }
-
-  function requestIsActive(item) {
-    return !requestIsPlayed(item) && !requestIsRejected(item);
-  }
-
-
-  function deckStatusForTrack(item) {
-    if (isCurrentTrack(item)) return { label: 'Currently playing', cls: 'currently-playing', rank: 0 };
-    const next = upNextTrack();
-    if (next && tracksMatch(item, next)) return { label: 'Coming up next', cls: 'coming-up-next', rank: 1 };
-    return null;
-  }
-
-
-  function renderRequestQueueEmpty() {
-    const event = state && state.event ? state.event : {};
-    const requestClose = text(event.requests_close_iso || '', '');
-    const requestsOpen = event.requests_open !== false;
-    const parts = countdownParts(requestClose);
-    const closed = !requestsOpen || !requestClose || (parts && parts.expired);
-    const timer = requestClose ? countdownText(parts) : '';
-
-    if (closed) {
-      return '<div class="request-empty-callout request-empty-closed">'
-        + '<p class="request-empty-kicker">Requests Closed</p>'
-        + '<strong>Requests are closed for the night</strong>'
-        + '<span>Thanks for helping shape the soundtrack.</span>'
-        + '</div>';
-    }
-
-    return '<div class="request-empty-callout">'
-      + '<p class="request-empty-kicker">Your Turn</p>'
-      + '<strong>Come on — get your requests in!</strong>'
-      + '<span>Scan the QR code or use the event page to send us your favourite track.</span>'
-      + '<b data-countdown-target="' + esc(requestClose) + '">' + esc(timer) + '</b>'
-      + '<em>left to send requests</em>'
-      + '</div>';
-  }
-
   function renderMusicBoard() {
-    const requestSource = Array.isArray(state.requests) ? state.requests.slice() : [];
-    const activeRequests = requestSource
-      .filter(requestIsActive)
-      .sort((a, b) => {
-        const da = deckStatusForTrack(a);
-        const db = deckStatusForTrack(b);
-        if ((da ? da.rank : 99) !== (db ? db.rank : 99)) return (da ? da.rank : 99) - (db ? db.rank : 99);
-        const rank = requestStatusRank(a.status) - requestStatusRank(b.status);
-        if (rank !== 0) return rank;
-        return Number(b.id || 0) - Number(a.id || 0);
-      });
+    const requests = state.requests || [];
+    const recent = state.recent_tracks || [];
 
-    const playedRequests = requestSource
-      .filter(requestIsPlayed)
-      .sort((a, b) => {
-        const da = deckStatusForTrack(a);
-        const db = deckStatusForTrack(b);
-        if ((da ? da.rank : 99) !== (db ? db.rank : 99)) return (da ? da.rank : 99) - (db ? db.rank : 99);
-        return Number(b.id || 0) - Number(a.id || 0);
-      });
-
-    const activeItems = activeRequests.slice(0, 5).map((req, idx) => {
-      const deckStatus = deckStatusForTrack(req);
-      const status = deckStatus ? deckStatus.label : requestStatusLabel(req.status);
-      const statusClass = deckStatus ? deckStatus.cls : requestStatusClass(req.status);
+    const requestItems = requests.slice(0, 5).map((req, idx) => {
       const person = text(req.requester_name, '');
-      const artwork = requestArtwork(req);
-      return '<div class="music-board-request music-board-row request-status-' + esc(statusClass) + '">'
-        + '<div class="music-board-row-art">' + (artwork ? '<img class="music-board-artwork" src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>') + '</div>'
-        + '<div class="music-board-row-copy"><strong>' + esc(text(req.track_name || req.title, 'Unknown track')) + '</strong>'
+      const dedication = text(req.dedication, '');
+      return '<div class="music-board-request waiting">'
+        + '<b>' + String(idx + 1).padStart(2, '0') + '</b>'
+        + '<div><strong>' + esc(text(req.track_name || req.title, 'Unknown track')) + '</strong>'
         + (req.artist_name || req.artist ? '<span>' + esc(text(req.artist_name || req.artist, '')) + '</span>' : '')
         + (person ? '<em>Requested by ' + esc(person) + '</em>' : '')
-        + '</div>'
-        + '<p class="request-status-pill">' + esc(status) + '</p>'
-        + '</div>';
+        + (dedication ? '<small>' + esc(dedication) + '</small>' : '')
+        + '</div></div>';
     }).join('');
 
-    const playedItems = playedRequests.slice(0, 5).map((req, idx) => {
-      const deckStatus = deckStatusForTrack(req);
-      const status = deckStatus ? deckStatus.label : 'Played';
-      const statusClass = deckStatus ? deckStatus.cls : 'played';
-      const artwork = requestArtwork(req);
-      const person = text(req.requester_name, '');
-      return '<div class="music-board-played-track music-board-row request-status-' + esc(statusClass) + '">'
-        + '<div class="music-board-row-art">' + (artwork ? '<img class="music-board-artwork" src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>') + '</div>'
-        + '<div class="music-board-row-copy"><strong>' + esc(text(req.track_name || req.title, 'Unknown track')) + '</strong>'
-        + (req.artist_name || req.artist ? '<span>' + esc(text(req.artist_name || req.artist, '')) + '</span>' : '')
-        + (person ? '<em>Requested by ' + esc(person) + '</em>' : '')
-        + '</div>'
-        + '<p class="request-status-pill">' + esc(status) + '</p>'
-        + '</div>';
+    const playedTracks = recent.slice(0, 8).map((track, idx) => {
+      return '<div class="music-board-played-track">'
+        + '<b>' + String(idx + 1).padStart(2, '0') + '</b>'
+        + '<div><strong>' + esc(text(track.track_name || track.title, 'Unknown track')) + '</strong>'
+        + (track.artist_name || track.artist ? '<span>' + esc(text(track.artist_name || track.artist, '')) + '</span>' : '')
+        + '</div></div>';
     }).join('');
 
     return '<article class="display-slide" data-slide="music_board">'
-      + '<div class="display-card music-board-card music-board-card-stable music-board-card-five request-board-combined">'
-      + '<div class="music-board-head"><p class="display-kicker">Tonight’s Requests</p><h1>Request board</h1></div>'
+      + '<div class="display-card music-board-card music-board-card-stable">'
+      + '<div class="music-board-head"><p class="display-kicker">Tonight’s Music</p><h1>Requests & played</h1></div>'
       + '<div class="music-board-body">'
       + '<section class="music-board-panel music-board-requests">'
-      + '<h2>To be played</h2>'
-      + (activeItems ? '<div class="music-board-stack">' + activeItems + '</div>' : renderRequestQueueEmpty())
+      + '<h2>Request queue</h2>'
+      + (requestItems ? '<div class="music-board-stack">' + requestItems + '</div>' : '<div class="music-board-empty">No waiting requests yet.</div>')
       + '</section>'
       + '<section class="music-board-panel music-board-played">'
-      + '<h2>Played requests</h2>'
-      + (playedItems ? '<div class="music-board-played-list">' + playedItems + '</div>' : '<div class="music-board-empty">Played requests will appear here.</div>')
+      + '<h2>What we’ve played</h2>'
+      + (playedTracks ? '<div class="music-board-played-list">' + playedTracks + '</div>' : '<div class="music-board-empty">Played tracks will appear once they are logged.</div>')
       + '</section>'
       + '</div></div></article>';
   }
 
-
-  function playlistTrackKeys(item) {
-    if (!item) return [];
-    const keys = [];
-    const id = trackIdValue(item);
-    const requestId = text(item.request_id || item.requestId || '', '').trim();
-    const title = text(item.track_name || item.title, '').trim().toLowerCase()
-      .replace(/[’']/g, '')
-      .replace(/[^a-z0-9]+/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-    const artist = text(item.artist_name || item.artist, '').trim().toLowerCase()
-      .replace(/[’']/g, '')
-      .replace(/[^a-z0-9]+/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    if (requestId) keys.push('req:' + requestId);
-    if (id) keys.push('id:' + id);
-    if (title) keys.push('txt:' + title + '|' + artist);
-    return keys;
-  }
-
-  function playlistTrackKey(item) {
-    const keys = playlistTrackKeys(item);
-    return keys.length ? keys[0] : '';
-  }
-
-  function deckTrackToPlaylistItem(track, statusLabel, statusClass) {
-    if (!track) return null;
-    return {
-      id: text(track.id || track.spotify_track_id, ''),
-      track_name: text(track.track_name || track.title, 'Unknown track'),
-      artist_name: text(track.artist_name || track.artist, ''),
-      artwork_url: text(track.artwork_url || track.image || track.spotify_album_image, ''),
-      requester_name: text(track.requester_name || track.guest_name, ''),
-      is_request: !!(track.is_request || track.request_id || track.requester_name || track.guest_name),
-      request_id: track.request_id || null,
-      display_status: statusLabel,
-      display_status_class: statusClass,
-      source: 'deck'
-    };
-  }
-
   function renderRequests() {
-    const baseTracks = Array.isArray(state.coming_up_tracks) ? state.coming_up_tracks.slice() : [];
-    const items = [];
-    const seen = {};
-
-    function addItem(item) {
-      if (!item) return;
-      const keys = playlistTrackKeys(item);
-      if (keys.some(key => seen[key])) return;
-      keys.forEach(key => { if (key) seen[key] = true; });
-      items.push(item);
-    }
-
-    addItem(deckTrackToPlaylistItem(currentTrack(), 'Currently playing', 'currently-playing'));
-    addItem(deckTrackToPlaylistItem(upNextTrack(), 'Coming up next', 'coming-up-next'));
-
-    baseTracks.forEach(track => addItem(track));
-
-    const rows = items.slice(0, 10).map((track, idx) => {
-      const artwork = requestArtwork(track);
-      const requester = text(track.requester_name || track.guest_name || '', '');
-      const isReq = !!(track.is_request || requester || track.request_id);
-      const status = text(track.display_status || (isReq ? 'Request' : ''), '');
-      const statusClass = text(track.display_status_class || (isReq ? 'request' : ''), '').replace(/[^a-z0-9-]+/gi, '-').toLowerCase();
-      return '<article class="playlist-board-item' + (statusClass ? ' playlist-status-' + esc(statusClass) : '') + '">'
-        + '<div class="playlist-board-art">' + (artwork ? '<img src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>') + '</div>'
-        + '<div class="playlist-board-copy">'
-        + '<strong>' + esc(text(track.track_name || track.title, 'Unknown track')) + '</strong>'
-        + (track.artist_name || track.artist ? '<span>' + esc(text(track.artist_name || track.artist, '')) + '</span>' : '')
-        + (isReq && requester ? '<em>Requested by ' + esc(requester) + '</em>' : '')
+    const requests = state.requests || [];
+    const rows = requests.slice(0, 6).map((req, idx) => {
+      const status = text(req.status, 'pending');
+      const person = text(req.requester_name, '');
+      const dedication = text(req.dedication, '');
+      return '<article class="request-board-item">'
+        + '<div class="request-board-number">' + String(idx + 1).padStart(2, '0') + '</div>'
+        + '<div class="request-board-copy">'
+        + '<strong>' + esc(text(req.track_name || req.title, 'Unknown track')) + '</strong>'
+        + (req.artist_name || req.artist ? '<span>' + esc(text(req.artist_name || req.artist, '')) + '</span>' : '')
+        + (person ? '<em>Requested by ' + esc(person) + '</em>' : '')
+        + (dedication ? '<small>' + esc(dedication) + '</small>' : '')
         + '</div>'
-        + (status ? '<p class="request-status-pill">' + esc(status) + '</p>' : '')
+        + '<p class="request-status-pill">' + esc(status) + '</p>'
         + '</article>';
     }).join('');
 
     return '<article class="display-slide" data-slide="requests">'
-      + '<div class="display-card playlist-board-card playlist-board-card-fixed">'
-      + '<div class="request-board-head"><p class="display-kicker">Coming Up</p><h1>DJ playlist</h1></div>'
-      + (rows ? '<div class="playlist-board-grid">' + rows + '</div>' : '<div class="display-empty">Upcoming tracks will appear here once the DJ playlist is ready.</div>')
+      + '<div class="display-card request-board-card">'
+      + '<div class="request-board-head"><p class="display-kicker">Requested Tonight</p><h1>Request list</h1></div>'
+      + (rows ? '<div class="request-board-grid">' + rows + '</div>' : '<div class="display-empty">Requests will appear here once guests start sending them in.</div>')
       + '</div></article>';
   }
 
@@ -576,28 +319,26 @@
 
   function renderUpcoming() {
     const events = state.upcoming_events || [];
-    const limit = isLite ? 4 : 8;
-    const cards = events.slice(0, limit).map((ev, idx) => {
-      const isCurrent = !!ev.is_current_event;
-      const label = isCurrent ? 'Current event' : (idx === 0 ? 'Next event' : 'Coming soon');
+    const cards = events.slice(0, 8).map((ev, idx) => {
+      const label = idx === 0 ? 'Next event' : 'Coming soon';
       const date = formatDate(ev.event_date);
       const start = text(ev.start_time, '');
       const end = text(ev.end_time, '');
       const timeText = start && end ? start + ' – ' + end : (start || end || '');
       const dateTime = [date, timeText].filter(Boolean).join(' • ');
       const venue = text(ev.venue_name, '');
-      return '<div class="display-coming-up-card' + (isCurrent ? ' display-coming-up-card-current' : '') + '">'
+      return '<div class="display-coming-up-card">'
         + '<strong class="coming-eyebrow">' + esc(label) + '</strong>'
         + '<span class="coming-title">' + esc(text(ev.event_name, 'Dance Through The Decades')) + '</span>'
         + (dateTime ? '<em class="coming-datetime">' + esc(dateTime) + '</em>' : '')
         + (venue ? '<small class="coming-venue">' + esc(venue) + '</small>' : '')
         + '</div>';
     });
-    const rail = cards.length ? (isLite ? cards.join('') : cards.concat(cards).join('')) : '';
+    const rail = cards.length ? cards.concat(cards).join('') : '';
     return '<article class="display-slide" data-slide="upcoming">'
-      + '<div class="display-card display-coming-up-card-wrap' + (isLite ? ' display-coming-up-card-wrap-lite' : '') + '">'
+      + '<div class="display-card display-coming-up-card-wrap">'
       + '<div class="display-coming-up-head display-coming-up-head-no-pill"><div><p class="display-kicker">Coming Up</p><h1>What’s happening</h1></div></div>'
-      + (rail ? '<div class="display-coming-up-window' + (isLite ? ' display-coming-up-window-lite' : '') + '"><div class="' + (isLite ? 'display-coming-up-static-grid' : 'display-coming-up-track') + '">' + rail + '</div></div>' : '<div class="display-empty">Upcoming public events will appear here.</div>')
+      + (rail ? '<div class="display-coming-up-window"><div class="display-coming-up-track">' + rail + '</div></div>' : '<div class="display-empty">Upcoming public events will appear here.</div>')
       + '<div class="display-coming-up-footer"><span>See our website for full details</span><strong>dancethruthedecades.co.uk</strong></div>'
       + '</div></article>';
   }
@@ -677,7 +418,6 @@
       case 'welcome': return renderWelcome();
       case 'venue': return renderVenue();
       case 'qr': return renderQr();
-      case 'event_timer': return renderEventTimer();
       case 'now_playing': return renderNowPlaying();
       case 'up_next': return renderUpNext();
       case 'recent': return renderRecent();
@@ -696,14 +436,12 @@
     const event = data.event || {};
     const keyRows = (rows) => Array.isArray(rows) ? rows.map(row => row && (row.id || row.event_code || row.event_name || row.track_name || row.title || row.image_url || row.name || '')).join(',') : '';
     return [
-      data.display_mode || (data.active_event ? 'active' : 'standby'),
+      data.active_event ? 'active' : 'standby',
       event.id || '',
       Array.isArray(data.slides) ? data.slides.join('|') : '',
-      JSON.stringify(data.slide_durations || {}),
       keyRows(data.requests),
       keyRows(data.played_requests),
       keyRows(data.recent_tracks),
-      keyRows(data.coming_up_tracks),
       keyRows(data.photos),
       keyRows(data.upcoming_events),
       keyRows(data.partners),
@@ -745,7 +483,7 @@
   }
 
   function buildSlides(force) {
-    if (!state) return false;
+    if (!state) return;
     if (footerEvent && state.event) footerEvent.textContent = state.event.event_name || 'Dance Through The Decades';
 
     let slides = state.active_event ? (state.slides || ['welcome', 'qr', 'now_playing']) : (state.slides || ['standby']);
@@ -758,7 +496,7 @@
 
     if (!force && signature === lastSlideSignature && stage.querySelector('.display-slide')) {
       updateActiveNowPlayingSlide();
-      return false;
+      return;
     }
 
     lastSlideSignature = signature;
@@ -774,7 +512,6 @@
     }
 
     showSlide(slideIndex);
-    return true;
   }
 
   function showSlide(index) {
@@ -795,99 +532,14 @@
     active.classList.add('active');
   }
 
-
-  function slideCountdownElement() {
-    let el = document.querySelector('[data-slide-countdown]');
-    if (el) return el;
-
-    const dot = document.querySelector('.display-progress-dot, .display-footer-dot, .footer-progress-dot, .display-loop-dot');
-    if (!dot || !dot.parentNode) return null;
-
-    let wrap = dot.closest('.display-progress-wrap');
-    if (!wrap) {
-      wrap = document.createElement('span');
-      wrap.className = 'display-progress-wrap';
-      dot.parentNode.insertBefore(wrap, dot);
-      wrap.appendChild(dot);
-    }
-
-    el = document.createElement('span');
-    el.className = 'display-slide-countdown';
-    el.setAttribute('data-slide-countdown', '');
-    el.textContent = '--';
-    wrap.appendChild(el);
-    return el;
-  }
-
-  function updateSlideCountdownDisplay(secondsRemaining, totalSeconds) {
-    const el = slideCountdownElement();
-    if (!el) return;
-
-    const safeRemaining = Math.max(0, Math.ceil(Number(secondsRemaining) || 0));
-    const safeTotal = Math.max(1, Math.ceil(Number(totalSeconds) || 1));
-
-    el.textContent = String(safeRemaining) + 's';
-    el.setAttribute('aria-label', String(safeRemaining) + ' seconds until next slide');
-
-    const progress = Math.max(0, Math.min(1, safeRemaining / safeTotal));
-    el.style.setProperty('--slide-countdown-progress', String(progress));
-  }
-
-  function slideDurationMs(slideName) {
-    const durations = state && state.slide_durations ? state.slide_durations : {};
-    const seconds = Number(durations[slideName] || 0);
-    if (Number.isFinite(seconds) && seconds >= 5) {
-      return Math.max(5000, Math.min(60000, seconds * 1000));
-    }
-    return isLite ? 14500 : 12000;
-  }
-
   function startLoop() {
-    if (slideTimer) clearTimeout(slideTimer);
-
-    function scheduleNext() {
+    if (slideTimer) clearInterval(slideTimer);
+    slideTimer = setInterval(function(){
       const slides = stage.querySelectorAll('.display-slide');
-      if (!slides.length) {
-        slideTimer = null;
-        return;
-      }
-
-      const current = slides[slideIndex] || slides[0];
-      const currentName = current ? current.getAttribute('data-slide') : '';
-      const durationMs = slideDurationMs(currentName);
-      const totalSeconds = Math.max(1, Math.round(durationMs / 1000));
-      const startedAt = Date.now();
-
-      updateSlideCountdownDisplay(totalSeconds, totalSeconds);
-
-      if (window.dttdSlideCountdownTimer) {
-        clearInterval(window.dttdSlideCountdownTimer);
-      }
-
-      window.dttdSlideCountdownTimer = setInterval(function(){
-        const elapsed = Date.now() - startedAt;
-        const remainingMs = Math.max(0, durationMs - elapsed);
-        updateSlideCountdownDisplay(remainingMs / 1000, totalSeconds);
-      }, 250);
-
-      slideTimer = setTimeout(function(){
-        if (window.dttdSlideCountdownTimer) {
-          clearInterval(window.dttdSlideCountdownTimer);
-          window.dttdSlideCountdownTimer = null;
-        }
-
-        const latestSlides = stage.querySelectorAll('.display-slide');
-        if (!latestSlides.length) {
-          slideTimer = null;
-          return;
-        }
-        slideIndex = (slideIndex + 1) % latestSlides.length;
-        showSlide(slideIndex);
-        scheduleNext();
-      }, durationMs);
-    }
-
-    scheduleNext();
+      if (!slides.length) return;
+      slideIndex = (slideIndex + 1) % slides.length;
+      showSlide(slideIndex);
+    }, 12000);
   }
 
   function fetchJson(url) {
@@ -929,18 +581,15 @@
             lastLiveNowPlaying = np;
           }
         }
-        return buildSlides(!hadSlides);
+        buildSlides(!hadSlides);
       });
-    }).then(changed => {
-      if (changed || !slideTimer) {
-        startLoop();
-      }
+    }).then(() => {
+      startLoop();
     });
   }
 
   setClock();
   setInterval(setClock, 15000);
-  setInterval(function(){ updateCountdownElements(document); }, 1000);
   refresh();
   refreshTimer = setInterval(refresh, 15000);
   setInterval(refreshNowPlaying, 5000);
