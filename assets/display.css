@@ -2353,3 +2353,224 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
 .display-lite .goodnight-card-horizontal .goodnight-heading-row .goodnight-heart{
   text-shadow:none !important;
 }
+
+
+/* Standardised track rows for request board, requests & played, and played/recent slides. */
+.display-track-stack{
+  display:flex !important;
+  flex-direction:column !important;
+  gap:clamp(8px,.75vh,13px) !important;
+  min-height:0 !important;
+}
+
+.display-track-grid{
+  min-height:0 !important;
+}
+
+.display-track-row,
+.request-board-item.display-track-row,
+.music-board-request.display-track-row,
+.music-board-played-track.display-track-row,
+.played-tile.display-track-row{
+  position:relative !important;
+  min-width:0 !important;
+  display:grid !important;
+  grid-template-columns:clamp(58px,4.5vw,84px) minmax(0,1fr) auto !important;
+  align-items:center !important;
+  column-gap:clamp(12px,1.15vw,22px) !important;
+  min-height:clamp(74px,8.4vh,108px) !important;
+  padding:clamp(9px,.85vw,16px) clamp(12px,1vw,18px) !important;
+  border-radius:clamp(16px,1.35vw,26px) !important;
+  overflow:hidden !important;
+}
+
+.display-track-artwork,
+.music-board-request .display-track-artwork,
+.music-board-played-track .display-track-artwork,
+.request-board-item .display-track-artwork,
+.played-tile .display-track-artwork{
+  grid-column:1 !important;
+  grid-row:1 !important;
+  position:relative !important;
+  z-index:1 !important;
+  width:clamp(58px,4.5vw,84px) !important;
+  height:clamp(58px,4.5vw,84px) !important;
+  border-radius:clamp(11px,.9vw,16px) !important;
+  object-fit:cover !important;
+  display:block !important;
+  flex:0 0 auto !important;
+  background:rgba(255,255,255,.08) !important;
+  box-shadow:0 0 0 1px rgba(255,255,255,.18), 0 10px 28px rgba(0,0,0,.24) !important;
+}
+
+.display-track-artwork-placeholder{
+  display:grid !important;
+  place-items:center !important;
+  color:var(--display-cyan) !important;
+  font-size:clamp(20px,1.7vw,34px) !important;
+  font-weight:1000 !important;
+}
+
+.display-track-copy,
+.request-board-copy{
+  grid-column:2 !important;
+  grid-row:1 !important;
+  min-width:0 !important;
+  position:relative !important;
+  z-index:2 !important;
+  padding:0 !important;
+}
+
+.display-track-copy strong,
+.request-board-copy strong,
+.music-board-request.display-track-row strong,
+.music-board-played-track.display-track-row strong,
+.played-tile.display-track-row strong{
+  display:block !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  color:#fff !important;
+  font-weight:1000 !important;
+  line-height:.98 !important;
+  letter-spacing:-.035em !important;
+  font-size:clamp(18px,1.45vw,30px) !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+
+.display-track-copy span,
+.request-board-copy span,
+.music-board-request.display-track-row span,
+.music-board-played-track.display-track-row span,
+.played-tile.display-track-row span{
+  display:block !important;
+  min-width:0 !important;
+  color:var(--display-muted) !important;
+  font-weight:850 !important;
+  line-height:1.02 !important;
+  font-size:clamp(13px,1vw,20px) !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+
+.display-track-copy em,
+.request-board-copy em{
+  display:block !important;
+  min-width:0 !important;
+  color:var(--display-gold) !important;
+  font-style:normal !important;
+  font-weight:1000 !important;
+  line-height:1.02 !important;
+  font-size:clamp(12px,.9vw,18px) !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  margin-top:.12em !important;
+}
+
+.display-track-copy small,
+.request-board-copy small{
+  display:block !important;
+  min-width:0 !important;
+  color:#fff !important;
+  opacity:.88 !important;
+  font-weight:800 !important;
+  line-height:1.05 !important;
+  font-size:clamp(11px,.78vw,15px) !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  margin-top:.18em !important;
+}
+
+.display-track-status,
+.request-status-pill{
+  grid-column:3 !important;
+  grid-row:1 !important;
+  margin:0 !important;
+  align-self:start !important;
+  justify-self:end !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  min-height:clamp(22px,2.1vh,32px) !important;
+  max-width:clamp(112px,11vw,190px) !important;
+  padding:0 clamp(8px,.75vw,14px) !important;
+  border-radius:999px !important;
+  background:rgba(68,230,255,.16) !important;
+  border:1px solid rgba(68,230,255,.25) !important;
+  color:#c8fbff !important;
+  text-transform:uppercase !important;
+  letter-spacing:.11em !important;
+  font-weight:1000 !important;
+  font-size:clamp(9px,.64vw,13px) !important;
+  line-height:1 !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+
+.status-currently-playing .display-track-status,
+.status-currently-playing .request-status-pill{
+  background:rgba(255,65,190,.20) !important;
+  border-color:rgba(255,65,190,.42) !important;
+  color:#ffd8f3 !important;
+}
+
+.status-coming-up-next .display-track-status,
+.status-coming-up-next .request-status-pill{
+  background:rgba(68,230,255,.18) !important;
+  border-color:rgba(68,230,255,.42) !important;
+  color:#c8fbff !important;
+}
+
+.status-played .display-track-status,
+.status-played .request-status-pill{
+  background:rgba(80,255,170,.16) !important;
+  border-color:rgba(80,255,170,.35) !important;
+  color:#caffdf !important;
+}
+
+.status-waiting .display-track-status,
+.status-pending .display-track-status,
+.status-waiting .request-status-pill,
+.status-pending .request-status-pill{
+  background:rgba(255,216,106,.16) !important;
+  border-color:rgba(255,216,106,.35) !important;
+  color:#ffe8a3 !important;
+}
+
+.request-board-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:clamp(10px,1vh,16px) clamp(16px,1.5vw,28px) !important;
+  align-content:start !important;
+}
+
+.request-board-item.display-track-row{
+  min-height:clamp(76px,8.2vh,106px) !important;
+}
+
+.music-board-stack .display-track-row,
+.music-board-played-list .display-track-row{
+  min-height:clamp(70px,7.6vh,98px) !important;
+}
+
+.played-grid-compact.display-track-grid{
+  display:grid !important;
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:clamp(10px,1vh,16px) clamp(16px,1.5vw,28px) !important;
+}
+
+.played-tile.display-track-row{
+  min-height:clamp(68px,7.5vh,96px) !important;
+}
+
+.display-lite .display-track-artwork,
+.display-lite .music-board-request .display-track-artwork,
+.display-lite .music-board-played-track .display-track-artwork,
+.display-lite .request-board-item .display-track-artwork,
+.display-lite .played-tile .display-track-artwork{
+  box-shadow:none !important;
+}

@@ -209,60 +209,167 @@
       + '</article>';
   }
 
+  
+  function trackTitleValue(row) {
+    return text(row && (row.track_name || row.title || row.name), 'Unknown track');
+  }
+
+  function trackArtistValue(row) {
+    return text(row && (row.artist_name || row.artist || row.artists), '');
+  }
+
+  function trackArtworkValue(row) {
+    return text(row && (row.artwork_url || row.image_url || row.spotify_album_image || row.image || row.album_image || row.album_artwork), '');
+  }
+
+  function trackRequesterValue(row) {
+    return text(row && (row.requester_name || row.requested_by || row.requester), '');
+  }
+
+  function trackDedicationValue(row) {
+    return text(row && (row.dedication || row.request_text || row.message || row.note), '');
+  }
+
+  function trackKey(row) {
+    if (!row) return '';
+    const id = text(row.id || row.track_id || row.spotify_track_id || row.spotify_uri || row.uri, '').toLowerCase();
+    if (id) return 'id:' + id;
+    return 'text:' + (trackTitleValue(row) + '|' + trackArtistValue(row)).toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+
+  function sameTrack(a, b) {
+    if (!a || !b) return false;
+    const ak = trackKey(a);
+    const bk = trackKey(b);
+    if (ak && bk && ak === bk) return true;
+
+    const at = trackTitleValue(a).toLowerCase().replace(/\s+/g, ' ').trim();
+    const bt = trackTitleValue(b).toLowerCase().replace(/\s+/g, ' ').trim();
+    const aa = trackArtistValue(a).toLowerCase().replace(/\s+/g, ' ').trim();
+    const ba = trackArtistValue(b).toLowerCase().replace(/\s+/g, ' ').trim();
+    return !!at && at === bt && (!aa || !ba || aa === ba);
+  }
+
+  function uniqueTracks(rows) {
+    const out = [];
+    const seen = {};
+    (Array.isArray(rows) ? rows : []).forEach(row => {
+      const key = trackKey(row);
+      if (!key || seen[key]) return;
+      seen[key] = true;
+      out.push(row);
+    });
+    return out;
+  }
+
+  function displayStatusForTrack(row, fallback) {
+    const current = currentTrack();
+    const next = upNextTrack();
+    if (current && sameTrack(row, current)) return 'Currently playing';
+    if (next && sameTrack(row, next)) return 'Coming up next';
+
+    const raw = text(row && row.status, fallback || '');
+    const lower = raw.toLowerCase();
+    if (lower === 'played' || lower === 'recent' || lower === 'latest') return 'Played';
+    if (lower === 'queued' || lower === 'approved' || lower === 'accepted') return 'Waiting';
+    if (lower === 'pending') return 'Pending';
+    if (lower === 'rejected') return 'Rejected';
+    return raw || (fallback || '');
+  }
+
+  function statusClass(label) {
+    const key = text(label, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    return key ? ' status-' + key : '';
+  }
+
+  function renderTrackRow(row, options) {
+    options = options || {};
+    const artwork = trackArtworkValue(row);
+    const title = trackTitleValue(row);
+    const artist = trackArtistValue(row);
+    const requester = trackRequesterValue(row);
+    const dedication = trackDedicationValue(row);
+    const status = displayStatusForTrack(row, options.status || row.status || '');
+    const showRequester = options.showRequester !== false && requester;
+    const showDedication = options.showDedication !== false && dedication;
+    const classes = 'display-track-row ' + text(options.className, '') + statusClass(status);
+
+    return '<article class="' + esc(classes) + '">'
+      + (artwork ? '<img class="display-track-artwork" src="' + esc(artwork) + '" alt="">' : '<div class="display-track-artwork display-track-artwork-placeholder">♪</div>')
+      + '<div class="display-track-copy">'
+      + '<strong>' + esc(title) + '</strong>'
+      + (artist ? '<span>' + esc(artist) + '</span>' : '')
+      + (showRequester ? '<em>Requested by ' + esc(requester) + '</em>' : '')
+      + (showDedication ? '<small>' + esc(dedication) + '</small>' : '')
+      + '</div>'
+      + (status ? '<p class="display-track-status">' + esc(status) + '</p>' : '')
+      + '</article>';
+  }
+
+  function trackRank(row) {
+    const status = displayStatusForTrack(row, row && row.status).toLowerCase();
+    if (status === 'currently playing') return 0;
+    if (status === 'coming up next') return 1;
+    if (status === 'waiting' || status === 'queued' || status === 'approved' || status === 'accepted') return 2;
+    if (status === 'pending') return 3;
+    if (status === 'played' || status === 'recent' || status === 'latest') return 4;
+    if (status === 'rejected') return 9;
+    return 5;
+  }
+
+  function sortTrackRows(rows) {
+    return uniqueTracks(rows).sort((a, b) => {
+      const ar = trackRank(a);
+      const br = trackRank(b);
+      if (ar !== br) return ar - br;
+      return String(a.created_at || a.approved_at || a.played_at || '').localeCompare(String(b.created_at || b.approved_at || b.played_at || ''));
+    });
+  }
+
+
   function renderRecent() {
-    // Strict history only: this slide must show real event_track_history rows.
-    // Do not fall back to loaded/current mixer payloads, otherwise it can appear to
-    // duplicate or invent entries before they have actually been logged as played.
     const tracks = Array.isArray(state.recent_tracks) ? state.recent_tracks : [];
-    const rows = tracks.slice(0, 10).map((track, idx) => {
-      const title = esc(text(track.track_name || track.title, 'Unknown track'));
-      const artist = esc(text(track.artist_name || track.artist, ''));
-      const artwork = text(track.artwork_url || track.image || track.spotify_album_image, '');
-      return '<div class="played-tile played-tile-compact">'
-        + (artwork ? '<img class="played-artwork" src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>')
-        + '<div><strong>' + title + '</strong>' + (artist ? '<span>' + artist + '</span>' : '') + '</div>'
-        + '</div>';
-    }).join('');
+    const rows = uniqueTracks(tracks).slice(0, 10).map(track => renderTrackRow(track, {
+      className: 'played-tile played-tile-compact',
+      status: sameTrack(track, currentTrack()) ? 'Currently playing' : 'Played',
+      showRequester: !!track.requester_name
+    })).join('');
+
     return '<article class="display-slide" data-slide="recent">'
       + '<div class="display-card played-card played-card-compact">'
       + '<div class="played-head"><p class="display-kicker">Played Tonight</p><h1>What we’ve played</h1></div>'
-      + (rows ? '<div class="played-grid played-grid-compact">' + rows + '</div>' : '<div class="display-empty">Played tracks will appear here.</div>')
+      + (rows ? '<div class="played-grid played-grid-compact display-track-grid">' + rows + '</div>' : '<div class="display-empty">Played tracks will appear here.</div>')
       + '</div></article>';
   }
 
-    function renderMusicBoard() {
-    const requests = state.requests || [];
-    const playedRequests = state.played_requests || [];
-    const recent = state.recent_tracks || [];
+      function renderMusicBoard() {
+    const requests = Array.isArray(state.requests) ? state.requests : [];
+    const playedRequests = Array.isArray(state.played_requests) ? state.played_requests : [];
+    const recent = Array.isArray(state.recent_tracks) ? state.recent_tracks : [];
+    const current = currentTrack();
+    const next = upNextTrack();
+
+    const liveRequestRows = playedRequests.filter(row => sameTrack(row, current) || sameTrack(row, next));
+    const queueRows = sortTrackRows(liveRequestRows.concat(requests)).slice(0, 5);
+
     const playedSource = playedRequests.length ? playedRequests : recent;
+    const playedRows = uniqueTracks(playedSource)
+      .filter(row => !sameTrack(row, current) && !sameTrack(row, next))
+      .slice(0, 5);
 
-    function artworkFor(row) {
-      return text(row.artwork_url || row.image_url || row.spotify_album_image || row.image || row.album_image || '', '');
-    }
+    const requestItems = queueRows.map(row => renderTrackRow(row, {
+      className: 'music-board-request',
+      status: displayStatusForTrack(row, 'Waiting'),
+      showRequester: true,
+      showDedication: true
+    })).join('');
 
-    const requestItems = requests.slice(0, 5).map((req, idx) => {
-      const person = text(req.requester_name, '');
-      const dedication = text(req.dedication, '');
-      const artwork = artworkFor(req);
-      return '<div class="music-board-request waiting">'
-        + (artwork ? '<img class="music-board-artwork" src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>')
-        + '<div><strong>' + esc(text(req.track_name || req.title, 'Unknown track')) + '</strong>'
-        + (req.artist_name || req.artist ? '<span>' + esc(text(req.artist_name || req.artist, '')) + '</span>' : '')
-        + (person ? '<em>Requested by ' + esc(person) + '</em>' : '')
-        + (dedication ? '<small>' + esc(dedication) + '</small>' : '')
-        + '</div></div>';
-    }).join('');
-
-    const playedTracks = playedSource.slice(0, 8).map((track, idx) => {
-      const artwork = artworkFor(track);
-      const person = text(track.requester_name, '');
-      return '<div class="music-board-played-track">'
-        + (artwork ? '<img class="music-board-artwork" src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>')
-        + '<div><strong>' + esc(text(track.track_name || track.title, 'Unknown track')) + '</strong>'
-        + (track.artist_name || track.artist ? '<span>' + esc(text(track.artist_name || track.artist, '')) + '</span>' : '')
-        + (person ? '<em>Requested by ' + esc(person) + '</em>' : '')
-        + '</div></div>';
-    }).join('');
+    const playedTracks = playedRows.map(row => renderTrackRow(row, {
+      className: 'music-board-played-track',
+      status: 'Played',
+      showRequester: !!row.requester_name,
+      showDedication: false
+    })).join('');
 
     return '<article class="display-slide" data-slide="music_board">'
       + '<div class="display-card music-board-card music-board-card-stable">'
@@ -270,41 +377,33 @@
       + '<div class="music-board-body">'
       + '<section class="music-board-panel music-board-requests">'
       + '<h2>Request queue</h2>'
-      + (requestItems ? '<div class="music-board-stack">' + requestItems + '</div>' : '<div class="music-board-empty">No waiting requests yet.</div>')
+      + (requestItems ? '<div class="music-board-stack display-track-stack">' + requestItems + '</div>' : '<div class="music-board-empty">No waiting requests yet.</div>')
       + '</section>'
       + '<section class="music-board-panel music-board-played">'
       + '<h2>What we’ve played</h2>'
-      + (playedTracks ? '<div class="music-board-played-list">' + playedTracks + '</div>' : '<div class="music-board-empty">Played tracks will appear once they are logged.</div>')
+      + (playedTracks ? '<div class="music-board-played-list display-track-stack">' + playedTracks + '</div>' : '<div class="music-board-empty">Played tracks will appear once they are logged.</div>')
       + '</section>'
       + '</div></div></article>';
   }
 
-    function renderRequests() {
-    const requests = state.requests || [];
-    const rows = requests.slice(0, 6).map((req, idx) => {
-      const status = text(req.status, 'pending');
-      const person = text(req.requester_name, '');
-      const dedication = text(req.dedication, '');
-      const artwork = text(req.artwork_url || req.image_url || req.spotify_album_image || req.image || req.album_image, '');
-      const lead = artwork
-        ? '<img class="request-board-artwork" src="' + esc(artwork) + '" alt="">'
-        : '<div class="request-board-number">' + String(idx + 1).padStart(2, '0') + '</div>';
-      return '<article class="request-board-item">'
-        + lead
-        + '<div class="request-board-copy">'
-        + '<strong>' + esc(text(req.track_name || req.title, 'Unknown track')) + '</strong>'
-        + (req.artist_name || req.artist ? '<span>' + esc(text(req.artist_name || req.artist, '')) + '</span>' : '')
-        + (person ? '<em>Requested by ' + esc(person) + '</em>' : '')
-        + (dedication ? '<small>' + esc(dedication) + '</small>' : '')
-        + '</div>'
-        + '<p class="request-status-pill">' + esc(status) + '</p>'
-        + '</article>';
-    }).join('');
+      function renderRequests() {
+    const requests = Array.isArray(state.requests) ? state.requests : [];
+    const playedRequests = Array.isArray(state.played_requests) ? state.played_requests : [];
+    const current = currentTrack();
+    const next = upNextTrack();
+
+    const liveRows = playedRequests.filter(row => sameTrack(row, current) || sameTrack(row, next));
+    const rows = sortTrackRows(liveRows.concat(requests, playedRequests)).slice(0, 10).map(row => renderTrackRow(row, {
+      className: 'request-board-item',
+      status: displayStatusForTrack(row, row.status || 'Pending'),
+      showRequester: true,
+      showDedication: true
+    })).join('');
 
     return '<article class="display-slide" data-slide="requests">'
       + '<div class="display-card request-board-card">'
       + '<div class="request-board-head"><p class="display-kicker">Requested Tonight</p><h1>Request list</h1></div>'
-      + (rows ? '<div class="request-board-grid">' + rows + '</div>' : '<div class="display-empty">Requests will appear here once guests start sending them in.</div>')
+      + (rows ? '<div class="request-board-grid display-track-grid">' + rows + '</div>' : '<div class="display-empty">Requests will appear here once guests start sending them in.</div>')
       + '</div></article>';
   }
 
