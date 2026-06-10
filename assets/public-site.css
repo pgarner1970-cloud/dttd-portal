@@ -6513,3 +6513,11 @@ body.homepage-option-one .connected-event-prompt .option-one-action-card .option
     aspect-ratio:4 / 3 !important;
   }
 }
+
+
+/* Public event request status: loaded-but-not-playing track. */
+.public-request-status.coming-up-next{
+  border-color:rgba(68,230,255,.55);
+  background:rgba(68,230,255,.18);
+  color:#c8fbff;
+}

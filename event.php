@@ -314,6 +314,35 @@ function public_recent_played_tracks($event_id, $limit = 40) {
     return $out;
 }
 
+
+function public_loaded_mixer_track_looks_live($loaded) {
+    if (!is_array($loaded) || empty($loaded['id'])) return false;
+
+    if (!empty($loaded['local_is_playing'])) return true;
+
+    $startedAt = isset($loaded['playback_started_at']) ? (int)$loaded['playback_started_at'] : 0;
+    if ($startedAt <= 0) return false;
+
+    if (isset($loaded['paused_position_ms']) && $loaded['paused_position_ms'] !== null) return false;
+    if (!empty($loaded['resume_locked'])) return false;
+
+    $now = time();
+    if ($startedAt > $now + 60) return false;
+
+    $expectedFinish = isset($loaded['expected_finish_at']) ? (int)$loaded['expected_finish_at'] : 0;
+    if ($expectedFinish > 0) {
+        return $now <= ($expectedFinish + 180);
+    }
+
+    $duration = isset($loaded['duration_ms']) ? (int)$loaded['duration_ms'] : 0;
+    if ($duration > 0) {
+        return ($now - $startedAt) <= (int)ceil($duration / 1000) + 180;
+    }
+
+    return ($now - $startedAt) <= 60 * 60 * 6;
+}
+
+
 function public_loaded_mixer_tracks($event_id) {
     if (!dttd_table_exists('app_settings')) {
         return [];
@@ -330,6 +359,11 @@ function public_loaded_mixer_tracks($event_id) {
             if (!is_array($track) || empty($track['id'])) {
                 continue;
             }
+
+            $settingKey = strtolower((string)($row['setting_key'] ?? ''));
+            $track['_deck'] = str_contains($settingKey, '_b') ? 'B' : 'A';
+            $track['_is_live'] = public_loaded_mixer_track_looks_live($track);
+
             $rowEventId = isset($track['event_id']) ? (int)$track['event_id'] : 0;
             if ($event_id > 0 && $rowEventId > 0 && $rowEventId !== $event_id) {
                 continue;
@@ -374,6 +408,30 @@ function public_request_is_currently_playing($request) {
 
     foreach (public_group_rows($request) as $row) {
         foreach ($loaded as $track) {
+            if (empty($track['_is_live'])) {
+                continue;
+            }
+            if (public_mixer_track_matches_request($track, $row)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+
+function public_request_is_coming_up_next($request) {
+    $loaded = $GLOBALS['public_current_mixer_tracks'] ?? [];
+    if (!$loaded) {
+        return false;
+    }
+
+    foreach (public_group_rows($request) as $row) {
+        foreach ($loaded as $track) {
+            if (!empty($track['_is_live'])) {
+                continue;
+            }
             if (public_mixer_track_matches_request($track, $row)) {
                 return true;
             }
@@ -518,12 +576,14 @@ function public_group_played_tracks($requests) {
 function public_request_board_sort_rank($request) {
     $label = public_request_status_label($request);
     $order = [
-        'In DJ queue' => 0,
-        'Waiting' => 1,
-        'Under review' => 2,
-        'Already requested' => 3,
-        'Played' => 4,
-        'Unable to play' => 5,
+        'Currently playing' => 0,
+        'Coming up next' => 1,
+        'In DJ queue' => 2,
+        'Waiting' => 3,
+        'Under review' => 4,
+        'Already requested' => 5,
+        'Played' => 6,
+        'Unable to play' => 7,
     ];
 
     return $order[$label] ?? 9;
@@ -635,6 +695,10 @@ function public_group_status_label($request) {
         return 'Currently playing';
     }
 
+    if (public_request_is_coming_up_next($request)) {
+        return 'Coming up next';
+    }
+
     $rows = public_group_rows($request);
     $hasQueued = false;
     $hasPending = false;
@@ -701,6 +765,10 @@ function public_request_status_label($request) {
         return 'Currently playing';
     }
 
+    if (public_request_is_coming_up_next($request)) {
+        return 'Coming up next';
+    }
+
     if (isset($request['rows']) && is_array($request['rows'])) {
         return public_group_status_label($request);
     }
@@ -735,6 +803,7 @@ function public_request_status_label($request) {
 function public_request_status_class($label) {
     $key = strtolower((string)$label);
     if (str_contains($key, 'currently')) return 'currently-playing';
+    if (str_contains($key, 'coming')) return 'coming-up-next';
     if (str_contains($key, 'played')) return 'played';
     if (str_contains($key, 'unable')) return 'unable';
     if (str_contains($key, 'queue')) return 'queued';
