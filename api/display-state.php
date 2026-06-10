@@ -925,17 +925,38 @@ function dttd_display_goodnight_active($event) {
     if (!$event || empty($event['id'])) return false;
     $endTs = dttd_display_event_end_timestamp($event);
     if (!$endTs) return false;
-    $now = time();
 
-    if ($now < ($endTs - dttd_display_goodnight_pre_end_seconds())) {
+    $now = time();
+    $windowStart = $endTs - dttd_display_goodnight_pre_end_seconds();
+
+    // Before the end-window, this event is still normal live mode. Clear any
+    // previous Goodnight marker so extending the finish time resets the procedure.
+    if ($now < $windowStart) {
         dttd_display_clear_goodnight_started_at($event);
         return false;
     }
 
-    if (dttd_display_goodnight_window_active($event)) return true;
+    // If music is still loaded, never start or show Goodnight. Keep the event
+    // context alive during overrun.
+    if (!dttd_display_decks_are_clear()) {
+        return false;
+    }
 
-    if (dttd_display_goodnight_trigger_ready($event)) {
-        dttd_display_set_goodnight_started_at($event);
+    $startedAt = dttd_display_goodnight_started_at($event);
+
+    // Already shown and now expired: do not start it again. This allows standby.
+    if ($startedAt && $now > ($startedAt + dttd_display_goodnight_window_seconds())) {
+        return false;
+    }
+
+    // Already in its 10-minute Goodnight window.
+    if ($startedAt) {
+        return true;
+    }
+
+    // First time both decks are clear inside the end-window: start Goodnight once.
+    if ($now >= $windowStart) {
+        dttd_display_set_goodnight_started_at($event, $now);
         return true;
     }
 
@@ -944,25 +965,33 @@ function dttd_display_goodnight_active($event) {
 
 function dttd_display_standby_allowed_for_event($event) {
     if (!$event || empty($event['id'])) return true;
+
+    // A loaded deck means the disco is still active, including overruns.
     if (!dttd_display_decks_are_clear()) return false;
-    if (dttd_display_goodnight_window_active($event)) return false;
 
     $endTs = dttd_display_event_end_timestamp($event);
-    if ($endTs) {
-        $now = time();
-
-        if ($now >= ($endTs - dttd_display_goodnight_pre_end_seconds()) && $now < $endTs) {
-            return false;
-        }
-
-        if ($now >= $endTs) {
-            $startedAt = dttd_display_goodnight_started_at($event);
-            if ($startedAt) return $now > ($startedAt + dttd_display_goodnight_window_seconds());
-            return false;
-        }
+    if (!$endTs) {
+        return !dttd_display_event_has_started($event);
     }
 
-    return !dttd_display_event_has_started($event);
+    $now = time();
+    $windowStart = $endTs - dttd_display_goodnight_pre_end_seconds();
+    $startedAt = dttd_display_goodnight_started_at($event);
+
+    // Before the end-window, standby is only allowed before the event starts.
+    if ($now < $windowStart) {
+        return !dttd_display_event_has_started($event);
+    }
+
+    // Inside/after the end-window but Goodnight has not started yet: do not go
+    // directly to standby. Let dttd_display_goodnight_active() start Goodnight.
+    if (!$startedAt) return false;
+
+    // Goodnight is still active.
+    if ($now <= ($startedAt + dttd_display_goodnight_window_seconds())) return false;
+
+    // Goodnight has completed and both decks are clear.
+    return true;
 }
 
 function dttd_display_goodnight_payload($event, $partners = []) {
