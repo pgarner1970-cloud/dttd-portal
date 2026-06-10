@@ -93,54 +93,7 @@ function dttd_display_event() {
     if (!dttd_display_table_exists('events')) return null;
 
     try {
-        $stmt = db()->query("
-            SELECT *
-            FROM events
-            WHERE is_active = 1
-              AND status IN ('scheduled','live','completed')
-              AND event_date >= DATE_SUB(CURDATE(), INTERVAL 1 DAY)
-              AND event_date <= DATE_ADD(CURDATE(), INTERVAL 1 DAY)
-            ORDER BY
-              CASE WHEN status = 'live' THEN 0 ELSE 1 END ASC,
-              event_date DESC,
-              COALESCE(start_time, '00:00:00') DESC,
-              id DESC
-            LIMIT 12
-        ");
-
-        $now = time();
-        foreach ($stmt->fetchAll() as $candidate) {
-            $startTime = !empty($candidate['start_time']) ? (string)$candidate['start_time'] : '00:00:00';
-            $startTs = !empty($candidate['event_date']) ? strtotime((string)$candidate['event_date'] . ' ' . $startTime) : 0;
-            $endTs = dttd_display_event_end_timestamp($candidate);
-            $status = strtolower(trim((string)($candidate['status'] ?? '')));
-
-            if ($status === 'live') return $candidate;
-
-            if ($startTs && $endTs) {
-                $goodnightStarted = dttd_display_goodnight_started_at($candidate);
-                $goodnightUntil = $goodnightStarted ? ($goodnightStarted + dttd_display_goodnight_window_seconds()) : 0;
-
-                if ($now >= $startTs && $now <= ($endTs + dttd_display_goodnight_pre_end_seconds())) return $candidate;
-                if ($goodnightUntil && $now <= $goodnightUntil) return $candidate;
-                if ($now > $endTs && !dttd_display_decks_are_clear()) return $candidate;
-            }
-        }
-    } catch (Throwable $e) {}
-
-    try {
-        $stmt = db()->query("
-            SELECT *
-            FROM events
-            WHERE is_active = 1
-              AND status IN ('scheduled','live')
-            ORDER BY
-              CASE WHEN event_date IS NULL THEN 1 ELSE 0 END ASC,
-              event_date ASC,
-              COALESCE(start_time, '00:00:00') ASC,
-              id ASC
-            LIMIT 1
-        ");
+        $stmt = db()->query("\n            SELECT *\n            FROM events\n            WHERE is_active = 1\n              AND status IN ('scheduled','live')\n            ORDER BY\n              CASE WHEN event_date IS NULL THEN 1 ELSE 0 END ASC,\n              event_date ASC,\n              COALESCE(start_time, '00:00:00') ASC,\n              id ASC\n            LIMIT 1\n        ");
         return $stmt->fetch() ?: null;
     } catch (Throwable $e) {
         return null;
@@ -328,74 +281,22 @@ function dttd_display_photos($eventId, $limit = 12) {
     }
 }
 
-function dttd_display_upcoming_events($limit = 5, $currentEventId = 0) {
+function dttd_display_upcoming_events($limit = 5) {
     if (!dttd_display_table_exists('events')) return [];
     $limit = max(1, min(12, (int)$limit));
-    $currentEventId = (int)$currentEventId;
-
     try {
-        $endCol = dttd_display_col_exists('events', 'end_time') ? 'end_time' : '';
-        $stmt = db()->prepare("
-            SELECT id, event_name, venue_name, event_date, start_time, status, event_code, public_slug"
-            . ($endCol !== '' ? ", end_time" : "") . "
-            FROM events
-            WHERE is_public = 1
-              AND is_active = 1
-              AND status IN ('scheduled','live')
-              AND event_date >= CURDATE()
-            ORDER BY
-              CASE WHEN id = ? THEN 0 WHEN status = 'live' THEN 1 ELSE 2 END ASC,
-              event_date ASC, COALESCE(start_time, '00:00:00') ASC, id ASC
-            LIMIT " . ($limit * 3) . "
-        ");
-        $stmt->execute([$currentEventId]);
+        $stmt = db()->prepare("\n            SELECT id, event_name, venue_name, event_date, start_time, event_code, public_slug\n            FROM events\n            WHERE is_public = 1\n              AND is_active = 1\n              AND status IN ('scheduled','live')\n              AND event_date >= CURDATE()\n            ORDER BY event_date ASC, COALESCE(start_time, '00:00:00') ASC, id ASC\n            LIMIT " . $limit . "\n        ");
+        $stmt->execute();
         $rows = [];
-        $now = time();
-
         foreach ($stmt->fetchAll() as $row) {
-            $rowId = (int)$row['id'];
-            $status = strtolower(trim((string)($row['status'] ?? '')));
-            $isCurrent = $currentEventId > 0 && $rowId === $currentEventId;
-
-            try {
-                if (!$isCurrent && function_exists('dttd_event_live_now') && dttd_event_live_now($row)) {
-                    $isCurrent = true;
-                }
-            } catch (Throwable $e) {}
-
-            if (!$isCurrent && $status === 'live') {
-                $isCurrent = true;
-            }
-
-            $endTs = 0;
-            if (!empty($row['event_date'])) {
-                $endTime = $endCol !== '' && !empty($row['end_time']) ? (string)$row['end_time'] : (!empty($row['start_time']) ? (string)$row['start_time'] : '23:59:59');
-                $endTs = strtotime((string)$row['event_date'] . ' ' . $endTime);
-                $middayTs = strtotime((string)$row['event_date'] . ' 12:00');
-                if ($endTs && $middayTs && $endTs < $middayTs) {
-                    $endTs = strtotime('+1 day', $endTs);
-                }
-            }
-
-            if (!$isCurrent && $endTs && $endTs < $now) {
-                continue;
-            }
-
             $rows[] = [
-                'id' => $rowId,
+                'id' => (int)$row['id'],
                 'event_name' => (string)$row['event_name'],
                 'venue_name' => (string)($row['venue_name'] ?? ''),
                 'event_date' => (string)($row['event_date'] ?? ''),
                 'start_time' => isset($row['start_time']) ? substr((string)$row['start_time'], 0, 5) : '',
-                'end_time' => $endCol !== '' && isset($row['end_time']) ? substr((string)$row['end_time'], 0, 5) : '',
-                'status' => (string)($row['status'] ?? ''),
-                'is_current_event' => $isCurrent,
-                'display_label' => $isCurrent ? 'This event' : '',
             ];
-
-            if (count($rows) >= $limit) break;
         }
-
         return $rows;
     } catch (Throwable $e) {
         return [];
@@ -460,244 +361,147 @@ function dttd_display_sponsors($eventId, $limit = 6) {
 }
 
 
-function dttd_display_app_setting_value($key, $default = '') {
+function dttd_display_slide_table_exists() {
+    static $exists = null;
+    if ($exists !== null) return $exists;
+
     try {
-        if (!dttd_display_table_exists('app_settings')) return (string)$default;
-        $stmt = db()->prepare("SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1");
-        $stmt->execute([(string)$key]);
-        $value = $stmt->fetchColumn();
-        return $value === false ? (string)$default : (string)$value;
+        $stmt = db()->query("SHOW TABLES LIKE 'display_slide_settings'");
+        $exists = (bool)$stmt->fetch();
     } catch (Throwable $e) {
-        return (string)$default;
-    }
-}
-
-function dttd_display_setting_set_value($key, $value) {
-    try {
-        if (!dttd_display_table_exists('app_settings')) return false;
-        $stmt = db()->prepare("
-            INSERT INTO app_settings (setting_key, setting_value, updated_at)
-            VALUES (?, ?, NOW())
-            ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = NOW()
-        ");
-        $stmt->execute([(string)$key, (string)$value]);
-        return true;
-    } catch (Throwable $e) {
-        return false;
-    }
-}
-
-function dttd_display_setting_delete_value($key) {
-    try {
-        if (!dttd_display_table_exists('app_settings')) return false;
-        $stmt = db()->prepare("DELETE FROM app_settings WHERE setting_key = ?");
-        $stmt->execute([(string)$key]);
-        return true;
-    } catch (Throwable $e) {
-        return false;
-    }
-}
-
-function dttd_display_decode_setting_json($key) {
-    try {
-        if (!dttd_display_table_exists('app_settings')) return [];
-        $stmt = db()->prepare("SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1");
-        $stmt->execute([(string)$key]);
-        $raw = $stmt->fetchColumn();
-        if ($raw === false || $raw === null || trim((string)$raw) === '') return [];
-        $decoded = json_decode((string)$raw, true);
-        return is_array($decoded) ? $decoded : [];
-    } catch (Throwable $e) {
-        return [];
-    }
-}
-
-function dttd_display_decks_are_clear() {
-    $loadedA = dttd_display_decode_setting_json('spotify_mixer_loaded_a');
-    $loadedB = dttd_display_decode_setting_json('spotify_mixer_loaded_b');
-
-    $aLoaded = is_array($loadedA) && trim((string)($loadedA['id'] ?? $loadedA['track_id'] ?? $loadedA['spotify_track_id'] ?? '')) !== '';
-    $bLoaded = is_array($loadedB) && trim((string)($loadedB['id'] ?? $loadedB['track_id'] ?? $loadedB['spotify_track_id'] ?? '')) !== '';
-
-    return !$aLoaded && !$bLoaded;
-}
-
-function dttd_display_event_end_timestamp($event) {
-    if (!$event || empty($event['event_date']) || empty($event['end_time'])) return 0;
-
-    $endTs = strtotime((string)$event['event_date'] . ' ' . (string)$event['end_time']);
-    if (!$endTs) return 0;
-
-    $middayTs = strtotime((string)$event['event_date'] . ' 12:00');
-    if ($middayTs && $endTs < $middayTs) {
-        $endTs = strtotime('+1 day', $endTs);
+        $exists = false;
     }
 
-    return $endTs ?: 0;
+    return $exists;
 }
 
-function dttd_display_goodnight_window_seconds() {
-    return 10 * 60;
+function dttd_display_slide_duration_seconds($preset) {
+    $preset = strtolower((string)$preset);
+    if ($preset === 'short') return 10;
+    if ($preset === 'long') return 20;
+    return 15;
 }
 
-function dttd_display_goodnight_pre_end_seconds() {
-    return 10 * 60;
+function dttd_display_slide_priority_weight($priority) {
+    $priority = strtolower((string)$priority);
+    if ($priority === 'high') return 3;
+    if ($priority === 'low') return 1;
+    return 2;
 }
 
-function dttd_display_goodnight_started_key($event) {
-    return 'display_goodnight_started_at_' . (int)($event['id'] ?? 0);
-}
-
-function dttd_display_goodnight_started_at($event) {
-    if (!$event || empty($event['id'])) return 0;
-    $raw = dttd_display_app_setting_value(dttd_display_goodnight_started_key($event), '');
-    $ts = $raw !== '' ? strtotime($raw) : 0;
-    return $ts ?: 0;
-}
-
-function dttd_display_set_goodnight_started_at($event, $timestamp = null) {
-    if (!$event || empty($event['id'])) return 0;
-    $timestamp = $timestamp ?: time();
-    dttd_display_setting_set_value(dttd_display_goodnight_started_key($event), date('c', $timestamp));
-    return $timestamp;
-}
-
-function dttd_display_clear_goodnight_started_at($event) {
-    if (!$event || empty($event['id'])) return;
-    dttd_display_setting_delete_value(dttd_display_goodnight_started_key($event));
-}
-
-function dttd_display_goodnight_window_active($event) {
-    $startedAt = dttd_display_goodnight_started_at($event);
-    if (!$startedAt) return false;
-
-    $now = time();
-    return $now >= $startedAt && $now <= ($startedAt + dttd_display_goodnight_window_seconds());
-}
-
-function dttd_display_goodnight_trigger_ready($event) {
-    if (!$event || empty($event['id'])) return false;
-    if (!dttd_display_decks_are_clear()) return false;
-
-    $endTs = dttd_display_event_end_timestamp($event);
-    if (!$endTs) return false;
-
-    return time() >= ($endTs - dttd_display_goodnight_pre_end_seconds());
-}
-
-function dttd_display_event_has_started($event) {
-    if (!$event || empty($event['id'])) return false;
-
-    $status = strtolower(trim((string)($event['status'] ?? '')));
-    if ($status === 'live') return true;
-
-    if (empty($event['event_date'])) return false;
-    $startTime = !empty($event['start_time']) ? (string)$event['start_time'] : '00:00:00';
-    $startTs = strtotime((string)$event['event_date'] . ' ' . $startTime);
-
-    return $startTs && time() >= $startTs;
-}
-
-function dttd_display_event_in_end_window_or_overrun($event) {
-    $endTs = dttd_display_event_end_timestamp($event);
-    if (!$endTs) return false;
-
-    $now = time();
-    if ($now >= ($endTs - dttd_display_goodnight_pre_end_seconds()) && $now < $endTs) {
-        return true;
-    }
-
-    if ($now >= $endTs) {
-        return dttd_display_goodnight_window_active($event) || !dttd_display_decks_are_clear();
-    }
-
-    return false;
-}
-
-function dttd_display_goodnight_active($event) {
-    if (!$event || empty($event['id'])) return false;
-
-    $endTs = dttd_display_event_end_timestamp($event);
-    if (!$endTs) return false;
-
-    $now = time();
-
-    if ($now < ($endTs - dttd_display_goodnight_pre_end_seconds())) {
-        dttd_display_clear_goodnight_started_at($event);
-        return false;
-    }
-
-    if (dttd_display_goodnight_window_active($event)) {
-        return true;
-    }
-
-    if (dttd_display_goodnight_trigger_ready($event)) {
-        dttd_display_set_goodnight_started_at($event);
-        return true;
-    }
-
-    return false;
-}
-
-function dttd_display_standby_allowed_for_event($event) {
-    if (!$event || empty($event['id'])) return true;
-    if (!dttd_display_decks_are_clear()) return false;
-    if (dttd_display_goodnight_window_active($event)) return false;
-
-    $endTs = dttd_display_event_end_timestamp($event);
-    if ($endTs) {
-        $now = time();
-
-        if ($now >= ($endTs - dttd_display_goodnight_pre_end_seconds()) && $now < $endTs) {
-            return false;
-        }
-
-        if ($now >= $endTs) {
-            $startedAt = dttd_display_goodnight_started_at($event);
-            if ($startedAt) {
-                return $now > ($startedAt + dttd_display_goodnight_window_seconds());
-            }
-
-            return false;
-        }
-    }
-
-    return !dttd_display_event_has_started($event);
-}
-
-function dttd_display_goodnight_payload($event, $partners = []) {
-    $website = 'https://dancethruthedecades.co.uk/';
-    $facebook = 'https://www.facebook.com/profile.php?id=61579454050951';
-
+function dttd_display_slide_defaults() {
     return [
-        'ok' => true,
-        'active_event' => false,
-        'display_mode' => 'goodnight',
-        'event' => dttd_display_event_payload($event),
-        'slides' => ['goodnight'],
-        'slide_durations' => ['goodnight' => 30],
-        'goodnight' => [
-            'website_url' => $website,
-            'website_label' => 'dancethruthedecades.co.uk',
-            'website_qr_image_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=560x560&margin=16&data=' . rawurlencode($website),
-            'facebook_url' => $facebook,
-            'facebook_label' => 'Facebook',
-            'facebook_qr_image_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=560x560&margin=16&data=' . rawurlencode($facebook),
-        ],
-        'partners' => $partners,
-        'generated_at' => date('c'),
+        'venue' => ['label' => 'Venue / hosts', 'enabled' => 1, 'duration_preset' => 'long', 'duration_seconds' => 20, 'priority' => 'low', 'weight' => 1, 'sort_order' => 10],
+        'qr' => ['label' => 'Event QR code', 'enabled' => 1, 'duration_preset' => 'long', 'duration_seconds' => 20, 'priority' => 'high', 'weight' => 3, 'sort_order' => 20],
+        // event_timer is deliberately not included here because this baseline display-player
+        // does not currently contain a renderer for that slide key.
+        'music_board' => ['label' => 'Request board', 'enabled' => 1, 'duration_preset' => 'medium', 'duration_seconds' => 15, 'priority' => 'high', 'weight' => 3, 'sort_order' => 40],
+        'now_playing' => ['label' => 'Now playing', 'enabled' => 1, 'duration_preset' => 'medium', 'duration_seconds' => 15, 'priority' => 'normal', 'weight' => 2, 'sort_order' => 50],
+        'up_next' => ['label' => 'Up next', 'enabled' => 1, 'duration_preset' => 'medium', 'duration_seconds' => 15, 'priority' => 'normal', 'weight' => 2, 'sort_order' => 60],
+        'recent' => ['label' => 'What we’ve played', 'enabled' => 1, 'duration_preset' => 'medium', 'duration_seconds' => 15, 'priority' => 'normal', 'weight' => 2, 'sort_order' => 70],
+        'requests' => ['label' => 'Requests / dedications', 'enabled' => 1, 'duration_preset' => 'medium', 'duration_seconds' => 15, 'priority' => 'normal', 'weight' => 2, 'sort_order' => 80],
+        'photos' => ['label' => 'Photos', 'enabled' => 1, 'duration_preset' => 'medium', 'duration_seconds' => 15, 'priority' => 'normal', 'weight' => 2, 'sort_order' => 90],
+        'partners' => ['label' => 'Partners', 'enabled' => 1, 'duration_preset' => 'long', 'duration_seconds' => 20, 'priority' => 'low', 'weight' => 1, 'sort_order' => 100],
+        'upcoming' => ['label' => 'What’s happening', 'enabled' => 1, 'duration_preset' => 'long', 'duration_seconds' => 20, 'priority' => 'low', 'weight' => 1, 'sort_order' => 110],
+        'sponsors' => ['label' => 'Sponsors', 'enabled' => 1, 'duration_preset' => 'long', 'duration_seconds' => 20, 'priority' => 'low', 'weight' => 1, 'sort_order' => 120],
     ];
 }
 
+function dttd_display_slide_settings() {
+    $settings = dttd_display_slide_defaults();
+
+    if (dttd_display_slide_table_exists()) {
+        try {
+            $rows = db()->query("SELECT * FROM display_slide_settings ORDER BY sort_order ASC, id ASC")->fetchAll();
+            foreach ($rows as $row) {
+                $key = (string)($row['slide_key'] ?? '');
+                if ($key === '' || !isset($settings[$key])) continue;
+
+                $preset = (string)($row['duration_preset'] ?? $settings[$key]['duration_preset']);
+                $priority = (string)($row['priority'] ?? $settings[$key]['priority']);
+
+                $settings[$key]['label'] = (string)($row['slide_label'] ?? $settings[$key]['label']);
+                $settings[$key]['enabled'] = !empty($row['enabled']) ? 1 : 0;
+                $settings[$key]['duration_preset'] = in_array($preset, ['short','medium','long'], true) ? $preset : $settings[$key]['duration_preset'];
+                $settings[$key]['duration_seconds'] = max(5, min(60, (int)($row['duration_seconds'] ?? dttd_display_slide_duration_seconds($settings[$key]['duration_preset']))));
+                $settings[$key]['priority'] = in_array($priority, ['low','normal','high'], true) ? $priority : $settings[$key]['priority'];
+                $settings[$key]['weight'] = max(1, min(4, (int)($row['weight'] ?? dttd_display_slide_priority_weight($settings[$key]['priority']))));
+                $settings[$key]['sort_order'] = (int)($row['sort_order'] ?? $settings[$key]['sort_order']);
+            }
+        } catch (Throwable $e) {}
+    }
+
+    uasort($settings, function($a, $b) {
+        return ((int)$a['sort_order']) <=> ((int)$b['sort_order']);
+    });
+
+    return $settings;
+}
+
+function dttd_display_available_slides($available, $settings) {
+    $availableLookup = array_fill_keys((array)$available, true);
+    $out = [];
+
+    foreach ($settings as $key => $setting) {
+        if (empty($setting['enabled'])) continue;
+        if (!isset($availableLookup[$key])) continue;
+        $out[] = $key;
+    }
+
+    return $out;
+}
+
+function dttd_display_weighted_slides($slides, $settings) {
+    $slides = array_values(array_unique((array)$slides));
+    if (!$slides) return [];
+
+    $weighted = [];
+    foreach ($slides as $slide) {
+        $weight = max(1, min(4, (int)($settings[$slide]['weight'] ?? 1)));
+        for ($i = 0; $i < $weight; $i++) {
+            $weighted[] = $slide;
+        }
+    }
+
+    if (count($weighted) <= 1) return $weighted;
+
+    $result = [];
+    $counts = array_count_values($weighted);
+    $last = '';
+
+    while (array_sum($counts) > 0) {
+        arsort($counts);
+        $picked = '';
+
+        foreach ($counts as $slide => $count) {
+            if ($count <= 0) continue;
+            if ($slide !== $last || count(array_filter($counts)) === 1) {
+                $picked = $slide;
+                break;
+            }
+        }
+
+        if ($picked === '') break;
+
+        $result[] = $picked;
+        $counts[$picked]--;
+        $last = $picked;
+    }
+
+    return $result;
+}
+
+function dttd_display_slide_durations($settings) {
+    $out = [];
+    foreach ($settings as $key => $setting) {
+        $out[$key] = max(5, min(60, (int)($setting['duration_seconds'] ?? 15)));
+    }
+    return $out;
+}
+
+
 function dttd_display_event_is_live($event) {
     if (!$event || empty($event['id'])) return false;
-
-    $endTs = dttd_display_event_end_timestamp($event);
-    $now = time();
-
-    if ($endTs && $now >= $endTs) {
-        return dttd_display_event_in_end_window_or_overrun($event);
-    }
 
     try {
         if (function_exists('dttd_event_live_now') && dttd_event_live_now($event)) return true;
@@ -706,13 +510,13 @@ function dttd_display_event_is_live($event) {
     $status = strtolower(trim((string)($event['status'] ?? '')));
     if ($status === 'live') return true;
 
-    return dttd_display_event_in_end_window_or_overrun($event);
+    return false;
 }
 
 function dttd_display_standby_payload($partners = []) {
     $website = 'https://dancethruthedecades.co.uk/';
     $facebook = 'https://www.facebook.com/profile.php?id=61579454050951';
-    $upcoming = dttd_display_upcoming_events(8, 0);
+    $upcoming = dttd_display_upcoming_events(8);
 
     return [
         'ok' => true,
@@ -737,11 +541,7 @@ function dttd_display_standby_payload($partners = []) {
 $event = dttd_display_event();
 $partners = dttd_display_partners(12);
 
-if ($event && !empty($event['id']) && dttd_display_goodnight_active($event)) {
-    dttd_display_json(dttd_display_goodnight_payload($event, $partners));
-}
-
-if (!$event || empty($event['id']) || (!dttd_display_event_is_live($event) && dttd_display_standby_allowed_for_event($event))) {
+if (!$event || empty($event['id']) || !dttd_display_event_is_live($event)) {
     dttd_display_json(dttd_display_standby_payload($partners));
 }
 
@@ -750,31 +550,35 @@ $photos = dttd_display_photos($eventId, 12);
 $requests = dttd_display_requests($eventId, 12);
 $playedRequests = dttd_display_played_requests($eventId, 6);
 $recent = dttd_display_recent_tracks($eventId, 10);
-$upcoming = dttd_display_upcoming_events(5, $eventId);
+$upcoming = dttd_display_upcoming_events(5);
 $sponsors = dttd_display_sponsors($eventId, 6);
 $venue = dttd_display_venue_payload($event);
 
-$slides = ['welcome'];
-if ($venue && !empty($venue['has_details'])) $slides[] = 'venue';
-$slides[] = 'qr';
-$slides[] = 'music_board';
-$slides[] = 'now_playing';
+$slideSettings = dttd_display_slide_settings();
+
+$availableSlides = [];
+if ($venue && !empty($venue['has_details'])) $availableSlides[] = 'venue';
+$availableSlides[] = 'qr';
+$availableSlides[] = 'music_board';
+$availableSlides[] = 'now_playing';
+$availableSlides[] = 'up_next';
 
 // Keep the dedicated music-board slide in every active event loop. It has its own
 // empty-state messages, and requests can exist even when the DJ mixer is not running.
-if ($recent) $slides[] = 'recent';
-if ($requests) $slides[] = 'requests';
-if ($photos) $slides[] = 'photos';
-if ($upcoming) $slides[] = 'upcoming';
-if ($partners) $slides[] = 'partners';
-if ($sponsors) $slides[] = 'sponsors';
+if ($recent) $availableSlides[] = 'recent';
+if ($requests) $availableSlides[] = 'requests';
+if ($photos) $availableSlides[] = 'photos';
+if ($upcoming) $availableSlides[] = 'upcoming';
+if ($partners) $availableSlides[] = 'partners';
+if ($sponsors) $availableSlides[] = 'sponsors';
 
-// Repeat the QR slide so guests regularly see the event code during the loop.
-if (in_array('qr', $slides, true) && count($slides) > 5) {
-    // Repeat the QR later in the loop, after the core information slides have appeared.
-    $insertAt = min(6, count($slides));
-    array_splice($slides, $insertAt, 0, ['qr']);
+$slides = dttd_display_available_slides($availableSlides, $slideSettings);
+if (!$slides) {
+    $slides = ['qr'];
 }
+
+$slides = dttd_display_weighted_slides($slides, $slideSettings);
+$slideDurations = dttd_display_slide_durations($slideSettings);
 
 dttd_display_json([
     'ok' => true,
@@ -783,6 +587,8 @@ dttd_display_json([
     'event' => dttd_display_event_payload($event),
     'venue' => $venue,
     'slides' => $slides,
+    'slide_durations' => $slideDurations,
+    'slide_settings' => $slideSettings,
     'requests' => $requests,
     'played_requests' => $playedRequests,
     'recent_tracks' => $recent,
