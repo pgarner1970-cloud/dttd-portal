@@ -67,6 +67,49 @@ function dttd_display_event_by_code($code) {
     }
 }
 
+
+function dttd_display_sync_requests_from_song_requests($eventId) {
+    $eventId = (int)$eventId;
+    if ($eventId <= 0) return 0;
+    if (!function_exists('dttd_history_event_request_sync_where')) return 0;
+    try {
+        return dttd_history_event_request_sync_where('event_id = ?', [$eventId]);
+    } catch (Throwable $e) {
+        return 0;
+    }
+}
+
+function dttd_display_event_has_recent_activity($eventId, $seconds = 1800) {
+    $eventId = (int)$eventId;
+    if ($eventId <= 0) return false;
+    $seconds = max(60, min(7200, (int)$seconds));
+
+    $checks = [];
+    if (dttd_display_table_exists('event_track_history')) {
+        $col = dttd_display_col_exists('event_track_history', 'played_at') ? 'played_at' : (dttd_display_col_exists('event_track_history', 'created_at') ? 'created_at' : '');
+        if ($col !== '') $checks[] = ['event_track_history', $col];
+    }
+    if (dttd_display_table_exists('song_requests')) {
+        $col = dttd_display_col_exists('song_requests', 'updated_at') ? 'updated_at' : (dttd_display_col_exists('song_requests', 'created_at') ? 'created_at' : '');
+        if ($col !== '') $checks[] = ['song_requests', $col];
+    }
+    if (dttd_display_table_exists('event_requests')) {
+        $col = dttd_display_col_exists('event_requests', 'played_at') ? 'played_at' : (dttd_display_col_exists('event_requests', 'updated_at') ? 'updated_at' : (dttd_display_col_exists('event_requests', 'created_at') ? 'created_at' : ''));
+        if ($col !== '') $checks[] = ['event_requests', $col];
+    }
+
+    foreach ($checks as $check) {
+        [$table, $col] = $check;
+        try {
+            $stmt = db()->prepare("SELECT id FROM `$table` WHERE event_id = ? AND `$col` >= DATE_SUB(NOW(), INTERVAL ? SECOND) LIMIT 1");
+            $stmt->execute([$eventId, $seconds]);
+            if ($stmt->fetchColumn()) return true;
+        } catch (Throwable $e) {}
+    }
+
+    return false;
+}
+
 function dttd_display_event() {
     $eventId = isset($_GET['event_id']) ? (int)$_GET['event_id'] : (isset($_GET['event']) ? (int)$_GET['event'] : 0);
     if ($eventId > 0) {
@@ -84,6 +127,19 @@ function dttd_display_event() {
     try {
         $event = active_event();
         if ($event) return $event;
+    } catch (Throwable $e) {}
+
+    // Match the DJ console/current-event helper more closely. The display should
+    // not fall back to the no-current-event standby slide while the console is
+    // still actively working against tonight's event.
+    try {
+        if (function_exists('dttd_history_current_event_id_with_grace')) {
+            $historyEventId = (int)dttd_history_current_event_id_with_grace(3600);
+            if ($historyEventId > 0) {
+                $event = get_event($historyEventId);
+                if ($event) return $event;
+            }
+        }
     } catch (Throwable $e) {}
 
     if (!dttd_display_table_exists('events')) return null;
@@ -120,6 +176,7 @@ function dttd_display_event() {
                 if ($now >= $startTs && $now <= ($endTs + dttd_display_goodnight_pre_end_seconds())) return $candidate;
                 if ($goodnightUntil && $now <= $goodnightUntil) return $candidate;
                 if ($now > $endTs && !dttd_display_decks_are_clear()) return $candidate;
+                if ($now > $endTs && $now <= ($endTs + 3600) && dttd_display_event_has_recent_activity((int)$candidate['id'], 1800)) return $candidate;
             }
         }
     } catch (Throwable $e) {}
@@ -146,6 +203,11 @@ function dttd_display_event() {
 function dttd_display_event_payload($event) {
     if (!$event) return null;
     $joinUrl = !empty($event['event_code']) ? dttd_public_event_join_url($event['event_code'], 'event') : '';
+    $requestsCloseAt = '';
+    if (!empty($event['requests_close_at'])) {
+        $closeTs = strtotime((string)$event['requests_close_at']);
+        if ($closeTs) $requestsCloseAt = date('c', $closeTs);
+    }
     return [
         'id' => (int)($event['id'] ?? 0),
         'event_name' => (string)($event['event_name'] ?? 'Tonight\'s Event'),
@@ -156,7 +218,7 @@ function dttd_display_event_payload($event) {
         'event_date' => (string)($event['event_date'] ?? ''),
         'start_time' => isset($event['start_time']) ? substr((string)$event['start_time'], 0, 5) : '',
         'end_time' => isset($event['end_time']) ? substr((string)$event['end_time'], 0, 5) : '',
-        'requests_close_at' => (string)($event['requests_close_at'] ?? ''),
+        'requests_close_at' => $requestsCloseAt,
         'is_public' => !empty($event['is_public']),
         'is_live_now' => function_exists('dttd_event_live_now') ? dttd_event_live_now($event) : false,
         'join_url' => $joinUrl,
@@ -345,6 +407,7 @@ function dttd_display_all_requests($eventId, $limit = 40) {
     $eventId = (int)$eventId;
     if ($eventId <= 0) return [];
     $limit = max(1, min(80, (int)$limit));
+    dttd_display_sync_requests_from_song_requests($eventId);
 
     $artworkCol = dttd_display_col_exists('event_requests', 'artwork_url') ? 'artwork_url' : '';
     if ($artworkCol === '' && dttd_display_col_exists('event_requests', 'spotify_album_image')) $artworkCol = 'spotify_album_image';
@@ -393,6 +456,7 @@ function dttd_display_requests($eventId, $limit = 12) {
     $eventId = (int)$eventId;
     if ($eventId <= 0) return [];
     $limit = max(1, min(20, (int)$limit));
+    dttd_display_sync_requests_from_song_requests($eventId);
 
     $artworkCol = dttd_display_col_exists('event_requests', 'artwork_url') ? 'artwork_url' : '';
     if ($artworkCol === '' && dttd_display_col_exists('event_requests', 'spotify_album_image')) $artworkCol = 'spotify_album_image';
@@ -428,6 +492,7 @@ function dttd_display_played_requests($eventId, $limit = 6) {
     $eventId = (int)$eventId;
     if ($eventId <= 0) return [];
     $limit = max(1, min(12, (int)$limit));
+    dttd_display_sync_requests_from_song_requests($eventId);
 
     $playedCol = dttd_display_col_exists('event_requests', 'played_at') ? 'played_at' : '';
     $artworkCol = dttd_display_col_exists('event_requests', 'artwork_url') ? 'artwork_url' : '';
@@ -654,7 +719,6 @@ function dttd_display_slide_default_settings() {
         'qr' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
         'music_board' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
         'now_playing' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
-        'up_next' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
         'recent' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
         'requests' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
         'photos' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
@@ -1010,10 +1074,10 @@ function dttd_display_goodnight_payload($event, $partners = []) {
         'goodnight' => [
             'website_url' => $website,
             'website_label' => 'dancethruthedecades.co.uk',
-            'website_qr_image_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=560x560&margin=16&data=' . rawurlencode($website),
+            'website_qr_image_url' => dttd_display_url('assets/dttd-website-qr.png'),
             'facebook_url' => $facebook,
             'facebook_label' => 'Facebook',
-            'facebook_qr_image_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=560x560&margin=16&data=' . rawurlencode($facebook),
+            'facebook_qr_image_url' => dttd_display_url('assets/dttd-facebook-qr.png'),
         ],
         'partners' => $partners,
         'generated_at' => date('c'),
@@ -1026,8 +1090,16 @@ function dttd_display_event_is_live($event) {
     $endTs = dttd_display_event_end_timestamp($event);
     $now = time();
 
+    // If Goodnight has already completed for this event, allow standby/no-event.
+    $goodnightStarted = dttd_display_goodnight_started_at($event);
+    if ($goodnightStarted && $now > ($goodnightStarted + dttd_display_goodnight_window_seconds())) {
+        return false;
+    }
+
     if ($endTs && $now >= $endTs) {
-        return dttd_display_event_in_end_window_or_overrun($event);
+        if (dttd_display_event_in_end_window_or_overrun($event)) return true;
+        if ($now <= ($endTs + 3600) && dttd_display_event_has_recent_activity((int)$event['id'], 1800)) return true;
+        return false;
     }
 
     try {
@@ -1054,10 +1126,10 @@ function dttd_display_standby_payload($partners = []) {
         'standby' => [
             'website_url' => $website,
             'website_label' => 'dancethruthedecades.co.uk',
-            'website_qr_image_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=560x560&margin=16&data=' . rawurlencode($website),
+            'website_qr_image_url' => dttd_display_url('assets/dttd-website-qr.png'),
             'facebook_url' => $facebook,
             'facebook_label' => 'Facebook',
-            'facebook_qr_image_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=560x560&margin=16&data=' . rawurlencode($facebook),
+            'facebook_qr_image_url' => dttd_display_url('assets/dttd-facebook-qr.png'),
         ],
         'upcoming_events' => $upcoming,
         'partners' => $partners,
@@ -1091,12 +1163,10 @@ $availableSlides = [];
 $availableSlides[] = 'welcome';
 if ($venue && !empty($venue['has_details'])) $availableSlides[] = 'venue';
 $availableSlides[] = 'qr';
-$availableSlides[] = 'event_timer';
 $availableSlides[] = 'music_board';
 $availableSlides[] = 'now_playing';
-$availableSlides[] = 'up_next';
-if ($recent || $playedRequests) $availableSlides[] = 'recent';
-if ($allRequests || $requests || $playedRequests) $availableSlides[] = 'requests';
+if ($recent) $availableSlides[] = 'recent';
+if ($requests) $availableSlides[] = 'requests';
 if ($photos) $availableSlides[] = 'photos';
 if ($upcoming) $availableSlides[] = 'upcoming';
 if ($partners) $availableSlides[] = 'partners';

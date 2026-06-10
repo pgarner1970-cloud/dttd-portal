@@ -44,7 +44,6 @@
   }
 
   function setClock() {
-    updateEventTimerCounters();
     if (!clock) return;
     try {
       clock.textContent = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -75,71 +74,7 @@
     return true;
   }
 
-  
-  function eventDateTime(valueDate, valueTime) {
-    const date = text(valueDate, '');
-    const time = text(valueTime, '');
-    if (!date || !time) return null;
-    const parts = date.split('-').map(Number);
-    const t = time.split(':').map(Number);
-    if (parts.length !== 3 || t.length < 2) return null;
-    let d = new Date(parts[0], parts[1] - 1, parts[2], t[0], t[1], t[2] || 0);
-    if (d.getHours() < 12 && t[0] < 12) {
-      const startTime = text(state && state.event && state.event.start_time, '');
-      const st = startTime.split(':').map(Number);
-      if (st.length >= 2 && st[0] >= 12) d = new Date(d.getTime() + 24 * 60 * 60 * 1000);
-    }
-    return isNaN(d.getTime()) ? null : d;
-  }
-
-  function eventTimestampFromIso(value) {
-    const raw = text(value, '');
-    if (!raw) return null;
-    const d = new Date(raw.replace(' ', 'T'));
-    return isNaN(d.getTime()) ? null : d;
-  }
-
-  function formatCountdown(ms) {
-    ms = Math.max(0, Number(ms) || 0);
-    const total = Math.floor(ms / 1000);
-    const h = Math.floor(total / 3600);
-    const m = Math.floor((total % 3600) / 60);
-    const s = total % 60;
-    return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
-  }
-
-  function updateEventTimerCounters() {
-    const nodes = document.querySelectorAll('[data-event-countdown-target]');
-    if (!nodes.length) return;
-    const now = Date.now();
-    nodes.forEach(node => {
-      const target = Number(node.getAttribute('data-event-countdown-target') || 0);
-      node.textContent = target ? formatCountdown(target - now) : '--:--:--';
-    });
-  }
-
-
-  function renderEventTimer() {
-    const ev = (state && state.event) ? state.event : {};
-    const end = eventDateTime(ev.event_date, ev.end_time);
-    const requestClose = eventTimestampFromIso(ev.requests_close_at);
-    const now = Date.now();
-    const endTarget = end ? end.getTime() : 0;
-    const requestTarget = requestClose ? requestClose.getTime() : 0;
-    const requestsClosed = requestTarget && requestTarget <= now;
-
-    return '<article class="display-slide" data-slide="event_timer">'
-      + '<div class="display-card event-timer-card">'
-      + '<div class="event-timer-head"><p class="display-kicker">This Event</p><h1>Keep dancing</h1></div>'
-      + '<div class="event-timer-grid">'
-      + '<section class="event-timer-box"><strong>Keep going — you’ve got</strong><b data-event-countdown-target="' + esc(endTarget) + '">' + esc(endTarget ? formatCountdown(endTarget - now) : '--:--:--') + '</b><span>left to dance</span></section>'
-      + '<section class="event-timer-box event-timer-box-requests"><strong>' + (requestsClosed ? 'Requests are closed' : 'Keep the requests coming — you’ve got') + '</strong>'
-      + (requestsClosed ? '<b>Closed</b><span>for tonight. Thanks for helping shape the soundtrack.</span>' : '<b data-event-countdown-target="' + esc(requestTarget) + '">' + esc(requestTarget ? formatCountdown(requestTarget - now) : '--:--:--') + '</b><span>left to send requests</span>')
-      + '</section>'
-      + '</div></div></article>';
-  }
-
-function renderVenue() {
+  function renderVenue() {
     const venue = state && state.venue ? state.venue : null;
     if (!venue || !venue.name) {
       return '<article class="display-slide" data-slide="venue"><div class="display-card display-card-centre"><p class="display-kicker">Tonight’s Venue</p><h1>Thank you</h1></div></article>';
@@ -276,7 +211,46 @@ function renderVenue() {
   }
 
   
-  function trackTitleValue(row) {
+  
+  function trackIdentityKey(row) {
+    if (!row) return '';
+    const spotify = text(row.spotify_track_id || row.spotify_uri || row.uri || '', '').toLowerCase().trim();
+    if (spotify) return 'id:' + spotify.replace(/^spotify:track:/, '');
+    const title = trackTitleValue(row).toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const artist = trackArtistValue(row).toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!title) return '';
+    return 'text:' + title + '|' + artist;
+  }
+
+  function requestCloseSecondsRemaining() {
+    const raw = state && state.event ? text(state.event.requests_close_at, '') : '';
+    if (!raw) return null;
+    const target = Date.parse(raw);
+    if (!target) return null;
+    return Math.floor((target - Date.now()) / 1000);
+  }
+
+  function formatCountdown(seconds) {
+    seconds = Math.max(0, Number(seconds) || 0);
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    if (h > 0) return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+
+  function renderRequestQueueEmpty() {
+    const remaining = requestCloseSecondsRemaining();
+    if (remaining !== null && remaining <= 0) {
+      return '<div class="music-board-empty music-board-empty-cta"><strong>Requests are closed for tonight</strong><span>Thanks for helping shape the soundtrack.</span></div>';
+    }
+    const timer = remaining !== null
+      ? '<b class="request-empty-timer" data-request-close-countdown>' + esc(formatCountdown(remaining)) + '</b><small>left to send requests</small>'
+      : '';
+    return '<div class="music-board-empty music-board-empty-cta"><strong>Keep the requests coming!</strong><span>Scan the QR code or use the event page to send your favourite track.</span>' + timer + '</div>';
+  }
+
+function trackTitleValue(row) {
     return text(row && (row.track_name || row.title || row.name), 'Unknown track');
   }
 
@@ -296,33 +270,40 @@ function renderVenue() {
     return text(row && (row.dedication || row.request_text || row.message || row.note), '');
   }
 
-  function trackKey(row) {
-    if (!row) return '';
-    const id = text(row.id || row.track_id || row.spotify_track_id || row.spotify_uri || row.uri, '').toLowerCase();
-    if (id) return 'id:' + id;
-    return 'text:' + (trackTitleValue(row) + '|' + trackArtistValue(row)).toLowerCase().replace(/\s+/g, ' ').trim();
+    function trackKey(row) {
+    const identity = trackIdentityKey(row);
+    if (identity) return identity;
+    const rowId = text(row && (row.request_id || row.id || row.track_id), '').toLowerCase();
+    return rowId ? 'row:' + rowId : '';
   }
 
-  function sameTrack(a, b) {
+    function sameTrack(a, b) {
     if (!a || !b) return false;
-    const ak = trackKey(a);
-    const bk = trackKey(b);
+    const ak = trackIdentityKey(a);
+    const bk = trackIdentityKey(b);
     if (ak && bk && ak === bk) return true;
 
-    const at = trackTitleValue(a).toLowerCase().replace(/\s+/g, ' ').trim();
-    const bt = trackTitleValue(b).toLowerCase().replace(/\s+/g, ' ').trim();
-    const aa = trackArtistValue(a).toLowerCase().replace(/\s+/g, ' ').trim();
-    const ba = trackArtistValue(b).toLowerCase().replace(/\s+/g, ' ').trim();
+    const at = trackTitleValue(a).toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const bt = trackTitleValue(b).toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const aa = trackArtistValue(a).toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const ba = trackArtistValue(b).toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
     return !!at && at === bt && (!aa || !ba || aa === ba);
   }
 
-  function uniqueTracks(rows) {
+    function uniqueTracks(rows) {
     const out = [];
     const seen = {};
     (Array.isArray(rows) ? rows : []).forEach(row => {
-      const key = trackKey(row);
-      if (!key || seen[key]) return;
-      seen[key] = true;
+      const key = trackIdentityKey(row) || trackKey(row);
+      if (!key) return;
+      if (seen[key] !== undefined) {
+        const existing = out[seen[key]];
+        const existingScore = (trackRequesterValue(existing) ? 4 : 0) + (trackArtworkValue(existing) ? 2 : 0) + (existing && existing.played_at ? 1 : 0);
+        const rowScore = (trackRequesterValue(row) ? 4 : 0) + (trackArtworkValue(row) ? 2 : 0) + (row && row.played_at ? 1 : 0);
+        if (rowScore > existingScore) out[seen[key]] = row;
+        return;
+      }
+      seen[key] = out.length;
       out.push(row);
     });
     return out;
@@ -405,7 +386,7 @@ function renderVenue() {
 
 
 
-  function mergePlayedRows() {
+    function mergePlayedRows() {
     const playedRequests = Array.isArray(state.played_requests) ? state.played_requests : [];
     const recent = Array.isArray(state.recent_tracks) ? state.recent_tracks : [];
 
@@ -490,7 +471,7 @@ function renderRecent() {
       + '<div class="music-board-body">'
       + '<section class="music-board-panel music-board-requests">'
       + '<h2>Request queue</h2>'
-      + (requestItems ? '<div class="music-board-stack display-track-stack">' + requestItems + '</div>' : '<div class="music-board-empty">No waiting requests yet.</div>')
+      + (requestItems ? '<div class="music-board-stack display-track-stack">' + requestItems + '</div>' : renderRequestQueueEmpty())
       + '</section>'
       + '<section class="music-board-panel music-board-played">'
       + '<h2>What we’ve played</h2>'
@@ -642,7 +623,6 @@ function renderRecent() {
       case 'welcome': return renderWelcome();
       case 'venue': return renderVenue();
       case 'qr': return renderQr();
-      case 'event_timer': return renderEventTimer();
       case 'now_playing': return renderNowPlaying();
       case 'up_next': return renderUpNext();
       case 'recent': return renderRecent();
@@ -663,6 +643,7 @@ function renderRecent() {
     return [
       data.active_event ? 'active' : 'standby',
       event.id || '',
+      event.requests_close_at || '',
       Array.isArray(data.slides) ? data.slides.join('|') : '',
       keyRows(data.requests),
       keyRows(data.played_requests),
@@ -699,10 +680,8 @@ function renderRecent() {
 
     slides = slides.filter(name => enabled(name) && slideAllowed(name));
 
-    if (state && state.active_event && enabled('up_next') && slides.indexOf('up_next') === -1 && upNextTrack()) {
-      const afterNow = slides.indexOf('now_playing');
-      if (afterNow >= 0) slides.splice(afterNow + 1, 0, 'up_next');
-      else slides.push('up_next');
+    if (state && state.active_event && slides.indexOf('now_playing') !== -1 && slides.indexOf('up_next') === -1 && upNextTrack()) {
+      slides.splice(slides.indexOf('now_playing') + 1, 0, 'up_next');
     }
 
     // Preserve API order and priority weighting. Only remove accidental adjacent duplicates,
