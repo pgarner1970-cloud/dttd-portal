@@ -2784,3 +2784,119 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
   font-weight:1000 !important;
   font-size:clamp(11px,.85vw,16px) !important;
 }
+
+
+/* Requests & played: deliberately fit five complete rows per column. */
+.music-board-card-stable{
+  --rp-row-h: clamp(54px, 5.9vh, 68px);
+  --rp-art: clamp(44px, 3.2vw, 58px);
+  --rp-gap: clamp(6px, .55vh, 9px);
+}
+
+.music-board-card-stable .music-board-body{
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  align-items: stretch !important;
+  gap: clamp(16px, 1.35vw, 28px) !important;
+}
+
+.music-board-card-stable .music-board-panel{
+  min-height: 0 !important;
+  height: clamp(392px, 48vh, 500px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  padding: clamp(14px, 1.1vw, 22px) clamp(14px, 1.15vw, 22px) !important;
+}
+
+.music-board-card-stable .music-board-panel h2{
+  flex: 0 0 auto !important;
+  margin-bottom: clamp(8px, .75vh, 12px) !important;
+}
+
+.music-board-card-stable .music-board-stack,
+.music-board-card-stable .music-board-played-list{
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: grid !important;
+  grid-template-rows: repeat(5, var(--rp-row-h)) !important;
+  align-content: start !important;
+  gap: var(--rp-gap) !important;
+  overflow: hidden !important;
+}
+
+.music-board-card-stable .music-board-stack .display-track-row,
+.music-board-card-stable .music-board-played-list .display-track-row,
+.music-board-card-stable .music-board-request.display-track-row,
+.music-board-card-stable .music-board-played-track.display-track-row{
+  min-height: var(--rp-row-h) !important;
+  height: var(--rp-row-h) !important;
+  max-height: var(--rp-row-h) !important;
+  grid-template-columns: var(--rp-art) minmax(0, 1fr) auto !important;
+  column-gap: clamp(9px, .8vw, 14px) !important;
+  padding: clamp(5px, .45vw, 8px) clamp(9px, .75vw, 13px) !important;
+  border-radius: clamp(12px, .95vw, 18px) !important;
+}
+
+.music-board-card-stable .display-track-artwork,
+.music-board-card-stable .music-board-request .display-track-artwork,
+.music-board-card-stable .music-board-played-track .display-track-artwork{
+  width: var(--rp-art) !important;
+  height: var(--rp-art) !important;
+  border-radius: clamp(8px, .65vw, 12px) !important;
+}
+
+.music-board-card-stable .display-track-copy strong{
+  font-size: clamp(14px, 1.02vw, 21px) !important;
+  line-height: .96 !important;
+}
+
+.music-board-card-stable .display-track-copy span{
+  font-size: clamp(10px, .74vw, 15px) !important;
+  line-height: .98 !important;
+}
+
+.music-board-card-stable .display-track-copy em{
+  font-size: clamp(9px, .64vw, 13px) !important;
+  line-height: .98 !important;
+  margin-top: .04em !important;
+}
+
+.music-board-card-stable .display-track-status{
+  min-height: clamp(16px, 1.35vh, 22px) !important;
+  max-width: clamp(82px, 7vw, 122px) !important;
+  padding: 0 clamp(6px, .45vw, 9px) !important;
+  font-size: clamp(7px, .46vw, 10px) !important;
+}
+
+.music-board-card-stable .music-board-empty-requests,
+.music-board-card-stable .music-board-empty{
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+}
+
+/* Slightly tighter on lower-height browser windows, including Pi Chromium. */
+@media (max-height: 820px){
+  .music-board-card-stable{
+    --rp-row-h: 52px;
+    --rp-art: 44px;
+    --rp-gap: 6px;
+  }
+
+  .music-board-card-stable .music-board-panel{
+    height: 392px !important;
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+  }
+
+  .music-board-card-stable .display-track-copy strong{
+    font-size: 14px !important;
+  }
+
+  .music-board-card-stable .display-track-copy span{
+    font-size: 10px !important;
+  }
+
+  .music-board-card-stable .display-track-copy em{
+    font-size: 9px !important;
+  }
+}
