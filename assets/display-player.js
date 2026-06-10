@@ -675,12 +675,12 @@
     return (typeof isLite !== 'undefined' && isLite) ? 14500 : 12000;
   }
 
-  function updateSlideCountdownDisplay(secondsRemaining, totalSeconds) {
+    function updateSlideCountdownDisplay(secondsRemaining, totalSeconds) {
     const el = slideCountdownElement();
     if (!el) return;
     const safeRemaining = Math.max(0, Math.ceil(Number(secondsRemaining) || 0));
     const safeTotal = Math.max(1, Math.ceil(Number(totalSeconds) || 1));
-    el.textContent = String(safeRemaining) + 's';
+    el.textContent = String(safeRemaining).padStart(2, '0');
     el.setAttribute('aria-label', String(safeRemaining) + ' seconds until next slide');
     const progress = Math.max(0, Math.min(1, safeRemaining / safeTotal));
     el.style.setProperty('--slide-countdown-progress', String(progress));
