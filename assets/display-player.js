@@ -211,13 +211,20 @@
 
   function renderMusicBoard() {
     const requests = state.requests || [];
+    const playedRequests = state.played_requests || [];
     const recent = state.recent_tracks || [];
+    const playedSource = playedRequests.length ? playedRequests : recent;
+
+    function artworkFor(row) {
+      return text(row.artwork_url || row.image_url || row.spotify_album_image || row.image || row.album_image || '', '');
+    }
 
     const requestItems = requests.slice(0, 5).map((req, idx) => {
       const person = text(req.requester_name, '');
       const dedication = text(req.dedication, '');
+      const artwork = artworkFor(req);
       return '<div class="music-board-request waiting">'
-        + '<b>' + String(idx + 1).padStart(2, '0') + '</b>'
+        + (artwork ? '<img class="music-board-artwork" src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>')
         + '<div><strong>' + esc(text(req.track_name || req.title, 'Unknown track')) + '</strong>'
         + (req.artist_name || req.artist ? '<span>' + esc(text(req.artist_name || req.artist, '')) + '</span>' : '')
         + (person ? '<em>Requested by ' + esc(person) + '</em>' : '')
@@ -225,11 +232,14 @@
         + '</div></div>';
     }).join('');
 
-    const playedTracks = recent.slice(0, 8).map((track, idx) => {
+    const playedTracks = playedSource.slice(0, 8).map((track, idx) => {
+      const artwork = artworkFor(track);
+      const person = text(track.requester_name, '');
       return '<div class="music-board-played-track">'
-        + '<b>' + String(idx + 1).padStart(2, '0') + '</b>'
+        + (artwork ? '<img class="music-board-artwork" src="' + esc(artwork) + '" alt="">' : '<b>' + String(idx + 1).padStart(2, '0') + '</b>')
         + '<div><strong>' + esc(text(track.track_name || track.title, 'Unknown track')) + '</strong>'
         + (track.artist_name || track.artist ? '<span>' + esc(text(track.artist_name || track.artist, '')) + '</span>' : '')
+        + (person ? '<em>Requested by ' + esc(person) + '</em>' : '')
         + '</div></div>';
     }).join('');
 
@@ -298,18 +308,15 @@
 
   function renderUpcoming() {
     const events = state.upcoming_events || [];
-    const currentEventId = state && state.event ? Number(state.event.id || 0) : 0;
     const cards = events.slice(0, 8).map((ev, idx) => {
-      const evId = Number(ev.id || 0);
-      const isCurrent = !!ev.is_current_event || (currentEventId > 0 && evId === currentEventId);
-      const label = isCurrent ? 'Current Event' : (idx === 0 ? 'Next event' : 'Coming soon');
+      const label = idx === 0 ? 'Next event' : 'Coming soon';
       const date = formatDate(ev.event_date);
       const start = text(ev.start_time, '');
       const end = text(ev.end_time, '');
       const timeText = start && end ? start + ' – ' + end : (start || end || '');
       const dateTime = [date, timeText].filter(Boolean).join(' • ');
       const venue = text(ev.venue_name, '');
-      return '<div class="display-coming-up-card' + (isCurrent ? ' display-coming-up-card-current' : '') + '">'
+      return '<div class="display-coming-up-card">'
         + '<strong class="coming-eyebrow">' + esc(label) + '</strong>'
         + '<span class="coming-title">' + esc(text(ev.event_name, 'Dance Through The Decades')) + '</span>'
         + (dateTime ? '<em class="coming-datetime">' + esc(dateTime) + '</em>' : '')
@@ -494,48 +501,6 @@
     showSlide(slideIndex);
   }
 
-
-  function slideCountdownElement() {
-    let el = document.querySelector('[data-slide-countdown]');
-    if (el) return el;
-
-    const dot = document.querySelector('.display-footer-dot');
-    if (!dot || !dot.parentNode) return null;
-
-    let wrap = dot.closest('.display-progress-wrap');
-    if (!wrap) {
-      wrap = document.createElement('span');
-      wrap.className = 'display-progress-wrap';
-      dot.parentNode.insertBefore(wrap, dot);
-      wrap.appendChild(dot);
-    }
-
-    el = document.createElement('span');
-    el.className = 'display-slide-countdown';
-    el.setAttribute('data-slide-countdown', '');
-    el.textContent = '--';
-    wrap.appendChild(el);
-    return el;
-  }
-
-  function slideDurationMs(slideName) {
-    const durations = state && state.slide_durations ? state.slide_durations : {};
-    const raw = durations && slideName ? Number(durations[slideName]) : 0;
-    if (raw && raw > 0) return Math.max(5000, Math.min(60000, raw * 1000));
-    return (typeof isLite !== 'undefined' && isLite) ? 14500 : 12000;
-  }
-
-  function updateSlideCountdownDisplay(secondsRemaining, totalSeconds) {
-    const el = slideCountdownElement();
-    if (!el) return;
-    const safeRemaining = Math.max(0, Math.ceil(Number(secondsRemaining) || 0));
-    const safeTotal = Math.max(1, Math.ceil(Number(totalSeconds) || 1));
-    el.textContent = String(safeRemaining) + 's';
-    el.setAttribute('aria-label', String(safeRemaining) + ' seconds until next slide');
-    const progress = Math.max(0, Math.min(1, safeRemaining / safeTotal));
-    el.style.setProperty('--slide-countdown-progress', String(progress));
-  }
-
   function showSlide(index) {
     const slides = Array.from(stage.querySelectorAll('.display-slide'));
     if (!slides.length) return;
@@ -555,56 +520,13 @@
   }
 
   function startLoop() {
-    if (slideTimer) clearTimeout(slideTimer);
-    if (window.dttdSlideCountdownTimer) {
-      clearInterval(window.dttdSlideCountdownTimer);
-      window.dttdSlideCountdownTimer = null;
-    }
-
-    function scheduleNext() {
+    if (slideTimer) clearInterval(slideTimer);
+    slideTimer = setInterval(function(){
       const slides = stage.querySelectorAll('.display-slide');
-      if (!slides.length) {
-        slideTimer = null;
-        return;
-      }
-
-      const current = slides[slideIndex] || slides[0];
-      const currentName = current ? current.getAttribute('data-slide') : '';
-      const durationMs = slideDurationMs(currentName);
-      const totalSeconds = Math.max(1, Math.round(durationMs / 1000));
-      const startedAt = Date.now();
-
-      updateSlideCountdownDisplay(totalSeconds, totalSeconds);
-
-      if (window.dttdSlideCountdownTimer) {
-        clearInterval(window.dttdSlideCountdownTimer);
-      }
-
-      window.dttdSlideCountdownTimer = setInterval(function(){
-        const elapsed = Date.now() - startedAt;
-        const remainingMs = Math.max(0, durationMs - elapsed);
-        updateSlideCountdownDisplay(remainingMs / 1000, totalSeconds);
-      }, 250);
-
-      slideTimer = setTimeout(function(){
-        if (window.dttdSlideCountdownTimer) {
-          clearInterval(window.dttdSlideCountdownTimer);
-          window.dttdSlideCountdownTimer = null;
-        }
-
-        const latestSlides = stage.querySelectorAll('.display-slide');
-        if (!latestSlides.length) {
-          slideTimer = null;
-          return;
-        }
-
-        slideIndex = (slideIndex + 1) % latestSlides.length;
-        showSlide(slideIndex);
-        scheduleNext();
-      }, durationMs);
-    }
-
-    scheduleNext();
+      if (!slides.length) return;
+      slideIndex = (slideIndex + 1) % slides.length;
+      showSlide(slideIndex);
+    }, 12000);
   }
 
   function fetchJson(url) {

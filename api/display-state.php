@@ -180,11 +180,18 @@ function dttd_display_requests($eventId, $limit = 12) {
     $eventId = (int)$eventId;
     if ($eventId <= 0) return [];
     $limit = max(1, min(20, (int)$limit));
+
+    $artworkCol = dttd_display_col_exists('event_requests', 'artwork_url') ? 'artwork_url' : '';
+    if ($artworkCol === '' && dttd_display_col_exists('event_requests', 'spotify_album_image')) $artworkCol = 'spotify_album_image';
+    if ($artworkCol === '' && dttd_display_col_exists('event_requests', 'image_url')) $artworkCol = 'image_url';
+
     try {
-        $stmt = db()->prepare("\n            SELECT id, track_name, artist_name, requester_name, dedication, status, created_at, approved_at\n            FROM event_requests\n            WHERE event_id = ?\n              AND LOWER(COALESCE(status, 'pending')) NOT IN ('rejected','played')\n            ORDER BY\n              CASE LOWER(COALESCE(status, 'pending'))\n                WHEN 'queued' THEN 1\n                WHEN 'approved' THEN 2\n                WHEN 'pending' THEN 3\n                ELSE 4\n              END ASC,\n              COALESCE(approved_at, created_at) ASC,\n              id ASC\n            LIMIT " . $limit . "\n        ");
+        $stmt = db()->prepare("\n            SELECT id, track_name, artist_name, requester_name, dedication, status, created_at, approved_at"
+            . ($artworkCol !== '' ? ", `" . $artworkCol . "` AS artwork_url" : "") . "\n            FROM event_requests\n            WHERE event_id = ?\n              AND LOWER(COALESCE(status, 'pending')) NOT IN ('rejected','played')\n            ORDER BY\n              CASE LOWER(COALESCE(status, 'pending'))\n                WHEN 'queued' THEN 1\n                WHEN 'approved' THEN 2\n                WHEN 'pending' THEN 3\n                ELSE 4\n              END ASC,\n              COALESCE(approved_at, created_at) ASC,\n              id ASC\n            LIMIT " . $limit . "\n        ");
         $stmt->execute([$eventId]);
         $rows = [];
         foreach ($stmt->fetchAll() as $row) {
+            $artwork = trim((string)($row['artwork_url'] ?? ''));
             $rows[] = [
                 'id' => (int)$row['id'],
                 'track_name' => (string)$row['track_name'],
@@ -192,6 +199,8 @@ function dttd_display_requests($eventId, $limit = 12) {
                 'requester_name' => (string)($row['requester_name'] ?? ''),
                 'dedication' => (string)($row['dedication'] ?? ''),
                 'status' => (string)($row['status'] ?? ''),
+                'artwork_url' => dttd_display_url($artwork),
+                'image_url' => dttd_display_url($artwork),
             ];
         }
         return $rows;
@@ -208,10 +217,15 @@ function dttd_display_played_requests($eventId, $limit = 6) {
 
     $playedCol = dttd_display_col_exists('event_requests', 'played_at') ? 'played_at' : '';
     $orderExpr = $playedCol !== '' ? 'COALESCE(played_at, approved_at, created_at)' : 'COALESCE(approved_at, created_at)';
+    $artworkCol = dttd_display_col_exists('event_requests', 'artwork_url') ? 'artwork_url' : '';
+    if ($artworkCol === '' && dttd_display_col_exists('event_requests', 'spotify_album_image')) $artworkCol = 'spotify_album_image';
+    if ($artworkCol === '' && dttd_display_col_exists('event_requests', 'image_url')) $artworkCol = 'image_url';
 
     try {
         $stmt = db()->prepare("
-            SELECT id, track_name, artist_name, requester_name, dedication, status, created_at, approved_at" . ($playedCol !== '' ? ", played_at" : "") . "
+            SELECT id, track_name, artist_name, requester_name, dedication, status, created_at, approved_at"
+            . ($playedCol !== '' ? ", played_at" : "")
+            . ($artworkCol !== '' ? ", `" . $artworkCol . "` AS artwork_url" : "") . "
             FROM event_requests
             WHERE event_id = ?
               AND LOWER(COALESCE(status, 'pending')) = 'played'
@@ -221,6 +235,7 @@ function dttd_display_played_requests($eventId, $limit = 6) {
         $stmt->execute([$eventId]);
         $rows = [];
         foreach ($stmt->fetchAll() as $row) {
+            $artwork = trim((string)($row['artwork_url'] ?? ''));
             $rows[] = [
                 'id' => (int)$row['id'],
                 'track_name' => (string)$row['track_name'],
@@ -229,6 +244,8 @@ function dttd_display_played_requests($eventId, $limit = 6) {
                 'dedication' => (string)($row['dedication'] ?? ''),
                 'status' => (string)($row['status'] ?? ''),
                 'played_at' => (string)($row['played_at'] ?? ($row['approved_at'] ?? $row['created_at'] ?? '')),
+                'artwork_url' => dttd_display_url($artwork),
+                'image_url' => dttd_display_url($artwork),
             ];
         }
         return $rows;
@@ -356,109 +373,6 @@ function dttd_display_sponsors($eventId, $limit = 6) {
     }
 }
 
-
-function dttd_display_slide_default_settings() {
-    $defaults = [
-        'welcome' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
-        'venue' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
-        'qr' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
-        'music_board' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
-        'now_playing' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
-        'recent' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
-        'requests' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
-        'photos' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
-        'upcoming' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
-        'partners' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
-        'sponsors' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
-        'event_timer' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
-        'goodnight' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 30],
-    ];
-
-    return $defaults;
-}
-
-function dttd_display_slide_settings_col($candidates) {
-    foreach ($candidates as $col) {
-        if (dttd_display_col_exists('display_slide_settings', $col)) return $col;
-    }
-    return '';
-}
-
-function dttd_display_slide_settings() {
-    $settings = dttd_display_slide_default_settings();
-
-    if (!dttd_display_table_exists('display_slide_settings')) {
-        return $settings;
-    }
-
-    $keyCol = dttd_display_slide_settings_col(['slide_key', 'slide', 'slide_id', 'key', 'name']);
-    if ($keyCol === '') return $settings;
-
-    $enabledCol = dttd_display_slide_settings_col(['enabled', 'is_enabled', 'visible', 'is_visible']);
-    $priorityCol = dttd_display_slide_settings_col(['priority', 'slide_priority', 'weight']);
-    $durationCol = dttd_display_slide_settings_col(['duration_seconds', 'display_seconds', 'seconds', 'duration']);
-
-    $select = ['`' . $keyCol . '` AS slide_key'];
-    if ($enabledCol !== '') $select[] = '`' . $enabledCol . '` AS enabled';
-    if ($priorityCol !== '') $select[] = '`' . $priorityCol . '` AS priority';
-    if ($durationCol !== '') $select[] = '`' . $durationCol . '` AS duration_seconds';
-
-    try {
-        $stmt = db()->query('SELECT ' . implode(', ', $select) . ' FROM display_slide_settings');
-        foreach ($stmt->fetchAll() as $row) {
-            $key = strtolower(trim((string)($row['slide_key'] ?? '')));
-            if ($key === '') continue;
-
-            if (!isset($settings[$key])) {
-                $settings[$key] = ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12];
-            }
-
-            if (array_key_exists('enabled', $row)) {
-                $raw = strtolower(trim((string)$row['enabled']));
-                $settings[$key]['enabled'] = !in_array($raw, ['0', 'false', 'no', 'off', 'disabled'], true);
-            }
-
-            if (array_key_exists('priority', $row)) {
-                $priority = strtolower(trim((string)$row['priority']));
-                if (in_array($priority, ['low', 'normal', 'medium', 'high'], true)) {
-                    $settings[$key]['priority'] = $priority === 'medium' ? 'normal' : $priority;
-                }
-            }
-
-            if (array_key_exists('duration_seconds', $row)) {
-                $duration = (int)$row['duration_seconds'];
-                if ($duration > 0) {
-                    $settings[$key]['duration_seconds'] = max(5, min(60, $duration));
-                }
-            }
-        }
-    } catch (Throwable $e) {
-        return $settings;
-    }
-
-    return $settings;
-}
-
-function dttd_display_filter_enabled_slides($slides, $settings) {
-    $out = [];
-    foreach (array_values((array)$slides) as $slide) {
-        $slide = strtolower(trim((string)$slide));
-        if ($slide === '') continue;
-        if (isset($settings[$slide]) && empty($settings[$slide]['enabled'])) continue;
-        $out[] = $slide;
-    }
-
-    return array_values(array_unique($out));
-}
-
-function dttd_display_slide_durations($settings) {
-    $durations = [];
-    foreach ((array)$settings as $slide => $row) {
-        $durations[$slide] = max(5, min(60, (int)($row['duration_seconds'] ?? 12)));
-    }
-    return $durations;
-}
-
 function dttd_display_event_is_live($event) {
     if (!$event || empty($event['id'])) return false;
 
@@ -512,31 +426,28 @@ $recent = dttd_display_recent_tracks($eventId, 10);
 $upcoming = dttd_display_upcoming_events(5);
 $sponsors = dttd_display_sponsors($eventId, 6);
 $venue = dttd_display_venue_payload($event);
-$slideSettings = dttd_display_slide_settings();
 
-$availableSlides = [];
-$availableSlides[] = 'welcome';
-if ($venue && !empty($venue['has_details'])) $availableSlides[] = 'venue';
-$availableSlides[] = 'qr';
-$availableSlides[] = 'music_board';
-$availableSlides[] = 'now_playing';
+$slides = ['welcome'];
+if ($venue && !empty($venue['has_details'])) $slides[] = 'venue';
+$slides[] = 'qr';
+$slides[] = 'music_board';
+$slides[] = 'now_playing';
 
-// Keep the dedicated music-board slide available in every active event loop. It
-// has its own empty-state messages, and requests can exist even when the DJ mixer is not running.
-if ($recent) $availableSlides[] = 'recent';
-if ($requests) $availableSlides[] = 'requests';
-if ($photos) $availableSlides[] = 'photos';
-if ($upcoming) $availableSlides[] = 'upcoming';
-if ($partners) $availableSlides[] = 'partners';
-if ($sponsors) $availableSlides[] = 'sponsors';
+// Keep the dedicated music-board slide in every active event loop. It has its own
+// empty-state messages, and requests can exist even when the DJ mixer is not running.
+if ($recent) $slides[] = 'recent';
+if ($requests) $slides[] = 'requests';
+if ($photos) $slides[] = 'photos';
+if ($upcoming) $slides[] = 'upcoming';
+if ($partners) $slides[] = 'partners';
+if ($sponsors) $slides[] = 'sponsors';
 
-$slides = dttd_display_filter_enabled_slides($availableSlides, $slideSettings);
-if (!$slides) {
-    // Safety fallback only if everything has been disabled accidentally.
-    $slides = ['welcome'];
+// Repeat the QR slide so guests regularly see the event code during the loop.
+if (in_array('qr', $slides, true) && count($slides) > 5) {
+    // Repeat the QR later in the loop, after the core information slides have appeared.
+    $insertAt = min(6, count($slides));
+    array_splice($slides, $insertAt, 0, ['qr']);
 }
-
-$slideDurations = dttd_display_slide_durations($slideSettings);
 
 dttd_display_json([
     'ok' => true,
@@ -545,8 +456,6 @@ dttd_display_json([
     'event' => dttd_display_event_payload($event),
     'venue' => $venue,
     'slides' => $slides,
-    'slide_settings' => $slideSettings,
-    'slide_durations' => $slideDurations,
     'requests' => $requests,
     'played_requests' => $playedRequests,
     'recent_tracks' => $recent,
