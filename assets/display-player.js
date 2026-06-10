@@ -338,6 +338,41 @@
   }
 
 
+
+  function mergePlayedRows() {
+    const playedRequests = Array.isArray(state.played_requests) ? state.played_requests : [];
+    const recent = Array.isArray(state.recent_tracks) ? state.recent_tracks : [];
+
+    return uniqueTracks(playedRequests.concat(recent))
+      .sort((a, b) => String(b.played_at || b.created_at || '').localeCompare(String(a.played_at || a.created_at || '')));
+  }
+
+  function mergeRequestListRows() {
+    const allRequests = Array.isArray(state.all_requests) ? state.all_requests : [];
+    const requests = Array.isArray(state.requests) ? state.requests : [];
+    const playedRequests = Array.isArray(state.played_requests) ? state.played_requests : [];
+    const recent = Array.isArray(state.recent_tracks) ? state.recent_tracks : [];
+
+    const requestRows = allRequests.length ? allRequests.slice() : requests.concat(playedRequests);
+
+    // Only pull recent played-history rows onto the Request List when they match a
+    // request row. That fills in played requests that only arrived through history,
+    // without turning the Request List into a general played-music board.
+    recent.forEach(track => {
+      const matchesRequest = requestRows.some(req => sameTrack(req, track));
+      const alreadyPresent = requestRows.some(req => sameTrack(req, track) && displayStatusForTrack(req, req.status).toLowerCase() === 'played');
+      if (matchesRequest && !alreadyPresent) {
+        requestRows.push(Object.assign({}, track, {
+          requester_name: (requestRows.find(req => sameTrack(req, track)) || {}).requester_name || track.requester_name || '',
+          status: 'played'
+        }));
+      }
+    });
+
+    return sortTrackRowsKeepingRequests(requestRows);
+  }
+
+
 function renderRecent() {
     const tracks = Array.isArray(state.recent_tracks) ? state.recent_tracks : [];
     const rows = uniqueTracks(tracks).slice(0, 10).map(track => renderTrackRow(track, {
@@ -353,18 +388,19 @@ function renderRecent() {
       + '</div></article>';
   }
 
-        function renderMusicBoard() {
+          function renderMusicBoard() {
     const requests = Array.isArray(state.requests) ? state.requests : [];
     const playedRequests = Array.isArray(state.played_requests) ? state.played_requests : [];
-    const recent = Array.isArray(state.recent_tracks) ? state.recent_tracks : [];
     const current = currentTrack();
     const next = upNextTrack();
 
     const liveRequestRows = playedRequests.filter(row => sameTrack(row, current) || sameTrack(row, next));
     const queueRows = sortTrackRowsKeepingRequests(liveRequestRows.concat(requests)).slice(0, 5);
 
-    const playedSource = playedRequests.length ? playedRequests : recent;
-    const playedRows = (Array.isArray(playedSource) ? playedSource.slice() : [])
+    // Merge both played-request rows and the general played-history feed. This
+    // prevents the right-hand column from dropping tracks whenever one source has
+    // data and the other also has relevant played tracks.
+    const playedRows = mergePlayedRows()
       .filter(row => !sameTrack(row, current) && !sameTrack(row, next))
       .slice(0, 5);
 
@@ -397,16 +433,8 @@ function renderRecent() {
       + '</div></div></article>';
   }
 
-        function renderRequests() {
-    const allRequests = Array.isArray(state.all_requests) ? state.all_requests : null;
-    const requests = Array.isArray(state.requests) ? state.requests : [];
-    const playedRequests = Array.isArray(state.played_requests) ? state.played_requests : [];
-    const current = currentTrack();
-    const next = upNextTrack();
-
-    const sourceRows = allRequests || playedRequests.filter(row => sameTrack(row, current) || sameTrack(row, next)).concat(requests, playedRequests);
-
-    const rows = sortTrackRowsKeepingRequests(sourceRows).slice(0, 10).map(row => renderTrackRow(row, {
+          function renderRequests() {
+    const rows = mergeRequestListRows().slice(0, 10).map(row => renderTrackRow(row, {
       className: 'request-board-item',
       status: displayStatusForTrack(row, row.status || 'Pending'),
       showRequester: true,
