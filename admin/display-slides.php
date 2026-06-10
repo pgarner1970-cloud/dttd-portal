@@ -138,8 +138,8 @@ function dttd_display_slide_defaults() {
             'sort_order' => 70,
         ],
         'requests' => [
-            'label' => 'DJ playlist / coming up',
-            'description' => 'DJ playlist plus request fill-in where available.',
+            'label' => 'Request list',
+            'description' => 'All request entries with current, queued and played status.',
             'enabled' => 1,
             'duration_preset' => 'medium',
             'duration_seconds' => 15,

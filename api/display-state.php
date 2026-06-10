@@ -156,6 +156,7 @@ function dttd_display_event_payload($event) {
         'event_date' => (string)($event['event_date'] ?? ''),
         'start_time' => isset($event['start_time']) ? substr((string)$event['start_time'], 0, 5) : '',
         'end_time' => isset($event['end_time']) ? substr((string)$event['end_time'], 0, 5) : '',
+        'requests_close_at' => (string)($event['requests_close_at'] ?? ''),
         'is_public' => !empty($event['is_public']),
         'is_live_now' => function_exists('dttd_event_live_now') ? dttd_event_live_now($event) : false,
         'join_url' => $joinUrl,
@@ -653,6 +654,7 @@ function dttd_display_slide_default_settings() {
         'qr' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
         'music_board' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
         'now_playing' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
+        'up_next' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
         'recent' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
         'requests' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
         'photos' => ['enabled' => true, 'priority' => 'normal', 'duration_seconds' => 12],
@@ -1089,10 +1091,12 @@ $availableSlides = [];
 $availableSlides[] = 'welcome';
 if ($venue && !empty($venue['has_details'])) $availableSlides[] = 'venue';
 $availableSlides[] = 'qr';
+$availableSlides[] = 'event_timer';
 $availableSlides[] = 'music_board';
 $availableSlides[] = 'now_playing';
-if ($recent) $availableSlides[] = 'recent';
-if ($requests) $availableSlides[] = 'requests';
+$availableSlides[] = 'up_next';
+if ($recent || $playedRequests) $availableSlides[] = 'recent';
+if ($allRequests || $requests || $playedRequests) $availableSlides[] = 'requests';
 if ($photos) $availableSlides[] = 'photos';
 if ($upcoming) $availableSlides[] = 'upcoming';
 if ($partners) $availableSlides[] = 'partners';

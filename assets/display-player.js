@@ -43,6 +43,7 @@
   }
 
   function setClock() {
+    updateEventTimerCounters();
     if (!clock) return;
     try {
       clock.textContent = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -73,7 +74,71 @@
     return true;
   }
 
-  function renderVenue() {
+  
+  function eventDateTime(valueDate, valueTime) {
+    const date = text(valueDate, '');
+    const time = text(valueTime, '');
+    if (!date || !time) return null;
+    const parts = date.split('-').map(Number);
+    const t = time.split(':').map(Number);
+    if (parts.length !== 3 || t.length < 2) return null;
+    let d = new Date(parts[0], parts[1] - 1, parts[2], t[0], t[1], t[2] || 0);
+    if (d.getHours() < 12 && t[0] < 12) {
+      const startTime = text(state && state.event && state.event.start_time, '');
+      const st = startTime.split(':').map(Number);
+      if (st.length >= 2 && st[0] >= 12) d = new Date(d.getTime() + 24 * 60 * 60 * 1000);
+    }
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function eventTimestampFromIso(value) {
+    const raw = text(value, '');
+    if (!raw) return null;
+    const d = new Date(raw.replace(' ', 'T'));
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function formatCountdown(ms) {
+    ms = Math.max(0, Number(ms) || 0);
+    const total = Math.floor(ms / 1000);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+
+  function updateEventTimerCounters() {
+    const nodes = document.querySelectorAll('[data-event-countdown-target]');
+    if (!nodes.length) return;
+    const now = Date.now();
+    nodes.forEach(node => {
+      const target = Number(node.getAttribute('data-event-countdown-target') || 0);
+      node.textContent = target ? formatCountdown(target - now) : '--:--:--';
+    });
+  }
+
+
+  function renderEventTimer() {
+    const ev = (state && state.event) ? state.event : {};
+    const end = eventDateTime(ev.event_date, ev.end_time);
+    const requestClose = eventTimestampFromIso(ev.requests_close_at);
+    const now = Date.now();
+    const endTarget = end ? end.getTime() : 0;
+    const requestTarget = requestClose ? requestClose.getTime() : 0;
+    const requestsClosed = requestTarget && requestTarget <= now;
+
+    return '<article class="display-slide" data-slide="event_timer">'
+      + '<div class="display-card event-timer-card">'
+      + '<div class="event-timer-head"><p class="display-kicker">This Event</p><h1>Keep dancing</h1></div>'
+      + '<div class="event-timer-grid">'
+      + '<section class="event-timer-box"><strong>Keep going — you’ve got</strong><b data-event-countdown-target="' + esc(endTarget) + '">' + esc(endTarget ? formatCountdown(endTarget - now) : '--:--:--') + '</b><span>left to dance</span></section>'
+      + '<section class="event-timer-box event-timer-box-requests"><strong>' + (requestsClosed ? 'Requests are closed' : 'Keep the requests coming — you’ve got') + '</strong>'
+      + (requestsClosed ? '<b>Closed</b><span>for tonight. Thanks for helping shape the soundtrack.</span>' : '<b data-event-countdown-target="' + esc(requestTarget) + '">' + esc(requestTarget ? formatCountdown(requestTarget - now) : '--:--:--') + '</b><span>left to send requests</span>')
+      + '</section>'
+      + '</div></div></article>';
+  }
+
+function renderVenue() {
     const venue = state && state.venue ? state.venue : null;
     if (!venue || !venue.name) {
       return '<article class="display-slide" data-slide="venue"><div class="display-card display-card-centre"><p class="display-kicker">Tonight’s Venue</p><h1>Thank you</h1></div></article>';
@@ -576,6 +641,7 @@ function renderRecent() {
       case 'welcome': return renderWelcome();
       case 'venue': return renderVenue();
       case 'qr': return renderQr();
+      case 'event_timer': return renderEventTimer();
       case 'now_playing': return renderNowPlaying();
       case 'up_next': return renderUpNext();
       case 'recent': return renderRecent();
@@ -632,8 +698,10 @@ function renderRecent() {
 
     slides = slides.filter(name => enabled(name) && slideAllowed(name));
 
-    if (state && state.active_event && slides.indexOf('now_playing') !== -1 && slides.indexOf('up_next') === -1 && upNextTrack()) {
-      slides.splice(slides.indexOf('now_playing') + 1, 0, 'up_next');
+    if (state && state.active_event && enabled('up_next') && slides.indexOf('up_next') === -1 && upNextTrack()) {
+      const afterNow = slides.indexOf('now_playing');
+      if (afterNow >= 0) slides.splice(afterNow + 1, 0, 'up_next');
+      else slides.push('up_next');
     }
 
     // Preserve API order and priority weighting. Only remove accidental adjacent duplicates,
