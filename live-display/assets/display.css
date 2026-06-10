@@ -2893,3 +2893,97 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
   font-weight:1000 !important;
   font-size:clamp(11px,.85vw,16px) !important;
 }
+
+/* Requests & played: tighten card spacing so five played rows are fully visible. */
+.music-board-card-stable{
+  gap:clamp(8px,1.05vh,16px) !important;
+  padding:clamp(18px,1.9vw,34px) clamp(28px,2.8vw,52px) !important;
+}
+
+.music-board-card-stable .music-board-head h1{
+  font-size:clamp(44px,4.55vw,86px) !important;
+  line-height:.9 !important;
+}
+
+.music-board-card-stable .music-board-body{
+  gap:clamp(16px,1.55vw,28px) !important;
+  min-height:0 !important;
+}
+
+.music-board-card-stable .music-board-panel{
+  padding:clamp(10px,.95vw,18px) !important;
+  min-height:0 !important;
+}
+
+.music-board-card-stable .music-board-panel h2{
+  margin:0 0 clamp(6px,.6vh,10px) !important;
+  font-size:clamp(15px,1.02vw,22px) !important;
+  line-height:1 !important;
+}
+
+.music-board-card-stable .music-board-stack,
+.music-board-card-stable .music-board-played-list,
+.music-board-card-stable .display-track-stack{
+  gap:clamp(5px,.46vh,8px) !important;
+}
+
+.music-board-card-stable .display-track-row,
+.music-board-card-stable .music-board-request.display-track-row,
+.music-board-card-stable .music-board-played-track.display-track-row{
+  grid-template-columns:clamp(42px,3.25vw,58px) minmax(0,1fr) auto !important;
+  min-height:clamp(50px,5.35vh,66px) !important;
+  padding:clamp(5px,.48vw,8px) clamp(8px,.72vw,12px) !important;
+  column-gap:clamp(8px,.75vw,13px) !important;
+  border-radius:clamp(12px,.95vw,18px) !important;
+}
+
+.music-board-card-stable .display-track-artwork,
+.music-board-card-stable .music-board-request .display-track-artwork,
+.music-board-card-stable .music-board-played-track .display-track-artwork{
+  width:clamp(42px,3.25vw,58px) !important;
+  height:clamp(42px,3.25vw,58px) !important;
+  border-radius:clamp(8px,.62vw,12px) !important;
+}
+
+.music-board-card-stable .display-track-copy strong,
+.music-board-card-stable .music-board-request.display-track-row strong,
+.music-board-card-stable .music-board-played-track.display-track-row strong{
+  font-size:clamp(14px,1.05vw,21px) !important;
+  line-height:.96 !important;
+}
+
+.music-board-card-stable .display-track-copy span,
+.music-board-card-stable .music-board-request.display-track-row span,
+.music-board-card-stable .music-board-played-track.display-track-row span{
+  font-size:clamp(10px,.76vw,15px) !important;
+  line-height:1 !important;
+}
+
+.music-board-card-stable .display-track-copy em{
+  font-size:clamp(9px,.66vw,13px) !important;
+  line-height:1 !important;
+  margin-top:.04em !important;
+}
+
+.music-board-card-stable .display-track-status{
+  min-height:clamp(16px,1.35vh,22px) !important;
+  max-width:clamp(78px,7.6vw,125px) !important;
+  padding:0 clamp(6px,.45vw,9px) !important;
+  font-size:clamp(7px,.47vw,10px) !important;
+  letter-spacing:.085em !important;
+}
+
+@media (max-height: 820px){
+  .music-board-card-stable .display-track-row,
+  .music-board-card-stable .music-board-request.display-track-row,
+  .music-board-card-stable .music-board-played-track.display-track-row{
+    min-height:48px !important;
+  }
+
+  .music-board-card-stable .display-track-artwork,
+  .music-board-card-stable .music-board-request .display-track-artwork,
+  .music-board-card-stable .music-board-played-track .display-track-artwork{
+    width:44px !important;
+    height:44px !important;
+  }
+}
