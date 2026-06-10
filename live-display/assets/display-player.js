@@ -422,7 +422,11 @@ function trackTitleValue(row) {
 
 function renderRecent() {
     const tracks = Array.isArray(state.recent_tracks) ? state.recent_tracks : [];
-    const rows = uniqueTracks(tracks).slice(0, 10).map(track => renderTrackRow(track, {
+
+    // This slide is the raw event play history. Do not de-duplicate here:
+    // if the same track was played twice during the event, or if several rows
+    // share weak IDs, the board should still show the latest event-history rows.
+    const rows = tracks.slice(0, 10).map(track => renderTrackRow(track, {
       className: 'played-tile played-tile-compact',
       status: sameTrack(track, currentTrack()) ? 'Currently playing' : 'Played',
       showRequester: !!track.requester_name
