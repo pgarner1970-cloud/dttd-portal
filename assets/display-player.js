@@ -481,27 +481,33 @@
     return true;
   }
 
-  function normaliseSlides(baseSlides) {
+    function normaliseSlides(baseSlides) {
     let slides = Array.isArray(baseSlides) ? baseSlides.slice() : [];
-    if (state && state.active_event && slides.indexOf('music_board') === -1) {
-      const qrIndex = slides.indexOf('qr');
-      slides.splice(qrIndex >= 0 ? qrIndex + 1 : 1, 0, 'music_board');
+    const settings = state && state.slide_settings ? state.slide_settings : {};
+
+    function enabled(name) {
+      if (!settings || !settings[name]) return true;
+      return settings[name].enabled !== false && settings[name].enabled !== 0 && settings[name].enabled !== '0';
     }
-    if (state && state.active_event && slides.indexOf('now_playing') !== -1 && slides.indexOf('up_next') === -1) {
+
+    slides = slides.filter(name => enabled(name) && slideAllowed(name));
+
+    if (state && state.active_event && slides.indexOf('now_playing') !== -1 && slides.indexOf('up_next') === -1 && upNextTrack()) {
       slides.splice(slides.indexOf('now_playing') + 1, 0, 'up_next');
     }
-    slides = slides.filter(slideAllowed);
 
-    // Keep ordering stable and avoid duplicate QR slides bunching near the music slides.
+    // Preserve API order and priority weighting. Only remove accidental adjacent duplicates,
+    // because intentional repeated high-priority slides may appear later in the loop.
     const cleaned = [];
     slides.forEach(name => {
-      if (cleaned.indexOf(name) === -1 || name === 'qr') cleaned.push(name);
+      if (cleaned.length && cleaned[cleaned.length - 1] === name) return;
+      cleaned.push(name);
     });
     return cleaned;
   }
 
-  function buildSlides(force) {
-    if (!state) return;
+    function buildSlides(force) {
+    if (!state) return false;
     if (footerEvent && state.event) footerEvent.textContent = state.event.event_name || 'Dance Through The Decades';
 
     let slides = state.active_event ? (state.slides || ['welcome', 'qr', 'now_playing']) : (state.slides || ['standby']);
@@ -510,26 +516,36 @@
     const signature = slideContentSignature(state)
       + '::slides:' + slides.join('|')
       + '::np:' + (currentTrack() ? (currentTrack().id || currentTrack().title || '') : '')
-      + '::next:' + (upNextTrack() ? (upNextTrack().id || upNextTrack().title || '') : '');
+      + '::next:' + (upNextTrack() ? (upNextTrack().id || upNextTrack().title || '') : '')
+      + '::durations:' + JSON.stringify(state.slide_durations || {});
 
     if (!force && signature === lastSlideSignature && stage.querySelector('.display-slide')) {
       updateActiveNowPlayingSlide();
-      return;
+      return false;
     }
 
     lastSlideSignature = signature;
     const currentActive = stage.querySelector('.display-slide.active');
     const currentName = currentActive ? currentActive.getAttribute('data-slide') : '';
+    const currentOffset = currentActive ? Array.from(stage.querySelectorAll('.display-slide')).indexOf(currentActive) : -1;
+
     stage.innerHTML = slides.map(renderSlide).join('');
 
     if (currentName) {
-      const newIndex = slides.indexOf(currentName);
-      slideIndex = newIndex >= 0 ? newIndex : Math.min(slideIndex, Math.max(0, slides.length - 1));
+      // When duplicates are present because of priority weighting, preserve the
+      // current occurrence where possible rather than jumping back to the first one.
+      const matchingIndexes = slides.map((name, idx) => name === currentName ? idx : -1).filter(idx => idx >= 0);
+      if (matchingIndexes.length) {
+        slideIndex = matchingIndexes.find(idx => idx >= currentOffset) ?? matchingIndexes[0];
+      } else {
+        slideIndex = Math.min(slideIndex, Math.max(0, slides.length - 1));
+      }
     } else {
       slideIndex = Math.min(slideIndex, Math.max(0, slides.length - 1));
     }
 
     showSlide(slideIndex);
+    return true;
   }
 
 
@@ -592,12 +608,21 @@
     active.classList.add('active');
   }
 
-    function startLoop() {
-    if (slideTimer) clearTimeout(slideTimer);
+      function stopSlideLoop() {
+    if (slideTimer) {
+      clearTimeout(slideTimer);
+      slideTimer = null;
+    }
     if (window.dttdSlideCountdownTimer) {
       clearInterval(window.dttdSlideCountdownTimer);
       window.dttdSlideCountdownTimer = null;
     }
+  }
+
+  function startLoop(force) {
+    if (slideTimer && !force) return;
+
+    stopSlideLoop();
 
     function scheduleNext() {
       const slides = stage.querySelectorAll('.display-slide');
@@ -605,6 +630,8 @@
         slideTimer = null;
         return;
       }
+
+      if (slideIndex >= slides.length) slideIndex = 0;
 
       const current = slides[slideIndex] || slides[0];
       const currentName = current ? current.getAttribute('data-slide') : '';
@@ -623,16 +650,14 @@
       }, 250);
 
       slideTimer = setTimeout(function(){
+        slideTimer = null;
         if (window.dttdSlideCountdownTimer) {
           clearInterval(window.dttdSlideCountdownTimer);
           window.dttdSlideCountdownTimer = null;
         }
 
         const latestSlides = stage.querySelectorAll('.display-slide');
-        if (!latestSlides.length) {
-          slideTimer = null;
-          return;
-        }
+        if (!latestSlides.length) return;
 
         slideIndex = (slideIndex + 1) % latestSlides.length;
         showSlide(slideIndex);
@@ -671,7 +696,7 @@
     });
   }
 
-  function refresh() {
+    function refresh() {
     return fetchJson(stateUrl).then(data => {
       const hadSlides = !!stage.querySelector('.display-slide');
       if (data && data.ok) state = data;
@@ -682,10 +707,14 @@
             lastLiveNowPlaying = np;
           }
         }
-        buildSlides(!hadSlides);
+
+        const rebuilt = buildSlides(!hadSlides);
+        if (rebuilt || !slideTimer) {
+          startLoop(true);
+        } else {
+          startLoop(false);
+        }
       });
-    }).then(() => {
-      startLoop();
     });
   }
 

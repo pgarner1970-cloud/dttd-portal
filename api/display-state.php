@@ -563,6 +563,34 @@ function dttd_display_filter_enabled_slides($slides, $settings) {
     return array_values(array_unique($out));
 }
 
+
+function dttd_display_priority_slides($slides, $settings) {
+    $base = array_values(array_unique(array_filter(array_map('strval', (array)$slides))));
+    if (!$base) return [];
+
+    $highExtras = [];
+    foreach ($base as $slide) {
+        $priority = strtolower((string)($settings[$slide]['priority'] ?? 'normal'));
+        if ($priority === 'high') {
+            $highExtras[] = $slide;
+        }
+    }
+
+    if (!$highExtras) return $base;
+
+    // Keep the loop predictable and avoid back-to-back duplicates. High-priority
+    // slides receive one extra appearance, spread through the second half of the loop.
+    $weighted = $base;
+    $insertBase = max(1, (int)floor(count($weighted) / 2));
+    foreach ($highExtras as $i => $slide) {
+        $at = min(count($weighted), $insertBase + ($i * 2));
+        if (($weighted[$at - 1] ?? null) === $slide) $at = min(count($weighted), $at + 1);
+        array_splice($weighted, $at, 0, [$slide]);
+    }
+
+    return $weighted;
+}
+
 function dttd_display_slide_durations($settings) {
     $durations = [];
     foreach ((array)$settings as $slide => $row) {
@@ -871,6 +899,7 @@ if (!$slides) {
     $slides = ['welcome'];
 }
 
+$slides = dttd_display_priority_slides($slides, $slideSettings);
 $slideDurations = dttd_display_slide_durations($slideSettings);
 
 dttd_display_json([
