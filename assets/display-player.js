@@ -324,7 +324,21 @@
   }
 
 
-  function renderRecent() {
+  
+  function sortTrackRowsKeepingRequests(rows) {
+    return (Array.isArray(rows) ? rows.slice() : []).sort((a, b) => {
+      const ar = trackRank(a);
+      const br = trackRank(b);
+      if (ar !== br) return ar - br;
+      const at = String(a.created_at || a.approved_at || a.played_at || '');
+      const bt = String(b.created_at || b.approved_at || b.played_at || '');
+      if (at !== bt) return bt.localeCompare(at);
+      return Number(b.id || 0) - Number(a.id || 0);
+    });
+  }
+
+
+function renderRecent() {
     const tracks = Array.isArray(state.recent_tracks) ? state.recent_tracks : [];
     const rows = uniqueTracks(tracks).slice(0, 10).map(track => renderTrackRow(track, {
       className: 'played-tile played-tile-compact',
@@ -339,7 +353,7 @@
       + '</div></article>';
   }
 
-      function renderMusicBoard() {
+        function renderMusicBoard() {
     const requests = Array.isArray(state.requests) ? state.requests : [];
     const playedRequests = Array.isArray(state.played_requests) ? state.played_requests : [];
     const recent = Array.isArray(state.recent_tracks) ? state.recent_tracks : [];
@@ -347,10 +361,10 @@
     const next = upNextTrack();
 
     const liveRequestRows = playedRequests.filter(row => sameTrack(row, current) || sameTrack(row, next));
-    const queueRows = sortTrackRows(liveRequestRows.concat(requests)).slice(0, 5);
+    const queueRows = sortTrackRowsKeepingRequests(liveRequestRows.concat(requests)).slice(0, 5);
 
     const playedSource = playedRequests.length ? playedRequests : recent;
-    const playedRows = uniqueTracks(playedSource)
+    const playedRows = (Array.isArray(playedSource) ? playedSource.slice() : [])
       .filter(row => !sameTrack(row, current) && !sameTrack(row, next))
       .slice(0, 5);
 
@@ -383,14 +397,16 @@
       + '</div></div></article>';
   }
 
-      function renderRequests() {
+        function renderRequests() {
+    const allRequests = Array.isArray(state.all_requests) ? state.all_requests : null;
     const requests = Array.isArray(state.requests) ? state.requests : [];
     const playedRequests = Array.isArray(state.played_requests) ? state.played_requests : [];
     const current = currentTrack();
     const next = upNextTrack();
 
-    const liveRows = playedRequests.filter(row => sameTrack(row, current) || sameTrack(row, next));
-    const rows = sortTrackRows(liveRows.concat(requests, playedRequests)).slice(0, 10).map(row => renderTrackRow(row, {
+    const sourceRows = allRequests || playedRequests.filter(row => sameTrack(row, current) || sameTrack(row, next)).concat(requests, playedRequests);
+
+    const rows = sortTrackRowsKeepingRequests(sourceRows).slice(0, 10).map(row => renderTrackRow(row, {
       className: 'request-board-item',
       status: displayStatusForTrack(row, row.status || 'Pending'),
       showRequester: true,
