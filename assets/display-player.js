@@ -434,14 +434,55 @@ function renderRecent() {
       + '</div></article>';
   }
 
-            function renderMusicBoard() {
+            
+  function requestCloseSecondsRemaining() {
+    if (!state || !state.event) return null;
+    const raw = state.event.requests_close_at || state.event.request_close_at || state.event.requests_close_time || '';
+    if (!raw) return null;
+    const closeMs = Date.parse(raw);
+    if (!Number.isFinite(closeMs)) return null;
+    return Math.max(0, Math.floor((closeMs - Date.now()) / 1000));
+  }
+
+  function formatRequestCountdown(seconds) {
+    seconds = Math.max(0, Number(seconds) || 0);
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins >= 60) {
+      const hours = Math.floor(mins / 60);
+      const remMins = mins % 60;
+      return String(hours).padStart(2, '0') + ':' + String(remMins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+    }
+    return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+  }
+
+  function renderRequestQueueEmptyStateSafe() {
+    const seconds = requestCloseSecondsRemaining();
+    const closed = seconds !== null && seconds <= 0;
+
+    if (closed) {
+      return '<div class="music-board-empty music-board-empty-requests">'
+        + '<strong>Requests are closed for tonight</strong>'
+        + '<span>Thanks for helping shape the soundtrack.</span>'
+        + '</div>';
+    }
+
+    return '<div class="music-board-empty music-board-empty-requests" data-request-empty-countdown>'
+      + '<strong>Keep the requests coming!</strong>'
+      + '<span>Scan the QR code or use the event page to send your favourite track.</span>'
+      + (seconds !== null ? '<b data-request-countdown>' + esc(formatRequestCountdown(seconds)) + '</b><em>left to send requests</em>' : '')
+      + '</div>';
+  }
+
+
+  function renderMusicBoard() {
     const requests = Array.isArray(state.requests) ? state.requests : [];
     const playedRequests = Array.isArray(state.played_requests) ? state.played_requests : [];
     const current = currentTrack();
     const next = upNextTrack();
 
-    // This slide is request-only:
-    // left = requests still to be played / loaded next
+    // Requests & played is request-only:
+    // left = request queue / loaded request coming up
     // right = requests that have been played
     // Do not pull in general DJ playback history here.
     const liveRequestRows = playedRequests.filter(row => sameTrack(row, current) || sameTrack(row, next));
@@ -449,7 +490,7 @@ function renderRecent() {
       .filter(row => displayStatusForTrack(row, row.status || '').toLowerCase() !== 'played')
       .slice(0, 5);
 
-    const playedRows = (Array.isArray(playedRequests) ? playedRequests.slice() : [])
+    const playedRows = playedRequests.slice()
       .filter(row => !sameTrack(row, current) && !sameTrack(row, next))
       .sort((a, b) => String(b.played_at || b.created_at || '').localeCompare(String(a.played_at || a.created_at || '')))
       .slice(0, 5);
@@ -474,7 +515,7 @@ function renderRecent() {
       + '<div class="music-board-body">'
       + '<section class="music-board-panel music-board-requests">'
       + '<h2>Request queue</h2>'
-      + (requestItems ? '<div class="music-board-stack display-track-stack">' + requestItems + '</div>' : renderRequestQueueEmptyState())
+      + (requestItems ? '<div class="music-board-stack display-track-stack">' + requestItems + '</div>' : renderRequestQueueEmptyStateSafe())
       + '</section>'
       + '<section class="music-board-panel music-board-played">'
       + '<h2>What we’ve played</h2>'
