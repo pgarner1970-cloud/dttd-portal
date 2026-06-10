@@ -226,6 +226,122 @@ function dttd_display_venue_payload($event) {
     ];
 }
 
+
+function dttd_display_normalise_track_text($value) {
+    $value = strtolower(trim((string)$value));
+    $value = preg_replace('/\s+/', ' ', $value);
+    $value = preg_replace('/[^\p{L}\p{N}\s]+/u', '', $value);
+    return trim((string)$value);
+}
+
+function dttd_display_track_match_key($title, $artist = '') {
+    $title = dttd_display_normalise_track_text($title);
+    $artist = dttd_display_normalise_track_text($artist);
+    if ($title === '') return '';
+    return $title . '|' . $artist;
+}
+
+function dttd_display_played_track_lookup($eventId) {
+    $eventId = (int)$eventId;
+    if ($eventId <= 0) return ['keys' => [], 'spotify' => [], 'request_ids' => [], 'rows' => []];
+
+    $rows = [];
+    try {
+        if (function_exists('dttd_history_public_track_rows')) {
+            $rows = dttd_history_public_track_rows($eventId, 120);
+        }
+    } catch (Throwable $e) {
+        $rows = [];
+    }
+
+    if (!$rows && dttd_display_table_exists('event_track_history')) {
+        try {
+            $trackCol = dttd_display_col_exists('event_track_history', 'track_name') ? 'track_name' : (dttd_display_col_exists('event_track_history', 'song_title') ? 'song_title' : '');
+            $artistCol = dttd_display_col_exists('event_track_history', 'artist_name') ? 'artist_name' : (dttd_display_col_exists('event_track_history', 'artist') ? 'artist' : '');
+            $spotifyCol = dttd_display_col_exists('event_track_history', 'spotify_track_id') ? 'spotify_track_id' : '';
+            $artworkCol = dttd_display_col_exists('event_track_history', 'artwork_url') ? 'artwork_url' : (dttd_display_col_exists('event_track_history', 'spotify_album_image') ? 'spotify_album_image' : '');
+            $requestCol = dttd_display_col_exists('event_track_history', 'request_id') ? 'request_id' : '';
+            $playedCol = dttd_display_col_exists('event_track_history', 'played_at') ? 'played_at' : (dttd_display_col_exists('event_track_history', 'created_at') ? 'created_at' : '');
+
+            if ($trackCol !== '') {
+                $select = ["`$trackCol` AS song_title"];
+                $select[] = $artistCol !== '' ? "`$artistCol` AS artist" : "'' AS artist";
+                $select[] = $spotifyCol !== '' ? "`$spotifyCol` AS spotify_track_id" : "'' AS spotify_track_id";
+                $select[] = $artworkCol !== '' ? "`$artworkCol` AS spotify_album_image" : "'' AS spotify_album_image";
+                $select[] = $requestCol !== '' ? "`$requestCol` AS request_id" : "NULL AS request_id";
+                $select[] = $playedCol !== '' ? "`$playedCol` AS created_at" : "NOW() AS created_at";
+
+                $stmt = db()->prepare("
+                    SELECT " . implode(', ', $select) . "
+                    FROM event_track_history
+                    WHERE event_id = ?
+                    ORDER BY " . ($playedCol !== '' ? "`$playedCol`" : 'id') . " DESC, id DESC
+                    LIMIT 120
+                ");
+                $stmt->execute([$eventId]);
+                $rows = $stmt->fetchAll();
+            }
+        } catch (Throwable $e) {
+            $rows = [];
+        }
+    }
+
+    $lookup = ['keys' => [], 'spotify' => [], 'request_ids' => [], 'rows' => []];
+
+    foreach ((array)$rows as $row) {
+        $title = (string)($row['song_title'] ?? $row['track_name'] ?? $row['title'] ?? '');
+        $artist = (string)($row['artist'] ?? $row['artist_name'] ?? '');
+        $key = dttd_display_track_match_key($title, $artist);
+        $fallbackKey = dttd_display_track_match_key($title, '');
+        $spotify = trim((string)($row['spotify_track_id'] ?? $row['id'] ?? ''));
+        $requestId = (int)($row['request_id'] ?? 0);
+        $playedAt = (string)($row['created_at'] ?? $row['played_at'] ?? '');
+
+        if ($key !== '') $lookup['keys'][$key] = $playedAt ?: date('c');
+        if ($fallbackKey !== '') $lookup['keys'][$fallbackKey] = $playedAt ?: date('c');
+        if ($spotify !== '') $lookup['spotify'][strtolower($spotify)] = $playedAt ?: date('c');
+        if ($requestId > 0) $lookup['request_ids'][$requestId] = $playedAt ?: date('c');
+
+        $lookup['rows'][] = $row;
+    }
+
+    return $lookup;
+}
+
+function dttd_display_request_played_at_from_lookup($row, $lookup) {
+    $id = (int)($row['id'] ?? 0);
+    if ($id > 0 && !empty($lookup['request_ids'][$id])) return (string)$lookup['request_ids'][$id];
+
+    $spotify = strtolower(trim((string)($row['spotify_track_id'] ?? '')));
+    if ($spotify !== '' && !empty($lookup['spotify'][$spotify])) return (string)$lookup['spotify'][$spotify];
+
+    $title = (string)($row['track_name'] ?? $row['song_title'] ?? '');
+    $artist = (string)($row['artist_name'] ?? $row['artist'] ?? '');
+    $key = dttd_display_track_match_key($title, $artist);
+    if ($key !== '' && !empty($lookup['keys'][$key])) return (string)$lookup['keys'][$key];
+
+    $fallbackKey = dttd_display_track_match_key($title, '');
+    if ($fallbackKey !== '' && !empty($lookup['keys'][$fallbackKey])) return (string)$lookup['keys'][$fallbackKey];
+
+    return '';
+}
+
+function dttd_display_request_row_payload($row, $status = null, $playedAt = '') {
+    $artwork = trim((string)($row['artwork_url'] ?? ''));
+    return [
+        'id' => (int)$row['id'],
+        'spotify_track_id' => (string)($row['spotify_track_id'] ?? ''),
+        'track_name' => (string)$row['track_name'],
+        'artist_name' => (string)($row['artist_name'] ?? ''),
+        'requester_name' => (string)($row['requester_name'] ?? ''),
+        'dedication' => (string)($row['dedication'] ?? ''),
+        'status' => (string)($status ?? ($row['status'] ?? '')),
+        'played_at' => (string)$playedAt,
+        'artwork_url' => dttd_display_url($artwork),
+        'image_url' => dttd_display_url($artwork),
+    ];
+}
+
 function dttd_display_requests($eventId, $limit = 12) {
     if (!dttd_display_table_exists('event_requests')) return [];
     $eventId = (int)$eventId;
@@ -235,24 +351,25 @@ function dttd_display_requests($eventId, $limit = 12) {
     $artworkCol = dttd_display_col_exists('event_requests', 'artwork_url') ? 'artwork_url' : '';
     if ($artworkCol === '' && dttd_display_col_exists('event_requests', 'spotify_album_image')) $artworkCol = 'spotify_album_image';
     if ($artworkCol === '' && dttd_display_col_exists('event_requests', 'image_url')) $artworkCol = 'image_url';
+    $spotifyCol = dttd_display_col_exists('event_requests', 'spotify_track_id') ? 'spotify_track_id' : '';
 
     try {
+        $lookup = dttd_display_played_track_lookup($eventId);
+
         $stmt = db()->prepare("\n            SELECT id, track_name, artist_name, requester_name, dedication, status, created_at, approved_at"
-            . ($artworkCol !== '' ? ", `" . $artworkCol . "` AS artwork_url" : "") . "\n            FROM event_requests\n            WHERE event_id = ?\n              AND LOWER(COALESCE(status, 'pending')) NOT IN ('rejected','played')\n            ORDER BY\n              CASE LOWER(COALESCE(status, 'pending'))\n                WHEN 'queued' THEN 1\n                WHEN 'approved' THEN 2\n                WHEN 'pending' THEN 3\n                ELSE 4\n              END ASC,\n              COALESCE(approved_at, created_at) ASC,\n              id ASC\n            LIMIT " . $limit . "\n        ");
+            . ($spotifyCol !== '' ? ", `" . $spotifyCol . "` AS spotify_track_id" : ", '' AS spotify_track_id")
+            . ($artworkCol !== '' ? ", `" . $artworkCol . "` AS artwork_url" : ", '' AS artwork_url") . "\n            FROM event_requests\n            WHERE event_id = ?\n              AND LOWER(COALESCE(status, 'pending')) NOT IN ('rejected','played')\n            ORDER BY\n              CASE LOWER(COALESCE(status, 'pending'))\n                WHEN 'queued' THEN 1\n                WHEN 'approved' THEN 2\n                WHEN 'pending' THEN 3\n                ELSE 4\n              END ASC,\n              COALESCE(approved_at, created_at) ASC,\n              id ASC\n            LIMIT " . ($limit * 3) . "\n        ");
         $stmt->execute([$eventId]);
         $rows = [];
         foreach ($stmt->fetchAll() as $row) {
-            $artwork = trim((string)($row['artwork_url'] ?? ''));
-            $rows[] = [
-                'id' => (int)$row['id'],
-                'track_name' => (string)$row['track_name'],
-                'artist_name' => (string)($row['artist_name'] ?? ''),
-                'requester_name' => (string)($row['requester_name'] ?? ''),
-                'dedication' => (string)($row['dedication'] ?? ''),
-                'status' => (string)($row['status'] ?? ''),
-                'artwork_url' => dttd_display_url($artwork),
-                'image_url' => dttd_display_url($artwork),
-            ];
+            // If the requested track is now in event_track_history, it belongs on
+            // the played side, regardless of the stale request status.
+            if (dttd_display_request_played_at_from_lookup($row, $lookup) !== '') {
+                continue;
+            }
+
+            $rows[] = dttd_display_request_row_payload($row);
+            if (count($rows) >= $limit) break;
         }
         return $rows;
     } catch (Throwable $e) {
@@ -267,39 +384,53 @@ function dttd_display_played_requests($eventId, $limit = 6) {
     $limit = max(1, min(12, (int)$limit));
 
     $playedCol = dttd_display_col_exists('event_requests', 'played_at') ? 'played_at' : '';
-    $orderExpr = $playedCol !== '' ? 'COALESCE(played_at, approved_at, created_at)' : 'COALESCE(approved_at, created_at)';
     $artworkCol = dttd_display_col_exists('event_requests', 'artwork_url') ? 'artwork_url' : '';
     if ($artworkCol === '' && dttd_display_col_exists('event_requests', 'spotify_album_image')) $artworkCol = 'spotify_album_image';
     if ($artworkCol === '' && dttd_display_col_exists('event_requests', 'image_url')) $artworkCol = 'image_url';
+    $spotifyCol = dttd_display_col_exists('event_requests', 'spotify_track_id') ? 'spotify_track_id' : '';
 
     try {
+        $lookup = dttd_display_played_track_lookup($eventId);
+
         $stmt = db()->prepare("
             SELECT id, track_name, artist_name, requester_name, dedication, status, created_at, approved_at"
-            . ($playedCol !== '' ? ", played_at" : "")
-            . ($artworkCol !== '' ? ", `" . $artworkCol . "` AS artwork_url" : "") . "
+            . ($playedCol !== '' ? ", played_at" : ", NULL AS played_at")
+            . ($spotifyCol !== '' ? ", `" . $spotifyCol . "` AS spotify_track_id" : ", '' AS spotify_track_id")
+            . ($artworkCol !== '' ? ", `" . $artworkCol . "` AS artwork_url" : ", '' AS artwork_url") . "
             FROM event_requests
             WHERE event_id = ?
-              AND LOWER(COALESCE(status, 'pending')) = 'played'
-            ORDER BY " . $orderExpr . " DESC, id DESC
-            LIMIT " . $limit . "
+              AND LOWER(COALESCE(status, 'pending')) <> 'rejected'
+            ORDER BY COALESCE(" . ($playedCol !== '' ? "played_at," : "") . " approved_at, created_at) DESC, id DESC
+            LIMIT " . ($limit * 6) . "
         ");
         $stmt->execute([$eventId]);
+
         $rows = [];
+        $seen = [];
         foreach ($stmt->fetchAll() as $row) {
-            $artwork = trim((string)($row['artwork_url'] ?? ''));
-            $rows[] = [
-                'id' => (int)$row['id'],
-                'track_name' => (string)$row['track_name'],
-                'artist_name' => (string)($row['artist_name'] ?? ''),
-                'requester_name' => (string)($row['requester_name'] ?? ''),
-                'dedication' => (string)($row['dedication'] ?? ''),
-                'status' => (string)($row['status'] ?? ''),
-                'played_at' => (string)($row['played_at'] ?? ($row['approved_at'] ?? $row['created_at'] ?? '')),
-                'artwork_url' => dttd_display_url($artwork),
-                'image_url' => dttd_display_url($artwork),
-            ];
+            $status = strtolower(trim((string)($row['status'] ?? '')));
+            $playedAt = (string)($row['played_at'] ?? '');
+            $historyPlayedAt = dttd_display_request_played_at_from_lookup($row, $lookup);
+
+            if ($status !== 'played' && $historyPlayedAt === '') {
+                continue;
+            }
+
+            if ($playedAt === '' && $historyPlayedAt !== '') $playedAt = $historyPlayedAt;
+
+            $key = dttd_display_track_match_key((string)($row['track_name'] ?? ''), (string)($row['artist_name'] ?? ''));
+            if ($key !== '' && isset($seen[$key])) continue;
+            if ($key !== '') $seen[$key] = true;
+
+            $rows[] = dttd_display_request_row_payload($row, 'played', $playedAt);
+            if (count($rows) >= $limit) break;
         }
-        return $rows;
+
+        usort($rows, function($a, $b) {
+            return strcmp((string)($b['played_at'] ?? ''), (string)($a['played_at'] ?? ''));
+        });
+
+        return array_slice($rows, 0, $limit);
     } catch (Throwable $e) {
         return [];
     }
