@@ -102,27 +102,6 @@
       + '</div></article>';
   }
 
-  function renderGoodnight() {
-    const info = (state && state.goodnight) ? state.goodnight : {};
-    const websiteQr = text(info.website_qr_image_url || '', '');
-    const facebookQr = text(info.facebook_qr_image_url || '', '');
-    const websiteLabel = text(info.website_label || 'dancethruthedecades.co.uk', 'dancethruthedecades.co.uk');
-
-    return '<article class="display-slide" data-slide="goodnight">'
-      + '<div class="display-card goodnight-card goodnight-card-horizontal">'
-      + '<div class="goodnight-heading-row"><p class="display-kicker">Thank You</p><h1>Goodnight <span class="goodnight-heart" aria-hidden="true">♥</span></h1></div>'
-      + '<div class="goodnight-copy">'
-      + '<h2>Have a safe journey home</h2>'
-      + '<p>Thanks for dancing with us tonight. Follow us on Facebook, share your memories, and check the website for future dates.</p>'
-      + '<strong>Hope to see you again soon.</strong>'
-      + '</div>'
-      + '<div class="goodnight-qr-grid">'
-      + '<div class="goodnight-qr-card">' + (facebookQr ? '<img src="' + esc(facebookQr) + '" alt="Facebook QR code">' : '') + '<div><b>Facebook</b><span>Follow us</span></div></div>'
-      + '<div class="goodnight-qr-card">' + (websiteQr ? '<img src="' + esc(websiteQr) + '" alt="Website QR code">' : '') + '<div><b>Website</b><span>' + esc(websiteLabel) + '</span></div></div>'
-      + '</div>'
-      + '</div></article>';
-  }
-
   function renderWelcome() {
     const event = state && state.event ? state.event : {};
     const isWedding = String(event.event_type || '').toLowerCase() === 'wedding';
@@ -320,16 +299,19 @@
 
   function renderUpcoming() {
     const events = state.upcoming_events || [];
+    const currentEventId = state && state.event ? Number(state.event.id || 0) : 0;
     const limit = isLite ? 4 : 8;
     const cards = events.slice(0, limit).map((ev, idx) => {
-      const label = idx === 0 ? 'Next event' : 'Coming soon';
+      const evId = Number(ev.id || 0);
+      const isCurrent = !!ev.is_current_event || (currentEventId > 0 && evId === currentEventId);
+      const label = isCurrent ? 'Current Event' : (idx === 0 ? 'Next event' : 'Coming soon');
       const date = formatDate(ev.event_date);
       const start = text(ev.start_time, '');
       const end = text(ev.end_time, '');
       const timeText = start && end ? start + ' – ' + end : (start || end || '');
       const dateTime = [date, timeText].filter(Boolean).join(' • ');
       const venue = text(ev.venue_name, '');
-      return '<div class="display-coming-up-card">'
+      return '<div class="display-coming-up-card' + (isCurrent ? ' display-coming-up-card-current' : '') + '">'
         + '<strong class="coming-eyebrow">' + esc(label) + '</strong>'
         + '<span class="coming-title">' + esc(text(ev.event_name, 'Dance Through The Decades')) + '</span>'
         + (dateTime ? '<em class="coming-datetime">' + esc(dateTime) + '</em>' : '')
@@ -416,7 +398,6 @@
 
   function renderSlide(name) {
     switch (name) {
-      case 'goodnight': return renderGoodnight();
       case 'welcome': return renderWelcome();
       case 'venue': return renderVenue();
       case 'qr': return renderQr();
@@ -448,8 +429,7 @@
       keyRows(data.upcoming_events),
       keyRows(data.partners),
       keyRows(data.sponsors),
-      data.venue && data.venue.name ? data.venue.name : '',
-      data.goodnight && data.goodnight.website_label ? data.goodnight.website_label : ''
+      data.venue && data.venue.name ? data.venue.name : ''
     ].join('::');
   }
 
@@ -516,6 +496,48 @@
     showSlide(slideIndex);
   }
 
+
+  function slideCountdownElement() {
+    let el = document.querySelector('[data-slide-countdown]');
+    if (el) return el;
+
+    const dot = document.querySelector('.display-footer-dot');
+    if (!dot || !dot.parentNode) return null;
+
+    let wrap = dot.closest('.display-progress-wrap');
+    if (!wrap) {
+      wrap = document.createElement('span');
+      wrap.className = 'display-progress-wrap';
+      dot.parentNode.insertBefore(wrap, dot);
+      wrap.appendChild(dot);
+    }
+
+    el = document.createElement('span');
+    el.className = 'display-slide-countdown';
+    el.setAttribute('data-slide-countdown', '');
+    el.textContent = '--';
+    wrap.appendChild(el);
+    return el;
+  }
+
+  function slideDurationMs(slideName) {
+    const durations = state && state.slide_durations ? state.slide_durations : {};
+    const raw = durations && slideName ? Number(durations[slideName]) : 0;
+    if (raw && raw > 0) return Math.max(5000, Math.min(60000, raw * 1000));
+    return (typeof isLite !== 'undefined' && isLite) ? 14500 : 12000;
+  }
+
+  function updateSlideCountdownDisplay(secondsRemaining, totalSeconds) {
+    const el = slideCountdownElement();
+    if (!el) return;
+    const safeRemaining = Math.max(0, Math.ceil(Number(secondsRemaining) || 0));
+    const safeTotal = Math.max(1, Math.ceil(Number(totalSeconds) || 1));
+    el.textContent = String(safeRemaining) + 's';
+    el.setAttribute('aria-label', String(safeRemaining) + ' seconds until next slide');
+    const progress = Math.max(0, Math.min(1, safeRemaining / safeTotal));
+    el.style.setProperty('--slide-countdown-progress', String(progress));
+  }
+
   function showSlide(index) {
     const slides = Array.from(stage.querySelectorAll('.display-slide'));
     if (!slides.length) return;
@@ -535,13 +557,56 @@
   }
 
   function startLoop() {
-    if (slideTimer) clearInterval(slideTimer);
-    slideTimer = setInterval(function(){
+    if (slideTimer) clearTimeout(slideTimer);
+    if (window.dttdSlideCountdownTimer) {
+      clearInterval(window.dttdSlideCountdownTimer);
+      window.dttdSlideCountdownTimer = null;
+    }
+
+    function scheduleNext() {
       const slides = stage.querySelectorAll('.display-slide');
-      if (!slides.length) return;
-      slideIndex = (slideIndex + 1) % slides.length;
-      showSlide(slideIndex);
-    }, isLite ? 14500 : 12000);
+      if (!slides.length) {
+        slideTimer = null;
+        return;
+      }
+
+      const current = slides[slideIndex] || slides[0];
+      const currentName = current ? current.getAttribute('data-slide') : '';
+      const durationMs = slideDurationMs(currentName);
+      const totalSeconds = Math.max(1, Math.round(durationMs / 1000));
+      const startedAt = Date.now();
+
+      updateSlideCountdownDisplay(totalSeconds, totalSeconds);
+
+      if (window.dttdSlideCountdownTimer) {
+        clearInterval(window.dttdSlideCountdownTimer);
+      }
+
+      window.dttdSlideCountdownTimer = setInterval(function(){
+        const elapsed = Date.now() - startedAt;
+        const remainingMs = Math.max(0, durationMs - elapsed);
+        updateSlideCountdownDisplay(remainingMs / 1000, totalSeconds);
+      }, 250);
+
+      slideTimer = setTimeout(function(){
+        if (window.dttdSlideCountdownTimer) {
+          clearInterval(window.dttdSlideCountdownTimer);
+          window.dttdSlideCountdownTimer = null;
+        }
+
+        const latestSlides = stage.querySelectorAll('.display-slide');
+        if (!latestSlides.length) {
+          slideTimer = null;
+          return;
+        }
+
+        slideIndex = (slideIndex + 1) % latestSlides.length;
+        showSlide(slideIndex);
+        scheduleNext();
+      }, durationMs);
+    }
+
+    scheduleNext();
   }
 
   function fetchJson(url) {
