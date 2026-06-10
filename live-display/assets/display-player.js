@@ -435,20 +435,24 @@ function renderRecent() {
       + '</div></article>';
   }
 
-          function renderMusicBoard() {
+            function renderMusicBoard() {
     const requests = Array.isArray(state.requests) ? state.requests : [];
     const playedRequests = Array.isArray(state.played_requests) ? state.played_requests : [];
     const current = currentTrack();
     const next = upNextTrack();
 
+    // This slide is request-only:
+    // left = requests still to be played / loaded next
+    // right = requests that have been played
+    // Do not pull in general DJ playback history here.
     const liveRequestRows = playedRequests.filter(row => sameTrack(row, current) || sameTrack(row, next));
-    const queueRows = sortTrackRowsKeepingRequests(liveRequestRows.concat(requests)).slice(0, 5);
+    const queueRows = sortTrackRowsKeepingRequests(liveRequestRows.concat(requests))
+      .filter(row => displayStatusForTrack(row, row.status || '').toLowerCase() !== 'played')
+      .slice(0, 5);
 
-    // Merge both played-request rows and the general played-history feed. This
-    // prevents the right-hand column from dropping tracks whenever one source has
-    // data and the other also has relevant played tracks.
-    const playedRows = mergePlayedRows()
+    const playedRows = (Array.isArray(playedRequests) ? playedRequests.slice() : [])
       .filter(row => !sameTrack(row, current) && !sameTrack(row, next))
+      .sort((a, b) => String(b.played_at || b.created_at || '').localeCompare(String(a.played_at || a.created_at || '')))
       .slice(0, 5);
 
     const requestItems = queueRows.map(row => renderTrackRow(row, {
@@ -471,11 +475,11 @@ function renderRecent() {
       + '<div class="music-board-body">'
       + '<section class="music-board-panel music-board-requests">'
       + '<h2>Request queue</h2>'
-      + (requestItems ? '<div class="music-board-stack display-track-stack">' + requestItems + '</div>' : renderRequestQueueEmpty())
+      + (requestItems ? '<div class="music-board-stack display-track-stack">' + requestItems + '</div>' : renderRequestQueueEmptyState())
       + '</section>'
       + '<section class="music-board-panel music-board-played">'
       + '<h2>What we’ve played</h2>'
-      + (playedTracks ? '<div class="music-board-played-list display-track-stack">' + playedTracks + '</div>' : '<div class="music-board-empty">Played tracks will appear once they are logged.</div>')
+      + (playedTracks ? '<div class="music-board-played-list display-track-stack">' + playedTracks + '</div>' : '<div class="music-board-empty">Played requests will appear once they are logged.</div>')
       + '</section>'
       + '</div></div></article>';
   }
