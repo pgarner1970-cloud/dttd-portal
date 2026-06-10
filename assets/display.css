@@ -2786,41 +2786,54 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
 }
 
 
-/* Requests & played: deliberately fit five complete rows per column. */
+/* Requests & played: calculated five-row layout.
+   The two panels use a fixed internal content area and divide it into five equal
+   row slots. Artwork and type are sized from the row height so the text does not
+   get crushed or clipped. */
 .music-board-card-stable{
-  --rp-row-h: clamp(54px, 5.9vh, 68px);
-  --rp-art: clamp(44px, 3.2vw, 58px);
-  --rp-gap: clamp(6px, .55vh, 9px);
+  --rp-panel-h: clamp(430px, 52vh, 560px);
+  --rp-panel-pad-y: clamp(18px, 1.45vw, 28px);
+  --rp-panel-pad-x: clamp(18px, 1.55vw, 30px);
+  --rp-panel-title-h: clamp(30px, 3.2vh, 42px);
+  --rp-row-gap: clamp(9px, .85vh, 14px);
+  --rp-list-h: calc(var(--rp-panel-h) - (var(--rp-panel-pad-y) * 2) - var(--rp-panel-title-h));
+  --rp-row-h: calc((var(--rp-list-h) - (var(--rp-row-gap) * 4)) / 5);
+  --rp-art: min(calc(var(--rp-row-h) - 12px), clamp(52px, 4.2vw, 74px));
 }
 
 .music-board-card-stable .music-board-body{
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   align-items: stretch !important;
-  gap: clamp(16px, 1.35vw, 28px) !important;
+  gap: clamp(22px, 2vw, 40px) !important;
 }
 
 .music-board-card-stable .music-board-panel{
   min-height: 0 !important;
-  height: clamp(392px, 48vh, 500px) !important;
+  height: var(--rp-panel-h) !important;
+  width: 100% !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
-  padding: clamp(14px, 1.1vw, 22px) clamp(14px, 1.15vw, 22px) !important;
+  padding: var(--rp-panel-pad-y) var(--rp-panel-pad-x) !important;
 }
 
 .music-board-card-stable .music-board-panel h2{
-  flex: 0 0 auto !important;
-  margin-bottom: clamp(8px, .75vh, 12px) !important;
+  flex: 0 0 var(--rp-panel-title-h) !important;
+  height: var(--rp-panel-title-h) !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: flex-start !important;
 }
 
 .music-board-card-stable .music-board-stack,
 .music-board-card-stable .music-board-played-list{
-  flex: 1 1 auto !important;
+  flex: 0 0 var(--rp-list-h) !important;
+  height: var(--rp-list-h) !important;
   min-height: 0 !important;
   display: grid !important;
   grid-template-rows: repeat(5, var(--rp-row-h)) !important;
+  gap: var(--rp-row-gap) !important;
   align-content: start !important;
-  gap: var(--rp-gap) !important;
   overflow: hidden !important;
 }
 
@@ -2828,13 +2841,15 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
 .music-board-card-stable .music-board-played-list .display-track-row,
 .music-board-card-stable .music-board-request.display-track-row,
 .music-board-card-stable .music-board-played-track.display-track-row{
-  min-height: var(--rp-row-h) !important;
   height: var(--rp-row-h) !important;
+  min-height: var(--rp-row-h) !important;
   max-height: var(--rp-row-h) !important;
+  display: grid !important;
   grid-template-columns: var(--rp-art) minmax(0, 1fr) auto !important;
-  column-gap: clamp(9px, .8vw, 14px) !important;
-  padding: clamp(5px, .45vw, 8px) clamp(9px, .75vw, 13px) !important;
-  border-radius: clamp(12px, .95vw, 18px) !important;
+  align-items: center !important;
+  column-gap: clamp(12px, 1vw, 18px) !important;
+  padding: clamp(7px, .62vw, 11px) clamp(12px, 1vw, 18px) !important;
+  overflow: hidden !important;
 }
 
 .music-board-card-stable .display-track-artwork,
@@ -2842,61 +2857,72 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
 .music-board-card-stable .music-board-played-track .display-track-artwork{
   width: var(--rp-art) !important;
   height: var(--rp-art) !important;
-  border-radius: clamp(8px, .65vw, 12px) !important;
+  border-radius: clamp(10px, .8vw, 15px) !important;
+}
+
+.music-board-card-stable .display-track-copy{
+  min-width: 0 !important;
+  overflow: hidden !important;
 }
 
 .music-board-card-stable .display-track-copy strong{
-  font-size: clamp(14px, 1.02vw, 21px) !important;
-  line-height: .96 !important;
+  font-size: clamp(16px, 1.18vw, 24px) !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 .music-board-card-stable .display-track-copy span{
-  font-size: clamp(10px, .74vw, 15px) !important;
-  line-height: .98 !important;
+  font-size: clamp(11px, .86vw, 17px) !important;
+  line-height: 1.02 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 .music-board-card-stable .display-track-copy em{
-  font-size: clamp(9px, .64vw, 13px) !important;
-  line-height: .98 !important;
-  margin-top: .04em !important;
+  font-size: clamp(10px, .76vw, 15px) !important;
+  line-height: 1.02 !important;
+  margin-top: .08em !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 .music-board-card-stable .display-track-status{
-  min-height: clamp(16px, 1.35vh, 22px) !important;
-  max-width: clamp(82px, 7vw, 122px) !important;
-  padding: 0 clamp(6px, .45vw, 9px) !important;
-  font-size: clamp(7px, .46vw, 10px) !important;
+  align-self: start !important;
+  min-height: clamp(18px, 1.6vh, 25px) !important;
+  max-width: clamp(94px, 8.5vw, 148px) !important;
+  padding: 0 clamp(7px, .58vw, 11px) !important;
+  font-size: clamp(8px, .54vw, 11px) !important;
 }
 
-.music-board-card-stable .music-board-empty-requests,
-.music-board-card-stable .music-board-empty{
+.music-board-card-stable .music-board-empty,
+.music-board-card-stable .music-board-empty-requests{
   flex: 1 1 auto !important;
   min-height: 0 !important;
+  height: var(--rp-list-h) !important;
 }
 
-/* Slightly tighter on lower-height browser windows, including Pi Chromium. */
 @media (max-height: 820px){
   .music-board-card-stable{
-    --rp-row-h: 52px;
-    --rp-art: 44px;
-    --rp-gap: 6px;
-  }
-
-  .music-board-card-stable .music-board-panel{
-    height: 392px !important;
-    padding-top: 12px !important;
-    padding-bottom: 12px !important;
+    --rp-panel-h: 404px;
+    --rp-panel-pad-y: 14px;
+    --rp-panel-title-h: 28px;
+    --rp-row-gap: 7px;
+    --rp-art: min(calc(var(--rp-row-h) - 10px), 56px);
   }
 
   .music-board-card-stable .display-track-copy strong{
-    font-size: 14px !important;
+    font-size: 15px !important;
   }
 
   .music-board-card-stable .display-track-copy span{
-    font-size: 10px !important;
+    font-size: 11px !important;
   }
 
   .music-board-card-stable .display-track-copy em{
-    font-size: 9px !important;
+    font-size: 10px !important;
   }
 }
