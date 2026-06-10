@@ -2574,3 +2574,142 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
 .display-lite .played-tile .display-track-artwork{
   box-shadow:none !important;
 }
+
+
+/* Compact five-row track-card layout for display track slides.
+   Applies to Request list, Requests & played, and What we've played. */
+.display-track-copy small,
+.request-board-copy small{
+  display:none !important;
+}
+
+.display-track-row,
+.request-board-item.display-track-row,
+.music-board-request.display-track-row,
+.music-board-played-track.display-track-row,
+.played-tile.display-track-row{
+  grid-template-columns:clamp(48px,3.65vw,68px) minmax(0,1fr) auto !important;
+  column-gap:clamp(10px,.9vw,16px) !important;
+  min-height:clamp(58px,6.45vh,78px) !important;
+  padding:clamp(6px,.58vw,10px) clamp(10px,.85vw,15px) !important;
+  border-radius:clamp(14px,1.05vw,21px) !important;
+}
+
+.display-track-artwork,
+.music-board-request .display-track-artwork,
+.music-board-played-track .display-track-artwork,
+.request-board-item .display-track-artwork,
+.played-tile .display-track-artwork{
+  width:clamp(48px,3.65vw,68px) !important;
+  height:clamp(48px,3.65vw,68px) !important;
+  border-radius:clamp(9px,.72vw,13px) !important;
+}
+
+.display-track-copy strong,
+.request-board-copy strong,
+.music-board-request.display-track-row strong,
+.music-board-played-track.display-track-row strong,
+.played-tile.display-track-row strong{
+  font-size:clamp(15px,1.18vw,24px) !important;
+  line-height:.97 !important;
+  letter-spacing:-.03em !important;
+}
+
+.display-track-copy span,
+.request-board-copy span,
+.music-board-request.display-track-row span,
+.music-board-played-track.display-track-row span,
+.played-tile.display-track-row span{
+  font-size:clamp(11px,.84vw,17px) !important;
+  line-height:1 !important;
+}
+
+.display-track-copy em,
+.request-board-copy em{
+  font-size:clamp(10px,.74vw,15px) !important;
+  line-height:1 !important;
+  margin-top:.08em !important;
+}
+
+.display-track-status,
+.request-status-pill{
+  min-height:clamp(18px,1.55vh,25px) !important;
+  max-width:clamp(92px,8.4vw,145px) !important;
+  padding:0 clamp(7px,.55vw,11px) !important;
+  font-size:clamp(8px,.52vw,11px) !important;
+  letter-spacing:.095em !important;
+}
+
+.music-board-body{
+  gap:clamp(18px,1.5vw,30px) !important;
+}
+
+.music-board-panel{
+  min-height:clamp(418px,50vh,560px) !important;
+}
+
+.music-board-stack,
+.music-board-played-list,
+.display-track-stack{
+  gap:clamp(7px,.62vh,11px) !important;
+}
+
+.music-board-stack .display-track-row,
+.music-board-played-list .display-track-row{
+  min-height:clamp(58px,6.45vh,78px) !important;
+}
+
+.request-board-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:clamp(8px,.75vh,13px) clamp(14px,1.25vw,24px) !important;
+  align-content:start !important;
+}
+
+.request-board-item.display-track-row{
+  min-height:clamp(58px,6.45vh,78px) !important;
+}
+
+.played-grid-compact.display-track-grid,
+.played-grid.display-track-grid{
+  display:grid !important;
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:clamp(8px,.75vh,13px) clamp(14px,1.25vw,24px) !important;
+  align-content:start !important;
+}
+
+.played-tile.display-track-row{
+  min-height:clamp(58px,6.45vh,78px) !important;
+}
+
+.played-card-compact .played-grid-compact,
+.played-card .played-grid{
+  max-height:none !important;
+  overflow:hidden !important;
+}
+
+/* Give the track sections room for five rows per column on 16:9 screens. */
+.music-board-card-stable .music-board-body,
+.request-board-card .request-board-grid,
+.played-card-compact .played-grid-compact,
+.played-card .played-grid{
+  padding-bottom:0 !important;
+}
+
+@media (max-height: 820px){
+  .display-track-row,
+  .request-board-item.display-track-row,
+  .music-board-request.display-track-row,
+  .music-board-played-track.display-track-row,
+  .played-tile.display-track-row{
+    min-height:56px !important;
+  }
+
+  .display-track-artwork,
+  .music-board-request .display-track-artwork,
+  .music-board-played-track .display-track-artwork,
+  .request-board-item .display-track-artwork,
+  .played-tile .display-track-artwork{
+    width:50px !important;
+    height:50px !important;
+  }
+}

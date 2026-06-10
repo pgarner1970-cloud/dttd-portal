@@ -282,16 +282,14 @@
     return key ? ' status-' + key : '';
   }
 
-  function renderTrackRow(row, options) {
+    function renderTrackRow(row, options) {
     options = options || {};
     const artwork = trackArtworkValue(row);
     const title = trackTitleValue(row);
     const artist = trackArtistValue(row);
     const requester = trackRequesterValue(row);
-    const dedication = trackDedicationValue(row);
     const status = displayStatusForTrack(row, options.status || row.status || '');
     const showRequester = options.showRequester !== false && requester;
-    const showDedication = options.showDedication !== false && dedication;
     const classes = 'display-track-row ' + text(options.className, '') + statusClass(status);
 
     return '<article class="' + esc(classes) + '">'
@@ -300,7 +298,6 @@
       + '<strong>' + esc(title) + '</strong>'
       + (artist ? '<span>' + esc(artist) + '</span>' : '')
       + (showRequester ? '<em>Requested by ' + esc(requester) + '</em>' : '')
-      + (showDedication ? '<small>' + esc(dedication) + '</small>' : '')
       + '</div>'
       + (status ? '<p class="display-track-status">' + esc(status) + '</p>' : '')
       + '</article>';
@@ -361,7 +358,7 @@
       className: 'music-board-request',
       status: displayStatusForTrack(row, 'Waiting'),
       showRequester: true,
-      showDedication: true
+      showDedication: false
     })).join('');
 
     const playedTracks = playedRows.map(row => renderTrackRow(row, {
@@ -397,7 +394,7 @@
       className: 'request-board-item',
       status: displayStatusForTrack(row, row.status || 'Pending'),
       showRequester: true,
-      showDedication: true
+      showDedication: false
     })).join('');
 
     return '<article class="display-slide" data-slide="requests">'
