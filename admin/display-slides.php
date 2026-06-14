@@ -39,7 +39,7 @@ function dttd_admin_display_final_stretch_save($posted) {
     }
 
     $duration = (int)($posted['duration_seconds'] ?? 10);
-    if (!in_array($duration, [10, 15, 20], true)) {
+    if (!in_array($duration, [10, 15, 20, 30], true)) {
         $duration = 10;
     }
 
@@ -138,8 +138,8 @@ function dttd_display_slide_defaults() {
             'sort_order' => 70,
         ],
         'requests' => [
-            'label' => 'Request list',
-            'description' => 'All request entries with current, queued and played status.',
+            'label' => 'DJ playlist / coming up',
+            'description' => 'DJ playlist plus request fill-in where available.',
             'enabled' => 1,
             'duration_preset' => 'medium',
             'duration_seconds' => 15,
@@ -171,8 +171,8 @@ function dttd_display_slide_defaults() {
             'label' => 'What’s happening',
             'description' => 'Current and upcoming public events.',
             'enabled' => 1,
-            'duration_preset' => 'long',
-            'duration_seconds' => 20,
+            'duration_preset' => 'extra_long',
+            'duration_seconds' => 30,
             'priority' => 'low',
             'weight' => 1,
             'sort_order' => 110,
@@ -201,6 +201,7 @@ function dttd_display_slide_duration_seconds($preset) {
     $preset = strtolower((string)$preset);
     if ($preset === 'short') return 10;
     if ($preset === 'long') return 20;
+    if ($preset === 'extra_long') return 30;
     return 15;
 }
 
@@ -218,8 +219,13 @@ function dttd_display_slide_fetch_settings() {
 
             $defaults[$key]['label'] = (string)($row['slide_label'] ?? $defaults[$key]['label']);
             $defaults[$key]['enabled'] = !empty($row['enabled']) ? 1 : 0;
-            $defaults[$key]['duration_preset'] = (string)($row['duration_preset'] ?? $defaults[$key]['duration_preset']);
-            $defaults[$key]['duration_seconds'] = (int)($row['duration_seconds'] ?? dttd_display_slide_duration_seconds($defaults[$key]['duration_preset']));
+            $rowDuration = (int)($row['duration_seconds'] ?? 0);
+            $rowPreset = (string)($row['duration_preset'] ?? '');
+            if ($rowPreset === '' && $rowDuration === 30) {
+                $rowPreset = 'extra_long';
+            }
+            $defaults[$key]['duration_preset'] = $rowPreset !== '' ? $rowPreset : $defaults[$key]['duration_preset'];
+            $defaults[$key]['duration_seconds'] = $rowDuration > 0 ? $rowDuration : dttd_display_slide_duration_seconds($defaults[$key]['duration_preset']);
             $defaults[$key]['priority'] = (string)($row['priority'] ?? $defaults[$key]['priority']);
             $defaults[$key]['weight'] = (int)($row['weight'] ?? dttd_display_slide_priority_weight($defaults[$key]['priority']));
             $defaults[$key]['sort_order'] = (int)($row['sort_order'] ?? $defaults[$key]['sort_order']);
@@ -357,6 +363,7 @@ admin_header('Live Display Slides - DJ Portal');
                   <option value="short" <?= $slide['duration_preset'] === 'short' ? 'selected' : '' ?>>Short - 10s</option>
                   <option value="medium" <?= $slide['duration_preset'] === 'medium' ? 'selected' : '' ?>>Medium - 15s</option>
                   <option value="long" <?= $slide['duration_preset'] === 'long' ? 'selected' : '' ?>>Long - 20s</option>
+                  <option value="extra_long" <?= $slide['duration_preset'] === 'extra_long' ? 'selected' : '' ?>>Extra long - 30s</option>
                 </select>
               </label>
 
@@ -404,6 +411,7 @@ admin_header('Live Display Slides - DJ Portal');
               <option value="10" <?= (int)$finalStretch['duration_seconds'] === 10 ? 'selected' : '' ?>>10 seconds</option>
               <option value="15" <?= (int)$finalStretch['duration_seconds'] === 15 ? 'selected' : '' ?>>15 seconds</option>
               <option value="20" <?= (int)$finalStretch['duration_seconds'] === 20 ? 'selected' : '' ?>>20 seconds</option>
+              <option value="30" <?= (int)$finalStretch['duration_seconds'] === 30 ? 'selected' : '' ?>>30 seconds</option>
             </select>
           </label>
 
