@@ -6515,9 +6515,25 @@ body.homepage-option-one .connected-event-prompt .option-one-action-card .option
 }
 
 
-/* Public event request status: loaded-but-not-playing track. */
-.public-request-status.coming-up-next{
-  border-color:rgba(68,230,255,.55);
-  background:rgba(68,230,255,.18);
-  color:#c8fbff;
+/* Homepage coming-up cards: separate date/time from venue */
+body.homepage-option-one .home-coming-up-card .home-coming-up-datetime{
+  display:block;
+  color:#f3e8ff;
+  font-style:normal;
+  line-height:1.28;
+  font-weight:900;
+  text-decoration:none !important;
+}
+
+body.homepage-option-one .home-coming-up-card .home-coming-up-venue{
+  display:block;
+  color:rgba(255,255,255,.84);
+  font-size:.92rem;
+  line-height:1.3;
+  font-weight:750;
+  text-decoration:none !important;
+}
+
+body.homepage-option-one .home-coming-up-card em.home-coming-up-datetime + .home-coming-up-venue{
+  margin-top:1px;
 }

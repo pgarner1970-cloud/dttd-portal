@@ -418,7 +418,10 @@ $public_current = 'home';
               <a class="home-coming-up-card" href="<?= htmlspecialchars(home_public_event_url($event)) ?>">
                 <strong><?= htmlspecialchars($label) ?></strong>
                 <span><?= htmlspecialchars($title) ?></span>
-                <em><?= htmlspecialchars(trim($date . ($time ? ' · ' . $time : '') . ($venue ? ' · ' . $venue : ''))) ?></em>
+                <em class="home-coming-up-datetime"><?= htmlspecialchars(trim($date . ($time ? ' · ' . $time : ''))) ?></em>
+                <?php if ($venue): ?>
+                  <small class="home-coming-up-venue"><?= htmlspecialchars($venue) ?></small>
+                <?php endif; ?>
               </a>
             <?php else: ?>
               <?php $fallback = $cardItem['card']; ?>
