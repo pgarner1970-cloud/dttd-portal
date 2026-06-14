@@ -1035,6 +1035,18 @@ function dttd_display_standby_payload($partners = []) {
     $website = 'https://dancethruthedecades.co.uk/';
     $facebook = 'https://www.facebook.com/profile.php?id=61579454050951';
     $upcoming = dttd_display_upcoming_events(8, 0);
+    $slideSettings = dttd_display_slide_settings();
+    $slideDurations = dttd_display_slide_durations($slideSettings);
+
+    // Standby is a system slide rather than a row in display_slide_settings.
+    // Give it a sensible duration, and let the no-current-event upcoming slide
+    // use the same configurable duration as the normal What's happening slide.
+    if (empty($slideDurations['standby'])) {
+        $slideDurations['standby'] = 20;
+    }
+    if (!empty($upcoming) && empty($slideDurations['upcoming'])) {
+        $slideDurations['upcoming'] = 30;
+    }
 
     return [
         'ok' => true,
@@ -1042,6 +1054,8 @@ function dttd_display_standby_payload($partners = []) {
         'display_mode' => 'standby',
         'event' => null,
         'slides' => $upcoming ? ['standby', 'upcoming'] : ['standby'],
+        'slide_durations' => $slideDurations,
+        'slide_settings' => $slideSettings,
         'standby' => [
             'website_url' => $website,
             'website_label' => 'dancethruthedecades.co.uk',
