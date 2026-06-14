@@ -6740,3 +6740,44 @@ select option:focus {
 .event-row-card .event-row-image-actions{
   margin-right:.35rem;
 }
+
+
+/* Admin events list: keep event actions pinned to the right after removing request-close column */
+.event-row-card{
+  grid-template-columns:120px 150px minmax(260px, 1fr) minmax(300px, auto) !important;
+}
+
+.event-row-actions.event-row-actions-only{
+  grid-column:4 !important;
+  justify-self:end !important;
+  margin-left:auto !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  width:max-content !important;
+  min-width:0 !important;
+}
+
+.event-row-card .event-row-title{
+  min-width:0 !important;
+}
+
+@media(max-width:1100px){
+  .event-row-card{
+    grid-template-columns:105px 130px minmax(220px, 1fr) minmax(280px, auto) !important;
+  }
+}
+
+@media(max-width:850px){
+  .event-row-card{
+    grid-template-columns:1fr !important;
+  }
+
+  .event-row-actions.event-row-actions-only{
+    grid-column:auto !important;
+    justify-self:start !important;
+    margin-left:0 !important;
+    justify-content:flex-start !important;
+    width:auto !important;
+  }
+}
