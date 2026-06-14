@@ -139,6 +139,8 @@ function event_row_state_class($event) {
 }
 
 admin_header('Events - DJ Portal');
+$event_delete_flash = $_SESSION['event_delete_flash'] ?? null;
+unset($_SESSION['event_delete_flash']);
 ?>
 <main class="touch-wrap">
 <section class="touch-panel">
@@ -152,6 +154,12 @@ admin_header('Events - DJ Portal');
         <a class="touch-btn blue" href="event-edit.php">＋ Add Event</a>
       </div>
     </div>
+
+    <?php if ($event_delete_flash): ?>
+      <div class="touch-alert <?= !empty($event_delete_flash['success']) ? 'success' : 'danger' ?>">
+        <?= h($event_delete_flash['message'] ?? '') ?>
+      </div>
+    <?php endif; ?>
 
     <div class="event-list">
       <?php foreach ($events as $e): ?>
@@ -195,6 +203,11 @@ admin_header('Events - DJ Portal');
             <a class="action-tile maybe" href="event-edit.php?id=<?= (int)$e['id'] ?>">
               <span class="big-icon">⚙</span>
               <span>Edit</span>
+            </a>
+
+            <a class="action-tile rejected" href="event-delete.php?id=<?= (int)$e['id'] ?>">
+              <span class="big-icon">×</span>
+              <span>Delete</span>
             </a>
           </div>
         </article>
