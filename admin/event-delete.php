@@ -1,6 +1,30 @@
 <?php
 require_once __DIR__ . '/_auth.php';
 
+
+function dttd_event_delete_label($key) {
+    $labels = [
+        'song_requests' => 'Song requests',
+        'event_requests' => 'Event request mirror rows',
+        'event_track_history' => 'Played track history',
+        'event_photo_uploads' => 'Photo upload records',
+        'event_sponsors' => 'Event sponsor assignments',
+    ];
+    return $labels[$key] ?? ucwords(str_replace('_', ' ', (string)$key));
+}
+
+function dttd_event_delete_description($key) {
+    $descriptions = [
+        'song_requests' => 'Guest song requests shown in the DJ console.',
+        'event_requests' => 'Mirrored request rows used by public/display pages.',
+        'event_track_history' => 'Tracks logged as played for this event.',
+        'event_photo_uploads' => 'Photo upload database records and linked upload files.',
+        'event_sponsors' => 'Sponsor links assigned to this event.',
+    ];
+    return $descriptions[$key] ?? 'Rows linked to this event.';
+}
+
+
 function dttd_event_delete_table_exists($table) {
     static $cache = [];
     $table = (string)$table;
@@ -366,6 +390,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 admin_header('Delete Event - DJ Portal');
+$totalRows = array_sum($counts);
 ?>
 <main class="touch-wrap">
   <section class="touch-panel">
@@ -385,7 +410,7 @@ admin_header('Delete Event - DJ Portal');
 
     <div class="touch-alert danger">
       <strong>This cannot be undone.</strong><br>
-      Deleting this event will remove the event record, guest requests, mirrored Spotify/event request rows, played-track history, photo upload records, event sponsor assignments and related display/player cache entries for this event.
+      This will permanently delete the event and its linked request, playback, photo and display/player test data.
     </div>
 
     <article class="event-row-card row-past">
@@ -399,26 +424,27 @@ admin_header('Delete Event - DJ Portal');
         <?php if (!empty($event['event_code'])): ?><span>Code: <?= h($event['event_code']) ?></span><?php endif; ?>
       </div>
       <div class="event-row-close">
-        <strong>Associated rows</strong>
-        <span><?= h((string)array_sum($counts)) ?> database rows before cache cleanup</span>
+        <strong><?= h((string)$totalRows) ?> linked rows</strong>
+        <span>plus selected display/player cache cleanup where present</span>
       </div>
     </article>
 
-    <div class="display-slide-settings-grid" style="margin-top:1rem;">
-      <?php foreach ($counts as $label => $count): ?>
-        <div class="display-slide-setting-card">
-          <div class="display-slide-setting-main">
-            <span class="display-slide-toggle" aria-hidden="true"><span><?= (int)$count ?></span></span>
-            <div>
-              <h2><?= h(str_replace('_', ' ', $label)) ?></h2>
-              <p class="touch-muted">Rows linked to this event.</p>
-            </div>
-          </div>
-        </div>
-      <?php endforeach; ?>
+    <div class="event-delete-summary">
+      <h2>What will be deleted</h2>
+      <ul>
+        <li><strong>Event record</strong><span>1 event</span></li>
+        <?php foreach ($counts as $label => $count): ?>
+          <li>
+            <strong><?= h(dttd_event_delete_label($label)) ?></strong>
+            <span><?= (int)$count ?> <?= (int)$count === 1 ? 'row' : 'rows' ?></span>
+            <small><?= h(dttd_event_delete_description($label)) ?></small>
+          </li>
+        <?php endforeach; ?>
+        <li><strong>Display/player cache</strong><span>Cleaned where present</span></li>
+      </ul>
     </div>
 
-    <form method="post" style="margin-top:1.25rem;max-width:720px;" onsubmit="return confirm('Permanently delete this event and all associated data?');">
+    <form method="post" class="event-delete-confirm" onsubmit="return confirm('Permanently delete this event and all associated data?');">
       <input type="hidden" name="event_id" value="<?= (int)$eventId ?>">
       <label class="form-field">
         <span>Type DELETE to confirm</span>
