@@ -182,13 +182,7 @@ unset($_SESSION['event_delete_flash']);
               <span>Code: <?= h($e['event_code']) ?></span>
             <?php endif; ?>
           </div>
-
-          <div class="event-row-close">
-            <strong>Requests close</strong>
-            <span><?= h($e['requests_close_at'] ? date('d/m/Y H:i', strtotime($e['requests_close_at'])) : 'Not set') ?></span>
-          </div>
-
-          <div class="event-row-actions event-row-actions-only">
+<div class="event-row-actions event-row-actions-only">
             
             <?php if (function_exists('dttd_event_image_column_exists') && dttd_event_image_column_exists() && !empty($e['event_image'])): ?>
               <div class="event-row-image event-row-image-actions">

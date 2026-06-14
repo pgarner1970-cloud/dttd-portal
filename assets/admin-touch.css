@@ -6725,3 +6725,18 @@ select option:focus {
     justify-self:start;
   }
 }
+
+
+/* Admin events list: request-close column removed, give actions/image more room */
+.event-row-card .event-row-actions-only{
+  margin-left:auto;
+  justify-content:flex-end;
+}
+
+.event-row-card .event-row-title{
+  min-width:0;
+}
+
+.event-row-card .event-row-image-actions{
+  margin-right:.35rem;
+}
