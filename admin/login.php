@@ -5,8 +5,19 @@ require_once __DIR__ . '/../includes/db.php';
 dttd_no_cache_headers();
 require_once __DIR__ . '/_auth_cookie.php';
 
-if (!defined('ADMIN_PASSWORD')) {
-    define('ADMIN_PASSWORD', 'changeme');
+function dttd_admin_password_valid($password) {
+    $password = (string)$password;
+
+    if (defined('ADMIN_PASSWORD_HASH') && ADMIN_PASSWORD_HASH !== '') {
+        return password_verify($password, (string)ADMIN_PASSWORD_HASH);
+    }
+
+    // Transitional fallback only for old private configs.
+    if (defined('ADMIN_PASSWORD') && ADMIN_PASSWORD !== '') {
+        return hash_equals((string)ADMIN_PASSWORD, $password);
+    }
+
+    return false;
 }
 
 $error = '';
@@ -20,7 +31,7 @@ if (!empty($_SESSION['dttd_admin']) || dttd_admin_auth_cookie_valid()) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
 
-    if (hash_equals((string)ADMIN_PASSWORD, (string)$password)) {
+    if (dttd_admin_password_valid($password)) {
         session_regenerate_id(true);
         $_SESSION['dttd_admin'] = true;
         dttd_admin_set_auth_cookie();

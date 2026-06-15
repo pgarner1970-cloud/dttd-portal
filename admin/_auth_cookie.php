@@ -12,11 +12,17 @@ function dttd_admin_cookie_name() {
 }
 
 function dttd_admin_cookie_secret() {
+    if (defined('APP_SECRET') && APP_SECRET !== '') {
+        return hash('sha256', (string)APP_SECRET . '|dttd-admin-auth-v2');
+    }
+
+    // Transitional fallback for older private configs. Prefer APP_SECRET.
     $parts = [
+        defined('ADMIN_PASSWORD_HASH') ? (string)ADMIN_PASSWORD_HASH : '',
         defined('ADMIN_PASSWORD') ? (string)ADMIN_PASSWORD : 'changeme',
         defined('DB_NAME') ? (string)DB_NAME : 'dttd',
         __DIR__,
-        'dttd-admin-auth-v1',
+        'dttd-admin-auth-v2',
     ];
 
     return hash('sha256', implode('|', $parts));

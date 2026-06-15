@@ -1,16 +1,28 @@
 # Local config / secrets
-includes/config.php
+includes/config.local.php
 includes/config.spotify.php
+config.local.php
 .env
 *.env
+
+# Private config should live outside the repo/web root, but ignore these if
+# they are accidentally copied into the project.
+dttd-private/
+private/
+secrets/
 
 # Database dumps / migrations kept outside deployment patches unless requested
 sql/
 *.sql
+*.sql.gz
+*.mysql
+*.dump
 
 # Runtime uploads and generated files
 uploads/events/*
 !uploads/events/.gitkeep
+uploads/photos/*
+!uploads/photos/.gitkeep
 assets/data/
 *.log
 *.bak

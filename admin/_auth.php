@@ -6,10 +6,6 @@ require_once __DIR__ . '/_auth_cookie.php';
 
 dttd_no_cache_headers();
 
-if (!defined('ADMIN_PASSWORD')) {
-    define('ADMIN_PASSWORD', 'changeme');
-}
-
 if (isset($_GET['logout'])) {
     unset($_SESSION['dttd_admin']);
     dttd_admin_clear_auth_cookie();
