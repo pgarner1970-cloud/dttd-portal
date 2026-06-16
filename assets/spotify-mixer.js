@@ -74,7 +74,7 @@ document.head.appendChild(overviewStyle);
     const artist = String(track?.artist || '').trim();
     if(!artist) return '';
     const title = cleanTrackTitleForSearch(track?.title || '');
-    return `<button type="button" class="artist-search-btn" data-artist-search="${esc(artist)}" data-track-title="${esc(title)}" title="Search this song by ${esc(artist)}">Artist search</button>`;
+    return `<button type="button" class="artist-search-btn" data-artist-search="${esc(artist)}" data-track-title="${esc(title)}" title="Search this song by ${esc(artist)}" aria-label="Search this artist">⌕</button>`;
   }
   function cleanTrackTitleForSearch(title){
     return String(title || '')
@@ -807,8 +807,8 @@ renderAccountStatus();
   }
   function trackSourceBadge(track){
     const src = String(track?.source || '').toLowerCase();
-    if(src === 'local') return '<span class="source-pill local" title="Local music">♪</span>';
-    return '<span class="source-pill spotify" title="Spotify">S</span>';
+    if(src === 'local') return '<span class="source-pill local" title="Local music">▣</span>';
+    return '<span class="source-pill spotify" title="Spotify">♬</span>';
   }
   function updateLoadedPositionForDeck(deck, progressMs){
     const key = 'player_' + deck;

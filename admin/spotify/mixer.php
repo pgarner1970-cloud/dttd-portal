@@ -123,6 +123,75 @@ admin_header('Spotify Mixer - DJ Portal');
   .music-library-body .result-corner-badges{max-width:108px}
 }
 
+
+/* Stage 2 badge/icon refinement */
+.music-library-body .search-result-row{
+  padding-right:118px;
+}
+.music-library-body .result-subline{
+  gap:5px;
+}
+.music-library-body .artist-search-btn{
+  width:28px;
+  min-width:28px;
+  height:22px;
+  min-height:22px;
+  padding:0;
+  border-radius:999px;
+  font-size:15px;
+  line-height:1;
+  font-family:Arial, Helvetica, sans-serif;
+  text-transform:none;
+  letter-spacing:0;
+}
+.music-library-body .result-corner-badges{
+  top:7px;
+  right:8px;
+  width:104px;
+  max-width:104px;
+  display:grid;
+  grid-template-columns:repeat(3, max-content);
+  justify-content:end;
+  justify-items:end;
+  align-items:start;
+  gap:4px;
+  pointer-events:none;
+}
+.music-library-body .result-corner-badges .search-result-badges{
+  display:contents;
+}
+.music-library-body .search-result-badge{
+  max-width:42px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.music-library-body .source-pill{
+  width:22px;
+  min-width:22px;
+  height:20px;
+  min-height:20px;
+  padding:0;
+  border-radius:999px;
+  font-size:13px;
+  line-height:1;
+  font-family:Arial, Helvetica, sans-serif;
+}
+.music-library-body .source-pill.spotify{
+  color:#9dffbd;
+  border-color:rgba(34,197,94,.84);
+  background:rgba(34,197,94,.18);
+}
+.music-library-body .source-pill.local{
+  color:#ffe8a3;
+  border-color:rgba(251,191,36,.88);
+  background:rgba(251,191,36,.18);
+}
+@media(max-width:1020px){
+  .music-library-body .search-result-row{padding-right:124px}
+  .music-library-body .result-corner-badges{width:110px;max-width:110px}
+}
+
 </style>
 <main class="spotify-mixer-app" data-api="<?= h(admin_url('spotify/mixer-api.php')) ?>" data-search-api="/api/spotify-search.php" data-local-search-api="<?= h(admin_url('api/local-music-search.php')) ?>">
   <div class="mixer-toast" id="mixerToast"></div>
