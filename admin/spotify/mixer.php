@@ -24,6 +24,10 @@ admin_header('Spotify Mixer - DJ Portal');
 
 .deck-node{color:#9fe7ff;font-size:12px;margin-top:3px;font-weight:850}.deck-node.online{color:#74ff9b}.deck-node.warning{color:#ffc55a}.deck-node.offline{color:#ff9ca3}
 
+
+/* Stage 1 music library overlay: source browser moves out of centre column */
+.music-library-launch{border:1px solid rgba(91,140,192,.28);background:linear-gradient(180deg,rgba(11,25,44,.72),rgba(8,18,30,.72));border-radius:16px;padding:12px;margin-bottom:14px}.music-library-launch .full{width:100%;min-height:46px;font-size:15px}.music-library-launch .mini{margin-top:8px;text-align:center}.music-library-modal{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.64);display:none;align-items:center;justify-content:center;padding:18px}.music-library-modal.open{display:flex}.music-library-shell{width:min(1180px,96vw);height:min(820px,92vh);display:flex;flex-direction:column;border-radius:22px;border:1px solid rgba(91,140,192,.46);background:linear-gradient(180deg,rgba(18,34,54,.99),rgba(8,18,30,.99));box-shadow:0 30px 100px rgba(0,0,0,.62);overflow:hidden}.music-library-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 18px;border-bottom:1px solid rgba(91,140,192,.24)}.music-library-head h2{margin:2px 0 0;font-size:28px;line-height:1.05}.music-library-body{flex:1;min-height:0;overflow:hidden;padding:16px}.music-library-body .source-box{height:100%;display:flex;flex-direction:column;margin:0}.music-library-body .source-panel.active{display:flex;flex-direction:column;min-height:0}.music-library-body .search-results{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start}.music-library-body .source-list{min-height:0;overflow:auto;overscroll-behavior:contain;padding-right:8px}.music-library-body #sourcePanelSearch{overflow:hidden}.music-library-body #sourcePanelCrates{overflow:hidden}.music-library-body #sourcePanelCrates #djCrateTracks{max-height:none;flex:1;overflow:auto;overscroll-behavior:contain}.music-library-body #sourcePanelCrates #djCrates{max-height:170px;overflow:auto}.music-library-body #historyList{overflow:auto;overscroll-behavior:contain;min-height:0;flex:1}.music-library-body .search-result-row{grid-template-columns:44px minmax(0,1fr);min-height:66px}.music-library-body .search-result-row .result-meta{grid-column:2/-1;justify-content:flex-start}.music-library-body .search-pager{margin-top:auto;padding-top:10px}@media(max-width:900px){.music-library-body .search-results{grid-template-columns:1fr}.music-library-shell{height:94vh}.music-library-head{align-items:flex-start}.music-library-head h2{font-size:24px}}@media(max-width:700px){.music-library-modal{padding:8px}.music-library-shell{width:98vw;height:96vh;border-radius:16px}.music-library-head{padding:12px}.music-library-body{padding:10px}.music-library-body .search-result-row{min-height:62px}}
+
 /* Compact touch-friendly source browser/search rows */
 .tappable-row{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;border-color:rgba(96,145,205,.24);transition:border-color .15s ease,background .15s ease,transform .15s ease}
 .tappable-row:hover,.tappable-row:focus-visible{border-color:rgba(52,152,255,.64);background:rgba(52,152,255,.08);outline:none;transform:translateY(-1px)}
@@ -42,6 +46,51 @@ admin_header('Spotify Mixer - DJ Portal');
       <div class="choice-body">
         <div class="choice-grid" id="choiceActions"></div>
         <div class="choice-warning" id="choiceWarning"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="music-library-modal" id="musicLibraryModal" aria-hidden="true">
+    <div class="music-library-shell" role="dialog" aria-modal="true" aria-labelledby="musicLibraryTitle">
+      <div class="music-library-head">
+        <div>
+          <div class="tiny-label">Mixer source browser</div>
+          <h2 id="musicLibraryTitle">Music Library</h2>
+          <div class="mini muted">Search Spotify + local music, browse DJ crates, or reuse history without moving the decks.</div>
+        </div>
+        <button class="mixer-btn dark" id="closeMusicLibrary" type="button">Close</button>
+      </div>
+      <div class="music-library-body">
+        <div class="search-box source-box">
+          <div class="source-tabs" role="tablist" aria-label="Track source">
+            <button class="source-tab active" type="button" data-source-tab="search">Search Music</button>
+            <button class="source-tab" type="button" data-source-tab="crates">DJ Crates</button>
+            <button class="source-tab" type="button" data-source-tab="history">History</button>
+          </div>
+          <div class="source-panel active" id="sourcePanelSearch" data-source-panel="search">
+            <div class="tiny-label">Search Spotify + Local Music</div>
+            <div class="search-mode-row" role="group" aria-label="Search mode">
+              <button class="search-mode-btn active" type="button" data-search-mode="broad" aria-pressed="true">Broad</button>
+              <button class="search-mode-btn" type="button" data-search-mode="track" aria-pressed="false">Track title</button>
+              <button class="search-mode-btn" type="button" data-search-mode="track_artist" aria-pressed="false">Track + artist</button>
+            </div>
+            <div class="search-row"><input id="spotifySearch" class="search-input" placeholder="Start typing a track, artist, album or local filename…" autocomplete="off"><button class="mixer-btn dark" id="clearSearch">Clear</button></div>
+            <div id="searchStatus" class="mini muted" style="margin-top:8px"></div>
+            <div class="search-results" id="searchResults"></div>
+            <div class="search-pager" id="searchPager" hidden></div>
+          </div>
+          <div class="source-panel" id="sourcePanelCrates" data-source-panel="crates">
+            <div class="source-tools"><div><div class="tiny-label">DJ crates</div><div class="mini muted">Internal saved track lists. Search Spotify once, save tracks here, then reuse them all night.</div></div><button class="mixer-btn blue" id="refreshCrates" type="button">Refresh</button></div>
+            <div class="crate-create-row"><input id="newCrateName" class="search-input" placeholder="New crate name, e.g. 80s, Floorfillers…"><button class="mixer-btn green" id="createCrate" type="button">Create</button></div>
+            <div id="djCrateStatus" class="mini muted"></div>
+            <div id="djCrates" class="source-list"></div>
+            <div id="djCrateTracks" class="source-list"></div>
+          </div>
+          <div class="source-panel" id="sourcePanelHistory" data-source-panel="history">
+            <div class="source-tools"><div><div class="tiny-label">Playback history</div><div class="mini muted">Tracks played during this mixer session/event.</div></div></div>
+            <div id="historyList" class="source-list"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -83,35 +132,9 @@ admin_header('Spotify Mixer - DJ Portal');
 
     <section class="mixer-panel mixer-centre">
       <div class="panel-body">
-        <div class="search-box source-box">
-          <div class="source-tabs" role="tablist" aria-label="Track source">
-            <button class="source-tab active" type="button" data-source-tab="search">Search Music</button>
-            <button class="source-tab" type="button" data-source-tab="crates">DJ Crates</button>
-            <button class="source-tab" type="button" data-source-tab="history">History</button>
-          </div>
-          <div class="source-panel active" id="sourcePanelSearch" data-source-panel="search">
-            <div class="tiny-label">Search Spotify + Local Music</div>
-            <div class="search-mode-row" role="group" aria-label="Search mode">
-              <button class="search-mode-btn active" type="button" data-search-mode="broad" aria-pressed="true">Broad</button>
-              <button class="search-mode-btn" type="button" data-search-mode="track" aria-pressed="false">Track title</button>
-              <button class="search-mode-btn" type="button" data-search-mode="track_artist" aria-pressed="false">Track + artist</button>
-            </div>
-            <div class="search-row"><input id="spotifySearch" class="search-input" placeholder="Start typing a track, artist, album or local filename…" autocomplete="off"><button class="mixer-btn dark" id="clearSearch">Clear</button></div>
-            <div id="searchStatus" class="mini muted" style="margin-top:8px"></div>
-            <div class="search-results" id="searchResults"></div>
-            <div class="search-pager" id="searchPager" hidden></div>
-          </div>
-          <div class="source-panel" id="sourcePanelCrates" data-source-panel="crates">
-            <div class="source-tools"><div><div class="tiny-label">DJ crates</div><div class="mini muted">Internal saved track lists. Search Spotify once, save tracks here, then reuse them all night.</div></div><button class="mixer-btn blue" id="refreshCrates" type="button">Refresh</button></div>
-            <div class="crate-create-row"><input id="newCrateName" class="search-input" placeholder="New crate name, e.g. 80s, Floorfillers…"><button class="mixer-btn green" id="createCrate" type="button">Create</button></div>
-            <div id="djCrateStatus" class="mini muted"></div>
-            <div id="djCrates" class="source-list"></div>
-            <div id="djCrateTracks" class="source-list"></div>
-          </div>
-          <div class="source-panel" id="sourcePanelHistory" data-source-panel="history">
-            <div class="source-tools"><div><div class="tiny-label">Playback history</div><div class="mini muted">Tracks played during this mixer session/event.</div></div></div>
-            <div id="historyList" class="source-list"></div>
-          </div>
+        <div class="music-library-launch">
+          <button class="mixer-btn blue full" type="button" id="openMusicLibrary">♫ Open Music Library</button>
+          <div class="mini muted">Search, DJ crates and history open in a large overlay. Playlist and public requests stay visible here.</div>
         </div>
 
         <section class="dj-section">

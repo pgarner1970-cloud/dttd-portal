@@ -56,7 +56,8 @@ document.head.appendChild(overviewStyle);
     requestCount: $('#requestCount'), playlistCount: $('#playlistCount'),
     sourceTabs: document.querySelectorAll('[data-source-tab]'), sourcePanels: document.querySelectorAll('[data-source-panel]'),
     djCrates: $('#djCrates'), djCrateTracks: $('#djCrateTracks'), djCrateStatus: $('#djCrateStatus'), refreshCrates: $('#refreshCrates'), newCrateName: $('#newCrateName'), createCrate: $('#createCrate'), historyList: $('#historyList'),
-    choiceModal: $('#mixerChoiceModal'), choiceImage: $('#choiceImage'), choiceTitle: $('#choiceTitle'), choiceArtist: $('#choiceArtist'), choiceActions: $('#choiceActions'), choiceWarning: $('#choiceWarning'), choiceCancel: $('#choiceCancel')
+    choiceModal: $('#mixerChoiceModal'), choiceImage: $('#choiceImage'), choiceTitle: $('#choiceTitle'), choiceArtist: $('#choiceArtist'), choiceActions: $('#choiceActions'), choiceWarning: $('#choiceWarning'), choiceCancel: $('#choiceCancel'),
+    musicLibraryModal: $('#musicLibraryModal'), openMusicLibrary: $('#openMusicLibrary'), closeMusicLibrary: $('#closeMusicLibrary')
   };
 
   function esc(s){ return String(s ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c])); }
@@ -380,6 +381,17 @@ document.head.appendChild(overviewStyle);
     if(els.searchResults) els.searchResults.innerHTML='';
     if(els.searchStatus) els.searchStatus.textContent='';
   }
+  function openMusicLibrary(){
+    if(!els.musicLibraryModal) return;
+    els.musicLibraryModal.classList.add('open');
+    els.musicLibraryModal.setAttribute('aria-hidden','false');
+    setTimeout(()=>{ if(els.search && activeSource === 'search') els.search.focus(); }, 80);
+  }
+  function closeMusicLibrary(){
+    if(!els.musicLibraryModal) return;
+    els.musicLibraryModal.classList.remove('open');
+    els.musicLibraryModal.setAttribute('aria-hidden','true');
+  }
   function closeChoice(){
     if(!els.choiceModal) return;
     els.choiceModal.classList.remove('open');
@@ -400,6 +412,7 @@ document.head.appendChild(overviewStyle);
   }
   function openChoice(item, source){
     if(!els.choiceModal || !item) return;
+    closeMusicLibrary();
     const title = item.title || item.song_title || 'Selected track';
     const artist = item.artist || '';
     const local = isLocalTrack(item);
@@ -1050,6 +1063,8 @@ renderAccountStatus();
     els.searchStatus.textContent = 'No matches found';
   }
   app.addEventListener('click', (e)=>{
+    if(e.target.closest('#openMusicLibrary')){ openMusicLibrary(); return; }
+    if(e.target.closest('#closeMusicLibrary') || (e.target === els.musicLibraryModal)){ closeMusicLibrary(); return; }
     const artistSearch = e.target.closest('[data-artist-search]');
     if(artistSearch){
       runArtistSearch(artistSearch.dataset.artistSearch || '', {title: artistSearch.dataset.trackTitle || ''});
@@ -1117,6 +1132,11 @@ renderAccountStatus();
     }
   });
   app.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape'){
+      if(els.choiceModal && els.choiceModal.classList.contains('open')) closeChoice();
+      else closeMusicLibrary();
+      return;
+    }
     if(e.key !== 'Enter' && e.key !== ' ') return;
     const selectTrack = e.target.closest('[data-select-track]');
     if(selectTrack && selectTrack.getAttribute('role') === 'button'){
