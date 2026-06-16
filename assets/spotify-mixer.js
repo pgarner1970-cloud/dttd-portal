@@ -40,6 +40,7 @@ document.head.appendChild(overviewStyle);
   let lastSearchQuery = '';
   let lastSearchTracks = [];
   let searchPage = 0;
+  let selectedLibraryChoice = null;
   let libraryViewMode = localStorage.getItem('dttd_music_library_view') || 'comfortable';
   function searchPageSize(){
     if(libraryViewMode === 'list') return 20;
@@ -62,7 +63,7 @@ document.head.appendChild(overviewStyle);
     sourceTabs: document.querySelectorAll('[data-source-tab]'), sourcePanels: document.querySelectorAll('[data-source-panel]'),
     djCrates: $('#djCrates'), djCrateTracks: $('#djCrateTracks'), djCrateStatus: $('#djCrateStatus'), refreshCrates: $('#refreshCrates'), newCrateName: $('#newCrateName'), createCrate: $('#createCrate'), historyList: $('#historyList'),
     choiceModal: $('#mixerChoiceModal'), choiceImage: $('#choiceImage'), choiceTitle: $('#choiceTitle'), choiceArtist: $('#choiceArtist'), choiceActions: $('#choiceActions'), choiceWarning: $('#choiceWarning'), choiceCancel: $('#choiceCancel'),
-    musicLibraryModal: $('#musicLibraryModal'), openMusicLibrary: $('#openMusicLibrary'), closeMusicLibrary: $('#closeMusicLibrary')
+    musicLibraryModal: $('#musicLibraryModal'), openMusicLibrary: $('#openMusicLibrary'), closeMusicLibrary: $('#closeMusicLibrary'), musicLibraryActionBar: $('#musicLibraryActionBar')
   };
 
   function esc(s){ return String(s ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c])); }
@@ -417,6 +418,7 @@ document.head.appendChild(overviewStyle);
     if(!els.musicLibraryModal) return;
     els.musicLibraryModal.classList.remove('open');
     els.musicLibraryModal.setAttribute('aria-hidden','true');
+    clearLibrarySelection();
   }
   function closeChoice(){
     if(!els.choiceModal) return;
@@ -435,6 +437,98 @@ document.head.appendChild(overviewStyle);
     const selected = activeCrateId || String(crates[0].id || '');
     const opts = crates.map(c => `<option value="${esc(c.id)}" ${String(c.id) === String(selected) ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
     return `<div class="choice-crate-save full"><label for="choiceCrateSelect">Save to crate</label><div class="choice-crate-row"><select id="choiceCrateSelect" class="mixer-select">${opts}</select><button class="mixer-btn blue" data-choice-action="crate">+ Save</button></div></div>`;
+  }
+  function libraryCrateSaveControls(){
+    const crates = availableCrates.length ? availableCrates : (state?.crates || []);
+    if(!crates.length){
+      return '<button class="mixer-btn blue library-action-btn" data-library-action="crate" disabled>+ Save to crate</button>';
+    }
+    const selected = activeCrateId || String(crates[0].id || '');
+    const opts = crates.map(c => `<option value="${esc(c.id)}" ${String(c.id) === String(selected) ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+    return `<label class="library-crate-save"><span>Crate</span><select id="libraryCrateSelect" class="mixer-select">${opts}</select><button class="mixer-btn blue library-action-btn" data-library-action="crate">+ Save</button></label>`;
+  }
+  function clearLibrarySelection(){
+    selectedLibraryChoice = null;
+    document.querySelectorAll('.library-selected').forEach(el => el.classList.remove('library-selected'));
+    renderLibraryActionBar();
+  }
+  function renderLibraryActionBar(){
+    if(!els.musicLibraryActionBar) return;
+    if(!selectedLibraryChoice || !selectedLibraryChoice.item){
+      els.musicLibraryActionBar.innerHTML = '<div class="music-library-action-empty">Select a track to choose an action.</div>';
+      return;
+    }
+    const item = selectedLibraryChoice.item;
+    const src = selectedLibraryChoice.source;
+    const title = item.title || item.song_title || 'Selected track';
+    const artist = item.artist || '';
+    const local = isLocalTrack(item);
+    const aBlocked = !deckCanLoad('a');
+    const bBlocked = !deckCanLoad('b');
+    const localDirectPlayBlocked = false;
+    const sourceNote = src === 'crate' ? 'DJ crate' : (src === 'history' ? 'History' : (local ? 'Local music' : 'Search result'));
+    let actions = '';
+    actions += '<button class="mixer-btn green library-action-btn" data-library-action="playlist">+ DJ Playlist</button>';
+    if(src === 'track' || src === 'history') actions += local ? '<button class="mixer-btn blue library-action-btn" data-library-action="crate" disabled>+ Save to crate</button>' : libraryCrateSaveControls();
+    actions += `<button class="mixer-btn orange library-action-btn" data-library-action="load_a" ${aBlocked ? 'disabled' : ''}>Load A</button>`;
+    actions += `<button class="mixer-btn blue library-action-btn" data-library-action="load_b" ${bBlocked ? 'disabled' : ''}>Load B</button>`;
+    actions += `<button class="mixer-btn green library-action-btn" data-library-action="play_a" ${aBlocked || localDirectPlayBlocked ? 'disabled' : ''}>▶ A</button>`;
+    actions += `<button class="mixer-btn green library-action-btn" data-library-action="play_b" ${bBlocked || localDirectPlayBlocked ? 'disabled' : ''}>▶ B</button>`;
+    if(src === 'crate') actions += `<button class="mixer-btn red library-action-btn" data-library-action="remove_crate" ${!activeCrateId || !item.id ? 'disabled' : ''}>Remove</button>`;
+    actions += '<button class="mixer-btn dark library-action-btn" data-library-action="clear_selection">Clear</button>';
+    const notes = [];
+    if(local) notes.push('Local track');
+    if(aBlocked) notes.push('A unavailable/playing');
+    if(bBlocked) notes.push('B unavailable/playing');
+    els.musicLibraryActionBar.innerHTML = `
+      <div class="library-selected-track">
+        <img src="${esc(image(item.image || item.spotify_album_image || ''))}" alt="">
+        <div class="library-selected-copy">
+          <strong>${esc(title)}</strong>
+          <span>${esc([artist, sourceNote].filter(Boolean).join(' • '))}</span>
+          ${notes.length ? `<em>${esc(notes.join(' • '))}</em>` : ''}
+        </div>
+      </div>
+      <div class="library-action-buttons">${actions}</div>`;
+  }
+  function markLibrarySelectedElement(el){
+    document.querySelectorAll('.library-selected').forEach(node => node.classList.remove('library-selected'));
+    if(el) el.classList.add('library-selected');
+  }
+  function selectLibraryItem(item, source, el){
+    if(!item) return;
+    selectedLibraryChoice = {item, source};
+    markLibrarySelectedElement(el);
+    renderLibraryActionBar();
+  }
+  function libraryAction(action){
+    if(action === 'clear_selection'){ clearLibrarySelection(); return; }
+    const choice = selectedLibraryChoice;
+    if(!choice || !choice.item) return;
+    const src = choice.source;
+    const item = choice.item;
+    const params = {};
+    if(src === 'request'){
+      const requestParams = {request_id:item.id};
+      if(item.request_group_id) requestParams.request_group_id = item.request_group_id;
+      if(action === 'playlist') Object.assign(params, requestParams, {action:'accept_request'});
+      if(action === 'load_a' || action === 'load_b') Object.assign(params, requestParams, {action:'load_request', deck:action.slice(-1)});
+      if(action === 'play_a' || action === 'play_b') Object.assign(params, requestParams, {action:'play_request_direct', deck:action.slice(-1)});
+    } else {
+      const trackJson = JSON.stringify(item);
+      if(action === 'playlist') Object.assign(params, {action:'add_track', track_json:trackJson});
+      if(action === 'crate') {
+        const select = document.getElementById('libraryCrateSelect');
+        const crateId = select ? select.value : activeCrateId;
+        Object.assign(params, {action:'add_crate_track', crate_id:crateId, track_json:trackJson});
+      }
+      if(action === 'remove_crate') Object.assign(params, {action:'remove_crate_track', crate_id:activeCrateId, track_id:item.crate_track_id || item.id});
+      if(action === 'load_a' || action === 'load_b') Object.assign(params, {action:'load_track_direct', track_json:trackJson, deck:action.slice(-1)});
+      if(action === 'play_a' || action === 'play_b') Object.assign(params, {action:'play_track_direct', track_json:trackJson, deck:action.slice(-1)});
+    }
+    if(!params.action) return;
+    doAction(params);
+    if(src === 'crate' && action === 'remove_crate') setTimeout(()=>loadDjCrateTracks(activeCrateId, activeCrateName), 350);
   }
   function openChoice(item, source){
     if(!els.choiceModal || !item) return;
@@ -767,7 +861,7 @@ renderAccountStatus();
       </div>`;
     }).join('');
   }
-  function render(){ applyPendingTransportHolds(); if(state?.crates) availableCrates = sortCratesByName(state.crates); renderDevices(); renderPlaylist(); renderRequests(); renderDecks(); if(activeSource === 'crates') renderDjCrates(availableCrates.length ? availableCrates : sortCratesByName(state?.crates || [])); if(activeSource === 'history') renderHistory(); }
+  function render(){ applyPendingTransportHolds(); if(state?.crates) availableCrates = sortCratesByName(state.crates); renderDevices(); renderPlaylist(); renderRequests(); renderDecks(); if(activeSource === 'crates') renderDjCrates(availableCrates.length ? availableCrates : sortCratesByName(state?.crates || [])); if(activeSource === 'history') renderHistory(); renderLibraryActionBar(); }
   function acceptState(nextState){
     if(!nextState) return;
     state = nextState;
@@ -946,9 +1040,15 @@ renderAccountStatus();
   function sortCratesByName(crates){
     return (crates || []).slice().sort((a,b)=>String(a?.name || '').localeCompare(String(b?.name || ''), undefined, {sensitivity:'base', numeric:true}));
   }
+  function libraryChoiceKey(item, source){
+    return String(source || '') + ':' + String(item?.crate_track_id || item?.id || item?.spotify_id || item?.title || '');
+  }
+  function isLibrarySelected(item, source){
+    return !!(selectedLibraryChoice && libraryChoiceKey(selectedLibraryChoice.item, selectedLibraryChoice.source) === libraryChoiceKey(item, source));
+  }
   function searchResultRows(tracks){
     return tracks.map(t=>`
-      <div role="button" tabindex="0" class="result-row search-result-row tappable-row" data-select-track='${esc(JSON.stringify(t))}' aria-label="Choose ${esc(t.title || 'track')}">
+      <div role="button" tabindex="0" class="result-row search-result-row tappable-row${isLibrarySelected(t, 'track') ? ' library-selected' : ''}" data-select-track='${esc(JSON.stringify(t))}' aria-label="Choose ${esc(t.title || 'track')}">
         <img src="${esc(image(t.image))}" alt="">
         <span class="result-main">
           <span class="result-title">${esc(t.title)}</span>
@@ -989,7 +1089,9 @@ renderAccountStatus();
     renderSearchPager(total);
   }
   function setSourceTab(name){
-    activeSource = name || 'search';
+    const nextSource = name || 'search';
+    if(nextSource !== activeSource) clearLibrarySelection();
+    activeSource = nextSource;
     els.sourceTabs.forEach(t => t.classList.toggle('active', t.dataset.sourceTab === activeSource));
     els.sourcePanels.forEach(p => p.classList.toggle('active', p.dataset.sourcePanel === activeSource));
     if(activeSource === 'crates' && !cratesLoaded) loadDjCrates();
@@ -1008,7 +1110,7 @@ renderAccountStatus();
           <div class="history-meta">${t.played_at ? esc(String(t.played_at).slice(11,16)) : ''}${t.history_deck ? ' • played on ' + esc(t.history_deck) : ''}</div>
         </div>
         <div class="row-actions">
-          <button class="mixer-btn green" data-select-track='${esc(JSON.stringify(t))}'>Choose</button>
+          <button class="mixer-btn green" data-select-history-track='${esc(JSON.stringify(t))}'>Choose</button>
         </div>
       </div>`).join('');
   }
@@ -1031,7 +1133,7 @@ renderAccountStatus();
     const heading = activeCrateName ? `<div class="crate-track-heading"><div class="tiny-label">${esc(activeCrateName)} tracks</div><div class="mini muted">Tap a track to choose an action. New search/history selections will be saved into this crate.</div></div>` : '';
     if(!tracks.length){ els.djCrateTracks.innerHTML = heading + '<div class="empty">This crate is empty. Search Spotify, tap a track, then press Save to DJ crate.</div>'; return; }
     els.djCrateTracks.innerHTML = heading + tracks.map(t => `
-      <button type="button" class="result-row crate-track-row tappable-row" data-select-crate-track='${esc(JSON.stringify(t))}' aria-label="Choose ${esc(t.title || 'track')}">
+      <button type="button" class="result-row crate-track-row tappable-row${isLibrarySelected(t, 'crate') ? ' library-selected' : ''}" data-select-crate-track='${esc(JSON.stringify(t))}' aria-label="Choose ${esc(t.title || 'track')}">
         <img src="${esc(image(t.image))}" alt="">
         <span class="result-main"><span class="result-title">${esc(t.title)}</span><span class="mini muted">${esc(resultMetaLine(t))}</span></span>
         <span class="result-meta">${searchBadgeHtml(t)}${trackSourceBadge(t)}</span>
@@ -1157,17 +1259,28 @@ renderAccountStatus();
       if(deckAction.dataset.deckAction === 'seek_back') params.delta_ms = -30000;
       if(deckAction.dataset.deckAction === 'seek_forward') params.delta_ms = 30000;
       doAction(params); return; }
+    const libraryBtn = e.target.closest('[data-library-action]');
+    if(libraryBtn){ if(!libraryBtn.disabled) libraryAction(libraryBtn.dataset.libraryAction); return; }
     const choiceBtn = e.target.closest('[data-choice-action]');
     if(choiceBtn){ choiceAction(choiceBtn.dataset.choiceAction); return; }
     if(e.target.closest('#choiceCancel') || (e.target === els.choiceModal)){ closeChoice(); return; }
     const selectCrateTrack = e.target.closest('[data-select-crate-track]');
     if(selectCrateTrack){
-      try{ openChoice(JSON.parse(selectCrateTrack.dataset.selectCrateTrack), 'crate'); }catch(err){ toast('Could not read crate track selection', false); }
+      try{ selectLibraryItem(JSON.parse(selectCrateTrack.dataset.selectCrateTrack), 'crate', selectCrateTrack); }catch(err){ toast('Could not read crate track selection', false); }
+      return;
+    }
+    const selectHistoryTrack = e.target.closest('[data-select-history-track]');
+    if(selectHistoryTrack){
+      try{ selectLibraryItem(JSON.parse(selectHistoryTrack.dataset.selectHistoryTrack), 'history', selectHistoryTrack.closest('.history-row') || selectHistoryTrack); }catch(err){ toast('Could not read history track selection', false); }
       return;
     }
     const selectTrack = e.target.closest('[data-select-track]');
     if(selectTrack){
-      try{ openChoice(JSON.parse(selectTrack.dataset.selectTrack), 'track'); }catch(err){ toast('Could not read track selection', false); }
+      try{
+        const item = JSON.parse(selectTrack.dataset.selectTrack);
+        if(els.musicLibraryModal && els.musicLibraryModal.classList.contains('open')) selectLibraryItem(item, 'track', selectTrack);
+        else openChoice(item, 'track');
+      }catch(err){ toast('Could not read track selection', false); }
       return;
     }
     const selectRequest = e.target.closest('[data-select-request]');
@@ -1186,6 +1299,11 @@ renderAccountStatus();
     }
   });
   app.addEventListener('keydown', (e)=>{
+    if((e.key === 'Enter' || e.key === ' ') && e.target && e.target.matches && e.target.matches('[data-select-track], [data-select-crate-track]')){
+      e.preventDefault();
+      e.target.click();
+      return;
+    }
     if(e.key === 'Escape'){
       if(els.choiceModal && els.choiceModal.classList.contains('open')) closeChoice();
       else closeMusicLibrary();

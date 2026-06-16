@@ -366,6 +366,119 @@ admin_header('Spotify Mixer - DJ Portal');
 /* Music Library view dropdown and footer badge key */
 .music-library-panel-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}.music-library-panel-top .source-tabs{margin:0}.music-library-view-select-wrap{display:flex;align-items:center;gap:7px;margin-left:auto;color:#9fb5cd;font-size:11px;font-weight:1000;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}.music-library-view-select{min-height:36px;border-radius:12px;border:1px solid rgba(96,145,205,.42);background:#0b192c;color:#f3f8ff;padding:7px 30px 7px 10px;font:inherit;font-size:12px;font-weight:950;text-transform:none;letter-spacing:0}.music-library-view-select:focus{outline:none;border-color:rgba(96,165,250,.92);box-shadow:0 0 0 2px rgba(52,152,255,.18)}.music-library-view-row,.music-library-key{display:none!important}.music-library-body .source-panel.active{display:flex;flex-direction:column;min-height:0;flex:1}.music-library-body #sourcePanelSearch.active{overflow:hidden}.music-library-footer-key{margin-top:auto;padding-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;color:#9fb5cd;font-size:11px;font-weight:900;line-height:1.2;flex:0 0 auto}.music-library-footer-key .key-label{color:#dbeafe;font-weight:1000;text-transform:uppercase;letter-spacing:.05em}.music-library-footer-key .key-item{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}.music-library-footer-key .search-result-badge,.music-library-footer-key .source-pill{min-height:18px;height:18px;padding:2px 6px;font-size:9px;line-height:1;margin:0}.music-library-footer-key .source-pill{width:22px;min-width:22px;padding:0;justify-content:center}.music-library-body .search-pager{flex:0 0 auto}@media(max-width:1020px){.music-library-panel-top{align-items:flex-start;flex-direction:column}.music-library-view-select-wrap{margin-left:0}.music-library-footer-key{justify-content:flex-start;gap:6px;font-size:10px}}
 
+
+/* Music Library in-modal action bar */
+.music-library-action-bar{
+  flex:0 0 auto;
+  margin-top:8px;
+  padding:8px;
+  border-radius:14px;
+  border:1px solid rgba(96,145,205,.28);
+  background:rgba(6,16,30,.62);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  min-height:58px;
+}
+.music-library-action-empty{
+  width:100%;
+  text-align:center;
+  color:#9fb5cd;
+  font-size:12px;
+  font-weight:900;
+}
+.library-selected-track{
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr);
+  align-items:center;
+  gap:9px;
+  min-width:210px;
+  flex:1 1 260px;
+}
+.library-selected-track img{
+  width:42px;
+  height:42px;
+  border-radius:10px;
+  object-fit:cover;
+  border:1px solid rgba(96,145,205,.24);
+}
+.library-selected-copy{
+  min-width:0;
+}
+.library-selected-copy strong,
+.library-selected-copy span,
+.library-selected-copy em{
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.library-selected-copy strong{
+  color:#fff;
+  font-size:13px;
+  line-height:1.15;
+}
+.library-selected-copy span{
+  color:#b7cbe3;
+  font-size:11px;
+  font-weight:850;
+  margin-top:2px;
+}
+.library-selected-copy em{
+  color:#ffd178;
+  font-style:normal;
+  font-size:10px;
+  font-weight:900;
+  margin-top:2px;
+}
+.library-action-buttons{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+  gap:6px;
+  flex:2 1 520px;
+}
+.library-action-btn{
+  min-height:32px;
+  padding:6px 9px;
+  font-size:11px;
+}
+.library-crate-save{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  color:#9fb5cd;
+  font-size:10px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.library-crate-save select{
+  min-height:32px;
+  max-width:150px;
+  font-size:11px;
+  padding:5px 24px 5px 8px;
+}
+.library-selected{
+  border-color:rgba(96,165,250,.95)!important;
+  background:rgba(37,99,235,.22)!important;
+  box-shadow:0 0 0 1px rgba(96,165,250,.34),0 0 18px rgba(37,99,235,.18)!important;
+}
+.music-library-footer-key{
+  padding-top:6px;
+}
+@media(max-width:1020px){
+  .music-library-action-bar{
+    align-items:stretch;
+    flex-direction:column;
+  }
+  .library-action-buttons{
+    justify-content:flex-start;
+  }
+}
+
 </style>
 <main class="spotify-mixer-app" data-api="<?= h(admin_url('spotify/mixer-api.php')) ?>" data-search-api="/api/spotify-search.php" data-local-search-api="<?= h(admin_url('api/local-music-search.php')) ?>">
   <div class="mixer-toast" id="mixerToast"></div>
@@ -435,6 +548,9 @@ admin_header('Spotify Mixer - DJ Portal');
           <div class="source-panel" id="sourcePanelHistory" data-source-panel="history">
             <div class="source-tools"><div><div class="tiny-label">Playback history</div><div class="mini muted">Tracks played during this mixer session/event.</div></div></div>
             <div id="historyList" class="source-list"></div>
+          </div>
+          <div class="music-library-action-bar" id="musicLibraryActionBar" aria-live="polite">
+            <div class="music-library-action-empty">Select a track to choose an action.</div>
           </div>
           <div class="music-library-footer-key" aria-label="Search result badge key">
             <span class="key-label">Key:</span>
