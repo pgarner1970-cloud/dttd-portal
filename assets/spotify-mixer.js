@@ -56,7 +56,7 @@ document.head.appendChild(overviewStyle);
     loadedA: $('#loadedA'), loadedB: $('#loadedB'), deckANote: $('#deckANote'), deckBNote: $('#deckBNote'),
     spotifyStatus: $('#spotifyStatus'),
     search: $('#spotifySearch'), searchResults: $('#searchResults'), searchStatus: $('#searchStatus'),
-    searchModeButtons: document.querySelectorAll('[data-search-mode]'), searchPager: $('#searchPager'), libraryViewButtons: document.querySelectorAll('[data-library-view]'),
+    searchModeButtons: document.querySelectorAll('[data-search-mode]'), searchPager: $('#searchPager'), libraryViewSelect: $('#musicLibraryViewSelect'),
     publicRequests: $('#publicRequests'), djPlaylist: $('#djPlaylist'),
     requestCount: $('#requestCount'), playlistCount: $('#playlistCount'),
     sourceTabs: document.querySelectorAll('[data-source-tab]'), sourcePanels: document.querySelectorAll('[data-source-panel]'),
@@ -118,12 +118,8 @@ document.head.appendChild(overviewStyle);
       app.classList.toggle('library-view-compact', libraryViewMode === 'compact');
       app.classList.toggle('library-view-list', libraryViewMode === 'list');
     }
-    if(els.libraryViewButtons){
-      els.libraryViewButtons.forEach(btn => {
-        const active = btn.dataset.libraryView === libraryViewMode;
-        btn.classList.toggle('active', active);
-        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
-      });
+    if(els.libraryViewSelect && els.libraryViewSelect.value !== libraryViewMode){
+      els.libraryViewSelect.value = libraryViewMode;
     }
   }
   function setLibraryView(mode){
@@ -132,6 +128,9 @@ document.head.appendChild(overviewStyle);
     searchPage = 0;
     updateLibraryView();
     renderSearchResults(lastSearchTracks);
+    apiPost({action:'set_music_library_view', view:libraryViewMode})
+      .then(data => { if(data && data.state) acceptState(data.state); })
+      .catch(() => {});
   }
   function currentSearchLooksLikeTrackTitle(query, sourceTrack){
     query = String(query || '').trim();
@@ -772,6 +771,12 @@ renderAccountStatus();
   function acceptState(nextState){
     if(!nextState) return;
     state = nextState;
+    if(state.music_library_view && ['comfortable','compact','list'].includes(state.music_library_view) && state.music_library_view !== libraryViewMode){
+      libraryViewMode = state.music_library_view;
+      try{ localStorage.setItem('dttd_music_library_view', libraryViewMode); }catch(e){}
+      updateLibraryView();
+      renderSearchResults(lastSearchTracks);
+    }
     state._receivedAtMs = Date.now();
     lastStateSyncAt = Date.now();
     render();
@@ -1136,11 +1141,6 @@ renderAccountStatus();
       }
       return;
     }
-    const viewBtn = e.target.closest('[data-library-view]');
-    if(viewBtn){
-      setLibraryView(viewBtn.dataset.libraryView || 'comfortable');
-      return;
-    }
     const sourceTab = e.target.closest('[data-source-tab]');
     if(sourceTab){ setSourceTab(sourceTab.dataset.sourceTab || 'search'); return; }
     const openDjCrate = e.target.closest('[data-open-dj-crate]');
@@ -1202,6 +1202,7 @@ renderAccountStatus();
     els.search.addEventListener('input', ()=>{ clearTimeout(searchTimer); searchTimer = setTimeout(()=>search(els.search.value), 750); });
   }
   const clearSearch = $('#clearSearch'); if(clearSearch) clearSearch.addEventListener('click', ()=>{ els.search.value=''; els.search.focus(); els.searchResults.innerHTML=''; els.searchStatus.textContent=''; lastSearchTracks=[]; searchPage=0; renderSearchPager(0); });
+  if(els.libraryViewSelect) els.libraryViewSelect.addEventListener('change', ()=>setLibraryView(els.libraryViewSelect.value || 'comfortable'));
   const refreshNow = $('#refreshNow'); if(refreshNow) refreshNow.addEventListener('click', ()=>refresh(false));
   if(els.refreshCrates) els.refreshCrates.addEventListener('click', ()=>{ cratesLoaded = false; loadDjCrates(true); });
   if(els.createCrate) els.createCrate.addEventListener('click', async ()=>{ const name = els.newCrateName ? els.newCrateName.value : ''; await doAction({action:'create_crate', name}); if(els.newCrateName) els.newCrateName.value=''; cratesLoaded=false; loadDjCrates(true); });

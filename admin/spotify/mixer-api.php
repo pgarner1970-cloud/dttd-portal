@@ -24,6 +24,13 @@ function mx_json($key, $default = []) {
     return is_array($decoded) ? $decoded : $default;
 }
 
+function mx_music_library_view($value = null) {
+    $allowed = ['comfortable', 'compact', 'list'];
+    $view = $value === null ? mx_setting('spotify_mixer_music_library_view', 'comfortable') : (string)$value;
+    return in_array($view, $allowed, true) ? $view : 'comfortable';
+}
+
+
 function mx_spotify_user_get($url) {
     $token = dttd_spotify_user_access_token();
     return dttd_spotify_http_get($url, [
@@ -1690,6 +1697,7 @@ function mx_state() {
         'connected' => dttd_spotify_queue_connected_for_deck('a') || dttd_spotify_queue_connected_for_deck('b'),
         'duo_mode' => !mx_decks_share_spotify_profile(),
         'auto_start_opposite' => mx_auto_start_opposite_enabled(),
+        'music_library_view' => mx_music_library_view(),
         'server_time' => date('H:i:s'),
         'server_unix_ms' => (int)round(microtime(true) * 1000),
         'accounts' => [
@@ -2066,6 +2074,12 @@ function mx_json_out($data) { echo json_encode($data); exit; }
 try {
     $action = $_POST['action'] ?? $_GET['action'] ?? 'state';
     $playlist = mx_json('spotify_mixer_playlist', []);
+
+    if ($action === 'set_music_library_view') {
+        $view = mx_music_library_view($_POST['view'] ?? $_GET['view'] ?? 'comfortable');
+        mx_set('spotify_mixer_music_library_view', $view);
+        mx_json_out(['ok' => true, 'message' => 'Music Library view saved.', 'state' => mx_state()]);
+    }
 
     if ($action === 'search') {
         $q = trim((string)($_GET['q'] ?? $_POST['q'] ?? ''));

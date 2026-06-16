@@ -362,6 +362,10 @@ admin_header('Spotify Mixer - DJ Portal');
 .spotify-mixer-app.library-view-list .music-library-body .search-results{grid-template-columns:1fr 1fr;gap:3px}.spotify-mixer-app.library-view-list .music-library-body .search-result-row{min-height:38px;padding:4px 138px 4px 7px;grid-template-columns:28px minmax(0,1fr)}.spotify-mixer-app.library-view-list .music-library-body .search-result-row img{width:24px;height:24px;border-radius:6px}.spotify-mixer-app.library-view-list .music-library-body .search-result-row .result-title{font-size:11px;line-height:1.08}.spotify-mixer-app.library-view-list .music-library-body .search-result-row .result-subline{min-height:16px;font-size:10px;margin-top:0}.spotify-mixer-app.library-view-list .music-library-body .artist-search-btn{width:22px;min-width:22px;height:18px;min-height:18px}
 @media(max-width:1020px){.music-library-view-row{justify-content:flex-start}.music-library-key{font-size:10px}}
 
+
+/* Music Library view dropdown and footer badge key */
+.music-library-panel-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}.music-library-panel-top .source-tabs{margin:0}.music-library-view-select-wrap{display:flex;align-items:center;gap:7px;margin-left:auto;color:#9fb5cd;font-size:11px;font-weight:1000;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}.music-library-view-select{min-height:36px;border-radius:12px;border:1px solid rgba(96,145,205,.42);background:#0b192c;color:#f3f8ff;padding:7px 30px 7px 10px;font:inherit;font-size:12px;font-weight:950;text-transform:none;letter-spacing:0}.music-library-view-select:focus{outline:none;border-color:rgba(96,165,250,.92);box-shadow:0 0 0 2px rgba(52,152,255,.18)}.music-library-view-row,.music-library-key{display:none!important}.music-library-body .source-panel.active{display:flex;flex-direction:column;min-height:0;flex:1}.music-library-body #sourcePanelSearch.active{overflow:hidden}.music-library-footer-key{margin-top:auto;padding-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;color:#9fb5cd;font-size:11px;font-weight:900;line-height:1.2;flex:0 0 auto}.music-library-footer-key .key-label{color:#dbeafe;font-weight:1000;text-transform:uppercase;letter-spacing:.05em}.music-library-footer-key .key-item{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}.music-library-footer-key .search-result-badge,.music-library-footer-key .source-pill{min-height:18px;height:18px;padding:2px 6px;font-size:9px;line-height:1;margin:0}.music-library-footer-key .source-pill{width:22px;min-width:22px;padding:0;justify-content:center}.music-library-body .search-pager{flex:0 0 auto}@media(max-width:1020px){.music-library-panel-top{align-items:flex-start;flex-direction:column}.music-library-view-select-wrap{margin-left:0}.music-library-footer-key{justify-content:flex-start;gap:6px;font-size:10px}}
+
 </style>
 <main class="spotify-mixer-app" data-api="<?= h(admin_url('spotify/mixer-api.php')) ?>" data-search-api="/api/spotify-search.php" data-local-search-api="<?= h(admin_url('api/local-music-search.php')) ?>">
   <div class="mixer-toast" id="mixerToast"></div>
@@ -391,10 +395,20 @@ admin_header('Spotify Mixer - DJ Portal');
       </div>
       <div class="music-library-body">
         <div class="search-box source-box">
-          <div class="source-tabs" role="tablist" aria-label="Track source">
-            <button class="source-tab active" type="button" data-source-tab="search">Search Music</button>
-            <button class="source-tab" type="button" data-source-tab="crates">DJ Crates</button>
-            <button class="source-tab" type="button" data-source-tab="history">History</button>
+          <div class="music-library-panel-top">
+            <div class="source-tabs" role="tablist" aria-label="Track source">
+              <button class="source-tab active" type="button" data-source-tab="search">Search Music</button>
+              <button class="source-tab" type="button" data-source-tab="crates">DJ Crates</button>
+              <button class="source-tab" type="button" data-source-tab="history">History</button>
+            </div>
+            <label class="music-library-view-select-wrap" for="musicLibraryViewSelect">
+              <span>View</span>
+              <select id="musicLibraryViewSelect" class="music-library-view-select">
+                <option value="comfortable">▦ Comfortable</option>
+                <option value="compact">▤ Compact</option>
+                <option value="list">☰ List</option>
+              </select>
+            </label>
           </div>
           <div class="source-panel active" id="sourcePanelSearch" data-source-panel="search">
             <div class="tiny-label">Search Spotify + Local Music</div>
@@ -407,13 +421,6 @@ admin_header('Spotify Mixer - DJ Portal');
                 <button class="mixer-btn red clear-search-x" id="clearSearch" type="button" title="Clear search" aria-label="Clear search">×</button>
               </div>
             </div>
-            <div class="music-library-view-row" role="group" aria-label="Music Library view">
-              <span class="view-label">View:</span>
-              <button class="view-mode-btn active" type="button" data-library-view="comfortable" aria-pressed="true">▦ Comfortable</button>
-              <button class="view-mode-btn" type="button" data-library-view="compact" aria-pressed="false">▤ Compact</button>
-              <button class="view-mode-btn" type="button" data-library-view="list" aria-pressed="false">☰ List</button>
-            </div>
-            <div class="music-library-key">Key: <span>80s Decade</span> · <span>Orig Original</span> · <span>Era Original-era</span> · <span>Rem Remaster</span> · <span>Comp Compilation</span> · <span>♬ Spotify</span> · <span>▣ Local</span></div>
             <div id="searchStatus" class="mini muted" style="margin-top:8px"></div>
             <div class="search-results" id="searchResults"></div>
             <div class="search-pager" id="searchPager" hidden></div>
@@ -428,6 +435,16 @@ admin_header('Spotify Mixer - DJ Portal');
           <div class="source-panel" id="sourcePanelHistory" data-source-panel="history">
             <div class="source-tools"><div><div class="tiny-label">Playback history</div><div class="mini muted">Tracks played during this mixer session/event.</div></div></div>
             <div id="historyList" class="source-list"></div>
+          </div>
+          <div class="music-library-footer-key" aria-label="Search result badge key">
+            <span class="key-label">Key:</span>
+            <span class="key-item"><span class="search-result-badge decade">80s</span><span>Decade</span></span>
+            <span class="key-item"><span class="search-result-badge original">Orig</span><span>Original</span></span>
+            <span class="key-item"><span class="search-result-badge original-era">Era</span><span>Original-era</span></span>
+            <span class="key-item"><span class="search-result-badge remaster">Rem</span><span>Remaster</span></span>
+            <span class="key-item"><span class="search-result-badge compilation">Comp</span><span>Compilation</span></span>
+            <span class="key-item"><span class="source-pill spotify" title="Spotify">♬</span><span>Spotify</span></span>
+            <span class="key-item"><span class="source-pill local" title="Local music">▣</span><span>Local</span></span>
           </div>
         </div>
       </div>
