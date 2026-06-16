@@ -265,6 +265,89 @@ admin_header('Spotify Mixer - DJ Portal');
   .music-library-body .result-corner-badges{width:142px;max-width:142px}
 }
 
+
+/* 16-result Music Library fit: tighter 2-column x 8-row modal cards */
+.music-library-body .search-results{
+  gap:4px;
+}
+.music-library-body .search-result-row{
+  min-height:46px;
+  padding:5px 150px 5px 8px;
+}
+.music-library-body .search-result-row img{
+  width:30px;
+  height:30px;
+  border-radius:8px;
+}
+.music-library-body .search-result-row .result-title{
+  font-size:12px;
+  line-height:1.12;
+}
+.music-library-body .search-result-row .result-subline{
+  min-height:18px;
+  margin-top:1px;
+  font-size:11px;
+  line-height:1.1;
+}
+.music-library-body .artist-search-btn{
+  width:25px;
+  min-width:25px;
+  height:20px;
+  min-height:20px;
+}
+.music-library-body .artist-search-btn::before{
+  width:8px;
+  height:8px;
+  border-width:2px;
+}
+.music-library-body .artist-search-btn::after{
+  width:6px;
+  height:2px;
+  transform:translate(5px,5px) rotate(45deg);
+}
+.music-library-body .result-corner-badges{
+  top:5px;
+  right:7px;
+  width:136px;
+  max-width:136px;
+  gap:3px;
+}
+.music-library-body .result-corner-badges .search-result-badges{
+  gap:3px;
+}
+.music-library-body .search-result-badge,
+.music-library-body .source-pill{
+  min-height:17px;
+  height:17px;
+  padding:1px 5px;
+  font-size:8.5px;
+  line-height:1;
+}
+.music-library-body .source-pill{
+  width:20px;
+  min-width:20px;
+  padding:0;
+  font-size:12px;
+}
+.music-library-body .search-pager{
+  padding-top:5px;
+}
+.music-library-body .search-page-count{
+  min-height:30px;
+}
+.music-library-body .search-page-btn{
+  min-height:34px;
+}
+@media(max-width:1020px){
+  .music-library-body .search-result-row{
+    padding-right:150px;
+  }
+  .music-library-body .result-corner-badges{
+    width:136px;
+    max-width:136px;
+  }
+}
+
 </style>
 <main class="spotify-mixer-app" data-api="<?= h(admin_url('spotify/mixer-api.php')) ?>" data-search-api="/api/spotify-search.php" data-local-search-api="<?= h(admin_url('api/local-music-search.php')) ?>">
   <div class="mixer-toast" id="mixerToast"></div>

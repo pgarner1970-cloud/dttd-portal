@@ -40,7 +40,7 @@ document.head.appendChild(overviewStyle);
   let lastSearchQuery = '';
   let lastSearchTracks = [];
   let searchPage = 0;
-  const SEARCH_PAGE_SIZE = 12;
+  const SEARCH_PAGE_SIZE = 16;
 
   const $ = (sel) => document.querySelector(sel);
   const els = {
