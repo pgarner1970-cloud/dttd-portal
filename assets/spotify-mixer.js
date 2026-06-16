@@ -55,6 +55,28 @@ document.head.appendChild(overviewStyle);
 
   function esc(s){ return String(s ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c])); }
   function duration(ms){ if(!ms && ms !== 0) return ''; const sec=Math.max(0, Math.round(Number(ms)/1000)); return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'); }
+  function resultMetaLine(track){
+    const parts = [];
+    const artist = String(track?.artist || '').trim();
+    const len = duration(track?.duration_ms);
+    if(artist) parts.push(artist);
+    if(len) parts.push(len);
+    return parts.join(' • ');
+  }
+  function artistSearchButton(track){
+    const artist = String(track?.artist || '').trim();
+    if(!artist) return '';
+    return `<button type="button" class="artist-search-btn" data-artist-search="${esc(artist)}" title="Search for more by ${esc(artist)}">Artist search</button>`;
+  }
+  function runArtistSearch(artist){
+    artist = String(artist || '').trim();
+    if(!artist || !els.search) return;
+    setSourceTab('search');
+    els.search.value = artist;
+    els.search.focus();
+    clearTimeout(searchTimer);
+    search(artist);
+  }
   function sourceLabel(track){
     const src = String(track?.loaded_origin || track?.source || '').toLowerCase();
     if(src === 'dj_playlist') return 'DJ Playlist';
@@ -788,11 +810,11 @@ renderAccountStatus();
     if(!els.searchResults) return;
     if(!tracks.length){ els.searchResults.innerHTML = '<div class="mini muted">No matches yet.</div>'; return; }
     els.searchResults.innerHTML = tracks.map(t=>`
-      <button type="button" class="result-row search-result-row tappable-row" data-select-track='${esc(JSON.stringify(t))}' aria-label="Choose ${esc(t.title || 'track')}">
+      <div role="button" tabindex="0" class="result-row search-result-row tappable-row" data-select-track='${esc(JSON.stringify(t))}' aria-label="Choose ${esc(t.title || 'track')}">
         <img src="${esc(image(t.image))}" alt="">
-        <span class="result-main"><span class="result-title">${esc(t.title)}</span><span class="mini muted">${esc(t.artist)}${t.album ? ' • ' + esc(t.album) : ''}</span></span>
-        <span class="result-meta">${searchBadgeHtml(t)}${trackSourceBadge(t)}</span>
-      </button>`).join('');
+        <span class="result-main"><span class="result-title">${esc(t.title)}</span><span class="mini muted">${esc(resultMetaLine(t))}</span></span>
+        <span class="result-meta">${artistSearchButton(t)}${searchBadgeHtml(t)}${trackSourceBadge(t)}</span>
+      </div>`).join('');
   }
   function setSourceTab(name){
     activeSource = name || 'search';
@@ -839,7 +861,7 @@ renderAccountStatus();
     els.djCrateTracks.innerHTML = heading + tracks.map(t => `
       <button type="button" class="result-row crate-track-row tappable-row" data-select-crate-track='${esc(JSON.stringify(t))}' aria-label="Choose ${esc(t.title || 'track')}">
         <img src="${esc(image(t.image))}" alt="">
-        <span class="result-main"><span class="result-title">${esc(t.title)}</span><span class="mini muted">${esc(t.artist)}${t.album ? ' • ' + esc(t.album) : ''}</span></span>
+        <span class="result-main"><span class="result-title">${esc(t.title)}</span><span class="mini muted">${esc(resultMetaLine(t))}</span></span>
         <span class="result-meta">${searchBadgeHtml(t)}${trackSourceBadge(t)}</span>
       </button>`).join('');
   }
@@ -917,6 +939,8 @@ renderAccountStatus();
     els.searchStatus.textContent = 'No matches found';
   }
   app.addEventListener('click', (e)=>{
+    const artistSearch = e.target.closest('[data-artist-search]');
+    if(artistSearch){ runArtistSearch(artistSearch.dataset.artistSearch || ''); return; }
     const sourceTab = e.target.closest('[data-source-tab]');
     if(sourceTab){ setSourceTab(sourceTab.dataset.sourceTab || 'search'); return; }
     const openDjCrate = e.target.closest('[data-open-dj-crate]');
@@ -959,6 +983,14 @@ renderAccountStatus();
       if(actionBtn.dataset.deck) params.deck = actionBtn.dataset.deck;
       if(actionBtn.dataset.requestId) params.request_id = actionBtn.dataset.requestId;
       doAction(params); return;
+    }
+  });
+  app.addEventListener('keydown', (e)=>{
+    if(e.key !== 'Enter' && e.key !== ' ') return;
+    const selectTrack = e.target.closest('[data-select-track]');
+    if(selectTrack && selectTrack.getAttribute('role') === 'button'){
+      e.preventDefault();
+      try{ openChoice(JSON.parse(selectTrack.dataset.selectTrack), 'track'); }catch(err){ toast('Could not read track selection', false); }
     }
   });
   if(els.search){
