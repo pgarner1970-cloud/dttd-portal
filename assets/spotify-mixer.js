@@ -47,6 +47,25 @@ document.head.appendChild(overviewStyle);
     if(libraryViewMode === 'compact') return 16;
     return 10;
   }
+  function libraryTestPagesEnabled(query){
+    try{
+      if(new URLSearchParams(window.location.search).get('library_test_pages') === '1') return true;
+    }catch(e){}
+    return /\b(testpages|duplicate)\b/i.test(String(query || ''));
+  }
+  function expandTracksForPagingTest(tracks, query){
+    if(!libraryTestPagesEnabled(query) || !Array.isArray(tracks) || !tracks.length) return tracks;
+    const out = [];
+    for(let i = 0; i < 3; i++){
+      tracks.forEach((track, idx) => {
+        out.push(Object.assign({}, track, {
+          id: String(track.id || track.spotify_id || track.title || 'track') + ':test:' + i + ':' + idx,
+          title: String(track.title || 'Track') + (i ? ' · test copy ' + (i + 1) : '')
+        }));
+      });
+    }
+    return out;
+  }
 
   const $ = (sel) => document.querySelector(sel);
   const els = {
@@ -441,11 +460,11 @@ document.head.appendChild(overviewStyle);
   function libraryCrateSaveControls(){
     const crates = availableCrates.length ? availableCrates : (state?.crates || []);
     if(!crates.length){
-      return '<button class="mixer-btn blue library-action-btn" data-library-action="crate" disabled>+ Save to crate</button>';
+      return '<button class="mixer-btn blue library-action-btn" data-library-action="crate" disabled>+ Save</button>';
     }
     const selected = activeCrateId || String(crates[0].id || '');
     const opts = crates.map(c => `<option value="${esc(c.id)}" ${String(c.id) === String(selected) ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
-    return `<label class="library-crate-save"><span>Crate</span><select id="libraryCrateSelect" class="mixer-select">${opts}</select><button class="mixer-btn blue library-action-btn" data-library-action="crate">+ Save</button></label>`;
+    return `<label class="library-crate-save"><select id="libraryCrateSelect" class="mixer-select" aria-label="Choose DJ crate">${opts}</select><button class="mixer-btn blue library-action-btn" data-library-action="crate">+ Save</button></label>`;
   }
   function clearLibrarySelection(){
     selectedLibraryChoice = null;
@@ -471,11 +490,10 @@ document.head.appendChild(overviewStyle);
     actions += '<button class="mixer-btn green library-action-btn" data-library-action="playlist">+ DJ Playlist</button>';
     if(src === 'track' || src === 'history') actions += local ? '<button class="mixer-btn blue library-action-btn" data-library-action="crate" disabled>+ Save to crate</button>' : libraryCrateSaveControls();
     actions += `<button class="mixer-btn orange library-action-btn" data-library-action="load_a" ${aBlocked ? 'disabled' : ''}>Load A</button>`;
-    actions += `<button class="mixer-btn blue library-action-btn" data-library-action="load_b" ${bBlocked ? 'disabled' : ''}>Load B</button>`;
     actions += `<button class="mixer-btn green library-action-btn" data-library-action="play_a" ${aBlocked || localDirectPlayBlocked ? 'disabled' : ''}>▶ A</button>`;
+    actions += `<button class="mixer-btn blue library-action-btn" data-library-action="load_b" ${bBlocked ? 'disabled' : ''}>Load B</button>`;
     actions += `<button class="mixer-btn green library-action-btn" data-library-action="play_b" ${bBlocked || localDirectPlayBlocked ? 'disabled' : ''}>▶ B</button>`;
     if(src === 'crate') actions += `<button class="mixer-btn red library-action-btn" data-library-action="remove_crate" ${!activeCrateId || !item.id ? 'disabled' : ''}>Remove</button>`;
-    actions += '<button class="mixer-btn dark library-action-btn" data-library-action="clear_selection">Clear</button>';
     const notes = [];
     if(local) notes.push('Local track');
     if(aBlocked) notes.push('A unavailable/playing');
@@ -1059,18 +1077,15 @@ renderAccountStatus();
   }
   function renderSearchPager(total){
     if(!els.searchPager) return;
-    if(total <= searchPageSize()){
-      els.searchPager.innerHTML = '';
-      els.searchPager.hidden = true;
-      return;
-    }
-    const pages = Math.max(1, Math.ceil(total / searchPageSize()));
-    const from = searchPage * searchPageSize() + 1;
-    const to = Math.min(total, from + searchPageSize() - 1);
+    total = Number(total || 0) || 0;
+    const pageSize = searchPageSize();
+    const pages = Math.max(1, Math.ceil(total / pageSize));
+    const from = total ? (searchPage * pageSize + 1) : 0;
+    const to = total ? Math.min(total, from + pageSize - 1) : 0;
     els.searchPager.hidden = false;
     els.searchPager.innerHTML = `
       <button type="button" class="mixer-btn dark search-page-btn" data-search-page="prev" ${searchPage <= 0 ? 'disabled' : ''}>‹ Previous</button>
-      <span class="search-page-count">Showing ${from}–${to} of ${total}</span>
+      <span class="search-page-count">${total ? `Showing ${from}–${to} of ${total}` : 'Showing 0 of 0'}</span>
       <button type="button" class="mixer-btn dark search-page-btn" data-search-page="next" ${searchPage >= pages - 1 ? 'disabled' : ''}>Next ›</button>`;
   }
   function renderSearchResults(tracks){
@@ -1200,7 +1215,8 @@ renderAccountStatus();
 
     const spotifyTracks = (spotifyData?.tracks || []).map(t => prepareSearchTrack(t, 'spotify'));
     const localTracks = (localData?.tracks || []).map(t => prepareSearchTrack(t, 'local'));
-    const tracks = spotifyTracks.concat(localTracks);
+    let tracks = spotifyTracks.concat(localTracks);
+    tracks = expandTracksForPagingTest(tracks, query);
     if(tracks.length){
       const notes = [];
       if(spotifyData?.rate_limited) notes.push('Spotify cooling down — cached matches shown');
@@ -1208,6 +1224,7 @@ renderAccountStatus();
       if(searchMode === 'track') notes.push('Track title search');
       if(searchMode === 'track_artist' && artist) notes.push('Track + artist search');
       if(localTracks.length) notes.push(localTracks.length + ' local match' + (localTracks.length === 1 ? '' : 'es'));
+      if(libraryTestPagesEnabled(query)) notes.push('Paging test mode');
       if(!localData && localError) notes.push('Local music unavailable');
       if(!spotifyData && spotifyError) notes.push('Spotify unavailable');
       els.searchStatus.textContent = notes.join(' • ');

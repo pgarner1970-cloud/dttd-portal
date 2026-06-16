@@ -479,6 +479,33 @@ admin_header('Spotify Mixer - DJ Portal');
   }
 }
 
+
+/* Music Library action bar refinement + always-visible pager */
+.music-library-body .search-pager[hidden]{display:flex!important}
+.music-library-body .search-page-btn:disabled{
+  opacity:.42;
+  cursor:not-allowed;
+}
+.library-crate-save{
+  gap:6px;
+}
+.library-crate-save select{
+  min-width:190px;
+  max-width:230px;
+}
+.library-action-buttons{
+  gap:7px;
+}
+.library-action-btn{
+  min-height:34px;
+}
+@media(max-width:1180px){
+  .library-crate-save select{
+    min-width:160px;
+    max-width:190px;
+  }
+}
+
 </style>
 <main class="spotify-mixer-app" data-api="<?= h(admin_url('spotify/mixer-api.php')) ?>" data-search-api="/api/spotify-search.php" data-local-search-api="<?= h(admin_url('api/local-music-search.php')) ?>">
   <div class="mixer-toast" id="mixerToast"></div>
