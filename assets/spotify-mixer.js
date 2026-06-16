@@ -35,6 +35,7 @@ document.head.appendChild(overviewStyle);
   let activeCrateId = '';
   let activeCrateName = '';
   let activeCrateTracks = [];
+  let cratePage = 0;
   let availableCrates = [];
   let searchMode = 'broad';
   let lastSearchQuery = '';
@@ -80,7 +81,7 @@ document.head.appendChild(overviewStyle);
     publicRequests: $('#publicRequests'), djPlaylist: $('#djPlaylist'),
     requestCount: $('#requestCount'), playlistCount: $('#playlistCount'),
     sourceTabs: document.querySelectorAll('[data-source-tab]'), sourcePanels: document.querySelectorAll('[data-source-panel]'),
-    djCrates: $('#djCrates'), djCrateTracks: $('#djCrateTracks'), djCrateStatus: $('#djCrateStatus'), refreshCrates: $('#refreshCrates'), newCrateName: $('#newCrateName'), createCrate: $('#createCrate'), historyList: $('#historyList'),
+    djCrateSelect: $('#djCrateSelect'), djCrateTracks: $('#djCrateTracks'), cratePager: $('#cratePager'), djCrateStatus: $('#djCrateStatus'), refreshCrates: $('#refreshCrates'), showNewCrate: $('#showNewCrate'), newCratePanel: $('#newCratePanel'), cancelNewCrate: $('#cancelNewCrate'), newCrateName: $('#newCrateName'), createCrate: $('#createCrate'), historyList: $('#historyList'),
     choiceModal: $('#mixerChoiceModal'), choiceImage: $('#choiceImage'), choiceTitle: $('#choiceTitle'), choiceArtist: $('#choiceArtist'), choiceActions: $('#choiceActions'), choiceWarning: $('#choiceWarning'), choiceCancel: $('#choiceCancel'),
     musicLibraryModal: $('#musicLibraryModal'), openMusicLibrary: $('#openMusicLibrary'), closeMusicLibrary: $('#closeMusicLibrary'), musicLibraryActionBar: $('#musicLibraryActionBar')
   };
@@ -146,8 +147,10 @@ document.head.appendChild(overviewStyle);
     libraryViewMode = ['comfortable','compact','list'].includes(mode) ? mode : 'comfortable';
     try{ localStorage.setItem('dttd_music_library_view', libraryViewMode); }catch(e){}
     searchPage = 0;
+    cratePage = 0;
     updateLibraryView();
     renderSearchResults(lastSearchTracks);
+    renderDjCrateTracks(activeCrateTracks);
     apiPost({action:'set_music_library_view', view:libraryViewMode})
       .then(data => { if(data && data.state) acceptState(data.state); })
       .catch(() => {});
@@ -1131,49 +1134,99 @@ renderAccountStatus();
       </div>`).join('');
   }
   function renderDjCrates(crates){
-    if(!els.djCrates) return;
-    crates = sortCratesByName(crates);
-    if(!crates.length){ els.djCrates.innerHTML = '<div class="empty">No DJ crates yet. Create one above, then save tracks from search or history.</div>'; return; }
-    els.djCrates.innerHTML = crates.map(c => `
-      <button type="button" class="spotify-playlist-row crate-row tappable-row${String(c.id) === String(activeCrateId) ? ' active-crate' : ''}" data-open-dj-crate="${esc(c.id)}" data-crate-name="${esc(c.name)}" aria-label="Open DJ crate ${esc(c.name)}">
-        <span class="crate-icon">♫</span>
-        <span class="crate-row-copy">
-          <strong>${esc(c.name)}</strong>
-          <span class="mini muted">${Number(c.track_count || 0)} saved tracks${String(c.id) === String(activeCrateId) ? ' • selected' : ''}</span>
-        </span>
-      </button>`).join('');
+    crates = sortCratesByName(crates || []);
+    availableCrates = crates;
+    if(!els.djCrateSelect) return;
+    if(!crates.length){
+      els.djCrateSelect.innerHTML = '<option value="">No crates yet</option>';
+      activeCrateId = '';
+      activeCrateName = '';
+      renderDjCrateTracks([]);
+      return;
+    }
+    if(!activeCrateId || !crates.some(c => String(c.id) === String(activeCrateId))){
+      activeCrateId = String(crates[0].id || '');
+      activeCrateName = String(crates[0].name || 'DJ crate');
+    }
+    els.djCrateSelect.innerHTML = crates.map(c => `<option value="${esc(c.id)}">${esc(c.name)} (${Number(c.track_count || 0)})</option>`).join('');
+    els.djCrateSelect.value = activeCrateId;
+  }
+  function renderCratePager(total){
+    if(!els.cratePager) return;
+    total = Number(total || 0) || 0;
+    const pageSize = searchPageSize();
+    const pages = Math.max(1, Math.ceil(total / pageSize));
+    cratePage = Math.max(0, Math.min(cratePage, pages - 1));
+    const from = total ? (cratePage * pageSize + 1) : 0;
+    const to = total ? Math.min(total, from + pageSize - 1) : 0;
+    els.cratePager.hidden = false;
+    els.cratePager.innerHTML = `
+      <button type="button" class="mixer-btn dark search-page-btn" data-crate-page="prev" ${cratePage <= 0 ? 'disabled' : ''}>‹ Previous</button>
+      <span class="search-page-count">${total ? `Showing ${from}–${to} of ${total}` : 'Showing 0 of 0'}</span>
+      <button type="button" class="mixer-btn dark search-page-btn" data-crate-page="next" ${cratePage >= pages - 1 ? 'disabled' : ''}>Next ›</button>`;
   }
   function renderDjCrateTracks(tracks){
     if(!els.djCrateTracks) return;
-    activeCrateTracks = tracks || [];
-    const heading = activeCrateName ? `<div class="crate-track-heading"><div class="tiny-label">${esc(activeCrateName)} tracks</div><div class="mini muted">Tap a track to choose an action. New search/history selections will be saved into this crate.</div></div>` : '';
-    if(!tracks.length){ els.djCrateTracks.innerHTML = heading + '<div class="empty">This crate is empty. Search Spotify, tap a track, then press Save to DJ crate.</div>'; return; }
-    els.djCrateTracks.innerHTML = heading + tracks.map(t => `
-      <button type="button" class="result-row crate-track-row tappable-row${isLibrarySelected(t, 'crate') ? ' library-selected' : ''}" data-select-crate-track='${esc(JSON.stringify(t))}' aria-label="Choose ${esc(t.title || 'track')}">
-        <img src="${esc(image(t.image))}" alt="">
-        <span class="result-main"><span class="result-title">${esc(t.title)}</span><span class="mini muted">${esc(resultMetaLine(t))}</span></span>
-        <span class="result-meta">${searchBadgeHtml(t)}${trackSourceBadge(t)}</span>
-      </button>`).join('');
+    activeCrateTracks = Array.isArray(tracks) ? tracks.slice() : [];
+    const total = activeCrateTracks.length;
+    if(!activeCrateId){
+      els.djCrateTracks.innerHTML = '<div class="empty">Choose or create a DJ crate.</div>';
+      renderCratePager(0);
+      return;
+    }
+    if(!total){
+      els.djCrateTracks.innerHTML = '<div class="empty">This crate is empty. Search Spotify, tap a track, then press Save.</div>';
+      renderCratePager(0);
+      return;
+    }
+    const pageSize = searchPageSize();
+    const pages = Math.max(1, Math.ceil(total / pageSize));
+    cratePage = Math.max(0, Math.min(cratePage, pages - 1));
+    const start = cratePage * pageSize;
+    const rows = activeCrateTracks.slice(start, start + pageSize);
+    els.djCrateTracks.innerHTML = `
+      <div class="crate-track-heading"><div class="tiny-label">${esc(activeCrateName || 'DJ crate')} tracks</div><div class="mini muted">Tap a track to choose an action. New search/history selections will save into this crate.</div></div>
+      <div class="crate-track-grid">${rows.map(t => `
+        <button type="button" class="result-row crate-track-row tappable-row${isLibrarySelected(t, 'crate') ? ' library-selected' : ''}" data-select-crate-track='${esc(JSON.stringify(t))}' aria-label="Choose ${esc(t.title || 'track')}">
+          <img src="${esc(image(t.image))}" alt="">
+          <span class="result-main"><span class="result-title">${esc(t.title)}</span><span class="mini muted result-subline">${esc(resultMetaLine(t))}</span></span>
+          <span class="result-corner-badges">${searchBadgeHtml(t)}${trackSourceBadge(t)}</span>
+        </button>`).join('')}</div>`;
+    renderCratePager(total);
   }
   async function loadDjCrates(force=false){
-    if(!force && cratesLoaded) return;
+    if(!force && cratesLoaded){
+      renderDjCrates(availableCrates);
+      if(activeCrateId && !activeCrateTracks.length) loadDjCrateTracks(activeCrateId, activeCrateName);
+      return;
+    }
     if(els.djCrateStatus) els.djCrateStatus.innerHTML = '<span class="spinner"></span> Loading DJ crates…';
     try{
       const data = await apiGet({action:'crates'});
-      if(data.ok){ cratesLoaded = true; availableCrates = sortCratesByName(data.crates || []); if(!activeCrateId && availableCrates.length){ activeCrateId = String(availableCrates[0].id || ''); activeCrateName = String(availableCrates[0].name || 'DJ crate'); setTimeout(()=>loadDjCrateTracks(activeCrateId, activeCrateName), 0); } if(els.djCrateStatus) els.djCrateStatus.textContent = ''; renderDjCrates(availableCrates); }
+      if(data.ok){
+        cratesLoaded = true;
+        availableCrates = sortCratesByName(data.crates || []);
+        renderDjCrates(availableCrates);
+        if(els.djCrateStatus) els.djCrateStatus.textContent = '';
+        if(activeCrateId) setTimeout(()=>loadDjCrateTracks(activeCrateId, activeCrateName), 0);
+        else renderDjCrateTracks([]);
+      }
       else { if(els.djCrateStatus) els.djCrateStatus.textContent = data.error || 'Could not load DJ crates.'; }
     } catch(e){ if(els.djCrateStatus) els.djCrateStatus.textContent = 'Could not load DJ crates.'; }
   }
   async function loadDjCrateTracks(id, name){
-    activeCrateId = id || ''; activeCrateName = name || 'DJ crate';
+    activeCrateId = id || '';
+    const crate = availableCrates.find(c => String(c.id) === String(activeCrateId));
+    activeCrateName = name || String(crate?.name || 'DJ crate');
+    renderDjCrates(availableCrates.length ? availableCrates : sortCratesByName(state?.crates || []));
+    if(!activeCrateId){ renderDjCrateTracks([]); return; }
     if(els.djCrateStatus) els.djCrateStatus.innerHTML = '<span class="spinner"></span> Loading crate tracks…';
     try{
       const data = await apiGet({action:'crate_tracks', crate_id:id});
-      if(data.ok){ if(els.djCrateStatus) els.djCrateStatus.textContent = ''; renderDjCrates(availableCrates.length ? availableCrates : sortCratesByName(state?.crates || [])); renderDjCrateTracks(data.tracks || []); }
+      if(data.ok){ if(els.djCrateStatus) els.djCrateStatus.textContent = ''; renderDjCrateTracks(data.tracks || []); }
       else { if(els.djCrateStatus) els.djCrateStatus.textContent = data.error || 'Could not load crate tracks.'; }
     } catch(e){ if(els.djCrateStatus) els.djCrateStatus.textContent = 'Could not load crate tracks.'; }
   }
-
 
   async function fetchSearchJson(url){
     const res = await fetch(url, {cache:'no-store', credentials:'same-origin'});
@@ -1242,6 +1295,23 @@ renderAccountStatus();
     const artistSearch = e.target.closest('[data-artist-search]');
     if(artistSearch){
       runArtistSearch(artistSearch.dataset.artistSearch || '', {title: artistSearch.dataset.trackTitle || ''});
+      return;
+    }
+    const cratePageBtn = e.target.closest('[data-crate-page]');
+    if(cratePageBtn){
+      if(cratePageBtn.disabled) return;
+      cratePage += cratePageBtn.dataset.cratePage === 'next' ? 1 : -1;
+      renderDjCrateTracks(activeCrateTracks);
+      return;
+    }
+    if(e.target.closest('#showNewCrate')){
+      if(els.newCratePanel) els.newCratePanel.hidden = false;
+      if(els.newCrateName) els.newCrateName.focus();
+      return;
+    }
+    if(e.target.closest('#cancelNewCrate')){
+      if(els.newCratePanel) els.newCratePanel.hidden = true;
+      if(els.newCrateName) els.newCrateName.value = '';
       return;
     }
     const searchPageBtn = e.target.closest('[data-search-page]');
@@ -1341,7 +1411,8 @@ renderAccountStatus();
   if(els.libraryViewSelect) els.libraryViewSelect.addEventListener('change', ()=>setLibraryView(els.libraryViewSelect.value || 'comfortable'));
   const refreshNow = $('#refreshNow'); if(refreshNow) refreshNow.addEventListener('click', ()=>refresh(false));
   if(els.refreshCrates) els.refreshCrates.addEventListener('click', ()=>{ cratesLoaded = false; loadDjCrates(true); });
-  if(els.createCrate) els.createCrate.addEventListener('click', async ()=>{ const name = els.newCrateName ? els.newCrateName.value : ''; await doAction({action:'create_crate', name}); if(els.newCrateName) els.newCrateName.value=''; cratesLoaded=false; loadDjCrates(true); });
+  if(els.djCrateSelect) els.djCrateSelect.addEventListener('change', ()=>{ const opt = els.djCrateSelect.options[els.djCrateSelect.selectedIndex]; cratePage = 0; clearLibrarySelection(); loadDjCrateTracks(els.djCrateSelect.value, opt ? opt.text.replace(/\s*\(\d+\)\s*$/, '') : 'DJ crate'); });
+  if(els.createCrate) els.createCrate.addEventListener('click', async ()=>{ const name = els.newCrateName ? els.newCrateName.value : ''; if(!String(name || '').trim()) return; await doAction({action:'create_crate', name}); if(els.newCrateName) els.newCrateName.value=''; if(els.newCratePanel) els.newCratePanel.hidden = true; cratesLoaded=false; loadDjCrates(true); });
   function tickDeckTimers(){
     if(!state) return;
     cleanupTransportHolds();

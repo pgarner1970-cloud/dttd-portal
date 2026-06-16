@@ -506,6 +506,10 @@ admin_header('Spotify Mixer - DJ Portal');
   }
 }
 
+
+/* Stage 5 DJ Crates compact browser */
+.crate-browser-toolbar{display:flex;align-items:end;gap:8px;margin-bottom:8px}.crate-current-wrap{display:grid;gap:4px;flex:1 1 auto}.crate-current-wrap label{color:#9fb5cd;font-size:11px;font-weight:1000;text-transform:uppercase;letter-spacing:.05em}.crate-current-wrap select{min-height:38px;border-radius:12px}.crate-create-panel{display:grid;grid-template-columns:minmax(240px,1fr) auto auto;gap:8px;margin:8px 0}.crate-create-panel[hidden]{display:none!important}.crate-browser-tracks{flex:1 1 auto;min-height:0;overflow:hidden}.crate-track-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;align-content:start;min-height:0}.music-library-body .crate-track-row{position:relative;display:grid;grid-template-columns:38px minmax(0,1fr);align-items:center;min-height:46px;padding:5px 150px 5px 8px}.music-library-body .crate-track-row img{width:30px;height:30px;border-radius:8px}.music-library-body .crate-track-row .result-title{font-size:12px;line-height:1.12}.music-library-body .crate-track-row .result-subline{min-height:18px;margin-top:1px;font-size:11px;line-height:1.1}.music-library-body .crate-track-row .result-corner-badges{top:5px;right:7px;width:136px;max-width:136px}.spotify-mixer-app.library-view-comfortable .music-library-body .crate-track-grid{gap:7px}.spotify-mixer-app.library-view-comfortable .music-library-body .crate-track-row{min-height:58px;padding:7px 142px 7px 9px}.spotify-mixer-app.library-view-comfortable .music-library-body .crate-track-row img{width:36px;height:36px}.spotify-mixer-app.library-view-comfortable .music-library-body .crate-track-row .result-title{font-size:13px}.spotify-mixer-app.library-view-comfortable .music-library-body .crate-track-row .result-subline{font-size:12px}.spotify-mixer-app.library-view-list .music-library-body .crate-track-grid{gap:3px}.spotify-mixer-app.library-view-list .music-library-body .crate-track-row{min-height:38px;padding:4px 138px 4px 7px;grid-template-columns:28px minmax(0,1fr)}.spotify-mixer-app.library-view-list .music-library-body .crate-track-row img{width:24px;height:24px;border-radius:6px}.spotify-mixer-app.library-view-list .music-library-body .crate-track-row .result-title{font-size:11px;line-height:1.08}.spotify-mixer-app.library-view-list .music-library-body .crate-track-row .result-subline{min-height:16px;font-size:10px;margin-top:0}.crate-pager{flex:0 0 auto;padding-top:5px}@media(max-width:1020px){.crate-browser-toolbar{align-items:stretch;flex-direction:column}.crate-create-panel{grid-template-columns:1fr}.crate-track-grid{grid-template-columns:1fr}}
+
 </style>
 <main class="spotify-mixer-app" data-api="<?= h(admin_url('spotify/mixer-api.php')) ?>" data-search-api="/api/spotify-search.php" data-local-search-api="<?= h(admin_url('api/local-music-search.php')) ?>">
   <div class="mixer-toast" id="mixerToast"></div>
@@ -566,11 +570,22 @@ admin_header('Spotify Mixer - DJ Portal');
             <div class="search-pager" id="searchPager" hidden></div>
           </div>
           <div class="source-panel" id="sourcePanelCrates" data-source-panel="crates">
-            <div class="source-tools"><div><div class="tiny-label">DJ crates</div><div class="mini muted">Internal saved track lists. Search Spotify once, save tracks here, then reuse them all night.</div></div><button class="mixer-btn blue" id="refreshCrates" type="button">Refresh</button></div>
-            <div class="crate-create-row"><input id="newCrateName" class="search-input" placeholder="New crate name, e.g. 80s, Floorfillers…"><button class="mixer-btn green" id="createCrate" type="button">Create</button></div>
+            <div class="crate-browser-toolbar">
+              <div class="crate-current-wrap">
+                <label for="djCrateSelect">Current crate</label>
+                <select id="djCrateSelect" class="mixer-select"></select>
+              </div>
+              <button class="mixer-btn blue" id="refreshCrates" type="button">Refresh</button>
+              <button class="mixer-btn green" id="showNewCrate" type="button">+ New Crate</button>
+            </div>
+            <div class="crate-create-panel" id="newCratePanel" hidden>
+              <input id="newCrateName" class="search-input" placeholder="New crate name, e.g. 80s, Floorfillers…">
+              <button class="mixer-btn green" id="createCrate" type="button">Create</button>
+              <button class="mixer-btn dark" id="cancelNewCrate" type="button">Cancel</button>
+            </div>
             <div id="djCrateStatus" class="mini muted"></div>
-            <div id="djCrates" class="source-list"></div>
-            <div id="djCrateTracks" class="source-list"></div>
+            <div id="djCrateTracks" class="crate-browser-tracks"></div>
+            <div class="search-pager crate-pager" id="cratePager"></div>
           </div>
           <div class="source-panel" id="sourcePanelHistory" data-source-panel="history">
             <div class="source-tools"><div><div class="tiny-label">Playback history</div><div class="mini muted">Tracks played during this mixer session/event.</div></div></div>
