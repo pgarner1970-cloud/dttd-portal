@@ -519,7 +519,7 @@ document.head.appendChild(overviewStyle);
     markLibrarySelectedElement(el);
     renderLibraryActionBar();
   }
-  function libraryAction(action){
+  async function libraryAction(action){
     if(action === 'clear_selection'){ clearLibrarySelection(); return; }
     const choice = selectedLibraryChoice;
     if(!choice || !choice.item) return;
@@ -545,7 +545,8 @@ document.head.appendChild(overviewStyle);
       if(action === 'play_a' || action === 'play_b') Object.assign(params, {action:'play_track_direct', track_json:trackJson, deck:action.slice(-1)});
     }
     if(!params.action) return;
-    doAction(params);
+    await doAction(params);
+    clearLibrarySelection();
     if(src === 'crate' && action === 'remove_crate') setTimeout(()=>loadDjCrateTracks(activeCrateId, activeCrateName), 350);
   }
   function openChoice(item, source){
