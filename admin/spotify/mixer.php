@@ -192,6 +192,79 @@ admin_header('Spotify Mixer - DJ Portal');
   .music-library-body .result-corner-badges{width:110px;max-width:110px}
 }
 
+
+/* Stage 2 alignment polish: right-justified badge strip + centred artist icon */
+.music-library-body .search-result-row{
+  padding-right:156px;
+}
+.music-library-body .result-corner-badges{
+  top:7px;
+  right:8px;
+  width:142px;
+  max-width:142px;
+  display:flex;
+  flex-wrap:nowrap;
+  justify-content:flex-end;
+  align-items:flex-start;
+  gap:4px;
+  pointer-events:none;
+}
+.music-library-body .result-corner-badges .search-result-badges{
+  display:flex;
+  flex-wrap:nowrap;
+  justify-content:flex-end;
+  align-items:flex-start;
+  gap:4px;
+  min-width:0;
+}
+.music-library-body .search-result-badge{
+  flex:0 0 auto;
+  max-width:none;
+  white-space:nowrap;
+}
+.music-library-body .source-pill{
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+.music-library-body .artist-search-btn{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:28px;
+  min-width:28px;
+  height:22px;
+  min-height:22px;
+  padding:0;
+  vertical-align:middle;
+}
+.music-library-body .artist-search-btn::before{
+  content:"";
+  width:9px;
+  height:9px;
+  border:2px solid currentColor;
+  border-radius:999px;
+  transform:translate(-1px,-1px);
+}
+.music-library-body .artist-search-btn::after{
+  content:"";
+  position:absolute;
+  width:7px;
+  height:2px;
+  border-radius:999px;
+  background:currentColor;
+  transform:translate(6px,6px) rotate(45deg);
+}
+.music-library-body .search-pager{
+  margin-top:auto;
+}
+@media(max-width:1020px){
+  .music-library-body .search-result-row{padding-right:156px}
+  .music-library-body .result-corner-badges{width:142px;max-width:142px}
+}
+
 </style>
 <main class="spotify-mixer-app" data-api="<?= h(admin_url('spotify/mixer-api.php')) ?>" data-search-api="/api/spotify-search.php" data-local-search-api="<?= h(admin_url('api/local-music-search.php')) ?>">
   <div class="mixer-toast" id="mixerToast"></div>

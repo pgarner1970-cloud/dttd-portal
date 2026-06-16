@@ -40,7 +40,7 @@ document.head.appendChild(overviewStyle);
   let lastSearchQuery = '';
   let lastSearchTracks = [];
   let searchPage = 0;
-  const SEARCH_PAGE_SIZE = 10;
+  const SEARCH_PAGE_SIZE = 12;
 
   const $ = (sel) => document.querySelector(sel);
   const els = {
@@ -74,7 +74,7 @@ document.head.appendChild(overviewStyle);
     const artist = String(track?.artist || '').trim();
     if(!artist) return '';
     const title = cleanTrackTitleForSearch(track?.title || '');
-    return `<button type="button" class="artist-search-btn" data-artist-search="${esc(artist)}" data-track-title="${esc(title)}" title="Search this song by ${esc(artist)}" aria-label="Search this artist">⌕</button>`;
+    return `<button type="button" class="artist-search-btn" data-artist-search="${esc(artist)}" data-track-title="${esc(title)}" title="Search this song by ${esc(artist)}" aria-label="Search this artist"></button>`;
   }
   function cleanTrackTitleForSearch(title){
     return String(title || '')
