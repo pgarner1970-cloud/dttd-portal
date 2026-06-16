@@ -40,7 +40,7 @@ document.head.appendChild(overviewStyle);
   let lastSearchQuery = '';
   let lastSearchTracks = [];
   let searchPage = 0;
-  const SEARCH_PAGE_SIZE = 8;
+  const SEARCH_PAGE_SIZE = 10;
 
   const $ = (sel) => document.querySelector(sel);
   const els = {
@@ -778,18 +778,37 @@ renderAccountStatus();
     }catch(e){ if(thisActionSeq === actionSequence){ if(optimisticallyUpdated) refresh(true); toast('Action failed', false); } }
     finally{ if(thisActionSeq === actionSequence) busy = false; }
   }
+  function compactBadgeLabel(label, type){
+    label = String(label || '').trim();
+    type = String(type || '').toLowerCase();
+    if(type === 'original') return 'Orig';
+    if(type === 'compilation') return 'Comp';
+    if(type === 'soundtrack') return 'Sound';
+    if(type === 'original-era') return 'Era';
+    if(type === 'remaster') return 'Rem';
+    if(type === 'instrumental') return 'Inst';
+    if(type === 'acoustic') return 'Ac';
+    if(type === 'karaoke') return 'Kar';
+    if(type === 'review') return 'Review';
+    if(type === 'matched') return 'Match';
+    return label;
+  }
   function searchBadgeHtml(track){
     const badges = (Array.isArray(track?.badges) ? track.badges : []).filter(b => {
       const type = String(b?.type || '').toLowerCase();
       return type !== 'spotify' && type !== 'local';
     });
     if(!badges.length) return '';
-    return `<div class="search-result-badges">${badges.slice(0,5).map(b=>`<span class="search-result-badge ${esc(b.type || '')}">${esc(b.label || '')}</span>`).join('')}</div>`;
+    return `<span class="search-result-badges">${badges.slice(0,4).map(b=>{
+      const type = String(b.type || '');
+      const label = String(b.label || '');
+      return `<span class="search-result-badge ${esc(type)}" title="${esc(label)}">${esc(compactBadgeLabel(label, type))}</span>`;
+    }).join('')}</span>`;
   }
   function trackSourceBadge(track){
     const src = String(track?.source || '').toLowerCase();
-    if(src === 'local') return '<span class="source-pill local">Local</span>';
-    return '<span class="source-pill spotify">Spotify</span>';
+    if(src === 'local') return '<span class="source-pill local" title="Local music">♪</span>';
+    return '<span class="source-pill spotify" title="Spotify">S</span>';
   }
   function updateLoadedPositionForDeck(deck, progressMs){
     const key = 'player_' + deck;
@@ -899,8 +918,11 @@ renderAccountStatus();
     return tracks.map(t=>`
       <div role="button" tabindex="0" class="result-row search-result-row tappable-row" data-select-track='${esc(JSON.stringify(t))}' aria-label="Choose ${esc(t.title || 'track')}">
         <img src="${esc(image(t.image))}" alt="">
-        <span class="result-main"><span class="result-title">${esc(t.title)}</span><span class="mini muted">${esc(resultMetaLine(t))}</span></span>
-        <span class="result-meta">${artistSearchButton(t)}${searchBadgeHtml(t)}${trackSourceBadge(t)}</span>
+        <span class="result-main">
+          <span class="result-title">${esc(t.title)}</span>
+          <span class="mini muted result-subline">${esc(resultMetaLine(t))}${artistSearchButton(t)}</span>
+        </span>
+        <span class="result-corner-badges">${searchBadgeHtml(t)}${trackSourceBadge(t)}</span>
       </div>`).join('');
   }
   function renderSearchPager(total){

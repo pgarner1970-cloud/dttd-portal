@@ -33,6 +33,96 @@ admin_header('Spotify Mixer - DJ Portal');
 .tappable-row:hover,.tappable-row:focus-visible{border-color:rgba(52,152,255,.64);background:rgba(52,152,255,.08);outline:none;transform:translateY(-1px)}
 .search-mode-row{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0 10px}.search-mode-btn{min-height:34px;padding:7px 11px;border-radius:11px;border:1px solid rgba(96,145,205,.46);background:rgba(11,25,44,.86);color:#dbeafe;font:inherit;font-size:12px;font-weight:1000;cursor:pointer}.search-mode-btn.active,.search-mode-btn[aria-pressed="true"]{border-color:rgba(96,165,250,.92);background:rgba(37,99,235,.34);color:#fff;box-shadow:0 0 14px rgba(37,99,235,.20)}.search-mode-btn:hover,.search-mode-btn:focus-visible{border-color:rgba(147,197,253,.95);outline:none}.search-result-row,.crate-track-row{grid-template-columns:50px minmax(0,1fr) minmax(190px,auto);min-height:62px}.search-result-row img,.crate-track-row img{width:42px;height:42px}.result-main{min-width:0;display:block}.result-main .result-title{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.result-main .mini{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.result-meta{display:flex;justify-content:flex-end;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}.artist-search-btn{display:inline-flex;align-items:center;justify-content:center;min-height:24px;padding:3px 9px;border-radius:8px;border:1px solid rgba(96,165,250,.72);background:rgba(37,99,235,.18);color:#dbeafe;font:inherit;font-size:10px;font-weight:1000;text-transform:uppercase;letter-spacing:.035em;cursor:pointer}.artist-search-btn:hover,.artist-search-btn:focus-visible{border-color:rgba(147,197,253,.95);background:rgba(37,99,235,.32);outline:none}.search-pager{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:9px}.search-page-count{min-height:36px;display:inline-flex;align-items:center;justify-content:center;padding:6px 12px;border-radius:12px;border:1px solid rgba(96,145,205,.28);background:rgba(11,25,44,.66);color:#c7d8ee;font-size:12px;font-weight:950;white-space:nowrap}.search-page-btn{min-width:120px}.search-result-badges{max-width:220px}.source-pill{display:inline-flex;align-items:center;border-radius:999px;padding:3px 8px;font-size:10px;font-weight:1000;text-transform:uppercase;letter-spacing:.035em;border:1px solid rgba(148,163,184,.45);background:rgba(148,163,184,.1);color:#dbeafe}.source-pill.spotify{border-color:rgba(34,197,94,.72);background:rgba(34,197,94,.13);color:#8dffbb}.source-pill.local{border-color:rgba(251,191,36,.78);background:rgba(251,191,36,.15);color:#ffe7a6}.source-panel[data-source-panel="crates"] .source-list{max-height:238px;overflow:auto;overscroll-behavior:contain;padding-right:4px}.source-panel[data-source-panel="crates"] #djCrateTracks{max-height:430px}.crate-row{grid-template-columns:44px minmax(0,1fr);min-height:58px}.crate-row-copy{min-width:0;display:block}.crate-row-copy strong,.crate-row-copy .mini{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.crate-track-heading{margin-top:10px;padding-top:8px;border-top:1px solid rgba(91,140,192,.18)}
 @media(max-width:700px){.search-mode-row{gap:6px}.search-mode-btn{min-height:32px;padding:6px 9px}.search-result-row,.crate-track-row{grid-template-columns:44px minmax(0,1fr);min-height:62px}.result-meta{grid-column:2/-1;justify-content:flex-start}.artist-search-btn{min-height:22px;padding:3px 8px}.search-pager{align-items:stretch}.search-page-btn{min-width:0;flex:1}.search-page-count{flex:1;font-size:11px;text-align:center}.search-result-badges{max-width:none}.source-panel[data-source-panel="crates"] .source-list{max-height:280px}.source-panel[data-source-panel="crates"] #djCrateTracks{max-height:460px}}
+
+/* Stage 2 compact modal result cards */
+.music-library-body .search-results{
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+}
+.music-library-body .search-result-row{
+  position:relative;
+  display:grid;
+  grid-template-columns:38px minmax(0,1fr);
+  min-height:54px;
+  padding:7px 96px 7px 9px;
+  align-items:center;
+}
+.music-library-body .search-result-row img{
+  width:34px;
+  height:34px;
+  border-radius:9px;
+}
+.music-library-body .search-result-row .result-main{
+  padding-right:0;
+}
+.music-library-body .search-result-row .result-title{
+  font-size:13px;
+  line-height:1.18;
+  padding-right:0;
+}
+.music-library-body .search-result-row .result-subline{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin-top:2px;
+  min-height:22px;
+  font-size:12px;
+}
+.music-library-body .artist-search-btn{
+  min-height:22px;
+  padding:2px 7px;
+  border-radius:7px;
+  font-size:9px;
+  line-height:1;
+  white-space:nowrap;
+}
+.music-library-body .result-corner-badges{
+  position:absolute;
+  top:7px;
+  right:8px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:4px;
+  max-width:92px;
+  flex-wrap:wrap;
+  pointer-events:none;
+}
+.music-library-body .result-corner-badges .search-result-badges{
+  display:flex;
+  gap:4px;
+  align-items:center;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+}
+.music-library-body .search-result-badge,
+.music-library-body .source-pill{
+  min-height:18px;
+  padding:2px 6px;
+  font-size:9px;
+  line-height:1;
+}
+.music-library-body .source-pill{
+  min-width:20px;
+  justify-content:center;
+  padding-left:5px;
+  padding-right:5px;
+}
+.music-library-body .source-pill.spotify{
+  font-weight:1000;
+}
+.music-library-body .source-pill.local{
+  font-weight:1000;
+}
+.music-library-body .search-pager{
+  padding-top:7px;
+}
+@media(max-width:1020px){
+  .music-library-body .search-results{grid-template-columns:1fr}
+  .music-library-body .search-result-row{padding-right:112px}
+  .music-library-body .result-corner-badges{max-width:108px}
+}
+
 </style>
 <main class="spotify-mixer-app" data-api="<?= h(admin_url('spotify/mixer-api.php')) ?>" data-search-api="/api/spotify-search.php" data-local-search-api="<?= h(admin_url('api/local-music-search.php')) ?>">
   <div class="mixer-toast" id="mixerToast"></div>
