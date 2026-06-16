@@ -36,6 +36,7 @@ document.head.appendChild(overviewStyle);
   let activeCrateName = '';
   let activeCrateTracks = [];
   let cratePage = 0;
+  let crateDrawerOpen = true;
   let availableCrates = [];
   let searchMode = 'broad';
   let lastSearchQuery = '';
@@ -81,7 +82,7 @@ document.head.appendChild(overviewStyle);
     publicRequests: $('#publicRequests'), djPlaylist: $('#djPlaylist'),
     requestCount: $('#requestCount'), playlistCount: $('#playlistCount'),
     sourceTabs: document.querySelectorAll('[data-source-tab]'), sourcePanels: document.querySelectorAll('[data-source-panel]'),
-    djCrateSelect: $('#djCrateSelect'), djCrateTracks: $('#djCrateTracks'), cratePager: $('#cratePager'), djCrateStatus: $('#djCrateStatus'), refreshCrates: $('#refreshCrates'), showNewCrate: $('#showNewCrate'), newCratePanel: $('#newCratePanel'), cancelNewCrate: $('#cancelNewCrate'), newCrateName: $('#newCrateName'), createCrate: $('#createCrate'), historyList: $('#historyList'),
+    djCrateTiles: $('#djCrateTiles'), crateTileDrawer: $('#crateTileDrawer'), crateDrawerToggle: $('#crateDrawerToggle'), crateSummaryName: $('#crateSummaryName'), crateSummaryCount: $('#crateSummaryCount'), djCrateTracks: $('#djCrateTracks'), cratePager: $('#cratePager'), djCrateStatus: $('#djCrateStatus'), refreshCrates: $('#refreshCrates'), showNewCrate: $('#showNewCrate'), newCratePanel: $('#newCratePanel'), cancelNewCrate: $('#cancelNewCrate'), newCrateName: $('#newCrateName'), createCrate: $('#createCrate'), historyList: $('#historyList'),
     choiceModal: $('#mixerChoiceModal'), choiceImage: $('#choiceImage'), choiceTitle: $('#choiceTitle'), choiceArtist: $('#choiceArtist'), choiceActions: $('#choiceActions'), choiceWarning: $('#choiceWarning'), choiceCancel: $('#choiceCancel'),
     musicLibraryModal: $('#musicLibraryModal'), openMusicLibrary: $('#openMusicLibrary'), closeMusicLibrary: $('#closeMusicLibrary'), musicLibraryActionBar: $('#musicLibraryActionBar')
   };
@@ -1133,14 +1134,29 @@ renderAccountStatus();
         </div>
       </div>`).join('');
   }
+  function setCrateDrawer(open){
+    crateDrawerOpen = !!open;
+    if(els.crateTileDrawer) els.crateTileDrawer.hidden = !crateDrawerOpen;
+    if(els.crateDrawerToggle) els.crateDrawerToggle.setAttribute('aria-expanded', crateDrawerOpen ? 'true' : 'false');
+  }
+  function updateCrateSummary(){
+    const crate = availableCrates.find(c => String(c.id) === String(activeCrateId));
+    const name = activeCrateName || String(crate?.name || 'Choose a crate');
+    const count = crate ? Number(crate.track_count || 0) : 0;
+    if(els.crateSummaryName) els.crateSummaryName.textContent = name;
+    if(els.crateSummaryCount) els.crateSummaryCount.textContent = crate ? (count + ' saved track' + (count === 1 ? '' : 's')) : 'Tap a tile below';
+    if(els.crateDrawerToggle) els.crateDrawerToggle.classList.toggle('has-selection', !!crate);
+  }
   function renderDjCrates(crates){
     crates = sortCratesByName(crates || []);
     availableCrates = crates;
-    if(!els.djCrateSelect) return;
+    if(!els.djCrateTiles) return;
     if(!crates.length){
-      els.djCrateSelect.innerHTML = '<option value="">No crates yet</option>';
       activeCrateId = '';
       activeCrateName = '';
+      els.djCrateTiles.innerHTML = '<div class="empty crate-empty">No DJ crates yet. Press + New Crate to create one.</div>';
+      updateCrateSummary();
+      setCrateDrawer(true);
       renderDjCrateTracks([]);
       return;
     }
@@ -1148,8 +1164,16 @@ renderAccountStatus();
       activeCrateId = String(crates[0].id || '');
       activeCrateName = String(crates[0].name || 'DJ crate');
     }
-    els.djCrateSelect.innerHTML = crates.map(c => `<option value="${esc(c.id)}">${esc(c.name)} (${Number(c.track_count || 0)})</option>`).join('');
-    els.djCrateSelect.value = activeCrateId;
+    els.djCrateTiles.innerHTML = crates.map(c => `
+      <button type="button" class="crate-tile${String(c.id) === String(activeCrateId) ? ' active-crate' : ''}" data-open-dj-crate="${esc(c.id)}" data-crate-name="${esc(c.name)}" aria-label="Open DJ crate ${esc(c.name)}">
+        <span class="crate-tile-icon">♫</span>
+        <span class="crate-tile-copy">
+          <strong>${esc(c.name)}</strong>
+          <small>${Number(c.track_count || 0)} track${Number(c.track_count || 0) === 1 ? '' : 's'}</small>
+        </span>
+      </button>`).join('');
+    updateCrateSummary();
+    setCrateDrawer(crateDrawerOpen);
   }
   function renderCratePager(total){
     if(!els.cratePager) return;
@@ -1219,6 +1243,7 @@ renderAccountStatus();
     const crate = availableCrates.find(c => String(c.id) === String(activeCrateId));
     activeCrateName = name || String(crate?.name || 'DJ crate');
     renderDjCrates(availableCrates.length ? availableCrates : sortCratesByName(state?.crates || []));
+    if(activeCrateId) setCrateDrawer(false);
     if(!activeCrateId){ renderDjCrateTracks([]); return; }
     if(els.djCrateStatus) els.djCrateStatus.innerHTML = '<span class="spinner"></span> Loading crate tracks…';
     try{
@@ -1302,6 +1327,10 @@ renderAccountStatus();
       if(cratePageBtn.disabled) return;
       cratePage += cratePageBtn.dataset.cratePage === 'next' ? 1 : -1;
       renderDjCrateTracks(activeCrateTracks);
+      return;
+    }
+    if(e.target.closest('#crateDrawerToggle')){
+      setCrateDrawer(!crateDrawerOpen);
       return;
     }
     if(e.target.closest('#showNewCrate')){
@@ -1411,8 +1440,7 @@ renderAccountStatus();
   if(els.libraryViewSelect) els.libraryViewSelect.addEventListener('change', ()=>setLibraryView(els.libraryViewSelect.value || 'comfortable'));
   const refreshNow = $('#refreshNow'); if(refreshNow) refreshNow.addEventListener('click', ()=>refresh(false));
   if(els.refreshCrates) els.refreshCrates.addEventListener('click', ()=>{ cratesLoaded = false; loadDjCrates(true); });
-  if(els.djCrateSelect) els.djCrateSelect.addEventListener('change', ()=>{ const opt = els.djCrateSelect.options[els.djCrateSelect.selectedIndex]; cratePage = 0; clearLibrarySelection(); loadDjCrateTracks(els.djCrateSelect.value, opt ? opt.text.replace(/\s*\(\d+\)\s*$/, '') : 'DJ crate'); });
-  if(els.createCrate) els.createCrate.addEventListener('click', async ()=>{ const name = els.newCrateName ? els.newCrateName.value : ''; if(!String(name || '').trim()) return; await doAction({action:'create_crate', name}); if(els.newCrateName) els.newCrateName.value=''; if(els.newCratePanel) els.newCratePanel.hidden = true; cratesLoaded=false; loadDjCrates(true); });
+  if(els.createCrate) els.createCrate.addEventListener('click', async ()=>{ const name = els.newCrateName ? els.newCrateName.value : ''; if(!String(name || '').trim()) return; await doAction({action:'create_crate', name}); if(els.newCrateName) els.newCrateName.value=''; if(els.newCratePanel) els.newCratePanel.hidden = true; crateDrawerOpen = true; cratesLoaded=false; loadDjCrates(true); });
   function tickDeckTimers(){
     if(!state) return;
     cleanupTransportHolds();

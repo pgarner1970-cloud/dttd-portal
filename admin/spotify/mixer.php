@@ -510,6 +510,159 @@ admin_header('Spotify Mixer - DJ Portal');
 /* Stage 5 DJ Crates compact browser */
 .crate-browser-toolbar{display:flex;align-items:end;gap:8px;margin-bottom:8px}.crate-current-wrap{display:grid;gap:4px;flex:1 1 auto}.crate-current-wrap label{color:#9fb5cd;font-size:11px;font-weight:1000;text-transform:uppercase;letter-spacing:.05em}.crate-current-wrap select{min-height:38px;border-radius:12px}.crate-create-panel{display:grid;grid-template-columns:minmax(240px,1fr) auto auto;gap:8px;margin:8px 0}.crate-create-panel[hidden]{display:none!important}.crate-browser-tracks{flex:1 1 auto;min-height:0;overflow:hidden}.crate-track-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;align-content:start;min-height:0}.music-library-body .crate-track-row{position:relative;display:grid;grid-template-columns:38px minmax(0,1fr);align-items:center;min-height:46px;padding:5px 150px 5px 8px}.music-library-body .crate-track-row img{width:30px;height:30px;border-radius:8px}.music-library-body .crate-track-row .result-title{font-size:12px;line-height:1.12}.music-library-body .crate-track-row .result-subline{min-height:18px;margin-top:1px;font-size:11px;line-height:1.1}.music-library-body .crate-track-row .result-corner-badges{top:5px;right:7px;width:136px;max-width:136px}.spotify-mixer-app.library-view-comfortable .music-library-body .crate-track-grid{gap:7px}.spotify-mixer-app.library-view-comfortable .music-library-body .crate-track-row{min-height:58px;padding:7px 142px 7px 9px}.spotify-mixer-app.library-view-comfortable .music-library-body .crate-track-row img{width:36px;height:36px}.spotify-mixer-app.library-view-comfortable .music-library-body .crate-track-row .result-title{font-size:13px}.spotify-mixer-app.library-view-comfortable .music-library-body .crate-track-row .result-subline{font-size:12px}.spotify-mixer-app.library-view-list .music-library-body .crate-track-grid{gap:3px}.spotify-mixer-app.library-view-list .music-library-body .crate-track-row{min-height:38px;padding:4px 138px 4px 7px;grid-template-columns:28px minmax(0,1fr)}.spotify-mixer-app.library-view-list .music-library-body .crate-track-row img{width:24px;height:24px;border-radius:6px}.spotify-mixer-app.library-view-list .music-library-body .crate-track-row .result-title{font-size:11px;line-height:1.08}.spotify-mixer-app.library-view-list .music-library-body .crate-track-row .result-subline{min-height:16px;font-size:10px;margin-top:0}.crate-pager{flex:0 0 auto;padding-top:5px}@media(max-width:1020px){.crate-browser-toolbar{align-items:stretch;flex-direction:column}.crate-create-panel{grid-template-columns:1fr}.crate-track-grid{grid-template-columns:1fr}}
 
+
+/* Stage 5b DJ Crates tile drawer */
+.crate-browser-toolbar{
+  align-items:stretch;
+}
+.crate-selected-summary{
+  flex:1 1 auto;
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr) auto;
+  align-items:center;
+  gap:9px;
+  min-height:44px;
+  padding:7px 10px;
+  border-radius:13px;
+  border:1px solid rgba(96,145,205,.34);
+  background:rgba(11,25,44,.72);
+  color:#f3f8ff;
+  text-align:left;
+  cursor:pointer;
+}
+.crate-selected-summary:hover,
+.crate-selected-summary:focus-visible{
+  border-color:rgba(96,165,250,.8);
+  outline:none;
+  background:rgba(37,99,235,.16);
+}
+.crate-summary-icon{
+  width:30px;
+  height:30px;
+  border-radius:9px;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(52,152,255,.32);
+  background:rgba(52,152,255,.12);
+  color:#bfe1ff;
+  font-weight:1000;
+}
+.crate-summary-copy{
+  min-width:0;
+}
+.crate-summary-copy strong,
+.crate-summary-copy small{
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.crate-summary-copy strong{
+  font-size:13px;
+  font-weight:1000;
+}
+.crate-summary-copy small{
+  margin-top:2px;
+  color:#9fb5cd;
+  font-size:11px;
+  font-weight:850;
+}
+.crate-summary-change{
+  color:#9bd3ff;
+  font-size:11px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.crate-tile-drawer{
+  margin:0 0 8px;
+  padding:8px;
+  border-radius:14px;
+  border:1px solid rgba(96,145,205,.22);
+  background:rgba(6,16,30,.36);
+  max-height:156px;
+  overflow:auto;
+  overscroll-behavior:contain;
+}
+.crate-tile-drawer[hidden]{
+  display:none!important;
+}
+.crate-tile-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  gap:6px;
+  margin-top:6px;
+}
+.crate-tile{
+  display:grid;
+  grid-template-columns:30px minmax(0,1fr);
+  align-items:center;
+  gap:8px;
+  min-height:42px;
+  padding:6px 8px;
+  border-radius:12px;
+  border:1px solid rgba(96,145,205,.24);
+  background:rgba(255,255,255,.028);
+  color:#f3f8ff;
+  text-align:left;
+  cursor:pointer;
+}
+.crate-tile:hover,
+.crate-tile:focus-visible{
+  outline:none;
+  border-color:rgba(96,165,250,.8);
+  background:rgba(52,152,255,.12);
+}
+.crate-tile.active-crate{
+  border-color:rgba(255,193,7,.64)!important;
+  box-shadow:0 0 0 1px rgba(255,193,7,.18),0 0 14px rgba(255,193,7,.13);
+}
+.crate-tile-icon{
+  width:30px;
+  height:30px;
+  border-radius:9px;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(52,152,255,.32);
+  background:rgba(52,152,255,.13);
+  color:#bfe1ff;
+  font-size:16px;
+}
+.crate-tile-copy{
+  min-width:0;
+}
+.crate-tile-copy strong,
+.crate-tile-copy small{
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.crate-tile-copy strong{
+  font-size:12px;
+  line-height:1.1;
+}
+.crate-tile-copy small{
+  margin-top:2px;
+  color:#9fb5cd;
+  font-size:10px;
+  font-weight:850;
+}
+.crate-empty{
+  grid-column:1/-1;
+}
+@media(max-width:1020px){
+  .crate-selected-summary{
+    grid-template-columns:34px minmax(0,1fr);
+  }
+  .crate-summary-change{
+    grid-column:1/-1;
+  }
+  .crate-tile-grid{
+    grid-template-columns:repeat(auto-fill,minmax(132px,1fr));
+  }
+}
+
 </style>
 <main class="spotify-mixer-app" data-api="<?= h(admin_url('spotify/mixer-api.php')) ?>" data-search-api="/api/spotify-search.php" data-local-search-api="<?= h(admin_url('api/local-music-search.php')) ?>">
   <div class="mixer-toast" id="mixerToast"></div>
@@ -571,12 +724,20 @@ admin_header('Spotify Mixer - DJ Portal');
           </div>
           <div class="source-panel" id="sourcePanelCrates" data-source-panel="crates">
             <div class="crate-browser-toolbar">
-              <div class="crate-current-wrap">
-                <label for="djCrateSelect">Current crate</label>
-                <select id="djCrateSelect" class="mixer-select"></select>
-              </div>
+              <button class="crate-selected-summary" id="crateDrawerToggle" type="button" aria-expanded="true">
+                <span class="crate-summary-icon">▦</span>
+                <span class="crate-summary-copy">
+                  <strong id="crateSummaryName">Choose a crate</strong>
+                  <small id="crateSummaryCount">Tap a tile below</small>
+                </span>
+                <span class="crate-summary-change">Change crate</span>
+              </button>
               <button class="mixer-btn blue" id="refreshCrates" type="button">Refresh</button>
               <button class="mixer-btn green" id="showNewCrate" type="button">+ New Crate</button>
+            </div>
+            <div class="crate-tile-drawer" id="crateTileDrawer">
+              <div class="tiny-label">Choose crate</div>
+              <div class="crate-tile-grid" id="djCrateTiles"></div>
             </div>
             <div class="crate-create-panel" id="newCratePanel" hidden>
               <input id="newCrateName" class="search-input" placeholder="New crate name, e.g. 80s, Floorfillers…">
