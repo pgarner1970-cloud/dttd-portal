@@ -40,7 +40,12 @@ document.head.appendChild(overviewStyle);
   let lastSearchQuery = '';
   let lastSearchTracks = [];
   let searchPage = 0;
-  const SEARCH_PAGE_SIZE = 16;
+  let libraryViewMode = localStorage.getItem('dttd_music_library_view') || 'comfortable';
+  function searchPageSize(){
+    if(libraryViewMode === 'list') return 20;
+    if(libraryViewMode === 'compact') return 16;
+    return 10;
+  }
 
   const $ = (sel) => document.querySelector(sel);
   const els = {
@@ -51,7 +56,7 @@ document.head.appendChild(overviewStyle);
     loadedA: $('#loadedA'), loadedB: $('#loadedB'), deckANote: $('#deckANote'), deckBNote: $('#deckBNote'),
     spotifyStatus: $('#spotifyStatus'),
     search: $('#spotifySearch'), searchResults: $('#searchResults'), searchStatus: $('#searchStatus'),
-    searchModeButtons: document.querySelectorAll('[data-search-mode]'), searchPager: $('#searchPager'),
+    searchModeButtons: document.querySelectorAll('[data-search-mode]'), searchPager: $('#searchPager'), libraryViewButtons: document.querySelectorAll('[data-library-view]'),
     publicRequests: $('#publicRequests'), djPlaylist: $('#djPlaylist'),
     requestCount: $('#requestCount'), playlistCount: $('#playlistCount'),
     sourceTabs: document.querySelectorAll('[data-source-tab]'), sourcePanels: document.querySelectorAll('[data-source-panel]'),
@@ -105,6 +110,28 @@ document.head.appendChild(overviewStyle);
       btn.classList.toggle('active', active);
       btn.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
+  }
+  function updateLibraryView(){
+    libraryViewMode = ['comfortable','compact','list'].includes(libraryViewMode) ? libraryViewMode : 'comfortable';
+    if(app){
+      app.classList.toggle('library-view-comfortable', libraryViewMode === 'comfortable');
+      app.classList.toggle('library-view-compact', libraryViewMode === 'compact');
+      app.classList.toggle('library-view-list', libraryViewMode === 'list');
+    }
+    if(els.libraryViewButtons){
+      els.libraryViewButtons.forEach(btn => {
+        const active = btn.dataset.libraryView === libraryViewMode;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    }
+  }
+  function setLibraryView(mode){
+    libraryViewMode = ['comfortable','compact','list'].includes(mode) ? mode : 'comfortable';
+    try{ localStorage.setItem('dttd_music_library_view', libraryViewMode); }catch(e){}
+    searchPage = 0;
+    updateLibraryView();
+    renderSearchResults(lastSearchTracks);
   }
   function currentSearchLooksLikeTrackTitle(query, sourceTrack){
     query = String(query || '').trim();
@@ -927,14 +954,14 @@ renderAccountStatus();
   }
   function renderSearchPager(total){
     if(!els.searchPager) return;
-    if(total <= SEARCH_PAGE_SIZE){
+    if(total <= searchPageSize()){
       els.searchPager.innerHTML = '';
       els.searchPager.hidden = true;
       return;
     }
-    const pages = Math.max(1, Math.ceil(total / SEARCH_PAGE_SIZE));
-    const from = searchPage * SEARCH_PAGE_SIZE + 1;
-    const to = Math.min(total, from + SEARCH_PAGE_SIZE - 1);
+    const pages = Math.max(1, Math.ceil(total / searchPageSize()));
+    const from = searchPage * searchPageSize() + 1;
+    const to = Math.min(total, from + searchPageSize() - 1);
     els.searchPager.hidden = false;
     els.searchPager.innerHTML = `
       <button type="button" class="mixer-btn dark search-page-btn" data-search-page="prev" ${searchPage <= 0 ? 'disabled' : ''}>‹ Previous</button>
@@ -950,10 +977,10 @@ renderAccountStatus();
       renderSearchPager(0);
       return;
     }
-    const pages = Math.max(1, Math.ceil(total / SEARCH_PAGE_SIZE));
+    const pages = Math.max(1, Math.ceil(total / searchPageSize()));
     searchPage = Math.max(0, Math.min(searchPage, pages - 1));
-    const start = searchPage * SEARCH_PAGE_SIZE;
-    els.searchResults.innerHTML = searchResultRows(lastSearchTracks.slice(start, start + SEARCH_PAGE_SIZE));
+    const start = searchPage * searchPageSize();
+    els.searchResults.innerHTML = searchResultRows(lastSearchTracks.slice(start, start + searchPageSize()));
     renderSearchPager(total);
   }
   function setSourceTab(name){
@@ -1109,6 +1136,11 @@ renderAccountStatus();
       }
       return;
     }
+    const viewBtn = e.target.closest('[data-library-view]');
+    if(viewBtn){
+      setLibraryView(viewBtn.dataset.libraryView || 'comfortable');
+      return;
+    }
     const sourceTab = e.target.closest('[data-source-tab]');
     if(sourceTab){ setSourceTab(sourceTab.dataset.sourceTab || 'search'); return; }
     const openDjCrate = e.target.closest('[data-open-dj-crate]');
@@ -1186,6 +1218,7 @@ renderAccountStatus();
   });
   window.addEventListener('focus', ()=>refresh(true));
   updateSearchModeButtons();
+  updateLibraryView();
   refresh(false);
   pollTimer = setInterval(()=>refresh(true), STATE_POLL_MS);
   uiTimer = setInterval(tickDeckTimers, 1000);

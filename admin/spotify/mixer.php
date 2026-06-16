@@ -348,6 +348,20 @@ admin_header('Spotify Mixer - DJ Portal');
   }
 }
 
+
+/* Music Library view modes + badge key */
+.music-library-view-row{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap;margin-top:7px}.music-library-view-row .view-label{color:#9fb5cd;font-size:11px;font-weight:1000;text-transform:uppercase;letter-spacing:.05em}.view-mode-btn{min-height:28px;padding:5px 9px;border-radius:999px;border:1px solid rgba(96,145,205,.42);background:rgba(11,25,44,.76);color:#dbeafe;font:inherit;font-size:11px;font-weight:1000;cursor:pointer}.view-mode-btn.active,.view-mode-btn[aria-pressed="true"]{border-color:rgba(96,165,250,.9);background:rgba(37,99,235,.32);color:#fff}.music-library-key{margin-top:6px;padding:5px 8px;border-radius:10px;border:1px solid rgba(91,140,192,.22);background:rgba(11,25,44,.44);color:#9fb5cd;font-size:11px;line-height:1.25;font-weight:850}.music-library-key span{color:#dbeafe;font-weight:950}
+
+/* Comfortable view: clearer cards, fewer per page */
+.spotify-mixer-app.library-view-comfortable .music-library-body .search-results{gap:7px}.spotify-mixer-app.library-view-comfortable .music-library-body .search-result-row{min-height:58px;padding:7px 142px 7px 9px}.spotify-mixer-app.library-view-comfortable .music-library-body .search-result-row img{width:36px;height:36px}.spotify-mixer-app.library-view-comfortable .music-library-body .search-result-row .result-title{font-size:13px}.spotify-mixer-app.library-view-comfortable .music-library-body .search-result-row .result-subline{font-size:12px}
+
+/* Compact view: 16 per page */
+.spotify-mixer-app.library-view-compact .music-library-body .search-results{gap:4px}.spotify-mixer-app.library-view-compact .music-library-body .search-result-row{min-height:46px;padding:5px 150px 5px 8px}.spotify-mixer-app.library-view-compact .music-library-body .search-result-row img{width:30px;height:30px}.spotify-mixer-app.library-view-compact .music-library-body .search-result-row .result-title{font-size:12px}.spotify-mixer-app.library-view-compact .music-library-body .search-result-row .result-subline{font-size:11px}
+
+/* List view: densest text-first rows for larger result sets */
+.spotify-mixer-app.library-view-list .music-library-body .search-results{grid-template-columns:1fr 1fr;gap:3px}.spotify-mixer-app.library-view-list .music-library-body .search-result-row{min-height:38px;padding:4px 138px 4px 7px;grid-template-columns:28px minmax(0,1fr)}.spotify-mixer-app.library-view-list .music-library-body .search-result-row img{width:24px;height:24px;border-radius:6px}.spotify-mixer-app.library-view-list .music-library-body .search-result-row .result-title{font-size:11px;line-height:1.08}.spotify-mixer-app.library-view-list .music-library-body .search-result-row .result-subline{min-height:16px;font-size:10px;margin-top:0}.spotify-mixer-app.library-view-list .music-library-body .artist-search-btn{width:22px;min-width:22px;height:18px;min-height:18px}
+@media(max-width:1020px){.music-library-view-row{justify-content:flex-start}.music-library-key{font-size:10px}}
+
 </style>
 <main class="spotify-mixer-app" data-api="<?= h(admin_url('spotify/mixer-api.php')) ?>" data-search-api="/api/spotify-search.php" data-local-search-api="<?= h(admin_url('api/local-music-search.php')) ?>">
   <div class="mixer-toast" id="mixerToast"></div>
@@ -393,6 +407,13 @@ admin_header('Spotify Mixer - DJ Portal');
                 <button class="mixer-btn red clear-search-x" id="clearSearch" type="button" title="Clear search" aria-label="Clear search">×</button>
               </div>
             </div>
+            <div class="music-library-view-row" role="group" aria-label="Music Library view">
+              <span class="view-label">View:</span>
+              <button class="view-mode-btn active" type="button" data-library-view="comfortable" aria-pressed="true">▦ Comfortable</button>
+              <button class="view-mode-btn" type="button" data-library-view="compact" aria-pressed="false">▤ Compact</button>
+              <button class="view-mode-btn" type="button" data-library-view="list" aria-pressed="false">☰ List</button>
+            </div>
+            <div class="music-library-key">Key: <span>80s Decade</span> · <span>Orig Original</span> · <span>Era Original-era</span> · <span>Rem Remaster</span> · <span>Comp Compilation</span> · <span>♬ Spotify</span> · <span>▣ Local</span></div>
             <div id="searchStatus" class="mini muted" style="margin-top:8px"></div>
             <div class="search-results" id="searchResults"></div>
             <div class="search-pager" id="searchPager" hidden></div>
