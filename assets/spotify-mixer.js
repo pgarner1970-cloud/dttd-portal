@@ -105,18 +105,53 @@ document.head.appendChild(overviewStyle);
       btn.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
   }
+  function currentSearchLooksLikeTrackTitle(query, sourceTrack){
+    query = String(query || '').trim();
+    if(!query) return false;
+
+    const trackTitle = cleanTrackTitleForSearch(sourceTrack?.title || '');
+    if(trackTitle && query.length >= 6){
+      const q = query.toLowerCase();
+      const t = trackTitle.toLowerCase();
+      if(t.includes(q) || q.includes(t)) return true;
+    }
+
+    // One-word broad searches such as "Michael" are normally artist/category
+    // probes, not enough evidence for a track+artist refinement.
+    if(!/\s/.test(query)) return false;
+
+    // Short two-word searches are often partial artist names; keep Artist search
+    // literal unless the query resembles a song title.
+    const songTitleSignals = /\b(love|eyes|heart|night|dance|song|baby|girl|boy|you|me|my|your|the|of|to|in|on|with|without|take|want|need|get|give|make|feel|can't|cant|don't|dont|won't|wont)\b/i;
+    return query.length >= 10 && songTitleSignals.test(query);
+  }
   function runArtistSearch(artist, sourceTrack){
     artist = String(artist || '').trim();
     if(!artist || !els.search) return;
+
     const currentQuery = String(els.search.value || lastSearchQuery || '').trim();
-    const trackTitle = cleanTrackTitleForSearch(currentQuery || sourceTrack?.title || '');
+    const sourceTitle = String(sourceTrack?.title || '').trim();
+    const trackTitle = cleanTrackTitleForSearch(currentQuery || sourceTitle);
+    const useTrackArtist = currentSearchLooksLikeTrackTitle(currentQuery, sourceTrack);
+
     setSourceTab('search');
-    searchMode = trackTitle ? 'track_artist' : 'broad';
+
+    if(useTrackArtist && trackTitle){
+      searchMode = 'track_artist';
+      els.search.value = trackTitle;
+      updateSearchModeButtons();
+      els.search.focus();
+      clearTimeout(searchTimer);
+      search(trackTitle, {artist});
+      return;
+    }
+
+    searchMode = 'broad';
     updateSearchModeButtons();
-    els.search.value = trackTitle || artist;
+    els.search.value = artist;
     els.search.focus();
     clearTimeout(searchTimer);
-    search(els.search.value, {artist});
+    search(artist);
   }
   function sourceLabel(track){
     const src = String(track?.loaded_origin || track?.source || '').toLowerCase();
