@@ -2069,7 +2069,9 @@ try {
 
     if ($action === 'search') {
         $q = trim((string)($_GET['q'] ?? $_POST['q'] ?? ''));
-        $tracks = strlen($q) >= 2 ? dttd_spotify_search_tracks($q, 8) : [];
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : (isset($_POST['limit']) ? (int)$_POST['limit'] : 16);
+        $limit = max(1, min(20, $limit));
+        $tracks = strlen($q) >= 2 ? dttd_spotify_search_tracks($q, $limit) : [];
         mx_json_out(['ok' => true, 'tracks' => array_values(array_map('mx_track_output', $tracks))]);
     }
 

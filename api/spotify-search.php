@@ -16,6 +16,8 @@ if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], [
 }
 
 $q = trim((string)($_GET['q'] ?? ''));
+$limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 16;
+$limit = max(1, min(20, $limit));
 
 try {
     if ($q === '' || mb_strlen($q) < 3) {
@@ -29,9 +31,9 @@ try {
         exit;
     }
 
-    $result = dttd_spotify_cached_search_tracks($q, 8, [
+    $result = dttd_spotify_cached_search_tracks($q, $limit, [
         'min_length' => 3,
-        'cache_enough' => 5,
+        'cache_enough' => min(10, $limit),
     ]);
     $tracks = $result['tracks'] ?? [];
     $meta = $result['meta'] ?? [];
@@ -48,7 +50,7 @@ try {
     ], JSON_UNESCAPED_SLASHES);
 } catch (Throwable $e) {
     http_response_code(200);
-    $cached = dttd_track_cache_search($q, 8);
+    $cached = dttd_track_cache_search($q, $limit);
     echo json_encode([
         'ok' => true,
         'configured' => function_exists('dttd_spotify_config_loaded') ? dttd_spotify_config_loaded() : true,

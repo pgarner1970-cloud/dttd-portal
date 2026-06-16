@@ -36,6 +36,11 @@ document.head.appendChild(overviewStyle);
   let activeCrateName = '';
   let activeCrateTracks = [];
   let availableCrates = [];
+  let searchMode = 'broad';
+  let lastSearchQuery = '';
+  let lastSearchTracks = [];
+  let searchPage = 0;
+  const SEARCH_PAGE_SIZE = 8;
 
   const $ = (sel) => document.querySelector(sel);
   const els = {
@@ -46,6 +51,7 @@ document.head.appendChild(overviewStyle);
     loadedA: $('#loadedA'), loadedB: $('#loadedB'), deckANote: $('#deckANote'), deckBNote: $('#deckBNote'),
     spotifyStatus: $('#spotifyStatus'),
     search: $('#spotifySearch'), searchResults: $('#searchResults'), searchStatus: $('#searchStatus'),
+    searchModeButtons: document.querySelectorAll('[data-search-mode]'), searchPager: $('#searchPager'),
     publicRequests: $('#publicRequests'), djPlaylist: $('#djPlaylist'),
     requestCount: $('#requestCount'), playlistCount: $('#playlistCount'),
     sourceTabs: document.querySelectorAll('[data-source-tab]'), sourcePanels: document.querySelectorAll('[data-source-panel]'),
@@ -66,16 +72,51 @@ document.head.appendChild(overviewStyle);
   function artistSearchButton(track){
     const artist = String(track?.artist || '').trim();
     if(!artist) return '';
-    return `<button type="button" class="artist-search-btn" data-artist-search="${esc(artist)}" title="Search for more by ${esc(artist)}">Artist search</button>`;
+    const title = cleanTrackTitleForSearch(track?.title || '');
+    return `<button type="button" class="artist-search-btn" data-artist-search="${esc(artist)}" data-track-title="${esc(title)}" title="Search this song by ${esc(artist)}">Artist search</button>`;
   }
-  function runArtistSearch(artist){
+  function cleanTrackTitleForSearch(title){
+    return String(title || '')
+      .replace(/\s*[-–—:]\s*(original\s+)?(extended|single|radio|club|dance|album|remaster(ed)?|remix|reprise|version|edit|mix).*$/i, '')
+      .replace(/\((original\s+)?(extended|single|radio|club|dance|album|remaster(ed)?|remix|reprise|version|edit|mix)[^)]*\)/ig, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  function spotifyFieldQuote(value){
+    return '"' + String(value || '').replace(/"/g, '').trim() + '"';
+  }
+  function buildSpotifySearchQuery(query, mode, artist){
+    query = String(query || '').trim();
+    artist = String(artist || '').trim();
+    if(!query) return '';
+    if(mode === 'track_artist' && artist){
+      return 'track:' + spotifyFieldQuote(query) + ' artist:' + spotifyFieldQuote(artist);
+    }
+    if(mode === 'track'){
+      return 'track:' + spotifyFieldQuote(query);
+    }
+    return query;
+  }
+  function updateSearchModeButtons(){
+    if(!els.searchModeButtons) return;
+    els.searchModeButtons.forEach(btn => {
+      const active = btn.dataset.searchMode === searchMode;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+  }
+  function runArtistSearch(artist, sourceTrack){
     artist = String(artist || '').trim();
     if(!artist || !els.search) return;
+    const currentQuery = String(els.search.value || lastSearchQuery || '').trim();
+    const trackTitle = cleanTrackTitleForSearch(currentQuery || sourceTrack?.title || '');
     setSourceTab('search');
-    els.search.value = artist;
+    searchMode = trackTitle ? 'track_artist' : 'broad';
+    updateSearchModeButtons();
+    els.search.value = trackTitle || artist;
     els.search.focus();
     clearTimeout(searchTimer);
-    search(artist);
+    search(els.search.value, {artist});
   }
   function sourceLabel(track){
     const src = String(track?.loaded_origin || track?.source || '').toLowerCase();
@@ -806,15 +847,44 @@ renderAccountStatus();
   function sortCratesByName(crates){
     return (crates || []).slice().sort((a,b)=>String(a?.name || '').localeCompare(String(b?.name || ''), undefined, {sensitivity:'base', numeric:true}));
   }
-  function renderSearchResults(tracks){
-    if(!els.searchResults) return;
-    if(!tracks.length){ els.searchResults.innerHTML = '<div class="mini muted">No matches yet.</div>'; return; }
-    els.searchResults.innerHTML = tracks.map(t=>`
+  function searchResultRows(tracks){
+    return tracks.map(t=>`
       <div role="button" tabindex="0" class="result-row search-result-row tappable-row" data-select-track='${esc(JSON.stringify(t))}' aria-label="Choose ${esc(t.title || 'track')}">
         <img src="${esc(image(t.image))}" alt="">
         <span class="result-main"><span class="result-title">${esc(t.title)}</span><span class="mini muted">${esc(resultMetaLine(t))}</span></span>
         <span class="result-meta">${artistSearchButton(t)}${searchBadgeHtml(t)}${trackSourceBadge(t)}</span>
       </div>`).join('');
+  }
+  function renderSearchPager(total){
+    if(!els.searchPager) return;
+    if(total <= SEARCH_PAGE_SIZE){
+      els.searchPager.innerHTML = '';
+      els.searchPager.hidden = true;
+      return;
+    }
+    const pages = Math.max(1, Math.ceil(total / SEARCH_PAGE_SIZE));
+    const from = searchPage * SEARCH_PAGE_SIZE + 1;
+    const to = Math.min(total, from + SEARCH_PAGE_SIZE - 1);
+    els.searchPager.hidden = false;
+    els.searchPager.innerHTML = `
+      <button type="button" class="mixer-btn dark search-page-btn" data-search-page="prev" ${searchPage <= 0 ? 'disabled' : ''}>‹ Previous</button>
+      <span class="search-page-count">Showing ${from}–${to} of ${total}</span>
+      <button type="button" class="mixer-btn dark search-page-btn" data-search-page="next" ${searchPage >= pages - 1 ? 'disabled' : ''}>Next ›</button>`;
+  }
+  function renderSearchResults(tracks){
+    if(!els.searchResults) return;
+    lastSearchTracks = Array.isArray(tracks) ? tracks.slice() : [];
+    const total = lastSearchTracks.length;
+    if(!total){
+      els.searchResults.innerHTML = '<div class="mini muted">No matches yet.</div>';
+      renderSearchPager(0);
+      return;
+    }
+    const pages = Math.max(1, Math.ceil(total / SEARCH_PAGE_SIZE));
+    searchPage = Math.max(0, Math.min(searchPage, pages - 1));
+    const start = searchPage * SEARCH_PAGE_SIZE;
+    els.searchResults.innerHTML = searchResultRows(lastSearchTracks.slice(start, start + SEARCH_PAGE_SIZE));
+    renderSearchPager(total);
   }
   function setSourceTab(name){
     activeSource = name || 'search';
@@ -894,15 +964,19 @@ renderAccountStatus();
       throw e;
     }
   }
-  async function search(q){
-    if(!q || q.trim().length < 3){ els.searchResults.innerHTML=''; els.searchStatus.textContent=''; return; }
+  async function search(q, options = {}){
+    if(!q || q.trim().length < 3){ els.searchResults.innerHTML=''; els.searchStatus.textContent=''; lastSearchTracks=[]; renderSearchPager(0); return; }
     els.searchStatus.innerHTML = '<span class="spinner"></span> Searching Spotify + local music…';
     const query = q.trim();
+    lastSearchQuery = query;
+    searchPage = 0;
+    const artist = String(options.artist || '').trim();
+    const spotifyQuery = buildSpotifySearchQuery(query, searchMode, artist);
     const spotifyUrls = [
-      searchApi + '?q=' + encodeURIComponent(query) + '&_=' + Date.now(),
-      api + '?' + new URLSearchParams({action:'search', q:query, _:Date.now()}).toString()
+      searchApi + '?' + new URLSearchParams({q:spotifyQuery, limit:'16', _:Date.now()}).toString(),
+      api + '?' + new URLSearchParams({action:'search', q:spotifyQuery, limit:'16', _:Date.now()}).toString()
     ];
-    const localUrl = localSearchApi + '?q=' + encodeURIComponent(query) + '&limit=10&_=' + Date.now();
+    const localUrl = localSearchApi + '?q=' + encodeURIComponent(query) + '&limit=16&_=' + Date.now();
     let spotifyData = null;
     let spotifyError = null;
     for(const url of spotifyUrls){
@@ -927,6 +1001,8 @@ renderAccountStatus();
       const notes = [];
       if(spotifyData?.rate_limited) notes.push('Spotify cooling down — cached matches shown');
       else if(spotifyData?.source === 'cache') notes.push('Cached Spotify matches shown');
+      if(searchMode === 'track') notes.push('Track title search');
+      if(searchMode === 'track_artist' && artist) notes.push('Track + artist search');
       if(localTracks.length) notes.push(localTracks.length + ' local match' + (localTracks.length === 1 ? '' : 'es'));
       if(!localData && localError) notes.push('Local music unavailable');
       if(!spotifyData && spotifyError) notes.push('Spotify unavailable');
@@ -940,7 +1016,27 @@ renderAccountStatus();
   }
   app.addEventListener('click', (e)=>{
     const artistSearch = e.target.closest('[data-artist-search]');
-    if(artistSearch){ runArtistSearch(artistSearch.dataset.artistSearch || ''); return; }
+    if(artistSearch){
+      runArtistSearch(artistSearch.dataset.artistSearch || '', {title: artistSearch.dataset.trackTitle || ''});
+      return;
+    }
+    const searchPageBtn = e.target.closest('[data-search-page]');
+    if(searchPageBtn){
+      if(searchPageBtn.disabled) return;
+      searchPage += searchPageBtn.dataset.searchPage === 'next' ? 1 : -1;
+      renderSearchResults(lastSearchTracks);
+      return;
+    }
+    const modeBtn = e.target.closest('[data-search-mode]');
+    if(modeBtn){
+      searchMode = modeBtn.dataset.searchMode || 'broad';
+      updateSearchModeButtons();
+      if(els.search && els.search.value.trim().length >= 3){
+        clearTimeout(searchTimer);
+        search(els.search.value);
+      }
+      return;
+    }
     const sourceTab = e.target.closest('[data-source-tab]');
     if(sourceTab){ setSourceTab(sourceTab.dataset.sourceTab || 'search'); return; }
     const openDjCrate = e.target.closest('[data-open-dj-crate]');
@@ -996,7 +1092,7 @@ renderAccountStatus();
   if(els.search){
     els.search.addEventListener('input', ()=>{ clearTimeout(searchTimer); searchTimer = setTimeout(()=>search(els.search.value), 750); });
   }
-  const clearSearch = $('#clearSearch'); if(clearSearch) clearSearch.addEventListener('click', ()=>{ els.search.value=''; els.search.focus(); els.searchResults.innerHTML=''; els.searchStatus.textContent=''; });
+  const clearSearch = $('#clearSearch'); if(clearSearch) clearSearch.addEventListener('click', ()=>{ els.search.value=''; els.search.focus(); els.searchResults.innerHTML=''; els.searchStatus.textContent=''; lastSearchTracks=[]; searchPage=0; renderSearchPager(0); });
   const refreshNow = $('#refreshNow'); if(refreshNow) refreshNow.addEventListener('click', ()=>refresh(false));
   if(els.refreshCrates) els.refreshCrates.addEventListener('click', ()=>{ cratesLoaded = false; loadDjCrates(true); });
   if(els.createCrate) els.createCrate.addEventListener('click', async ()=>{ const name = els.newCrateName ? els.newCrateName.value : ''; await doAction({action:'create_crate', name}); if(els.newCrateName) els.newCrateName.value=''; cratesLoaded=false; loadDjCrates(true); });
@@ -1012,6 +1108,7 @@ renderAccountStatus();
     if(!document.hidden) refresh(true);
   });
   window.addEventListener('focus', ()=>refresh(true));
+  updateSearchModeButtons();
   refresh(false);
   pollTimer = setInterval(()=>refresh(true), STATE_POLL_MS);
   uiTimer = setInterval(tickDeckTimers, 1000);
