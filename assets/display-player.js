@@ -881,6 +881,7 @@ function renderRecent() {
 
       const current = slides[slideIndex] || slides[0];
       const currentName = current ? current.getAttribute('data-slide') : '';
+      updateFooterSlideId(currentName || 'loading');
       const durationMs = slideDurationMs(currentName);
       const totalSeconds = Math.max(1, Math.round(durationMs / 1000));
       const startedAt = Date.now();

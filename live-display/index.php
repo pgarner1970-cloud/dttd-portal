@@ -22,8 +22,8 @@ $bodyClass = 'display-body' . ($displayMode === 'lite' ? ' display-lite' : '');
   <?= dttd_cache_meta_tags() ?>
   <title>Dance Through The Decades — Event Display</title>
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <link rel="icon" href="/assets/favicon-dj-192.png">
-  <link rel="stylesheet" href="/assets/display.css">
+  <link rel="icon" href="<?= h(dttd_asset_url('assets/favicon-dj-192.png')) ?>">
+  <link rel="stylesheet" href="<?= h(dttd_asset_url('assets/display.css')) ?>">
 </head>
 <body class="<?= h($bodyClass) ?>">
   <main class="display-shell" data-state-url="<?= h($stateUrl) ?>" data-now-playing-url="<?= h($nowPlayingUrl) ?>" data-display-mode="<?= h($displayMode) ?>">
@@ -33,7 +33,7 @@ $bodyClass = 'display-body' . ($displayMode === 'lite' ? ' display-lite' : '');
     <header class="display-header">
       <div class="display-brand" aria-label="Dance Through The Decades Events">
         <span class="display-brand-logo">
-          <img src="/assets/dttd-logo-inner.png" alt="Dance Through The Decades Events">
+          <img src="<?= h(dttd_asset_url('assets/dttd-logo-inner.png')) ?>" alt="Dance Through The Decades Events">
         </span>
         <span class="display-brand-wordmark">
           <strong>Dance Thru The Decades</strong>
@@ -59,6 +59,6 @@ $bodyClass = 'display-body' . ($displayMode === 'lite' ? ' display-lite' : '');
       <span>Requests • Photos • Music • Memories</span>
     </footer>
   </main>
-  <script src="/assets/display-player.js"></script>
+  <script src="<?= h(dttd_asset_url('assets/display-player.js')) ?>"></script>
 </body>
 </html>
