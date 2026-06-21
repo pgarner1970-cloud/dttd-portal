@@ -2925,6 +2925,60 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
   margin-top: 0 !important;
 }
 
+/* Final music-board row model: match the recent slide rows.
+   Both request and played rows use the same artwork / copy / status grid. */
+.music-board-card-stable .music-board-request.display-track-row,
+.music-board-card-stable .music-board-played-track.display-track-row{
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: var(--rp-art) minmax(0, 1fr) clamp(74px, 7vw, 118px) !important;
+  grid-template-rows: 1fr !important;
+  align-items: center !important;
+  column-gap: clamp(12px, 1vw, 18px) !important;
+  height: var(--rp-row-h) !important;
+  min-height: var(--rp-row-h) !important;
+  max-height: var(--rp-row-h) !important;
+  padding: clamp(6px, .5vw, 9px) clamp(12px, 1vw, 18px) !important;
+  overflow: hidden !important;
+}
+
+.music-board-card-stable .music-board-request .display-track-artwork,
+.music-board-card-stable .music-board-played-track .display-track-artwork{
+  position: static !important;
+  transform: none !important;
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  place-self: center !important;
+  width: var(--rp-art) !important;
+  height: var(--rp-art) !important;
+  margin: 0 !important;
+  display: block !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+}
+
+.music-board-card-stable .music-board-request .display-track-copy,
+.music-board-card-stable .music-board-played-track .display-track-copy{
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  align-self: center !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: clamp(1px, .18vh, 3px) !important;
+  padding: 0 !important;
+}
+
+.music-board-card-stable .music-board-request .display-track-status,
+.music-board-card-stable .music-board-played-track .display-track-status{
+  grid-column: 3 !important;
+  grid-row: 1 !important;
+  align-self: start !important;
+  justify-self: end !important;
+  margin: 0 !important;
+}
+
 
 /* Balance Requests & played panels and make footer countdown fixed-width numeric. */
 .music-board-body{
