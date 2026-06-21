@@ -51,7 +51,7 @@ $nowPlayingUrl = '/api/public-now-playing.php' . ($eventParam !== '' && str_star
 
     <footer class="display-footer">
       <span data-display-footer-event>Dance Through The Decades</span>
-      <span class="display-progress-wrap"><span class="display-footer-dot"></span><span class="display-slide-countdown" data-slide-countdown>--</span></span>
+      <span class="display-progress-wrap"><span class="display-footer-dot"></span><span class="display-slide-countdown" data-slide-countdown>--</span><span class="display-slide-id" data-slide-id>loading</span></span>
       <span>Requests • Photos • Music • Memories</span>
     </footer>
   </main>

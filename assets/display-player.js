@@ -6,6 +6,7 @@
   const stateUrl = shell.dataset.stateUrl || '/api/display-state.php';
   const nowPlayingUrl = shell.dataset.nowPlayingUrl || '/api/public-now-playing.php';
   const footerEvent = document.querySelector('[data-display-footer-event]');
+  const footerSlideId = document.querySelector('[data-slide-id]');
   const clock = document.querySelector('[data-display-clock]');
 
   let state = null;
@@ -808,6 +809,13 @@ function renderRecent() {
     return el;
   }
 
+  function updateFooterSlideId(slideName) {
+    if (!footerSlideId) return;
+    const safeName = text(slideName, 'loading');
+    footerSlideId.textContent = safeName;
+    footerSlideId.setAttribute('aria-label', 'Current slide: ' + safeName);
+  }
+
   function slideDurationMs(slideName) {
     const durations = state && state.slide_durations ? state.slide_durations : {};
     const raw = durations && slideName ? Number(durations[slideName]) : 0;
@@ -838,10 +846,12 @@ function renderRecent() {
       if (next) {
         active.replaceWith(next);
         next.classList.add('active');
+        updateFooterSlideId(next.getAttribute('data-slide') || 'partners');
         return;
       }
     }
     active.classList.add('active');
+    updateFooterSlideId(active.getAttribute('data-slide') || '');
   }
 
       function stopSlideLoop() {
