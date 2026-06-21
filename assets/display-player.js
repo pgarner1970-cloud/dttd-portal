@@ -652,21 +652,31 @@ function renderRecent() {
     return Math.max(0, Math.floor((target - Date.now()) / 1000));
   }
 
+  function formatHmsCountdown(seconds) {
+    seconds = Math.max(0, Number(seconds) || 0);
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return String(hours).padStart(2, '0') + ':' + String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+  }
+
   function renderEventTimer() {
     const event = state && state.event ? state.event : {};
     const eventSeconds = secondsUntil(event.event_end_iso || '');
     const requestSeconds = secondsUntil(event.requests_close_iso || event.requests_close_at || '');
     const requestsOpen = event.requests_open !== false && (requestSeconds === null || requestSeconds > 0);
 
-    const eventTimer = eventSeconds !== null ? formatCountdown(eventSeconds) : '--:--';
-    const requestTimer = requestSeconds !== null ? formatCountdown(requestSeconds) : '--:--';
+    const eventTarget = text(event.event_end_iso || '', '');
+    const requestTarget = text(event.requests_close_iso || event.requests_close_at || '', '');
+    const eventTimer = eventSeconds !== null ? formatHmsCountdown(eventSeconds) : '--:--:--';
+    const requestTimer = requestSeconds !== null ? formatHmsCountdown(requestSeconds) : '--:--:--';
 
     return '<article class="display-slide" data-slide="event_timer">'
       + '<div class="display-card event-timer-card">'
       + '<div class="event-timer-head"><p class="display-kicker">Keep Dancing</p><h1>' + esc(text(event.event_name, 'Tonight’s Event')) + '</h1></div>'
       + '<div class="event-timer-grid">'
-      + '<section class="event-timer-panel event-timer-main"><span>Event time remaining</span><strong>' + esc(eventTimer) + '</strong><em>until the planned finish</em></section>'
-      + '<section class="event-timer-panel"><span>Requests</span><strong>' + esc(requestsOpen ? requestTimer : 'Closed') + '</strong><em>' + esc(requestsOpen ? 'left to send requests' : 'Thanks for the requests tonight') + '</em></section>'
+      + '<section class="event-timer-panel event-timer-main"><span>Event time remaining</span><strong data-live-countdown="' + esc(eventTarget) + '">' + esc(eventTimer) + '</strong><em>until the planned finish</em></section>'
+      + '<section class="event-timer-panel"><span>Requests</span><strong' + (requestsOpen && requestTarget ? ' data-live-countdown="' + esc(requestTarget) + '"' : '') + '>' + esc(requestsOpen ? requestTimer : 'Closed') + '</strong><em>' + esc(requestsOpen ? 'left to send requests' : 'Thanks for the requests tonight') + '</em></section>'
       + '</div>'
       + '<p class="event-timer-footer">Requests • Photos • Music • Memories</p>'
       + '</div></article>';
@@ -856,7 +866,7 @@ function renderRecent() {
     return (typeof isLite !== 'undefined' && isLite) ? 14500 : 12000;
   }
 
-    function updateSlideCountdownDisplay(secondsRemaining, totalSeconds) {
+  function updateSlideCountdownDisplay(secondsRemaining, totalSeconds) {
     const el = slideCountdownElement();
     if (!el) return;
     const safeRemaining = Math.max(0, Math.ceil(Number(secondsRemaining) || 0));
@@ -865,6 +875,15 @@ function renderRecent() {
     el.setAttribute('aria-label', String(safeRemaining) + ' seconds until next slide');
     const progress = Math.max(0, Math.min(1, safeRemaining / safeTotal));
     el.style.setProperty('--slide-countdown-progress', String(progress));
+  }
+
+  function updateLiveCountdowns() {
+    stage.querySelectorAll('[data-live-countdown]').forEach(el => {
+      const target = Date.parse(el.getAttribute('data-live-countdown') || '');
+      if (!Number.isFinite(target)) return;
+      const seconds = Math.max(0, Math.floor((target - Date.now()) / 1000));
+      el.textContent = formatHmsCountdown(seconds);
+    });
   }
 
   function showSlide(index) {
@@ -885,6 +904,7 @@ function renderRecent() {
     }
     active.classList.add('active');
     updateFooterSlideId(active.getAttribute('data-slide') || '');
+    updateLiveCountdowns();
   }
 
       function stopSlideLoop() {
@@ -927,6 +947,7 @@ function renderRecent() {
         const elapsed = Date.now() - startedAt;
         const remainingMs = Math.max(0, durationMs - elapsed);
         updateSlideCountdownDisplay(remainingMs / 1000, totalSeconds);
+        updateLiveCountdowns();
       }, 250);
 
       slideTimer = setTimeout(function(){
