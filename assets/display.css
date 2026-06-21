@@ -2734,6 +2734,88 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
   }
 }
 
+/* Music board: stronger empty request prompt and cleaner five-row played list. */
+.music-board-card-stable .music-board-empty-cta{
+  gap: clamp(7px, .65vh, 11px) !important;
+  padding: clamp(18px, 2vw, 34px) !important;
+}
+
+.music-board-card-stable .music-board-empty-cta strong{
+  font-size: clamp(44px, 4.7vw, 82px) !important;
+  line-height: .94 !important;
+  letter-spacing: -.055em !important;
+  max-width: 760px !important;
+}
+
+.music-board-card-stable .music-board-empty-cta span{
+  font-size: clamp(20px, 1.7vw, 34px) !important;
+  line-height: 1.08 !important;
+  max-width: 720px !important;
+}
+
+.music-board-card-stable .request-empty-timer{
+  margin-top: clamp(8px, 1vh, 14px) !important;
+  margin-bottom: 0 !important;
+  font-size: clamp(50px, 5.2vw, 96px) !important;
+  line-height: .88 !important;
+}
+
+.music-board-card-stable .request-empty-timer + small,
+.music-board-card-stable .music-board-empty-cta small{
+  margin-top: 0 !important;
+  font-size: clamp(15px, 1.05vw, 21px) !important;
+  line-height: 1 !important;
+}
+
+.music-board-card-stable .music-board-played-list{
+  grid-template-rows: repeat(5, var(--rp-row-h)) !important;
+}
+
+.music-board-card-stable .music-board-played-track.display-track-row{
+  align-items: center !important;
+  grid-template-columns: var(--rp-art) minmax(0, 1fr) clamp(78px, 7.4vw, 126px) !important;
+  padding-top: clamp(6px, .5vw, 9px) !important;
+  padding-bottom: clamp(6px, .5vw, 9px) !important;
+}
+
+.music-board-card-stable .music-board-played-track .display-track-artwork{
+  align-self: center !important;
+  justify-self: center !important;
+  object-fit: cover !important;
+}
+
+.music-board-card-stable .music-board-played-track .display-track-copy{
+  align-self: center !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: clamp(1px, .18vh, 3px) !important;
+  min-height: 0 !important;
+}
+
+.music-board-card-stable .music-board-played-track .display-track-copy strong{
+  font-size: clamp(15px, 1.05vw, 22px) !important;
+  line-height: 1.12 !important;
+  padding-bottom: .04em !important;
+}
+
+.music-board-card-stable .music-board-played-track .display-track-copy span{
+  font-size: clamp(11px, .78vw, 16px) !important;
+  line-height: 1.1 !important;
+}
+
+.music-board-card-stable .music-board-played-track .display-track-copy em{
+  font-size: clamp(10px, .72vw, 14px) !important;
+  line-height: 1.08 !important;
+  padding-bottom: .04em !important;
+}
+
+.music-board-card-stable .music-board-played-track .display-track-status{
+  align-self: start !important;
+  justify-self: end !important;
+  margin-top: 0 !important;
+}
+
 
 /* Balance Requests & played panels and make footer countdown fixed-width numeric. */
 .music-board-body{
@@ -2923,6 +3005,90 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
   flex: 1 1 auto !important;
   min-height: 0 !important;
   height: var(--rp-list-h) !important;
+}
+
+.music-board-card-stable .music-board-empty-requests[data-request-empty-countdown]{
+  display: grid !important;
+  align-content: center !important;
+  justify-items: center !important;
+  gap: clamp(8px, .75vh, 13px) !important;
+  padding: clamp(18px, 2vw, 34px) !important;
+  text-align: center !important;
+}
+
+.music-board-card-stable .music-board-empty-requests[data-request-empty-countdown] strong{
+  font-size: clamp(44px, 4.7vw, 82px) !important;
+  line-height: .94 !important;
+  letter-spacing: -.055em !important;
+  max-width: 760px !important;
+}
+
+.music-board-card-stable .music-board-empty-requests[data-request-empty-countdown] span{
+  font-size: clamp(20px, 1.7vw, 34px) !important;
+  line-height: 1.08 !important;
+  max-width: 720px !important;
+}
+
+.music-board-card-stable .music-board-empty-requests[data-request-empty-countdown] b[data-request-countdown]{
+  margin-top: clamp(8px, 1vh, 14px) !important;
+  margin-bottom: 0 !important;
+  font-size: clamp(50px, 5.2vw, 96px) !important;
+  line-height: .88 !important;
+}
+
+.music-board-card-stable .music-board-empty-requests[data-request-empty-countdown] b[data-request-countdown] + em{
+  margin-top: 0 !important;
+  font-size: clamp(15px, 1.05vw, 21px) !important;
+  line-height: 1 !important;
+}
+
+.music-board-card-stable .music-board-played-list{
+  grid-template-rows: repeat(5, var(--rp-row-h)) !important;
+}
+
+.music-board-card-stable .music-board-played-track.display-track-row{
+  align-items: center !important;
+  grid-template-columns: var(--rp-art) minmax(0, 1fr) clamp(78px, 7.4vw, 126px) !important;
+  padding-top: clamp(6px, .5vw, 9px) !important;
+  padding-bottom: clamp(6px, .5vw, 9px) !important;
+}
+
+.music-board-card-stable .music-board-played-track .display-track-artwork{
+  align-self: center !important;
+  justify-self: center !important;
+  object-fit: cover !important;
+}
+
+.music-board-card-stable .music-board-played-track .display-track-copy{
+  align-self: center !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: clamp(1px, .18vh, 3px) !important;
+  min-height: 0 !important;
+}
+
+.music-board-card-stable .music-board-played-track .display-track-copy strong{
+  font-size: clamp(15px, 1.05vw, 22px) !important;
+  line-height: 1.12 !important;
+  padding-bottom: .04em !important;
+}
+
+.music-board-card-stable .music-board-played-track .display-track-copy span{
+  font-size: clamp(11px, .78vw, 16px) !important;
+  line-height: 1.1 !important;
+}
+
+.music-board-card-stable .music-board-played-track .display-track-copy em{
+  font-size: clamp(10px, .72vw, 14px) !important;
+  line-height: 1.08 !important;
+  padding-bottom: .04em !important;
+}
+
+.music-board-card-stable .music-board-played-track .display-track-status{
+  align-self: start !important;
+  justify-self: end !important;
+  margin-top: 0 !important;
 }
 
 @media (max-height: 820px){
