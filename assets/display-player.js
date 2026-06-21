@@ -678,7 +678,6 @@ function renderRecent() {
       + '<section class="event-timer-panel event-timer-main"><span>Event time remaining</span><strong data-live-countdown="' + esc(eventTarget) + '">' + esc(eventTimer) + '</strong><em>until the planned finish</em></section>'
       + '<section class="event-timer-panel"><span>Requests</span><strong' + (requestsOpen && requestTarget ? ' data-live-countdown="' + esc(requestTarget) + '"' : '') + '>' + esc(requestsOpen ? requestTimer : 'Closed') + '</strong><em>' + esc(requestsOpen ? 'left to send requests' : 'Thanks for the requests tonight') + '</em></section>'
       + '</div>'
-      + '<p class="event-timer-footer">Requests • Photos • Music • Memories</p>'
       + '</div></article>';
   }
 
