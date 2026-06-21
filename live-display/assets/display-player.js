@@ -7,6 +7,7 @@
   const nowPlayingUrl = shell.dataset.nowPlayingUrl || '/api/public-now-playing.php';
   const isLite = shell.dataset.displayMode === 'lite' || (new URLSearchParams(window.location.search).get('mode') || '').toLowerCase() === 'lite';
   const footerEvent = document.querySelector('[data-display-footer-event]');
+  const footerSlideId = document.querySelector('[data-slide-id]');
   const clock = document.querySelector('[data-display-clock]');
 
   let state = null;
@@ -69,6 +70,7 @@
   }
 
   function slideAllowed(name) {
+    if (name === 'standby' && state && (state.active_event || (state.event && state.event.id))) return false;
     if (name === 'now_playing') return !!currentTrack();
     if (name === 'up_next') return !!upNextTrack();
     return true;
@@ -721,6 +723,7 @@ function renderRecent() {
     function normaliseSlides(baseSlides) {
     let slides = Array.isArray(baseSlides) ? baseSlides.slice() : [];
     const settings = state && state.slide_settings ? state.slide_settings : {};
+    const hasEventContext = !!(state && (state.active_event || (state.event && state.event.id)));
 
     function enabled(name) {
       if (!settings || !settings[name]) return true;
@@ -728,6 +731,9 @@ function renderRecent() {
     }
 
     slides = slides.filter(name => enabled(name) && slideAllowed(name));
+    if (hasEventContext) {
+      slides = slides.filter(name => name !== 'standby');
+    }
 
     if (state && state.active_event && slides.indexOf('now_playing') !== -1 && slides.indexOf('up_next') === -1 && upNextTrack()) {
       slides.splice(slides.indexOf('now_playing') + 1, 0, 'up_next');
@@ -809,6 +815,13 @@ function renderRecent() {
     return el;
   }
 
+  function updateFooterSlideId(slideName) {
+    if (!footerSlideId) return;
+    const safeName = text(slideName, 'loading');
+    footerSlideId.textContent = safeName;
+    footerSlideId.setAttribute('aria-label', 'Current slide: ' + safeName);
+  }
+
   function slideDurationMs(slideName) {
     const durations = state && state.slide_durations ? state.slide_durations : {};
     const raw = durations && slideName ? Number(durations[slideName]) : 0;
@@ -839,10 +852,12 @@ function renderRecent() {
       if (next) {
         active.replaceWith(next);
         next.classList.add('active');
+        updateFooterSlideId(next.getAttribute('data-slide') || 'partners');
         return;
       }
     }
     active.classList.add('active');
+    updateFooterSlideId(active.getAttribute('data-slide') || '');
   }
 
       function stopSlideLoop() {
@@ -872,6 +887,7 @@ function renderRecent() {
 
       const current = slides[slideIndex] || slides[0];
       const currentName = current ? current.getAttribute('data-slide') : '';
+      updateFooterSlideId(currentName || 'loading');
       const durationMs = slideDurationMs(currentName);
       const totalSeconds = Math.max(1, Math.round(durationMs / 1000));
       const startedAt = Date.now();

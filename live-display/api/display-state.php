@@ -93,7 +93,7 @@ function dttd_display_event() {
     if (!dttd_display_table_exists('events')) return null;
 
     try {
-        $stmt = db()->query("\n            SELECT *\n            FROM events\n            WHERE is_active = 1\n              AND status IN ('scheduled','live')\n            ORDER BY\n              CASE WHEN event_date IS NULL THEN 1 ELSE 0 END ASC,\n              event_date ASC,\n              COALESCE(start_time, '00:00:00') ASC,\n              id ASC\n            LIMIT 1\n        ");
+        $stmt = db()->query("\n            SELECT *\n            FROM events\n            WHERE is_active = 1\n              AND COALESCE(status, 'scheduled') NOT IN ('draft','cancelled')\n            ORDER BY\n              CASE\n                WHEN event_date IS NOT NULL\n                 AND TIMESTAMP(event_date, COALESCE(NULLIF(start_time, ''), '00:00:00')) <= NOW()\n                 AND TIMESTAMP(event_date, COALESCE(NULLIF(end_time, ''), '23:59:59')) >= DATE_SUB(NOW(), INTERVAL 10 MINUTE) THEN 0\n                ELSE 1\n              END ASC,\n              CASE WHEN event_date IS NULL THEN 1 ELSE 0 END ASC,\n              event_date ASC,\n              COALESCE(start_time, '00:00:00') ASC,\n              id ASC\n            LIMIT 1\n        ");
         return $stmt->fetch() ?: null;
     } catch (Throwable $e) {
         return null;
@@ -1005,6 +1005,36 @@ function dttd_display_event_finished_timestamp($event) {
     return $endTs && time() >= $endTs ? $endTs : 0;
 }
 
+function dttd_display_event_phase($event) {
+    if (!$event || empty($event['id'])) return 'standby';
+
+    $status = strtolower(trim((string)($event['status'] ?? 'scheduled')));
+    if (in_array($status, ['draft', 'cancelled'], true)) return 'standby';
+
+    $startTs = 0;
+    if (!empty($event['event_date'])) {
+        $startTime = !empty($event['start_time']) ? (string)$event['start_time'] : '00:00:00';
+        $startTs = strtotime((string)$event['event_date'] . ' ' . $startTime) ?: 0;
+    }
+    $endTs = dttd_display_event_end_timestamp($event);
+    $now = time();
+    $endTolerance = dttd_display_goodnight_window_seconds();
+
+    if ($status === 'live') return 'live';
+    if ($startTs && $now < $startTs) return 'standby';
+    if ($endTs && $now >= ($endTs - $endTolerance) && $now <= ($endTs + $endTolerance) && dttd_display_decks_are_clear()) {
+        return 'goodnight';
+    }
+    if ($endTs && $now > ($endTs + $endTolerance) && dttd_display_decks_are_clear()) {
+        return 'standby';
+    }
+    if ($startTs && $now >= $startTs && (!$endTs || $now <= ($endTs + $endTolerance) || !dttd_display_decks_are_clear())) {
+        return 'live';
+    }
+
+    return 'standby';
+}
+
 function dttd_display_event_in_post_finish_hold($event) {
     $endTs = dttd_display_event_finished_timestamp($event);
     if (!$endTs) return false;
@@ -1032,22 +1062,7 @@ function dttd_display_standby_allowed_for_event($event) {
 }
 
 function dttd_display_goodnight_active($event) {
-    if (!$event || empty($event['id'])) return false;
-
-    $endTs = dttd_display_event_end_timestamp($event);
-    if (!$endTs) return false;
-
-    $now = time();
-
-    // Show the Good night page only briefly after the event has finished.
-    // After this grace period, the display should drop back to normal standby/no-current-event mode,
-    // but only if both decks are clear.
-    $goodnightWindowSeconds = dttd_display_goodnight_window_seconds();
-    if ($now < $endTs || $now > ($endTs + $goodnightWindowSeconds)) {
-        return false;
-    }
-
-    return dttd_display_decks_are_clear();
+    return dttd_display_event_phase($event) === 'goodnight';
 }
 
 function dttd_display_goodnight_payload($event, $partners = []) {
@@ -1075,28 +1090,7 @@ function dttd_display_goodnight_payload($event, $partners = []) {
 }
 
 function dttd_display_event_is_live($event) {
-    if (!$event || empty($event['id'])) return false;
-
-    try {
-        if (function_exists('dttd_event_live_now') && dttd_event_live_now($event)) return true;
-    } catch (Throwable $e) {}
-
-    $status = strtolower(trim((string)($event['status'] ?? '')));
-    if ($status === 'live') return true;
-
-    if ((int)($event['is_active'] ?? 0) === 1
-        && in_array($status, ['scheduled', 'live', ''], true)
-        && dttd_display_event_has_started($event)
-        && !dttd_display_event_finished_timestamp($event)) {
-        return true;
-    }
-
-    // If the event has only just finished or music is still loaded, keep the live display context.
-    if (function_exists('dttd_display_event_in_post_finish_hold') && dttd_display_event_in_post_finish_hold($event)) {
-        return true;
-    }
-
-    return false;
+    return dttd_display_event_phase($event) === 'live';
 }
 
 function dttd_display_standby_payload($partners = []) {
@@ -1140,12 +1134,13 @@ function dttd_display_standby_payload($partners = []) {
 
 $event = dttd_display_event();
 $partners = dttd_display_partners(12);
+$eventPhase = dttd_display_event_phase($event);
 
-if ($event && !empty($event['id']) && dttd_display_goodnight_active($event)) {
+if ($event && !empty($event['id']) && $eventPhase === 'goodnight') {
     dttd_display_json(dttd_display_goodnight_payload($event, $partners));
 }
 
-if (!$event || empty($event['id']) || (!dttd_display_event_is_live($event) && dttd_display_standby_allowed_for_event($event))) {
+if (!$event || empty($event['id']) || $eventPhase === 'standby') {
     dttd_display_json(dttd_display_standby_payload($partners));
 }
 

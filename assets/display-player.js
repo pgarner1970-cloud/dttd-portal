@@ -69,6 +69,7 @@
   }
 
   function slideAllowed(name) {
+    if (name === 'standby' && state && (state.active_event || (state.event && state.event.id))) return false;
     if (name === 'now_playing') return !!currentTrack();
     if (name === 'up_next') return !!upNextTrack();
     return true;
@@ -721,6 +722,7 @@ function renderRecent() {
     function normaliseSlides(baseSlides) {
     let slides = Array.isArray(baseSlides) ? baseSlides.slice() : [];
     const settings = state && state.slide_settings ? state.slide_settings : {};
+    const hasEventContext = !!(state && (state.active_event || (state.event && state.event.id)));
 
     function enabled(name) {
       if (!settings || !settings[name]) return true;
@@ -728,6 +730,9 @@ function renderRecent() {
     }
 
     slides = slides.filter(name => enabled(name) && slideAllowed(name));
+    if (hasEventContext) {
+      slides = slides.filter(name => name !== 'standby');
+    }
 
     if (state && state.active_event && slides.indexOf('now_playing') !== -1 && slides.indexOf('up_next') === -1 && upNextTrack()) {
       slides.splice(slides.indexOf('now_playing') + 1, 0, 'up_next');
