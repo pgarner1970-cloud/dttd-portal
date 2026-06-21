@@ -530,11 +530,18 @@ function renderRecent() {
     const requests = Array.isArray(state.requests) ? state.requests : [];
     const playedRequests = Array.isArray(state.played_requests) ? state.played_requests : [];
     const comingUpRequests = (Array.isArray(state.coming_up_tracks) ? state.coming_up_tracks : [])
-      .filter(row => row && (row.is_request || row.request_id || row.requester_name || row.source === 'request'))
-      .map(row => Object.assign({}, row, {
-        status: row.status || 'queued',
-        source: row.source || 'request'
-      }));
+      .map(row => {
+        const matchingRequest = requests.find(req => sameTrack(req, row) && displayStatusForTrack(req, req.status || '').toLowerCase() !== 'played');
+        if (!(row && (row.is_request || row.request_id || row.requester_name || row.source === 'request' || matchingRequest))) return null;
+        return Object.assign({}, matchingRequest || {}, row, {
+          request_id: row.request_id || (matchingRequest ? matchingRequest.id || matchingRequest.request_id || 0 : 0),
+          requester_name: row.requester_name || (matchingRequest ? matchingRequest.requester_name || '' : ''),
+          status: row.status || (matchingRequest ? matchingRequest.status || 'queued' : 'queued'),
+          source: row.source || 'request',
+          is_request: true
+        });
+      })
+      .filter(Boolean);
     const current = currentTrack();
     const next = upNextTrack();
 
@@ -543,7 +550,7 @@ function renderRecent() {
     // right = requests that have been played
     // Do not pull in general DJ playback history here.
     const liveRequestRows = playedRequests.filter(row => sameTrack(row, current) || sameTrack(row, next));
-    const queueRows = sortTrackRowsKeepingRequests(liveRequestRows.concat(comingUpRequests, requests))
+    const queueRows = sortTrackRowsKeepingRequests(uniqueRequestRows(liveRequestRows.concat(comingUpRequests, requests)))
       .filter(row => displayStatusForTrack(row, row.status || '').toLowerCase() !== 'played')
       .slice(0, 5);
 
