@@ -47,9 +47,9 @@ function dttd_settings_table_has_column($table, $column) {
 
 function dttd_default_spotify_profiles() {
     return [
-        1 => ['id' => null, 'label' => 'Deck A Duo account', 'account_email' => '', 'spotify_user_id' => '', 'spotify_display_name' => '', 'use_for_deck_a' => 1, 'use_for_deck_b' => 0, 'use_for_public_search' => 0, 'enabled' => 1, 'refresh_token' => '', 'granted_scopes' => '', 'connected_email' => ''],
-        2 => ['id' => null, 'label' => 'Deck B Duo account', 'account_email' => '', 'spotify_user_id' => '', 'spotify_display_name' => '', 'use_for_deck_a' => 0, 'use_for_deck_b' => 1, 'use_for_public_search' => 0, 'enabled' => 1, 'refresh_token' => '', 'granted_scopes' => '', 'connected_email' => ''],
-        3 => ['id' => null, 'label' => 'Public search account', 'account_email' => '', 'spotify_user_id' => '', 'spotify_display_name' => '', 'use_for_deck_a' => 0, 'use_for_deck_b' => 0, 'use_for_public_search' => 1, 'enabled' => 0, 'refresh_token' => '', 'granted_scopes' => '', 'connected_email' => ''],
+        1 => ['id' => null, 'label' => 'Account 1', 'account_email' => '', 'spotify_user_id' => '', 'spotify_display_name' => '', 'use_for_deck_a' => 1, 'use_for_deck_b' => 0, 'use_for_public_search' => 0, 'enabled' => 1, 'refresh_token' => '', 'granted_scopes' => '', 'connected_email' => ''],
+        2 => ['id' => null, 'label' => 'Account 2', 'account_email' => '', 'spotify_user_id' => '', 'spotify_display_name' => '', 'use_for_deck_a' => 0, 'use_for_deck_b' => 1, 'use_for_public_search' => 0, 'enabled' => 1, 'refresh_token' => '', 'granted_scopes' => '', 'connected_email' => ''],
+        3 => ['id' => null, 'label' => 'Account 3', 'account_email' => '', 'spotify_user_id' => '', 'spotify_display_name' => '', 'use_for_deck_a' => 0, 'use_for_deck_b' => 0, 'use_for_public_search' => 1, 'enabled' => 0, 'refresh_token' => '', 'granted_scopes' => '', 'connected_email' => ''],
     ];
 }
 
@@ -250,9 +250,8 @@ function dttd_selected_spotify_role_slot(array $profiles, $field, $fallbackSlot)
 
 function dttd_spotify_settings_slot_hint($slot) {
     $slot = (int)$slot;
-    if ($slot === 1) return 'Use for Deck A playback';
-    if ($slot === 2) return 'Use for Deck B playback';
-    return 'Use for public search or diagnostics';
+    if ($slot === 3) return 'Optional account slot';
+    return 'Assignable account slot';
 }
 
 $spotify_role_deck_a_slot = dttd_selected_spotify_role_slot($spotify_profiles, 'use_for_deck_a', 1);
@@ -476,7 +475,7 @@ admin_header('Settings - DJ Portal');
 
                   <label>Account label / expected username</label>
                   <input type="hidden" name="spotify_profiles[<?= (int)$slot ?>][id]" value="<?= h((string)($profile['id'] ?? '')) ?>">
-                  <input class="spotify-settings-input" type="text" name="spotify_profiles[<?= (int)$slot ?>][label]" value="<?= h($profile['label']) ?>" placeholder="<?= $slot === 1 ? 'Deck A Duo username' : ($slot === 2 ? 'Deck B Duo username' : 'Paul search account') ?>">
+                  <input class="spotify-settings-input" type="text" name="spotify_profiles[<?= (int)$slot ?>][label]" value="<?= h($profile['label']) ?>" placeholder="Friendly name or expected Spotify username">
 
                   <input type="hidden" name="spotify_profiles[<?= (int)$slot ?>][account_email]" value="<?= h($profile['account_email']) ?>">
                   <div class="spotify-connected-identity">
