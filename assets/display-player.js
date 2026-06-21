@@ -476,7 +476,7 @@ function renderRecent() {
     return '<div class="music-board-empty music-board-empty-requests" data-request-empty-countdown>'
       + '<strong>Keep the requests coming!</strong>'
       + '<span>Scan the QR code or use the event page to send your favourite track.</span>'
-      + (seconds !== null ? '<b data-request-countdown>' + esc(formatRequestCountdown(seconds)) + '</b><em>left to send requests</em>' : '')
+      + (seconds !== null ? '<b data-request-countdown data-live-countdown="' + esc(text(state && state.event ? state.event.requests_close_at : '', '')) + '">' + esc(formatHmsCountdown(seconds)) + '</b><em>left to send requests</em>' : '')
       + '</div>';
   }
 
