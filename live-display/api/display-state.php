@@ -1084,6 +1084,13 @@ function dttd_display_event_is_live($event) {
     $status = strtolower(trim((string)($event['status'] ?? '')));
     if ($status === 'live') return true;
 
+    if ((int)($event['is_active'] ?? 0) === 1
+        && in_array($status, ['scheduled', 'live', ''], true)
+        && dttd_display_event_has_started($event)
+        && !dttd_display_event_finished_timestamp($event)) {
+        return true;
+    }
+
     // If the event has only just finished or music is still loaded, keep the live display context.
     if (function_exists('dttd_display_event_in_post_finish_hold') && dttd_display_event_in_post_finish_hold($event)) {
         return true;
