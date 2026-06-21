@@ -60,5 +60,19 @@ $bodyClass = 'display-body' . ($displayMode === 'lite' ? ' display-lite' : '');
     </footer>
   </main>
   <script src="<?= h(dttd_asset_url('assets/display-player.js')) ?>"></script>
+  <script>
+    (function(){
+      var footerId = document.querySelector('[data-slide-id]');
+      var stage = document.querySelector('.display-stage');
+      if (!footerId || !stage) return;
+      function syncSlideId(){
+        var active = stage.querySelector('.display-slide.active[data-slide]:not([data-slide="loading"])') || stage.querySelector('.display-slide.active[data-slide]');
+        footerId.textContent = active ? (active.getAttribute('data-slide') || 'loading') : 'loading';
+      }
+      syncSlideId();
+      new MutationObserver(syncSlideId).observe(stage, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'data-slide'] });
+      setInterval(syncSlideId, 500);
+    })();
+  </script>
 </body>
 </html>
