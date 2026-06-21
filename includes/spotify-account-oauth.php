@@ -158,7 +158,7 @@ function dttd_spotify_clear_duplicate_connected_accounts($currentProfileId, $cur
             $stmt->execute([$currentProfileId, $spotifyUserId]);
             $matches = $stmt->fetchAll();
         }
-        if (!$matches && $connectedText !== '' && dttd_spotify_profile_has_column('account_email')) {
+        if (!$matches && $spotifyUserId === '' && $connectedText !== '' && dttd_spotify_profile_has_column('account_email')) {
             $stmt = db()->prepare('SELECT id, profile_slot, label FROM spotify_profiles WHERE id <> ? AND account_email = ? AND COALESCE(refresh_token, \'\') <> \'\'');
             $stmt->execute([$currentProfileId, $connectedText]);
             $matches = $stmt->fetchAll();
@@ -232,9 +232,9 @@ function dttd_spotify_save_token_to_profile_slot($slot, array $token) {
     }
     dttd_spotify_profile_update($profileId, $updates);
 
-    // A Spotify login can only occupy one portal account slot. If the same
-    // Spotify user is connected into a new slot, clear older duplicate slots so
-    // Duo setup cannot accidentally show Account 1 and Account 2 as the same login.
+    // A Spotify login can only occupy one portal account slot. Prefer the
+    // Spotify user ID for duplicate detection so Duo members that share an
+    // email address can still be connected as separate deck accounts.
     $clearedDuplicateSlots = dttd_spotify_clear_duplicate_connected_accounts($profileId, $slot, $userId, $connectedText);
 
     // Account 1 remains synced to legacy app_settings until the mixer is fully

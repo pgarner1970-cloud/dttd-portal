@@ -47,9 +47,9 @@ function dttd_settings_table_has_column($table, $column) {
 
 function dttd_default_spotify_profiles() {
     return [
-        1 => ['id' => null, 'label' => 'Account 1', 'account_email' => '', 'use_for_deck_a' => 1, 'use_for_deck_b' => 0, 'use_for_public_search' => 0, 'enabled' => 1, 'refresh_token' => '', 'granted_scopes' => '', 'connected_email' => ''],
-        2 => ['id' => null, 'label' => 'Account 2', 'account_email' => '', 'use_for_deck_a' => 0, 'use_for_deck_b' => 1, 'use_for_public_search' => 0, 'enabled' => 1, 'refresh_token' => '', 'granted_scopes' => '', 'connected_email' => ''],
-        3 => ['id' => null, 'label' => 'Account 3', 'account_email' => '', 'use_for_deck_a' => 0, 'use_for_deck_b' => 0, 'use_for_public_search' => 1, 'enabled' => 0, 'refresh_token' => '', 'granted_scopes' => '', 'connected_email' => ''],
+        1 => ['id' => null, 'label' => 'Deck A Duo account', 'account_email' => '', 'spotify_user_id' => '', 'spotify_display_name' => '', 'use_for_deck_a' => 1, 'use_for_deck_b' => 0, 'use_for_public_search' => 0, 'enabled' => 1, 'refresh_token' => '', 'granted_scopes' => '', 'connected_email' => ''],
+        2 => ['id' => null, 'label' => 'Deck B Duo account', 'account_email' => '', 'spotify_user_id' => '', 'spotify_display_name' => '', 'use_for_deck_a' => 0, 'use_for_deck_b' => 1, 'use_for_public_search' => 0, 'enabled' => 1, 'refresh_token' => '', 'granted_scopes' => '', 'connected_email' => ''],
+        3 => ['id' => null, 'label' => 'Public search account', 'account_email' => '', 'spotify_user_id' => '', 'spotify_display_name' => '', 'use_for_deck_a' => 0, 'use_for_deck_b' => 0, 'use_for_public_search' => 1, 'enabled' => 0, 'refresh_token' => '', 'granted_scopes' => '', 'connected_email' => ''],
     ];
 }
 
@@ -87,17 +87,20 @@ function dttd_load_spotify_profiles() {
             }
             $connectedEmail = trim((string)dttd_profile_row_value($row, 'account_email', ''));
             $displayName = trim((string)dttd_profile_row_value($row, 'spotify_display_name', ''));
+            $spotifyUserId = trim((string)dttd_profile_row_value($row, 'spotify_user_id', ''));
             $profiles[$slot] = array_merge($profiles[$slot], [
                 'id' => dttd_profile_row_value($row, 'id', null),
                 'label' => dttd_profile_row_value($row, 'label', $profiles[$slot]['label']),
                 'account_email' => $connectedEmail,
+                'spotify_user_id' => $spotifyUserId,
+                'spotify_display_name' => $displayName,
                 'use_for_deck_a' => (int)dttd_profile_row_value($row, 'use_for_deck_a', 0),
                 'use_for_deck_b' => (int)dttd_profile_row_value($row, 'use_for_deck_b', 0),
                 'use_for_public_search' => (int)dttd_profile_row_value($row, 'use_for_public_search', 0),
                 'enabled' => (int)dttd_profile_row_value($row, 'enabled', 1),
                 'refresh_token' => dttd_profile_row_value($row, 'refresh_token', ''),
                 'granted_scopes' => dttd_profile_row_value($row, 'granted_scopes', ''),
-                'connected_email' => $connectedEmail !== '' ? $connectedEmail : $displayName,
+                'connected_email' => $connectedEmail !== '' ? $connectedEmail : ($displayName !== '' ? $displayName : $spotifyUserId),
                 'profile_slot' => $slot,
             ]);
         }
@@ -243,6 +246,13 @@ function dttd_selected_spotify_role_slot(array $profiles, $field, $fallbackSlot)
         }
     }
     return (int)$fallbackSlot;
+}
+
+function dttd_spotify_settings_slot_hint($slot) {
+    $slot = (int)$slot;
+    if ($slot === 1) return 'Use for Deck A playback';
+    if ($slot === 2) return 'Use for Deck B playback';
+    return 'Use for public search or diagnostics';
 }
 
 $spotify_role_deck_a_slot = dttd_selected_spotify_role_slot($spotify_profiles, 'use_for_deck_a', 1);
@@ -461,15 +471,29 @@ admin_header('Settings - DJ Portal');
                 <div class="spotify-field-card spotify-account-card">
                   <div class="spotify-account-card-head">
                     <strong>Spotify Account <?= (int)$slot ?></strong>
-                    <?php if ($slot === 3): ?><small>Optional</small><?php endif; ?>
+                    <small><?= h(dttd_spotify_settings_slot_hint($slot)) ?></small>
                   </div>
 
-                  <label>Account label</label>
+                  <label>Account label / expected username</label>
                   <input type="hidden" name="spotify_profiles[<?= (int)$slot ?>][id]" value="<?= h((string)($profile['id'] ?? '')) ?>">
-                  <input class="spotify-settings-input" type="text" name="spotify_profiles[<?= (int)$slot ?>][label]" value="<?= h($profile['label']) ?>" placeholder="Account <?= (int)$slot ?>">
+                  <input class="spotify-settings-input" type="text" name="spotify_profiles[<?= (int)$slot ?>][label]" value="<?= h($profile['label']) ?>" placeholder="<?= $slot === 1 ? 'Deck A Duo username' : ($slot === 2 ? 'Deck B Duo username' : 'Paul search account') ?>">
 
-                  <label>Connected Spotify login / note</label>
-                  <input class="spotify-settings-input" type="text" name="spotify_profiles[<?= (int)$slot ?>][account_email]" value="<?= h($profile['account_email']) ?>" placeholder="Auto-filled after Connect, or add a reminder note">
+                  <input type="hidden" name="spotify_profiles[<?= (int)$slot ?>][account_email]" value="<?= h($profile['account_email']) ?>">
+                  <div class="spotify-connected-identity">
+                    <small><strong>Connected identity</strong></small>
+                    <?php if (trim((string)($profile['spotify_display_name'] ?? '')) !== ''): ?>
+                      <small>Display name: <?= h((string)$profile['spotify_display_name']) ?></small>
+                    <?php endif; ?>
+                    <?php if (trim((string)($profile['spotify_user_id'] ?? '')) !== ''): ?>
+                      <small>Spotify user ID: <?= h((string)$profile['spotify_user_id']) ?></small>
+                    <?php endif; ?>
+                    <?php if (trim((string)($profile['account_email'] ?? '')) !== ''): ?>
+                      <small>Email returned by Spotify: <?= h((string)$profile['account_email']) ?></small>
+                    <?php endif; ?>
+                    <?php if (trim((string)($profile['refresh_token'] ?? '')) === ''): ?>
+                      <small>Not connected yet. Use the button below and log into the correct Spotify account on Spotify's page.</small>
+                    <?php endif; ?>
+                  </div>
 
                   <div class="spotify-account-connect-row">
                     <?php $profileConnected = trim((string)($profile['refresh_token'] ?? '')) !== ''; ?>
@@ -533,6 +557,8 @@ admin_header('Settings - DJ Portal');
           .spotify-account-connect-row{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin:.35rem 0 .15rem;}
           .spotify-connect-btn{padding:.7rem .9rem;font-size:.9rem;white-space:nowrap;}
           .spotify-account-help{color:#9ec7ee;line-height:1.35;}
+          .spotify-connected-identity{display:grid;gap:.25rem;padding:.65rem .75rem;border:1px solid rgba(96,145,205,.22);border-radius:12px;background:rgba(2,6,23,.28);}
+          .spotify-connected-identity small{color:#bcd6f0;line-height:1.35;overflow-wrap:anywhere;}
           @media(max-width:1100px){.spotify-account-grid{grid-template-columns:1fr;}}
         </style>
 
