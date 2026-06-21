@@ -484,6 +484,12 @@ function renderRecent() {
   function renderMusicBoard() {
     const requests = Array.isArray(state.requests) ? state.requests : [];
     const playedRequests = Array.isArray(state.played_requests) ? state.played_requests : [];
+    const comingUpRequests = (Array.isArray(state.coming_up_tracks) ? state.coming_up_tracks : [])
+      .filter(row => row && (row.is_request || row.request_id || row.requester_name || row.source === 'request'))
+      .map(row => Object.assign({}, row, {
+        status: row.status || 'queued',
+        source: row.source || 'request'
+      }));
     const current = currentTrack();
     const next = upNextTrack();
 
@@ -492,7 +498,7 @@ function renderRecent() {
     // right = requests that have been played
     // Do not pull in general DJ playback history here.
     const liveRequestRows = playedRequests.filter(row => sameTrack(row, current) || sameTrack(row, next));
-    const queueRows = sortTrackRowsKeepingRequests(liveRequestRows.concat(requests))
+    const queueRows = sortTrackRowsKeepingRequests(liveRequestRows.concat(comingUpRequests, requests))
       .filter(row => displayStatusForTrack(row, row.status || '').toLowerCase() !== 'played')
       .slice(0, 5);
 
@@ -733,6 +739,7 @@ function renderRecent() {
       event.requests_close_at || '',
       Array.isArray(data.slides) ? data.slides.join('|') : '',
       keyRows(data.requests),
+      keyRows(data.coming_up_tracks),
       keyRows(data.played_requests),
       keyRows(data.recent_tracks),
       keyRows(data.photos),
