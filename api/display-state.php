@@ -214,6 +214,48 @@ function dttd_display_weighted_slides($slides, $settings) {
     return $result;
 }
 
+function dttd_display_priority_loop_slides($slides, $settings) {
+    $slides = array_values(array_unique((array)$slides));
+    if (!$slides) return [];
+
+    $byPriority = [
+        'high' => [],
+        'normal' => [],
+        'low' => [],
+    ];
+
+    foreach ($slides as $slide) {
+        $priority = strtolower((string)($settings[$slide]['priority'] ?? 'normal'));
+        if (!isset($byPriority[$priority])) $priority = 'normal';
+        $byPriority[$priority][] = $slide;
+    }
+
+    $out = [];
+    for ($pass = 1; $pass <= 3; $pass++) {
+        foreach ($byPriority['high'] as $slide) {
+            $out[] = $slide;
+        }
+        foreach ($byPriority['normal'] as $slide) {
+            $out[] = $slide;
+        }
+        if ($pass === 3) {
+            foreach ($byPriority['low'] as $slide) {
+                $out[] = $slide;
+            }
+        }
+    }
+
+    $cleaned = [];
+    foreach ($out as $slide) {
+        if ($slide === '' || (isset($cleaned[count($cleaned) - 1]) && $cleaned[count($cleaned) - 1] === $slide)) {
+            continue;
+        }
+        $cleaned[] = $slide;
+    }
+
+    return $cleaned;
+}
+
 function dttd_display_slide_durations($settings) {
     $out = [];
     foreach ($settings as $key => $setting) {
@@ -1180,7 +1222,7 @@ if ($finalStretchActive) {
     [$slides, $slideDurations] = dttd_display_apply_final_stretch($slides, $slideSettings, $finalStretchSettings, true);
     $slides = array_values(array_unique($slides));
 } else {
-    $slides = dttd_display_weighted_slides($slides, $slideSettings);
+    $slides = dttd_display_priority_loop_slides($slides, $slideSettings);
     $slideDurations = dttd_display_slide_durations($slideSettings);
 }
 

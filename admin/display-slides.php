@@ -262,7 +262,7 @@ function dttd_display_slide_save_settings($settings) {
     $stmt = db()->prepare($sql);
 
     foreach ($settings as $key => $setting) {
-        $preset = in_array($setting['duration_preset'], ['short','medium','long'], true) ? $setting['duration_preset'] : 'medium';
+        $preset = in_array($setting['duration_preset'], ['short','medium','long','extra_long'], true) ? $setting['duration_preset'] : 'medium';
         $priority = in_array($setting['priority'], ['low','normal','high'], true) ? $setting['priority'] : 'normal';
         $stmt->execute([
             $key,
@@ -293,7 +293,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach ($settings as $key => &$setting) {
             $row = is_array($posted[$key] ?? null) ? $posted[$key] : [];
             $setting['enabled'] = !empty($row['enabled']) ? 1 : 0;
-            $setting['duration_preset'] = in_array(($row['duration_preset'] ?? ''), ['short','medium','long'], true) ? $row['duration_preset'] : $setting['duration_preset'];
+            $setting['duration_preset'] = in_array(($row['duration_preset'] ?? ''), ['short','medium','long','extra_long'], true) ? $row['duration_preset'] : $setting['duration_preset'];
             $setting['priority'] = in_array(($row['priority'] ?? ''), ['low','normal','high'], true) ? $row['priority'] : $setting['priority'];
             $setting['sort_order'] = isset($row['sort_order']) ? (int)$row['sort_order'] : (int)$setting['sort_order'];
         }

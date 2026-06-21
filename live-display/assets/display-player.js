@@ -646,6 +646,33 @@ function renderRecent() {
       + '</div></article>';
   }
 
+  function secondsUntil(value) {
+    if (!value) return null;
+    const target = Date.parse(value);
+    if (!Number.isFinite(target)) return null;
+    return Math.max(0, Math.floor((target - Date.now()) / 1000));
+  }
+
+  function renderEventTimer() {
+    const event = state && state.event ? state.event : {};
+    const eventSeconds = secondsUntil(event.event_end_iso || '');
+    const requestSeconds = secondsUntil(event.requests_close_iso || event.requests_close_at || '');
+    const requestsOpen = event.requests_open !== false && (requestSeconds === null || requestSeconds > 0);
+
+    const eventTimer = eventSeconds !== null ? formatCountdown(eventSeconds) : '--:--';
+    const requestTimer = requestSeconds !== null ? formatCountdown(requestSeconds) : '--:--';
+
+    return '<article class="display-slide" data-slide="event_timer">'
+      + '<div class="display-card event-timer-card">'
+      + '<div class="event-timer-head"><p class="display-kicker">Keep Dancing</p><h1>' + esc(text(event.event_name, 'Tonight’s Event')) + '</h1></div>'
+      + '<div class="event-timer-grid">'
+      + '<section class="event-timer-panel event-timer-main"><span>Event time remaining</span><strong>' + esc(eventTimer) + '</strong><em>until the planned finish</em></section>'
+      + '<section class="event-timer-panel"><span>Requests</span><strong>' + esc(requestsOpen ? requestTimer : 'Closed') + '</strong><em>' + esc(requestsOpen ? 'left to send requests' : 'Thanks for the requests tonight') + '</em></section>'
+      + '</div>'
+      + '<p class="event-timer-footer">Requests • Photos • Music • Memories</p>'
+      + '</div></article>';
+  }
+
   function renderStandby() {
     const standby = state && state.standby ? state.standby : {};
     return '<article class="display-slide" data-slide="standby">'
@@ -674,6 +701,7 @@ function renderRecent() {
       case 'welcome': return renderWelcome();
       case 'venue': return renderVenue();
       case 'qr': return renderQr();
+      case 'event_timer': return renderEventTimer();
       case 'now_playing': return renderNowPlaying();
       case 'up_next': return renderUpNext();
       case 'recent': return renderRecent();
@@ -926,9 +954,21 @@ function renderRecent() {
     return fetch(url + sep + '_=' + Date.now(), { cache: 'no-store', credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).catch(() => null);
   }
 
+  function endpointWithEventId(url, eventId) {
+    if (!eventId) return url;
+    try {
+      const parsed = new URL(url, window.location.href);
+      parsed.searchParams.set('event_id', String(eventId));
+      return parsed.pathname + parsed.search;
+    } catch (e) {
+      const base = String(url || '/api/public-now-playing.php').split('?')[0];
+      return base + '?event_id=' + encodeURIComponent(eventId);
+    }
+  }
+
   function nowPlayingEndpoint() {
     if (state && state.event && state.event.id) {
-      return '/api/public-now-playing.php?event_id=' + encodeURIComponent(state.event.id);
+      return endpointWithEventId(nowPlayingUrl, state.event.id);
     }
     return nowPlayingUrl;
   }

@@ -2,6 +2,14 @@
 require_once __DIR__ . '/../includes/db.php';
 dttd_no_cache_headers();
 header('X-Robots-Tag: noindex, nofollow, noarchive', true);
+$scriptBase = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
+$scriptBase = $scriptBase === '/' ? '' : $scriptBase;
+$liveAssetUrl = function($path) use ($scriptBase) {
+    $path = ltrim((string)$path, '/');
+    $fullPath = __DIR__ . '/' . $path;
+    $version = is_file($fullPath) ? (string)filemtime($fullPath) : (string)time();
+    return $scriptBase . '/' . $path . '?v=' . rawurlencode($version);
+};
 $eventParam = '';
 if (isset($_GET['event_id'])) {
     $eventParam = 'event_id=' . rawurlencode((string)(int)$_GET['event_id']);
@@ -10,8 +18,8 @@ if (isset($_GET['event_id'])) {
 } elseif (!empty($_GET['code'])) {
     $eventParam = 'code=' . rawurlencode((string)$_GET['code']);
 }
-$stateUrl = '/api/display-state.php' . ($eventParam !== '' ? '?' . $eventParam : '');
-$nowPlayingUrl = '/api/public-now-playing.php' . ($eventParam !== '' && str_starts_with($eventParam, 'event_id=') ? '?' . $eventParam : '');
+$stateUrl = $scriptBase . '/api/display-state.php' . ($eventParam !== '' ? '?' . $eventParam : '');
+$nowPlayingUrl = $scriptBase . '/api/public-now-playing.php' . ($eventParam !== '' && str_starts_with($eventParam, 'event_id=') ? '?' . $eventParam : '');
 $displayMode = (isset($_GET['mode']) && strtolower((string)$_GET['mode']) === 'lite') ? 'lite' : 'full';
 $bodyClass = 'display-body' . ($displayMode === 'lite' ? ' display-lite' : '');
 ?><!doctype html>
@@ -22,8 +30,8 @@ $bodyClass = 'display-body' . ($displayMode === 'lite' ? ' display-lite' : '');
   <?= dttd_cache_meta_tags() ?>
   <title>Dance Through The Decades — Event Display</title>
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <link rel="icon" href="<?= h(dttd_asset_url('assets/favicon-dj-192.png')) ?>">
-  <link rel="stylesheet" href="<?= h(dttd_asset_url('assets/display.css')) ?>">
+  <link rel="icon" href="<?= h($liveAssetUrl('assets/favicon-dj-192.png')) ?>">
+  <link rel="stylesheet" href="<?= h($liveAssetUrl('assets/display.css')) ?>">
 </head>
 <body class="<?= h($bodyClass) ?>">
   <main class="display-shell" data-state-url="<?= h($stateUrl) ?>" data-now-playing-url="<?= h($nowPlayingUrl) ?>" data-display-mode="<?= h($displayMode) ?>">
@@ -33,7 +41,7 @@ $bodyClass = 'display-body' . ($displayMode === 'lite' ? ' display-lite' : '');
     <header class="display-header">
       <div class="display-brand" aria-label="Dance Through The Decades Events">
         <span class="display-brand-logo">
-          <img src="<?= h(dttd_asset_url('assets/dttd-logo-inner.png')) ?>" alt="Dance Through The Decades Events">
+          <img src="<?= h($liveAssetUrl('assets/dttd-logo-inner.png')) ?>" alt="Dance Through The Decades Events">
         </span>
         <span class="display-brand-wordmark">
           <strong>Dance Thru The Decades</strong>
@@ -59,7 +67,7 @@ $bodyClass = 'display-body' . ($displayMode === 'lite' ? ' display-lite' : '');
       <span>Requests • Photos • Music • Memories</span>
     </footer>
   </main>
-  <script src="<?= h(dttd_asset_url('assets/display-player.js')) ?>"></script>
+  <script src="<?= h($liveAssetUrl('assets/display-player.js')) ?>"></script>
   <script>
     (function(){
       var footerId = document.querySelector('[data-slide-id]');
