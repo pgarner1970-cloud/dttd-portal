@@ -385,6 +385,50 @@ function trackTitleValue(row) {
     });
   }
 
+  function requestIdentityKey(row) {
+    if (!row) return '';
+    const requestId = text(row.request_id || '', '').trim();
+    if (requestId) return 'request:' + requestId;
+
+    const rowId = text(row.id || '', '').trim();
+    if (rowId && (trackRequesterValue(row) || trackDedicationValue(row) || text(row.source || '', '').toLowerCase() === 'request')) {
+      return 'request:' + rowId;
+    }
+
+    const title = trackTitleValue(row).toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const artist = trackArtistValue(row).toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const requester = trackRequesterValue(row).toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+    return title ? 'fallback:' + title + '|' + artist + '|' + requester : '';
+  }
+
+  function requestRowScore(row) {
+    const status = displayStatusForTrack(row, row && row.status).toLowerCase();
+    return (status === 'played' ? 16 : 0)
+      + (row && row.played_at ? 8 : 0)
+      + (trackRequesterValue(row) ? 4 : 0)
+      + (trackArtworkValue(row) ? 2 : 0)
+      + (trackDedicationValue(row) ? 1 : 0);
+  }
+
+  function uniqueRequestRows(rows) {
+    const out = [];
+    const seen = {};
+    (Array.isArray(rows) ? rows : []).forEach(row => {
+      const key = requestIdentityKey(row);
+      if (!key) return;
+      if (seen[key] !== undefined) {
+        const idx = seen[key];
+        if (requestRowScore(row) > requestRowScore(out[idx])) {
+          out[idx] = Object.assign({}, out[idx], row);
+        }
+        return;
+      }
+      seen[key] = out.length;
+      out.push(row);
+    });
+    return out;
+  }
+
 
 
     function mergePlayedRows() {
@@ -417,7 +461,7 @@ function trackTitleValue(row) {
       }
     });
 
-    return sortTrackRowsKeepingRequests(requestRows);
+    return sortTrackRowsKeepingRequests(uniqueRequestRows(requestRows));
   }
 
 
