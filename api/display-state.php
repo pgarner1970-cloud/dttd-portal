@@ -581,35 +581,96 @@ function dttd_display_played_requests($eventId, $limit = 6) {
     if ($eventId <= 0) return [];
     $limit = max(1, min(12, (int)$limit));
 
+    $artworkCol = '';
+    foreach (['artwork_url', 'spotify_album_image', 'album_image', 'image_url', 'image'] as $candidate) {
+        if (dttd_display_col_exists('event_requests', $candidate)) {
+            $artworkCol = $candidate;
+            break;
+        }
+    }
+    $spotifyCol = dttd_display_col_exists('event_requests', 'spotify_track_id') ? 'spotify_track_id' : '';
     $playedCol = dttd_display_col_exists('event_requests', 'played_at') ? 'played_at' : '';
     $orderExpr = $playedCol !== '' ? 'COALESCE(played_at, approved_at, created_at)' : 'COALESCE(approved_at, created_at)';
 
+    $rowsById = [];
+    $addRow = function($row, $playedAt = '') use (&$rowsById, $artworkCol, $spotifyCol) {
+        $id = (int)($row['id'] ?? 0);
+        if ($id <= 0) return;
+        $playedAt = trim((string)$playedAt);
+        if ($playedAt === '') {
+            $playedAt = (string)($row['played_at'] ?? ($row['approved_at'] ?? $row['created_at'] ?? ''));
+        }
+        $existing = $rowsById[$id] ?? null;
+        if ($existing && strtotime((string)($existing['played_at'] ?? '')) >= strtotime($playedAt ?: '1970-01-01')) {
+            return;
+        }
+        $rowsById[$id] = [
+            'id' => $id,
+            'track_name' => (string)$row['track_name'],
+            'artist_name' => (string)($row['artist_name'] ?? ''),
+            'requester_name' => (string)($row['requester_name'] ?? ''),
+            'dedication' => (string)($row['dedication'] ?? ''),
+            'status' => 'played',
+            'artwork_url' => $artworkCol !== '' ? dttd_display_url($row['display_artwork_url'] ?? '') : '',
+            'spotify_track_id' => $spotifyCol !== '' ? (string)($row['spotify_track_id'] ?? '') : '',
+            'played_at' => $playedAt,
+        ];
+    };
+
     try {
         $stmt = db()->prepare("
-            SELECT id, track_name, artist_name, requester_name, dedication, status, created_at, approved_at" . ($playedCol !== '' ? ", played_at" : "") . "
+            SELECT id, track_name, artist_name, requester_name, dedication, status, created_at, approved_at"
+            . ($artworkCol !== '' ? ", " . $artworkCol . " AS display_artwork_url" : "")
+            . ($spotifyCol !== '' ? ", spotify_track_id" : "")
+            . ($playedCol !== '' ? ", played_at" : "") . "
             FROM event_requests
             WHERE event_id = ?
               AND LOWER(COALESCE(status, 'pending')) = 'played'
             ORDER BY " . $orderExpr . " DESC, id DESC
-            LIMIT " . $limit . "
+            LIMIT 80
         ");
         $stmt->execute([$eventId]);
-        $rows = [];
         foreach ($stmt->fetchAll() as $row) {
-            $rows[] = [
-                'id' => (int)$row['id'],
-                'track_name' => (string)$row['track_name'],
-                'artist_name' => (string)($row['artist_name'] ?? ''),
-                'requester_name' => (string)($row['requester_name'] ?? ''),
-                'dedication' => (string)($row['dedication'] ?? ''),
-                'status' => (string)($row['status'] ?? ''),
-                'played_at' => (string)($row['played_at'] ?? ($row['approved_at'] ?? $row['created_at'] ?? '')),
-            ];
+            $addRow($row);
         }
-        return $rows;
+
+        if (dttd_display_table_exists('event_track_history') && dttd_display_col_exists('event_track_history', 'request_id')) {
+            $historyStmt = db()->prepare("
+                SELECT r.id, r.track_name, r.artist_name, r.requester_name, r.dedication, r.status, r.created_at, r.approved_at"
+                . ($artworkCol !== '' ? ", r." . $artworkCol . " AS display_artwork_url" : "")
+                . ($spotifyCol !== '' ? ", r.spotify_track_id" : "") . ",
+                       MAX(h.played_at) AS history_played_at
+                FROM event_track_history h
+                INNER JOIN event_requests r ON r.id = h.request_id AND r.event_id = ?
+                WHERE h.event_id = ?
+                  AND h.request_id IS NOT NULL
+                  AND h.request_id > 0
+                GROUP BY r.id, r.track_name, r.artist_name, r.requester_name, r.dedication, r.status, r.created_at, r.approved_at"
+                . ($artworkCol !== '' ? ", r." . $artworkCol : "")
+                . ($spotifyCol !== '' ? ", r.spotify_track_id" : "") . "
+                ORDER BY history_played_at DESC, r.id DESC
+                LIMIT 80
+            ");
+            $historyStmt->execute([$eventId, $eventId]);
+            foreach ($historyStmt->fetchAll() as $row) {
+                $status = strtolower(trim((string)($row['status'] ?? '')));
+                if (in_array($status, ['rejected','declined','cancelled','canceled'], true)) continue;
+                $addRow($row, (string)($row['history_played_at'] ?? ''));
+            }
+        }
     } catch (Throwable $e) {
         return [];
     }
+
+    $rows = array_values($rowsById);
+    usort($rows, function($a, $b) {
+        $at = strtotime((string)($a['played_at'] ?? '')) ?: 0;
+        $bt = strtotime((string)($b['played_at'] ?? '')) ?: 0;
+        if ($at !== $bt) return $bt <=> $at;
+        return ((int)($b['id'] ?? 0)) <=> ((int)($a['id'] ?? 0));
+    });
+
+    return array_slice($rows, 0, $limit);
 }
 
 function dttd_display_recent_tracks($eventId, $limit = 10) {
