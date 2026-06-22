@@ -628,11 +628,9 @@ function renderRecent() {
 
     function renderUpcoming() {
     const events = state.upcoming_events || [];
-    const currentEventId = state && state.event ? Number(state.event.id || 0) : 0;
     const limit = isLite ? 4 : 8;
     const cards = events.slice(0, limit).map((ev, idx) => {
-      const evId = Number(ev.id || 0);
-      const isCurrent = !!ev.is_current_event || (currentEventId > 0 && evId === currentEventId);
+      const isCurrent = !!ev.is_current_event;
       const label = isCurrent ? 'Current Event' : (idx === 0 ? 'Next event' : 'Coming soon');
       const date = formatDate(ev.event_date);
       const start = text(ev.start_time, '');

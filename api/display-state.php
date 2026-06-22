@@ -876,12 +876,12 @@ function dttd_display_photos($eventId, $limit = 12) {
 function dttd_display_upcoming_events($limit = 5, $currentEventId = 0) {
     if (!dttd_display_table_exists('events')) return [];
     $limit = max(1, min(12, (int)$limit));
-    $currentEventId = (int)$currentEventId;
 
     try {
         $endCol = dttd_display_col_exists('events', 'end_time') ? 'end_time' : '';
+        $queryLimit = max(20, $limit * 4);
         $stmt = db()->prepare("
-            SELECT id, event_name, venue_name, event_date, start_time, status, event_code, public_slug"
+            SELECT id, event_name, venue_name, event_date, start_time, status, is_active, event_code, public_slug"
             . ($endCol !== '' ? ", end_time" : "") . "
             FROM events
             WHERE is_public = 1
@@ -889,25 +889,35 @@ function dttd_display_upcoming_events($limit = 5, $currentEventId = 0) {
               AND status IN ('scheduled','live')
               AND event_date >= DATE_SUB(CURDATE(), INTERVAL 1 DAY)
             ORDER BY
-              CASE WHEN id = ? THEN 0 WHEN status = 'live' THEN 1 ELSE 2 END ASC,
+              CASE WHEN status = 'live' THEN 0 ELSE 1 END ASC,
               event_date ASC, COALESCE(start_time, '00:00:00') ASC, id ASC
-            LIMIT " . $limit . "
+            LIMIT " . $queryLimit . "
         ");
-        $stmt->execute([$currentEventId]);
+        $stmt->execute();
         $rows = [];
+        $now = time();
 
         foreach ($stmt->fetchAll() as $row) {
             $rowId = (int)$row['id'];
-            $isCurrent = $currentEventId > 0 && $rowId === $currentEventId;
+            $isCurrent = false;
 
             try {
-                if (!$isCurrent && function_exists('dttd_event_live_now') && dttd_event_live_now($row)) {
+                if (function_exists('dttd_event_live_now') && dttd_event_live_now($row)) {
                     $isCurrent = true;
                 }
             } catch (Throwable $e) {}
 
-            if (!$isCurrent && strtolower(trim((string)($row['status'] ?? ''))) === 'live') {
-                $isCurrent = true;
+            if (!$isCurrent) {
+                $endTs = dttd_display_event_end_timestamp($row);
+                if ($endTs > 0) {
+                    if ($endTs < $now) continue;
+                } else {
+                    $startTs = 0;
+                    if (!empty($row['event_date'])) {
+                        $startTs = strtotime((string)$row['event_date'] . ' ' . (string)($row['start_time'] ?? '00:00:00')) ?: 0;
+                    }
+                    if ($startTs > 0 && $startTs < $now) continue;
+                }
             }
 
             $rows[] = [
@@ -932,7 +942,7 @@ function dttd_display_upcoming_events($limit = 5, $currentEventId = 0) {
             return strcmp($ad, $bd);
         });
 
-        return $rows;
+        return array_slice($rows, 0, $limit);
     } catch (Throwable $e) {
         return [];
     }

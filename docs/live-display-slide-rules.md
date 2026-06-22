@@ -27,6 +27,12 @@ The API builds the available live-event slide list from enabled admin settings a
 - `upcoming`: upcoming public events.
 - `sponsors`: configured event sponsors.
 
+## Upcoming Events
+
+The `upcoming` slide should only show public active events that are either currently inside their live time window or have not reached their end time yet.
+
+An event must not be shown as `Next event` after its end time has passed, even if its database status is still `live` or it was the most recently loaded event. The slide should label an event as `Current Event` only when the live-window helper confirms it is live at the current time.
+
 ## Priority Rotation
 
 Outside final stretch mode, the API returns a deterministic three-pass carousel:
