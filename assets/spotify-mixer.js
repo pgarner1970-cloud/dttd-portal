@@ -35,6 +35,11 @@ document.head.appendChild(overviewStyle);
   let activeCrateId = '';
   let activeCrateName = '';
   let activeCrateTracks = [];
+  let crateArtistMode = false;
+  let crateArtistLoaded = false;
+  let crateArtistTracks = [];
+  let crateArtistLetter = '';
+  let crateArtistName = '';
   let cratePage = 0;
   let crateDrawerOpen = true;
   let availableCrates = [];
@@ -82,7 +87,7 @@ document.head.appendChild(overviewStyle);
     publicRequests: $('#publicRequests'), djPlaylist: $('#djPlaylist'),
     requestCount: $('#requestCount'), playlistCount: $('#playlistCount'),
     sourceTabs: document.querySelectorAll('[data-source-tab]'), sourcePanels: document.querySelectorAll('[data-source-panel]'),
-    djCrateTiles: $('#djCrateTiles'), crateTileDrawer: $('#crateTileDrawer'), crateDrawerToggle: $('#crateDrawerToggle'), crateSummaryName: $('#crateSummaryName'), crateSummaryCount: $('#crateSummaryCount'), djCrateTracks: $('#djCrateTracks'), cratePager: $('#cratePager'), djCrateStatus: $('#djCrateStatus'), refreshCrates: $('#refreshCrates'), showNewCrate: $('#showNewCrate'), newCratePanel: $('#newCratePanel'), cancelNewCrate: $('#cancelNewCrate'), newCrateName: $('#newCrateName'), createCrate: $('#createCrate'), historyList: $('#historyList'),
+    djCrateTiles: $('#djCrateTiles'), crateTileDrawer: $('#crateTileDrawer'), crateDrawerToggle: $('#crateDrawerToggle'), crateSummaryName: $('#crateSummaryName'), crateSummaryCount: $('#crateSummaryCount'), annotateCrates: $('#annotateCrates'), djCrateTracks: $('#djCrateTracks'), cratePager: $('#cratePager'), djCrateStatus: $('#djCrateStatus'), refreshCrates: $('#refreshCrates'), showNewCrate: $('#showNewCrate'), newCratePanel: $('#newCratePanel'), cancelNewCrate: $('#cancelNewCrate'), newCrateName: $('#newCrateName'), createCrate: $('#createCrate'), historyList: $('#historyList'),
     choiceModal: $('#mixerChoiceModal'), choiceImage: $('#choiceImage'), choiceTitle: $('#choiceTitle'), choiceArtist: $('#choiceArtist'), choiceActions: $('#choiceActions'), choiceWarning: $('#choiceWarning'), choiceCancel: $('#choiceCancel'),
     musicLibraryModal: $('#musicLibraryModal'), openMusicLibrary: $('#openMusicLibrary'), closeMusicLibrary: $('#closeMusicLibrary'), musicLibraryActionBar: $('#musicLibraryActionBar')
   };
@@ -497,7 +502,7 @@ document.head.appendChild(overviewStyle);
     actions += `<button class="mixer-btn green library-action-btn" data-library-action="play_a" ${aBlocked || localDirectPlayBlocked ? 'disabled' : ''}>▶ A</button>`;
     actions += `<button class="mixer-btn blue library-action-btn" data-library-action="load_b" ${bBlocked ? 'disabled' : ''}>Load B</button>`;
     actions += `<button class="mixer-btn green library-action-btn" data-library-action="play_b" ${bBlocked || localDirectPlayBlocked ? 'disabled' : ''}>▶ B</button>`;
-    if(src === 'crate') actions += `<button class="mixer-btn red library-action-btn" data-library-action="remove_crate" ${!activeCrateId || !item.id ? 'disabled' : ''}>Remove</button>`;
+    if(src === 'crate') actions += `<button class="mixer-btn red library-action-btn" data-library-action="remove_crate" ${!(item.crate_id || activeCrateId) || !(item.crate_track_id || item.id) ? 'disabled' : ''}>Remove</button>`;
     const notes = [];
     if(local) notes.push('Local track');
     if(aBlocked) notes.push('A unavailable/playing');
@@ -544,14 +549,19 @@ document.head.appendChild(overviewStyle);
         const crateId = select ? select.value : activeCrateId;
         Object.assign(params, {action:'add_crate_track', crate_id:crateId, track_json:trackJson});
       }
-      if(action === 'remove_crate') Object.assign(params, {action:'remove_crate_track', crate_id:activeCrateId, track_id:item.crate_track_id || item.id});
+      if(action === 'remove_crate') Object.assign(params, {action:'remove_crate_track', crate_id:item.crate_id || activeCrateId, track_id:item.crate_track_id || item.id});
       if(action === 'load_a' || action === 'load_b') Object.assign(params, {action:'load_track_direct', track_json:trackJson, deck:action.slice(-1)});
       if(action === 'play_a' || action === 'play_b') Object.assign(params, {action:'play_track_direct', track_json:trackJson, deck:action.slice(-1)});
     }
     if(!params.action) return;
     await doAction(params);
     clearLibrarySelection();
-    if(src === 'crate' && action === 'remove_crate') setTimeout(()=>loadDjCrateTracks(activeCrateId, activeCrateName), 350);
+    if(src === 'crate' && action === 'remove_crate') {
+      setTimeout(()=>{
+        if(crateArtistMode) loadCrateArtistIndex(true);
+        else loadDjCrateTracks(activeCrateId, activeCrateName);
+      }, 350);
+    }
   }
   function openChoice(item, source){
     if(!els.choiceModal || !item) return;
@@ -1139,6 +1149,22 @@ renderAccountStatus();
     if(els.crateTileDrawer) els.crateTileDrawer.hidden = !crateDrawerOpen;
     if(els.crateDrawerToggle) els.crateDrawerToggle.setAttribute('aria-expanded', crateDrawerOpen ? 'true' : 'false');
   }
+  function setCrateArtistMode(on){
+    crateArtistMode = !!on;
+    if(els.annotateCrates){
+      els.annotateCrates.classList.toggle('active', crateArtistMode);
+      els.annotateCrates.setAttribute('aria-pressed', crateArtistMode ? 'true' : 'false');
+      els.annotateCrates.textContent = crateArtistMode ? 'Crate View' : 'Annotate';
+    }
+    if(crateArtistMode){
+      setCrateDrawer(false);
+      if(els.cratePager) els.cratePager.hidden = true;
+      if(crateArtistLoaded) renderCrateArtistIndex();
+      else loadCrateArtistIndex(false);
+    } else {
+      renderDjCrateTracks(activeCrateTracks);
+    }
+  }
   function updateCrateSummary(){
     const crate = availableCrates.find(c => String(c.id) === String(activeCrateId));
     const name = activeCrateName || String(crate?.name || 'Choose a crate');
@@ -1177,6 +1203,10 @@ renderAccountStatus();
   }
   function renderCratePager(total){
     if(!els.cratePager) return;
+    if(crateArtistMode){
+      els.cratePager.hidden = true;
+      return;
+    }
     total = Number(total || 0) || 0;
     const pageSize = searchPageSize();
     const pages = Math.max(1, Math.ceil(total / pageSize));
@@ -1189,9 +1219,80 @@ renderAccountStatus();
       <span class="search-page-count">${total ? `Showing ${from}–${to} of ${total}` : 'Showing 0 of 0'}</span>
       <button type="button" class="mixer-btn dark search-page-btn" data-crate-page="next" ${cratePage >= pages - 1 ? 'disabled' : ''}>Next ›</button>`;
   }
+  function crateArtistValue(track){
+    return String(track?.artist || 'Unknown Artist').trim() || 'Unknown Artist';
+  }
+  function crateArtistSortName(name){
+    return String(name || '').replace(/^(the|a|an)\s+/i, '').trim() || String(name || '');
+  }
+  function crateArtistLetterFor(name){
+    const clean = crateArtistSortName(name).toUpperCase();
+    const first = clean.replace(/^[^A-Z0-9]+/, '').charAt(0);
+    if(!first) return '#';
+    return /^[A-Z]$/.test(first) ? first : '#';
+  }
+  function crateArtistGroups(){
+    const artists = {};
+    (Array.isArray(crateArtistTracks) ? crateArtistTracks : []).forEach(track => {
+      const artist = crateArtistValue(track);
+      const key = artist.toLowerCase();
+      if(!artists[key]){
+        artists[key] = {
+          name: artist,
+          letter: crateArtistLetterFor(artist),
+          sort: crateArtistSortName(artist).toLowerCase(),
+          tracks: []
+        };
+      }
+      artists[key].tracks.push(track);
+    });
+    return Object.values(artists).sort((a,b) => a.sort.localeCompare(b.sort, undefined, {sensitivity:'base', numeric:true}));
+  }
+  function renderCrateArtistIndex(){
+    if(!els.djCrateTracks) return;
+    const groups = crateArtistGroups();
+    if(!groups.length){
+      els.djCrateTracks.innerHTML = '<div class="empty">No crate tracks found to annotate yet.</div>';
+      if(els.cratePager) els.cratePager.hidden = true;
+      return;
+    }
+    const letters = ['#'].concat('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''));
+    const activeLetters = {};
+    groups.forEach(g => { activeLetters[g.letter] = true; });
+    if(!crateArtistLetter || !activeLetters[crateArtistLetter]) crateArtistLetter = groups[0].letter;
+    const artistsForLetter = groups.filter(g => g.letter === crateArtistLetter);
+    if(!crateArtistName || !artistsForLetter.some(g => g.name === crateArtistName)){
+      crateArtistName = artistsForLetter[0] ? artistsForLetter[0].name : '';
+    }
+    const selectedArtist = artistsForLetter.find(g => g.name === crateArtistName) || artistsForLetter[0] || null;
+    const tracks = selectedArtist ? selectedArtist.tracks.slice().sort((a,b) => String(a.title || '').localeCompare(String(b.title || ''), undefined, {sensitivity:'base', numeric:true})) : [];
+
+    els.djCrateTracks.innerHTML = `
+      <div class="crate-artist-index">
+        <div class="crate-track-heading crate-artist-heading"><div><div class="tiny-label">Artist index</div><div class="mini muted">Browse all DJ crates by artist, then tap a track for actions.</div></div><div class="mini muted">${crateArtistTracks.length} tracks</div></div>
+        <div class="crate-alpha-row" aria-label="Artist letters">${letters.map(letter => `<button type="button" class="crate-alpha-btn${letter === crateArtistLetter ? ' active' : ''}" data-crate-artist-letter="${esc(letter)}" ${activeLetters[letter] ? '' : 'disabled'}>${esc(letter)}</button>`).join('')}</div>
+        <div class="crate-artist-browser">
+          <div class="crate-artist-list" aria-label="Artists">${artistsForLetter.map(g => `<button type="button" class="crate-artist-btn${g.name === crateArtistName ? ' active' : ''}" data-crate-artist-name="${esc(g.name)}"><strong>${esc(g.name)}</strong><small>${g.tracks.length} track${g.tracks.length === 1 ? '' : 's'}</small></button>`).join('')}</div>
+          <div class="crate-artist-tracks">
+            ${selectedArtist ? `<div class="crate-track-heading"><div class="tiny-label">${esc(selectedArtist.name)}</div><div class="mini muted">${tracks.length} track${tracks.length === 1 ? '' : 's'} across DJ crates</div></div>` : ''}
+            <div class="crate-track-grid">${tracks.map(t => `
+              <button type="button" class="result-row crate-track-row tappable-row${isLibrarySelected(t, 'crate') ? ' library-selected' : ''}" data-select-crate-track='${esc(JSON.stringify(t))}' aria-label="Choose ${esc(t.title || 'track')}">
+                <img src="${esc(image(t.image))}" alt="">
+                <span class="result-main"><span class="result-title">${esc(t.title)}</span><span class="mini muted result-subline">${esc([t.artist, t.crate_name, duration(t.duration_ms)].filter(Boolean).join(' • '))}</span></span>
+                <span class="result-corner-badges">${searchBadgeHtml(t)}${trackSourceBadge(t)}</span>
+              </button>`).join('')}</div>
+          </div>
+        </div>
+      </div>`;
+    if(els.cratePager) els.cratePager.hidden = true;
+  }
   function renderDjCrateTracks(tracks){
     if(!els.djCrateTracks) return;
     activeCrateTracks = Array.isArray(tracks) ? tracks.slice() : [];
+    if(crateArtistMode){
+      renderCrateArtistIndex();
+      return;
+    }
     const total = activeCrateTracks.length;
     if(!activeCrateId){
       els.djCrateTracks.innerHTML = '<div class="empty">Choose or create a DJ crate.</div>';
@@ -1240,6 +1341,12 @@ renderAccountStatus();
   }
   async function loadDjCrateTracks(id, name){
     activeCrateId = id || '';
+    crateArtistMode = false;
+    if(els.annotateCrates){
+      els.annotateCrates.classList.remove('active');
+      els.annotateCrates.setAttribute('aria-pressed', 'false');
+      els.annotateCrates.textContent = 'Annotate';
+    }
     const crate = availableCrates.find(c => String(c.id) === String(activeCrateId));
     activeCrateName = name || String(crate?.name || 'DJ crate');
     renderDjCrates(availableCrates.length ? availableCrates : sortCratesByName(state?.crates || []));
@@ -1251,6 +1358,26 @@ renderAccountStatus();
       if(data.ok){ if(els.djCrateStatus) els.djCrateStatus.textContent = ''; renderDjCrateTracks(data.tracks || []); }
       else { if(els.djCrateStatus) els.djCrateStatus.textContent = data.error || 'Could not load crate tracks.'; }
     } catch(e){ if(els.djCrateStatus) els.djCrateStatus.textContent = 'Could not load crate tracks.'; }
+  }
+  async function loadCrateArtistIndex(force=false){
+    if(!force && crateArtistLoaded){
+      renderCrateArtistIndex();
+      return;
+    }
+    if(els.djCrateStatus) els.djCrateStatus.innerHTML = '<span class="spinner"></span> Annotating DJ crates…';
+    try{
+      const data = await apiGet({action:'crate_artist_index'});
+      if(data.ok){
+        crateArtistLoaded = true;
+        crateArtistTracks = Array.isArray(data.tracks) ? data.tracks : [];
+        if(els.djCrateStatus) els.djCrateStatus.textContent = '';
+        renderCrateArtistIndex();
+      } else {
+        if(els.djCrateStatus) els.djCrateStatus.textContent = data.error || 'Could not annotate DJ crates.';
+      }
+    } catch(e){
+      if(els.djCrateStatus) els.djCrateStatus.textContent = 'Could not annotate DJ crates.';
+    }
   }
 
   async function fetchSearchJson(url){
@@ -1331,6 +1458,24 @@ renderAccountStatus();
     }
     if(e.target.closest('#crateDrawerToggle')){
       setCrateDrawer(!crateDrawerOpen);
+      return;
+    }
+    if(e.target.closest('#annotateCrates')){
+      setCrateArtistMode(!crateArtistMode);
+      return;
+    }
+    const artistLetter = e.target.closest('[data-crate-artist-letter]');
+    if(artistLetter){
+      if(artistLetter.disabled) return;
+      crateArtistLetter = artistLetter.dataset.crateArtistLetter || '';
+      crateArtistName = '';
+      renderCrateArtistIndex();
+      return;
+    }
+    const artistName = e.target.closest('[data-crate-artist-name]');
+    if(artistName){
+      crateArtistName = artistName.dataset.crateArtistName || '';
+      renderCrateArtistIndex();
       return;
     }
     if(e.target.closest('#showNewCrate')){
@@ -1439,7 +1584,7 @@ renderAccountStatus();
   const clearSearch = $('#clearSearch'); if(clearSearch) clearSearch.addEventListener('click', ()=>{ els.search.value=''; els.search.focus(); els.searchResults.innerHTML=''; els.searchStatus.textContent=''; lastSearchTracks=[]; searchPage=0; renderSearchPager(0); });
   if(els.libraryViewSelect) els.libraryViewSelect.addEventListener('change', ()=>setLibraryView(els.libraryViewSelect.value || 'comfortable'));
   const refreshNow = $('#refreshNow'); if(refreshNow) refreshNow.addEventListener('click', ()=>refresh(false));
-  if(els.refreshCrates) els.refreshCrates.addEventListener('click', ()=>{ cratesLoaded = false; loadDjCrates(true); });
+  if(els.refreshCrates) els.refreshCrates.addEventListener('click', ()=>{ cratesLoaded = false; crateArtistLoaded = false; if(crateArtistMode) loadCrateArtistIndex(true); else loadDjCrates(true); });
   if(els.createCrate) els.createCrate.addEventListener('click', async ()=>{ const name = els.newCrateName ? els.newCrateName.value : ''; if(!String(name || '').trim()) return; await doAction({action:'create_crate', name}); if(els.newCrateName) els.newCrateName.value=''; if(els.newCratePanel) els.newCratePanel.hidden = true; crateDrawerOpen = true; cratesLoaded=false; loadDjCrates(true); });
   function tickDeckTimers(){
     if(!state) return;

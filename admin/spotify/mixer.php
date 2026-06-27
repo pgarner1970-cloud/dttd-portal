@@ -651,6 +651,102 @@ admin_header('Spotify Mixer - DJ Portal');
 .crate-empty{
   grid-column:1/-1;
 }
+.crate-annotate-btn.active,
+.crate-annotate-btn[aria-pressed="true"]{
+  border-color:rgba(217,70,239,.72);
+  color:#ffd6ff;
+  background:rgba(168,85,247,.2);
+}
+.crate-artist-index{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  height:100%;
+  gap:6px;
+}
+.crate-artist-heading{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.crate-alpha-row{
+  display:grid;
+  grid-template-columns:repeat(27,minmax(0,1fr));
+  gap:3px;
+  flex:0 0 auto;
+}
+.crate-alpha-btn{
+  min-width:0;
+  min-height:30px;
+  padding:0;
+  border-radius:8px;
+  border:1px solid rgba(96,145,205,.36);
+  background:rgba(11,25,44,.78);
+  color:#dbeafe;
+  font-size:11px;
+  font-weight:1000;
+  cursor:pointer;
+}
+.crate-alpha-btn.active{
+  border-color:rgba(250,204,21,.76);
+  color:#fff7bf;
+  background:rgba(202,138,4,.2);
+}
+.crate-alpha-btn:disabled{
+  opacity:.28;
+  cursor:not-allowed;
+}
+.crate-artist-browser{
+  display:grid;
+  grid-template-columns:minmax(180px,.34fr) minmax(0,1fr);
+  gap:8px;
+  min-height:0;
+  flex:1 1 auto;
+}
+.crate-artist-list,
+.crate-artist-tracks{
+  min-height:0;
+  overflow:auto;
+  overscroll-behavior:contain;
+}
+.crate-artist-list{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  padding-right:2px;
+}
+.crate-artist-btn{
+  min-height:42px;
+  padding:7px 9px;
+  border-radius:11px;
+  border:1px solid rgba(96,145,205,.24);
+  background:rgba(255,255,255,.028);
+  color:#f3f8ff;
+  text-align:left;
+  cursor:pointer;
+}
+.crate-artist-btn.active{
+  border-color:rgba(52,152,255,.78);
+  background:rgba(52,152,255,.16);
+}
+.crate-artist-btn strong,
+.crate-artist-btn small{
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.crate-artist-btn strong{
+  font-size:12px;
+  line-height:1.1;
+}
+.crate-artist-btn small{
+  margin-top:2px;
+  color:#9fb5cd;
+  font-size:10px;
+  font-weight:850;
+}
 @media(max-width:1020px){
   .crate-selected-summary{
     grid-template-columns:34px minmax(0,1fr);
@@ -660,6 +756,17 @@ admin_header('Spotify Mixer - DJ Portal');
   }
   .crate-tile-grid{
     grid-template-columns:repeat(auto-fill,minmax(132px,1fr));
+  }
+  .crate-alpha-row{
+    grid-template-columns:repeat(9,minmax(0,1fr));
+  }
+  .crate-artist-browser{
+    grid-template-columns:1fr;
+  }
+  .crate-artist-list{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+    max-height:128px;
   }
 }
 
@@ -732,6 +839,7 @@ admin_header('Spotify Mixer - DJ Portal');
                 </span>
                 <span class="crate-summary-change">Change crate</span>
               </button>
+              <button class="mixer-btn purple crate-annotate-btn" id="annotateCrates" type="button" aria-pressed="false">Annotate</button>
               <button class="mixer-btn blue" id="refreshCrates" type="button">Refresh</button>
               <button class="mixer-btn green" id="showNewCrate" type="button">+ New Crate</button>
             </div>

@@ -381,6 +381,53 @@ function mx_crate_tracks($crate_id) {
     return array_values(array_map('mx_track_output', (array)$crates[$idx]['tracks']));
 }
 
+function mx_all_crate_tracks() {
+    if (mx_db_crates_available()) {
+        mx_seed_mysql_crates_if_empty();
+        try {
+            $stmt = db()->query("\n                SELECT t.*, c.name AS crate_name\n                FROM dj_crate_tracks t\n                INNER JOIN dj_crates c ON c.id = t.crate_id\n                WHERE c.is_active = 1\n                ORDER BY LOWER(t.artist_name) ASC, LOWER(t.track_name) ASC, c.sort_order ASC, c.name ASC, t.id ASC\n                LIMIT 2000\n            ");
+            $tracks = [];
+            foreach ($stmt->fetchAll() as $row) {
+                $tracks[] = mx_track_output([
+                    'id' => (string)($row['spotify_track_id'] ?? ''),
+                    'title' => (string)($row['track_name'] ?? ''),
+                    'artist' => (string)($row['artist_name'] ?? ''),
+                    'album' => (string)($row['album_name'] ?? ''),
+                    'image' => (string)($row['artwork_url'] ?? ''),
+                    'url' => !empty($row['spotify_track_id']) ? 'https://open.spotify.com/track/' . $row['spotify_track_id'] : '',
+                    'duration_ms' => isset($row['duration_ms']) ? (int)$row['duration_ms'] : null,
+                    'source' => 'dj_crate',
+                    'loaded_origin' => 'dj_crate',
+                    'crate_id' => (int)$row['crate_id'],
+                    'crate_name' => (string)($row['crate_name'] ?? ''),
+                    'crate_track_id' => (int)$row['id'],
+                    'source_ref_id' => (int)$row['id'],
+                    'added_at' => (string)($row['added_at'] ?? date('Y-m-d H:i:s')),
+                ]);
+            }
+            return $tracks;
+        } catch (Throwable $e) {
+            return [];
+        }
+    }
+
+    $tracks = [];
+    foreach (mx_legacy_crates() as $crate) {
+        foreach ((array)($crate['tracks'] ?? []) as $track) {
+            $clean = mx_track_output($track);
+            $clean['crate_id'] = (string)($crate['id'] ?? '');
+            $clean['crate_name'] = (string)($crate['name'] ?? '');
+            $tracks[] = $clean;
+        }
+    }
+    usort($tracks, function($a, $b) {
+        $artist = strnatcasecmp((string)($a['artist'] ?? ''), (string)($b['artist'] ?? ''));
+        if ($artist !== 0) return $artist;
+        return strnatcasecmp((string)($a['title'] ?? ''), (string)($b['title'] ?? ''));
+    });
+    return array_slice($tracks, 0, 2000);
+}
+
 function mx_create_crate($name) {
     $name = trim((string)$name);
     if ($name === '') throw new RuntimeException('Enter a crate name first.');
@@ -1380,7 +1427,8 @@ function mx_track_output($t) {
     if (isset($raw['history_deck'])) $t['history_deck'] = (string)$raw['history_deck'];
     if (isset($raw['history_logged_at'])) $t['history_logged_at'] = (int)$raw['history_logged_at'];
     if (!empty($raw['event_id'])) $t['event_id'] = (int)$raw['event_id'];
-    if (!empty($raw['crate_id'])) $t['crate_id'] = (int)$raw['crate_id'];
+    if (!empty($raw['crate_id'])) $t['crate_id'] = ctype_digit((string)$raw['crate_id']) ? (int)$raw['crate_id'] : (string)$raw['crate_id'];
+    if (isset($raw['crate_name'])) $t['crate_name'] = (string)$raw['crate_name'];
     if (!empty($raw['crate_track_id'])) $t['crate_track_id'] = (int)$raw['crate_track_id'];
     if (!empty($raw['source_ref_id'])) $t['source_ref_id'] = (int)$raw['source_ref_id'];
     if (mx_is_local_track($t)) {
@@ -2096,6 +2144,9 @@ try {
     if ($action === 'crate_tracks') {
         $crateId = (string)($_GET['crate_id'] ?? $_POST['crate_id'] ?? '');
         mx_json_out(['ok' => true, 'tracks' => mx_crate_tracks($crateId)]);
+    }
+    if ($action === 'crate_artist_index') {
+        mx_json_out(['ok' => true, 'tracks' => mx_all_crate_tracks()]);
     }
     if ($action === 'create_crate') {
         $name = (string)($_POST['name'] ?? '');
