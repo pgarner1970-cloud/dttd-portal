@@ -164,10 +164,21 @@ document.head.appendChild(overviewStyle);
     cratePage = 0;
     updateLibraryView();
     renderSearchResults(lastSearchTracks);
-    renderDjCrateTracks(activeCrateTracks);
+    if(crateArtistMode) renderCrateArtistIndex();
+    else renderDjCrateTracks(activeCrateTracks);
     apiPost({action:'set_music_library_view', view:libraryViewMode})
       .then(data => { if(data && data.state) acceptState(data.state); })
       .catch(() => {});
+  }
+  function invalidateCrateArtistIndex(){
+    crateArtistLoaded = false;
+    crateArtistTracks = [];
+    crateArtistTrackPage = 0;
+  }
+  function refreshCrateArtistIndexAfterMutation(){
+    invalidateCrateArtistIndex();
+    if(crateArtistMode) return loadCrateArtistIndex(true);
+    return Promise.resolve();
   }
   function currentSearchLooksLikeTrackTitle(query, sourceTrack){
     query = String(query || '').trim();
@@ -564,10 +575,10 @@ document.head.appendChild(overviewStyle);
     if(!params.action) return;
     await doAction(params);
     clearLibrarySelection();
-    if(src === 'crate' && action === 'remove_crate') {
+    if(action === 'crate' || action === 'remove_crate') refreshCrateArtistIndexAfterMutation();
+    if(src === 'crate' && action === 'remove_crate' && !crateArtistMode) {
       setTimeout(()=>{
-        if(crateArtistMode) loadCrateArtistIndex(true);
-        else loadDjCrateTracks(activeCrateId, activeCrateName);
+        loadDjCrateTracks(activeCrateId, activeCrateName);
       }, 350);
     }
   }
@@ -612,7 +623,7 @@ document.head.appendChild(overviewStyle);
     els.choiceModal.classList.add('open');
     els.choiceModal.setAttribute('aria-hidden','false');
   }
-  function choiceAction(action){
+  async function choiceAction(action){
     const choice = els.choiceModal?._choice;
     if(!choice) return;
     const src = choice.source;
@@ -637,9 +648,10 @@ document.head.appendChild(overviewStyle);
       if(action === 'play_a' || action === 'play_b') Object.assign(params, {action:'play_track_direct', track_json:trackJson, deck:action.slice(-1)});
     }
     closeChoice();
-    doAction(params);
+    await doAction(params);
+    if(action === 'crate' || action === 'remove_crate') refreshCrateArtistIndexAfterMutation();
     if(src === 'track' && activeSource === 'search') clearSearchUi();
-    if(src === 'crate' && action === 'remove_crate') setTimeout(()=>loadDjCrateTracks(activeCrateId, activeCrateName), 350);
+    if(src === 'crate' && action === 'remove_crate' && !crateArtistMode) setTimeout(()=>loadDjCrateTracks(activeCrateId, activeCrateName), 350);
   }
 
   function deckNode(deck){
@@ -1182,8 +1194,7 @@ renderAccountStatus();
       if(els.cratePager) els.cratePager.hidden = true;
       crateArtistName = '';
       crateArtistTrackPage = 0;
-      if(crateArtistLoaded) renderCrateArtistIndex();
-      else loadCrateArtistIndex(false);
+      loadCrateArtistIndex(true);
     } else {
       renderDjCrateTracks(activeCrateTracks);
     }
@@ -1618,7 +1629,17 @@ renderAccountStatus();
     const openDjCrate = e.target.closest('[data-open-dj-crate]');
     if(openDjCrate){ loadDjCrateTracks(openDjCrate.dataset.openDjCrate, openDjCrate.dataset.crateName || 'DJ crate'); return; }
     const removeCrateTrack = e.target.closest('[data-remove-crate-track]');
-    if(removeCrateTrack){ if(activeCrateId) doAction({action:'remove_crate_track', crate_id:activeCrateId, track_id:removeCrateTrack.dataset.removeCrateTrack}); setTimeout(()=>loadDjCrateTracks(activeCrateId, activeCrateName), 350); return; }
+    if(removeCrateTrack){
+      if(activeCrateId){
+        doAction({action:'remove_crate_track', crate_id:activeCrateId, track_id:removeCrateTrack.dataset.removeCrateTrack}).then(()=>{
+          refreshCrateArtistIndexAfterMutation();
+          if(!crateArtistMode) setTimeout(()=>loadDjCrateTracks(activeCrateId, activeCrateName), 350);
+        });
+      } else {
+        setTimeout(()=>loadDjCrateTracks(activeCrateId, activeCrateName), 350);
+      }
+      return;
+    }
     const save = e.target.closest('[data-save-devices]');
     if(save){ doAction({action:'assign_devices', device_a:els.deviceA.value, device_b:els.deviceB.value}); return; }
     const deckAction = e.target.closest('[data-deck-action]');
@@ -1692,8 +1713,8 @@ renderAccountStatus();
   const clearSearch = $('#clearSearch'); if(clearSearch) clearSearch.addEventListener('click', ()=>{ els.search.value=''; els.search.focus(); els.searchResults.innerHTML=''; els.searchStatus.textContent=''; lastSearchTracks=[]; searchPage=0; renderSearchPager(0); });
   if(els.libraryViewSelect) els.libraryViewSelect.addEventListener('change', ()=>setLibraryView(els.libraryViewSelect.value || 'comfortable'));
   const refreshNow = $('#refreshNow'); if(refreshNow) refreshNow.addEventListener('click', ()=>refresh(false));
-  if(els.refreshCrates) els.refreshCrates.addEventListener('click', ()=>{ cratesLoaded = false; crateArtistLoaded = false; if(crateArtistMode) loadCrateArtistIndex(true); else loadDjCrates(true); });
-  if(els.createCrate) els.createCrate.addEventListener('click', async ()=>{ const name = els.newCrateName ? els.newCrateName.value : ''; if(!String(name || '').trim()) return; await doAction({action:'create_crate', name}); if(els.newCrateName) els.newCrateName.value=''; if(els.newCratePanel) els.newCratePanel.hidden = true; crateDrawerOpen = true; cratesLoaded=false; loadDjCrates(true); });
+  if(els.refreshCrates) els.refreshCrates.addEventListener('click', ()=>{ cratesLoaded = false; invalidateCrateArtistIndex(); if(crateArtistMode) loadCrateArtistIndex(true); else loadDjCrates(true); });
+  if(els.createCrate) els.createCrate.addEventListener('click', async ()=>{ const name = els.newCrateName ? els.newCrateName.value : ''; if(!String(name || '').trim()) return; await doAction({action:'create_crate', name}); if(els.newCrateName) els.newCrateName.value=''; if(els.newCratePanel) els.newCratePanel.hidden = true; crateDrawerOpen = true; cratesLoaded=false; invalidateCrateArtistIndex(); loadDjCrates(true); });
   function tickDeckTimers(){
     if(!state) return;
     cleanupTransportHolds();
