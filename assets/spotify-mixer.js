@@ -1124,7 +1124,7 @@ renderAccountStatus();
   function renderSearchPager(total){
     if(!els.searchPager) return;
     total = Number(total || 0) || 0;
-    const pageSize = searchPageSize();
+    const pageSize = crateTrackPageSize();
     const pages = Math.max(1, Math.ceil(total / pageSize));
     const from = total ? (searchPage * pageSize + 1) : 0;
     const to = total ? Math.min(total, from + pageSize - 1) : 0;
