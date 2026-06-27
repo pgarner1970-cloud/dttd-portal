@@ -57,6 +57,11 @@ document.head.appendChild(overviewStyle);
     if(libraryViewMode === 'compact') return 16;
     return 10;
   }
+  function crateTrackPageSize(){
+    if(libraryViewMode === 'list') return 20;
+    if(libraryViewMode === 'compact') return 16;
+    return 12;
+  }
   function libraryTestPagesEnabled(query){
     try{
       if(new URLSearchParams(window.location.search).get('library_test_pages') === '1') return true;
@@ -1327,7 +1332,7 @@ renderAccountStatus();
     const artistsForLetter = groups.filter(g => g.letter === crateArtistLetter);
     const selectedArtist = crateArtistName ? (artistsForLetter.find(g => g.name === crateArtistName) || null) : null;
     const tracks = selectedArtist ? selectedArtist.tracks.slice().sort((a,b) => String(a.title || '').localeCompare(String(b.title || ''), undefined, {sensitivity:'base', numeric:true})) : [];
-    const trackPageSize = searchPageSize();
+    const trackPageSize = crateTrackPageSize();
     const trackPages = Math.max(1, Math.ceil(tracks.length / trackPageSize));
     crateArtistTrackPage = Math.max(0, Math.min(crateArtistTrackPage, trackPages - 1));
     const trackRows = tracks.slice(crateArtistTrackPage * trackPageSize, crateArtistTrackPage * trackPageSize + trackPageSize);
@@ -1383,7 +1388,7 @@ renderAccountStatus();
       renderCratePager(0);
       return;
     }
-    const pageSize = searchPageSize();
+    const pageSize = crateTrackPageSize();
     const pages = Math.max(1, Math.ceil(total / pageSize));
     cratePage = Math.max(0, Math.min(cratePage, pages - 1));
     const start = cratePage * pageSize;
