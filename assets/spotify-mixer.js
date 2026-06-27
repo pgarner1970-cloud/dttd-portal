@@ -180,6 +180,11 @@ document.head.appendChild(overviewStyle);
     if(crateArtistMode) return loadCrateArtistIndex(true);
     return Promise.resolve();
   }
+  function refreshDjCratesAfterMutation(){
+    cratesLoaded = false;
+    if(activeSource === 'crates') return loadDjCrates(true);
+    return Promise.resolve();
+  }
   function currentSearchLooksLikeTrackTitle(query, sourceTrack){
     query = String(query || '').trim();
     if(!query) return false;
@@ -575,7 +580,10 @@ document.head.appendChild(overviewStyle);
     if(!params.action) return;
     await doAction(params);
     clearLibrarySelection();
-    if(action === 'crate' || action === 'remove_crate') refreshCrateArtistIndexAfterMutation();
+    if(action === 'crate' || action === 'remove_crate') {
+      refreshCrateArtistIndexAfterMutation();
+      refreshDjCratesAfterMutation();
+    }
     if(src === 'crate' && action === 'remove_crate' && !crateArtistMode) {
       setTimeout(()=>{
         loadDjCrateTracks(activeCrateId, activeCrateName);
@@ -649,7 +657,10 @@ document.head.appendChild(overviewStyle);
     }
     closeChoice();
     await doAction(params);
-    if(action === 'crate' || action === 'remove_crate') refreshCrateArtistIndexAfterMutation();
+    if(action === 'crate' || action === 'remove_crate') {
+      refreshCrateArtistIndexAfterMutation();
+      refreshDjCratesAfterMutation();
+    }
     if(src === 'track' && activeSource === 'search') clearSearchUi();
     if(src === 'crate' && action === 'remove_crate' && !crateArtistMode) setTimeout(()=>loadDjCrateTracks(activeCrateId, activeCrateName), 350);
   }
@@ -1633,6 +1644,7 @@ renderAccountStatus();
       if(activeCrateId){
         doAction({action:'remove_crate_track', crate_id:activeCrateId, track_id:removeCrateTrack.dataset.removeCrateTrack}).then(()=>{
           refreshCrateArtistIndexAfterMutation();
+          refreshDjCratesAfterMutation();
           if(!crateArtistMode) setTimeout(()=>loadDjCrateTracks(activeCrateId, activeCrateName), 350);
         });
       } else {
