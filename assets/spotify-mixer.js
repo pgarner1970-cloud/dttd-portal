@@ -1220,8 +1220,9 @@ renderAccountStatus();
   }
   function renderCratePager(total){
     if(!els.cratePager) return;
-    if(crateArtistMode){
+    if(crateArtistMode || crateDrawerOpen){
       els.cratePager.hidden = true;
+      els.cratePager.innerHTML = '';
       return;
     }
     total = Number(total || 0) || 0;
@@ -1250,7 +1251,10 @@ renderAccountStatus();
   }
   function renderCratePicker(){
     if(!els.djCrateTracks) return;
-    if(els.cratePager) els.cratePager.hidden = true;
+    if(els.cratePager){
+      els.cratePager.hidden = true;
+      els.cratePager.innerHTML = '';
+    }
     const crates = sortCratesByName(availableCrates.length ? availableCrates : (state?.crates || []));
     if(!crates.length){
       els.djCrateTracks.innerHTML = '<div class="empty">No DJ crates yet. Press + New Crate to create one.</div>';
@@ -1308,7 +1312,10 @@ renderAccountStatus();
     const groups = crateArtistGroups();
     if(!groups.length){
       els.djCrateTracks.innerHTML = '<div class="empty">No crate tracks found to annotate yet.</div>';
-      if(els.cratePager) els.cratePager.hidden = true;
+      if(els.cratePager){
+        els.cratePager.hidden = true;
+        els.cratePager.innerHTML = '';
+      }
       return;
     }
     const letters = ['#'].concat('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''));
@@ -1342,7 +1349,10 @@ renderAccountStatus();
           ${renderInlinePager(artistsForLetter.length, crateArtistPage, artistPageSize, 'crate-artist-page')}
         `}
       </div>`;
-    if(els.cratePager) els.cratePager.hidden = true;
+    if(els.cratePager){
+      els.cratePager.hidden = true;
+      els.cratePager.innerHTML = '';
+    }
   }
   function renderDjCrateTracks(tracks){
     if(!els.djCrateTracks) return;

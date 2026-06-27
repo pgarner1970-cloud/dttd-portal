@@ -482,6 +482,7 @@ admin_header('Spotify Mixer - DJ Portal');
 
 /* Music Library action bar refinement + always-visible pager */
 .music-library-body .search-pager[hidden]{display:flex!important}
+.music-library-body #cratePager[hidden]{display:none!important}
 .music-library-body .search-page-btn:disabled{
   opacity:.42;
   cursor:not-allowed;
