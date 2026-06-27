@@ -879,6 +879,9 @@ function dttd_display_upcoming_events($limit = 5, $currentEventId = 0) {
 
     try {
         $endCol = dttd_display_col_exists('events', 'end_time') ? 'end_time' : '';
+        $sqlLiveEndExpr = $endCol !== ''
+            ? "TIMESTAMP(event_date, COALESCE(NULLIF(end_time, ''), '23:59:59'))"
+            : "TIMESTAMP(event_date, '23:59:59')";
         $queryLimit = max(20, $limit * 4);
         $stmt = db()->prepare("
             SELECT id, event_name, venue_name, event_date, start_time, status, is_active, event_code, public_slug"
@@ -887,9 +890,19 @@ function dttd_display_upcoming_events($limit = 5, $currentEventId = 0) {
             WHERE is_public = 1
               AND is_active = 1
               AND status IN ('scheduled','live')
-              AND event_date >= DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+              AND event_date IS NOT NULL
+              AND (
+                event_date >= CURDATE()
+                OR (status = 'live' AND event_date >= DATE_SUB(CURDATE(), INTERVAL 1 DAY))
+              )
             ORDER BY
-              CASE WHEN status = 'live' THEN 0 ELSE 1 END ASC,
+              CASE
+                WHEN event_date IS NOT NULL
+                 AND TIMESTAMP(event_date, COALESCE(NULLIF(start_time, ''), '00:00:00')) <= NOW()
+                 AND " . $sqlLiveEndExpr . " >= NOW()
+                THEN 0
+                ELSE 1
+              END ASC,
               event_date ASC, COALESCE(start_time, '00:00:00') ASC, id ASC
             LIMIT " . $queryLimit . "
         ");
