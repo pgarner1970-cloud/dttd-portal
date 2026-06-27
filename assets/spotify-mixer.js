@@ -1358,7 +1358,7 @@ renderAccountStatus();
         <div class="crate-alpha-row" aria-label="Artist letters">${letters.map(letter => `<button type="button" class="crate-alpha-btn${letter === crateArtistLetter ? ' active' : ''}" data-crate-artist-letter="${esc(letter)}" ${activeLetters[letter] ? '' : 'disabled'}>${esc(letter)}</button>`).join('')}</div>
         ${selectedArtist ? `
           <div class="crate-artist-tracks">
-            <div class="crate-track-heading"><div><div class="tiny-label">${esc(selectedArtist.name)}</div><div class="mini muted">${tracks.length} track${tracks.length === 1 ? '' : 's'} across DJ crates</div></div></div>
+            <div class="crate-track-heading"><div class="tiny-label">${esc(selectedArtist.name)}</div></div>
             <div class="crate-track-grid">${trackRows.map(t => `
               <button type="button" class="result-row crate-track-row tappable-row${isLibrarySelected(t, 'crate') ? ' library-selected' : ''}" data-select-crate-track='${esc(JSON.stringify(t))}' aria-label="Choose ${esc(t.title || 'track')}">
                 <img src="${esc(image(t.image))}" alt="">
