@@ -465,6 +465,27 @@ function trackTitleValue(row) {
     return sortTrackRowsKeepingRequests(uniqueRequestRows(requestRows));
   }
 
+  function comingUpStatusForTrack(row) {
+    const liveStatus = displayStatusForTrack(row, row && row.status);
+    const liveStatusLower = text(liveStatus, '').toLowerCase();
+    if (liveStatusLower === 'currently playing' || liveStatusLower === 'coming up next') return liveStatus;
+
+    const source = text(row && row.source, '').toLowerCase();
+    const sourceLabel = text(row && row.source_label, '');
+    if (source === 'request' || (row && row.is_request)) return 'Request';
+    return sourceLabel || 'DJ playlist';
+  }
+
+  function mergeComingUpRows() {
+    const comingUp = Array.isArray(state.coming_up_tracks) ? state.coming_up_tracks : [];
+    if (comingUp.length) return uniqueTracks(comingUp);
+
+    return mergeRequestListRows().filter(row => {
+      const status = displayStatusForTrack(row, row && row.status).toLowerCase();
+      return status !== 'played' && status !== 'rejected';
+    });
+  }
+
 
 function renderRecent() {
     const tracks = Array.isArray(state.recent_tracks) ? state.recent_tracks : [];
@@ -588,18 +609,18 @@ function renderRecent() {
       + '</div></div></article>';
   }
 
-          function renderRequests() {
-    const rows = mergeRequestListRows().slice(0, 10).map(row => renderTrackRow(row, {
-      className: 'request-board-item',
-      status: displayStatusForTrack(row, row.status || 'Pending'),
+  function renderRequests() {
+    const rows = mergeComingUpRows().slice(0, 10).map(row => renderTrackRow(row, {
+      className: 'request-board-item played-tile played-tile-compact',
+      status: comingUpStatusForTrack(row),
       showRequester: true,
       showDedication: false
     })).join('');
 
     return '<article class="display-slide" data-slide="requests">'
-      + '<div class="display-card request-board-card">'
-      + '<div class="request-board-head"><p class="display-kicker">Requested Tonight</p><h1>Request list</h1></div>'
-      + (rows ? '<div class="request-board-grid display-track-grid">' + rows + '</div>' : '<div class="display-empty">Requests will appear here once guests start sending them in.</div>')
+      + '<div class="display-card played-card played-card-compact request-board-card">'
+      + '<div class="played-head request-board-head"><p class="display-kicker">DJ Playlist</p><h1>Coming up</h1></div>'
+      + (rows ? '<div class="played-grid played-grid-compact request-board-grid display-track-grid">' + rows + '</div>' : '<div class="display-empty">DJ playlist tracks and incoming requests will appear here.</div>')
       + '</div></article>';
   }
 
