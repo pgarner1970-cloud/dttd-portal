@@ -62,6 +62,11 @@ document.head.appendChild(overviewStyle);
     if(libraryViewMode === 'compact') return 16;
     return 12;
   }
+  function crateArtistTrackPageSize(){
+    if(libraryViewMode === 'list') return 20;
+    if(libraryViewMode === 'compact') return 16;
+    return 10;
+  }
   function libraryTestPagesEnabled(query){
     try{
       if(new URLSearchParams(window.location.search).get('library_test_pages') === '1') return true;
@@ -1124,7 +1129,7 @@ renderAccountStatus();
   function renderSearchPager(total){
     if(!els.searchPager) return;
     total = Number(total || 0) || 0;
-    const pageSize = crateTrackPageSize();
+    const pageSize = searchPageSize();
     const pages = Math.max(1, Math.ceil(total / pageSize));
     const from = total ? (searchPage * pageSize + 1) : 0;
     const to = total ? Math.min(total, from + pageSize - 1) : 0;
@@ -1255,7 +1260,7 @@ renderAccountStatus();
       return;
     }
     total = Number(total || 0) || 0;
-    const pageSize = searchPageSize();
+    const pageSize = crateTrackPageSize();
     const pages = Math.max(1, Math.ceil(total / pageSize));
     cratePage = Math.max(0, Math.min(cratePage, pages - 1));
     const from = total ? (cratePage * pageSize + 1) : 0;
@@ -1354,7 +1359,7 @@ renderAccountStatus();
     const artistsForLetter = groups.filter(g => g.letter === crateArtistLetter);
     const selectedArtist = crateArtistName ? (artistsForLetter.find(g => g.name === crateArtistName) || null) : null;
     const tracks = selectedArtist ? selectedArtist.tracks.slice().sort((a,b) => String(a.title || '').localeCompare(String(b.title || ''), undefined, {sensitivity:'base', numeric:true})) : [];
-    const trackPageSize = crateTrackPageSize();
+    const trackPageSize = crateArtistTrackPageSize();
     const trackPages = Math.max(1, Math.ceil(tracks.length / trackPageSize));
     crateArtistTrackPage = Math.max(0, Math.min(crateArtistTrackPage, trackPages - 1));
     const trackRows = tracks.slice(crateArtistTrackPage * trackPageSize, crateArtistTrackPage * trackPageSize + trackPageSize);
