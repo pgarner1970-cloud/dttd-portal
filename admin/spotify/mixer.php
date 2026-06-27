@@ -60,6 +60,9 @@ admin_header('Spotify Mixer - DJ Portal');
   line-height:1.18;
   padding-right:0;
 }
+.music-library-body .search-result-row .result-title.in-crate-title{
+  color:#ffd84a;
+}
 .music-library-body .search-result-row .result-subline{
   display:flex;
   align-items:center;

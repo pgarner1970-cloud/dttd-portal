@@ -38,6 +38,7 @@ document.head.appendChild(overviewStyle);
   let cratePickerPage = 0;
   let crateArtistMode = false;
   let crateArtistLoaded = false;
+  let crateArtistLoadPromise = null;
   let crateArtistTracks = [];
   let crateArtistLetter = '';
   let crateArtistName = '';
@@ -183,7 +184,54 @@ document.head.appendChild(overviewStyle);
   function refreshCrateArtistIndexAfterMutation(){
     invalidateCrateArtistIndex();
     if(crateArtistMode) return loadCrateArtistIndex(true);
-    return Promise.resolve();
+    return ensureCrateTrackIndex(true).then(() => {
+      if(activeSource === 'search') renderSearchResults(lastSearchTracks);
+    });
+  }
+  function normalizeCrateMatchText(value){
+    return String(value || '')
+      .toLowerCase()
+      .replace(/['’]/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+  }
+  function crateTrackMatchKeys(track){
+    const id = String(track?.id || track?.spotify_id || '').trim().toLowerCase();
+    const text = normalizeCrateMatchText(track?.title) + '|' + normalizeCrateMatchText(track?.artist);
+    return {id, text};
+  }
+  function crateTrackIndex(){
+    const ids = {};
+    const text = {};
+    (Array.isArray(crateArtistTracks) ? crateArtistTracks : []).forEach(track => {
+      const keys = crateTrackMatchKeys(track);
+      if(keys.id) ids[keys.id] = true;
+      if(keys.text !== '|') text[keys.text] = true;
+    });
+    return {ids, text};
+  }
+  function searchTrackIsInCrate(track){
+    if(!crateArtistLoaded) return false;
+    const keys = crateTrackMatchKeys(track);
+    const index = crateTrackIndex();
+    return !!((keys.id && index.ids[keys.id]) || (keys.text !== '|' && index.text[keys.text]));
+  }
+  function refreshSearchCrateHighlights(){
+    if(activeSource === 'search' && lastSearchTracks.length) renderSearchResults(lastSearchTracks);
+  }
+  function ensureCrateTrackIndex(force=false){
+    if(!force && crateArtistLoaded) return Promise.resolve(crateArtistTracks);
+    if(crateArtistLoadPromise && !force) return crateArtistLoadPromise;
+    crateArtistLoadPromise = apiGet({action:'crate_artist_index'})
+      .then(data => {
+        if(data.ok){
+          crateArtistLoaded = true;
+          crateArtistTracks = Array.isArray(data.tracks) ? data.tracks : [];
+        }
+        return crateArtistTracks;
+      })
+      .finally(() => { crateArtistLoadPromise = null; });
+    return crateArtistLoadPromise;
   }
   function refreshDjCratesAfterMutation(){
     cratesLoaded = false;
@@ -500,7 +548,9 @@ document.head.appendChild(overviewStyle);
     if(!crates.length){
       return '<button class="mixer-btn blue library-action-btn" data-library-action="crate" disabled>+ Save</button>';
     }
-    const selected = activeCrateId || String(crates[0].id || '');
+    const saved = selectedLibraryChoice?.saveCrateId || '';
+    const fallback = activeCrateId || String(crates[0].id || '');
+    const selected = crates.some(c => String(c.id) === String(saved)) ? String(saved) : fallback;
     const opts = crates.map(c => `<option value="${esc(c.id)}" ${String(c.id) === String(selected) ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
     return `<label class="library-crate-save"><select id="libraryCrateSelect" class="mixer-select" aria-label="Choose DJ crate">${opts}</select><button class="mixer-btn blue library-action-btn" data-library-action="crate">+ Save</button></label>`;
   }
@@ -553,7 +603,7 @@ document.head.appendChild(overviewStyle);
   }
   function selectLibraryItem(item, source, el){
     if(!item) return;
-    selectedLibraryChoice = {item, source};
+    selectedLibraryChoice = {item, source, saveCrateId: selectedLibraryChoice?.saveCrateId || activeCrateId || ''};
     markLibrarySelectedElement(el);
     renderLibraryActionBar();
   }
@@ -575,7 +625,8 @@ document.head.appendChild(overviewStyle);
       if(action === 'playlist') Object.assign(params, {action:'add_track', track_json:trackJson});
       if(action === 'crate') {
         const select = document.getElementById('libraryCrateSelect');
-        const crateId = select ? select.value : activeCrateId;
+        const crateId = select ? select.value : (selectedLibraryChoice?.saveCrateId || activeCrateId);
+        if(selectedLibraryChoice) selectedLibraryChoice.saveCrateId = crateId;
         Object.assign(params, {action:'add_crate_track', crate_id:crateId, track_json:trackJson});
       }
       if(action === 'remove_crate') Object.assign(params, {action:'remove_crate_track', crate_id:item.crate_id || activeCrateId, track_id:item.crate_track_id || item.id});
@@ -1120,7 +1171,7 @@ renderAccountStatus();
       <div role="button" tabindex="0" class="result-row search-result-row tappable-row${isLibrarySelected(t, 'track') ? ' library-selected' : ''}" data-select-track='${esc(JSON.stringify(t))}' aria-label="Choose ${esc(t.title || 'track')}">
         <img src="${esc(image(t.image))}" alt="">
         <span class="result-main">
-          <span class="result-title">${esc(t.title)}</span>
+          <span class="result-title${searchTrackIsInCrate(t) ? ' in-crate-title' : ''}">${esc(t.title)}</span>
           <span class="mini muted result-subline">${esc(resultMetaLine(t))}${artistSearchButton(t)}</span>
         </span>
         <span class="result-corner-badges">${searchBadgeHtml(t)}${trackSourceBadge(t)}</span>
@@ -1471,21 +1522,11 @@ renderAccountStatus();
     } catch(e){ if(els.djCrateStatus) els.djCrateStatus.textContent = 'Could not load crate tracks.'; }
   }
   async function loadCrateArtistIndex(force=false){
-    if(!force && crateArtistLoaded){
-      renderCrateArtistIndex();
-      return;
-    }
     if(els.djCrateStatus) els.djCrateStatus.innerHTML = '<span class="spinner"></span> Annotating DJ crates…';
     try{
-      const data = await apiGet({action:'crate_artist_index'});
-      if(data.ok){
-        crateArtistLoaded = true;
-        crateArtistTracks = Array.isArray(data.tracks) ? data.tracks : [];
-        if(els.djCrateStatus) els.djCrateStatus.textContent = '';
-        renderCrateArtistIndex();
-      } else {
-        if(els.djCrateStatus) els.djCrateStatus.textContent = data.error || 'Could not annotate DJ crates.';
-      }
+      await ensureCrateTrackIndex(force);
+      if(els.djCrateStatus) els.djCrateStatus.textContent = '';
+      renderCrateArtistIndex();
     } catch(e){
       if(els.djCrateStatus) els.djCrateStatus.textContent = 'Could not annotate DJ crates.';
     }
@@ -1546,6 +1587,7 @@ renderAccountStatus();
       if(!spotifyData && spotifyError) notes.push('Spotify unavailable');
       els.searchStatus.textContent = notes.join(' • ');
       renderSearchResults(tracks);
+      ensureCrateTrackIndex(false).then(refreshSearchCrateHighlights).catch(() => {});
       return;
     }
     console.warn('Mixer search failed', {spotifyError, localError});
@@ -1704,6 +1746,13 @@ renderAccountStatus();
       if(actionBtn.dataset.deck) params.deck = actionBtn.dataset.deck;
       if(actionBtn.dataset.requestId) params.request_id = actionBtn.dataset.requestId;
       doAction(params); return;
+    }
+  });
+  app.addEventListener('change', (e)=>{
+    const libraryCrateSelect = e.target.closest('#libraryCrateSelect');
+    if(libraryCrateSelect && selectedLibraryChoice){
+      selectedLibraryChoice.saveCrateId = libraryCrateSelect.value || '';
+      return;
     }
   });
   app.addEventListener('keydown', (e)=>{
