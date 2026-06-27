@@ -741,6 +741,14 @@ admin_header('Spotify Mixer - DJ Portal');
   overflow:auto;
   overscroll-behavior:contain;
 }
+.crate-artist-tracks{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.crate-artist-tracks .crate-track-grid{
+  flex:1 1 auto;
+}
 .crate-artist-list{
   display:flex;
   flex-direction:column;
@@ -783,10 +791,6 @@ admin_header('Spotify Mixer - DJ Portal');
   color:#9fb5cd;
   font-size:10px;
   font-weight:850;
-}
-.crate-back-btn{
-  min-height:32px;
-  padding:6px 10px;
 }
 @media(max-width:1020px){
   .crate-selected-summary{

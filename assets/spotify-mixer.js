@@ -42,6 +42,7 @@ document.head.appendChild(overviewStyle);
   let crateArtistLetter = '';
   let crateArtistName = '';
   let crateArtistPage = 0;
+  let crateArtistTrackPage = 0;
   let cratePage = 0;
   let crateDrawerOpen = true;
   let availableCrates = [];
@@ -1175,6 +1176,7 @@ renderAccountStatus();
       if(els.crateDrawerToggle) els.crateDrawerToggle.setAttribute('aria-expanded', 'false');
       if(els.cratePager) els.cratePager.hidden = true;
       crateArtistName = '';
+      crateArtistTrackPage = 0;
       if(crateArtistLoaded) renderCrateArtistIndex();
       else loadCrateArtistIndex(false);
     } else {
@@ -1325,6 +1327,10 @@ renderAccountStatus();
     const artistsForLetter = groups.filter(g => g.letter === crateArtistLetter);
     const selectedArtist = crateArtistName ? (artistsForLetter.find(g => g.name === crateArtistName) || null) : null;
     const tracks = selectedArtist ? selectedArtist.tracks.slice().sort((a,b) => String(a.title || '').localeCompare(String(b.title || ''), undefined, {sensitivity:'base', numeric:true})) : [];
+    const trackPageSize = searchPageSize();
+    const trackPages = Math.max(1, Math.ceil(tracks.length / trackPageSize));
+    crateArtistTrackPage = Math.max(0, Math.min(crateArtistTrackPage, trackPages - 1));
+    const trackRows = tracks.slice(crateArtistTrackPage * trackPageSize, crateArtistTrackPage * trackPageSize + trackPageSize);
     const artistPageSize = libraryViewMode === 'list' ? 36 : (libraryViewMode === 'compact' ? 30 : 24);
     const artistPages = Math.max(1, Math.ceil(artistsForLetter.length / artistPageSize));
     crateArtistPage = Math.max(0, Math.min(crateArtistPage, artistPages - 1));
@@ -1336,13 +1342,14 @@ renderAccountStatus();
         <div class="crate-alpha-row" aria-label="Artist letters">${letters.map(letter => `<button type="button" class="crate-alpha-btn${letter === crateArtistLetter ? ' active' : ''}" data-crate-artist-letter="${esc(letter)}" ${activeLetters[letter] ? '' : 'disabled'}>${esc(letter)}</button>`).join('')}</div>
         ${selectedArtist ? `
           <div class="crate-artist-tracks">
-            <div class="crate-track-heading"><div><div class="tiny-label">${esc(selectedArtist.name)}</div><div class="mini muted">${tracks.length} track${tracks.length === 1 ? '' : 's'} across DJ crates</div></div><button type="button" class="mixer-btn dark crate-back-btn" data-crate-artist-back>Artists</button></div>
-            <div class="crate-track-grid">${tracks.map(t => `
+            <div class="crate-track-heading"><div><div class="tiny-label">${esc(selectedArtist.name)}</div><div class="mini muted">${tracks.length} track${tracks.length === 1 ? '' : 's'} across DJ crates</div></div></div>
+            <div class="crate-track-grid">${trackRows.map(t => `
               <button type="button" class="result-row crate-track-row tappable-row${isLibrarySelected(t, 'crate') ? ' library-selected' : ''}" data-select-crate-track='${esc(JSON.stringify(t))}' aria-label="Choose ${esc(t.title || 'track')}">
                 <img src="${esc(image(t.image))}" alt="">
                 <span class="result-main"><span class="result-title">${esc(t.title)}</span><span class="mini muted result-subline">${esc([t.artist, t.crate_name, duration(t.duration_ms)].filter(Boolean).join(' • '))}</span></span>
                 <span class="result-corner-badges">${searchBadgeHtml(t)}${trackSourceBadge(t)}</span>
               </button>`).join('')}</div>
+            ${renderInlinePager(tracks.length, crateArtistTrackPage, trackPageSize, 'crate-artist-track-page')}
           </div>
         ` : `
           <div class="crate-artist-list crate-artist-list-full" aria-label="Artists">${artistRows.map(g => `<button type="button" class="crate-artist-btn" data-crate-artist-name="${esc(g.name)}"><strong>${esc(g.name)}</strong><small>${g.tracks.length} track${g.tracks.length === 1 ? '' : 's'}</small></button>`).join('')}</div>
@@ -1542,6 +1549,13 @@ renderAccountStatus();
       renderCrateArtistIndex();
       return;
     }
+    const crateArtistTrackPageBtn = e.target.closest('[data-crate-artist-track-page]');
+    if(crateArtistTrackPageBtn){
+      if(crateArtistTrackPageBtn.disabled) return;
+      crateArtistTrackPage += crateArtistTrackPageBtn.dataset.crateArtistTrackPage === 'next' ? 1 : -1;
+      renderCrateArtistIndex();
+      return;
+    }
     if(e.target.closest('#crateDrawerToggle')){
       setCrateDrawer(!crateDrawerOpen);
       return;
@@ -1550,23 +1564,20 @@ renderAccountStatus();
       setCrateArtistMode(!crateArtistMode);
       return;
     }
-    if(e.target.closest('[data-crate-artist-back]')){
-      crateArtistName = '';
-      renderCrateArtistIndex();
-      return;
-    }
     const artistLetter = e.target.closest('[data-crate-artist-letter]');
     if(artistLetter){
       if(artistLetter.disabled) return;
       crateArtistLetter = artistLetter.dataset.crateArtistLetter || '';
       crateArtistName = '';
       crateArtistPage = 0;
+      crateArtistTrackPage = 0;
       renderCrateArtistIndex();
       return;
     }
     const artistName = e.target.closest('[data-crate-artist-name]');
     if(artistName){
       crateArtistName = artistName.dataset.crateArtistName || '';
+      crateArtistTrackPage = 0;
       renderCrateArtistIndex();
       return;
     }
