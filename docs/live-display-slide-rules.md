@@ -21,7 +21,7 @@ The API builds the available live-event slide list from enabled admin settings a
 - `now_playing`: current active-deck track, only displayed when playback is detected by the browser.
 - `up_next`: loaded next track, only displayed when available.
 - `recent`: event play history.
-- `requests`: DJ playlist / coming up list. This uses the mixer DJ playlist first, then current request rows, and should use the same compact track-row layout as the recent/played slide.
+- `playlist`: DJ playlist / coming up list. This uses the mixer DJ playlist first, then mixer-queued public requests, and should use the same compact track-row layout as the recent/played slide. Legacy `requests` slide keys should be treated as `playlist`.
 - `photos`: approved event photos.
 - `partners`: active partners.
 - `upcoming`: upcoming public events.

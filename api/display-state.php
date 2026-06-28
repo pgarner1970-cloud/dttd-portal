@@ -120,7 +120,7 @@ function dttd_display_slide_defaults() {
         'now_playing' => ['label' => 'Now playing', 'enabled' => 1, 'duration_seconds' => 15, 'priority' => 'normal', 'weight' => 2, 'sort_order' => 50],
         'up_next' => ['label' => 'Up next', 'enabled' => 1, 'duration_seconds' => 15, 'priority' => 'normal', 'weight' => 2, 'sort_order' => 60],
         'recent' => ['label' => 'What we’ve played', 'enabled' => 1, 'duration_seconds' => 15, 'priority' => 'normal', 'weight' => 2, 'sort_order' => 70],
-        'requests' => ['label' => 'DJ playlist / coming up', 'enabled' => 1, 'duration_seconds' => 15, 'priority' => 'normal', 'weight' => 2, 'sort_order' => 80],
+        'playlist' => ['label' => 'Playlist', 'enabled' => 1, 'duration_seconds' => 15, 'priority' => 'normal', 'weight' => 2, 'sort_order' => 80],
         'photos' => ['label' => 'Photos', 'enabled' => 1, 'duration_seconds' => 15, 'priority' => 'normal', 'weight' => 2, 'sort_order' => 90],
         'partners' => ['label' => 'Partners', 'enabled' => 1, 'duration_seconds' => 20, 'priority' => 'low', 'weight' => 1, 'sort_order' => 100],
         'upcoming' => ['label' => 'What’s happening', 'enabled' => 1, 'duration_seconds' => 30, 'priority' => 'low', 'weight' => 1, 'sort_order' => 110],
@@ -139,9 +139,10 @@ function dttd_display_slide_settings() {
         $rows = db()->query("SELECT * FROM display_slide_settings ORDER BY sort_order ASC, id ASC")->fetchAll();
         foreach ($rows as $row) {
             $key = (string)($row['slide_key'] ?? '');
+            if ($key === 'requests') $key = 'playlist';
             if ($key === '' || !isset($settings[$key])) continue;
 
-            $settings[$key]['label'] = (string)($row['slide_label'] ?? $settings[$key]['label']);
+            $settings[$key]['label'] = $key === 'playlist' ? $settings[$key]['label'] : (string)($row['slide_label'] ?? $settings[$key]['label']);
             $settings[$key]['enabled'] = !empty($row['enabled']) ? 1 : 0;
             $settings[$key]['duration_seconds'] = max(5, min(60, (int)($row['duration_seconds'] ?? $settings[$key]['duration_seconds'])));
             $settings[$key]['priority'] = (string)($row['priority'] ?? $settings[$key]['priority']);
@@ -1267,7 +1268,7 @@ $availableSlides[] = 'event_timer';
 $availableSlides[] = 'music_board';
 $availableSlides[] = 'now_playing';
 if ($recent) $availableSlides[] = 'recent';
-if ($comingUp) $availableSlides[] = 'requests';
+if ($comingUp) $availableSlides[] = 'playlist';
 if ($photos) $availableSlides[] = 'photos';
 if ($upcoming) $availableSlides[] = 'upcoming';
 if ($partners) $availableSlides[] = 'partners';

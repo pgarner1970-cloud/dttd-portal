@@ -137,8 +137,8 @@ function dttd_display_slide_defaults() {
             'weight' => 2,
             'sort_order' => 70,
         ],
-        'requests' => [
-            'label' => 'DJ playlist / coming up',
+        'playlist' => [
+            'label' => 'Playlist',
             'description' => 'DJ playlist plus request fill-in where available.',
             'enabled' => 1,
             'duration_preset' => 'medium',
@@ -215,9 +215,10 @@ function dttd_display_slide_fetch_settings() {
         $rows = db()->query("SELECT * FROM display_slide_settings ORDER BY sort_order ASC, id ASC")->fetchAll();
         foreach ($rows as $row) {
             $key = (string)($row['slide_key'] ?? '');
+            if ($key === 'requests') $key = 'playlist';
             if ($key === '' || !isset($defaults[$key])) continue;
 
-            $defaults[$key]['label'] = (string)($row['slide_label'] ?? $defaults[$key]['label']);
+            $defaults[$key]['label'] = $key === 'playlist' ? $defaults[$key]['label'] : (string)($row['slide_label'] ?? $defaults[$key]['label']);
             $defaults[$key]['enabled'] = !empty($row['enabled']) ? 1 : 0;
             $rowDuration = (int)($row['duration_seconds'] ?? 0);
             $rowPreset = (string)($row['duration_preset'] ?? '');

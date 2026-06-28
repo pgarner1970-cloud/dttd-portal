@@ -617,7 +617,7 @@ function renderRecent() {
       showDedication: false
     })).join('');
 
-    return '<article class="display-slide" data-slide="requests">'
+    return '<article class="display-slide" data-slide="playlist">'
       + '<div class="display-card played-card played-card-compact request-board-card">'
       + '<div class="played-head request-board-head"><p class="display-kicker">DJ Playlist</p><h1>Coming up</h1></div>'
       + (rows ? '<div class="played-grid played-grid-compact request-board-grid display-track-grid">' + rows + '</div>' : '<div class="display-empty">DJ playlist tracks and incoming requests will appear here.</div>')
@@ -791,6 +791,7 @@ function renderRecent() {
       case 'up_next': return renderUpNext();
       case 'recent': return renderRecent();
       case 'music_board': return renderMusicBoard();
+      case 'playlist':
       case 'requests': return renderRequests();
       case 'photos': return renderPhotos();
       case 'upcoming': return renderUpcoming();
