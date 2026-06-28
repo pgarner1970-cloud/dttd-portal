@@ -2979,6 +2979,27 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
   margin: 0 !important;
 }
 
+/* Partner logo safety: centre variable logo files and keep the full image inside the logo card. */
+.display-partner-logo{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  overflow:hidden !important;
+}
+
+.display-partner-logo img,
+.display-lite .display-partner-logo img{
+  display:block !important;
+  width:100% !important;
+  height:100% !important;
+  max-width:88% !important;
+  max-height:82% !important;
+  object-fit:contain !important;
+  object-position:center center !important;
+  margin:auto !important;
+  transform:none !important;
+}
+
 
 /* Balance Requests & played panels and make footer countdown fixed-width numeric. */
 .music-board-body{
