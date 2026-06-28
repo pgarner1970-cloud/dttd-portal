@@ -824,19 +824,22 @@ function dttd_display_coming_up_tracks($requests, $limit = 10, $eventId = 0) {
         if (count($out) >= $limit) return $out;
     }
 
-    if ((int)$eventId > 0 && dttd_display_table_exists('song_requests')) {
+    if ((int)$eventId > 0 && dttd_display_table_exists('song_requests') && dttd_display_col_exists('song_requests', 'spotify_queue_status')) {
         try {
             $titleExpr = dttd_display_col_exists('song_requests', 'song_title') ? 'song_title' : (dttd_display_col_exists('song_requests', 'track_name') ? 'track_name' : "''");
             $artistExpr = dttd_display_col_exists('song_requests', 'artist') ? 'artist' : (dttd_display_col_exists('song_requests', 'artist_name') ? 'artist_name' : "''");
             $guestExpr = dttd_display_col_exists('song_requests', 'guest_name') ? 'guest_name' : (dttd_display_col_exists('song_requests', 'requester_name') ? 'requester_name' : "''");
             $dedicationExpr = dttd_display_col_exists('song_requests', 'dedication') ? 'dedication' : (dttd_display_col_exists('song_requests', 'message') ? 'message' : "''");
             $statusExpr = dttd_display_col_exists('song_requests', 'status') ? 'status' : "'pending'";
-            $queueExpr = dttd_display_col_exists('song_requests', 'spotify_queue_status') ? 'spotify_queue_status' : "''";
+            $queueExpr = 'spotify_queue_status';
             $trackIdExpr = dttd_display_col_exists('song_requests', 'spotify_track_id') ? 'spotify_track_id' : "''";
             $artworkExpr = dttd_display_col_exists('song_requests', 'spotify_album_image') ? 'spotify_album_image' : (dttd_display_col_exists('song_requests', 'artwork_url') ? 'artwork_url' : "''");
             $createdExpr = dttd_display_col_exists('song_requests', 'created_at') ? 'created_at' : 'id';
             $where = [
-                "(LOWER(COALESCE(" . $statusExpr . ", 'pending')) IN ('pending','maybe','duplicate','queued','approved','accepted','new','requested') OR LOWER(COALESCE(" . $queueExpr . ", '')) IN ('mixer_request','dj_playlist','queued','loaded_a','loaded_b'))"
+                "LOWER(COALESCE(" . $statusExpr . ", 'pending')) IN ('pending','maybe','duplicate')",
+                "LOWER(COALESCE(" . $queueExpr . ", '')) = 'mixer_request'",
+                $trackIdExpr . " IS NOT NULL",
+                $trackIdExpr . " <> ''"
             ];
             $params = [];
             if (dttd_display_col_exists('song_requests', 'event_id')) {
@@ -857,11 +860,6 @@ function dttd_display_coming_up_tracks($requests, $limit = 10, $eventId = 0) {
                 FROM song_requests
                 WHERE " . implode(' AND ', $where) . "
                 ORDER BY
-                  CASE
-                    WHEN LOWER(COALESCE(" . $queueExpr . ", '')) IN ('dj_playlist','loaded_a','loaded_b') THEN 1
-                    WHEN LOWER(COALESCE(" . $queueExpr . ", '')) IN ('mixer_request','queued') THEN 2
-                    ELSE 3
-                  END ASC,
                   " . $createdExpr . " ASC,
                   id ASC
                 LIMIT " . max(20, $limit * 3) . "
@@ -876,7 +874,6 @@ function dttd_display_coming_up_tracks($requests, $limit = 10, $eventId = 0) {
                 if ($requestId > 0) $seenRequestIds[$requestId] = true;
 
                 $queueStatus = strtolower(trim((string)($row['display_queue_status'] ?? '')));
-                $status = in_array($queueStatus, ['mixer_request','dj_playlist','queued','loaded_a','loaded_b'], true) ? 'queued' : (string)($row['display_status'] ?? 'pending');
                 $out[] = [
                     'id' => (string)($row['display_spotify_track_id'] ?? ''),
                     'track_name' => (string)($row['display_title'] ?? ''),
@@ -888,38 +885,12 @@ function dttd_display_coming_up_tracks($requests, $limit = 10, $eventId = 0) {
                     'requester_name' => (string)($row['display_guest'] ?? ''),
                     'dedication' => (string)($row['display_dedication'] ?? ''),
                     'is_request' => true,
-                    'status' => $status,
+                    'status' => $queueStatus === 'mixer_request' ? 'queued' : (string)($row['display_status'] ?? 'pending'),
                     'created_at' => (string)($row['display_created_at'] ?? ''),
                 ];
                 if (count($out) >= $limit) return $out;
             }
         } catch (Throwable $e) {}
-    }
-
-    foreach ((array)$requests as $req) {
-        if (!is_array($req)) continue;
-        if (!dttd_display_is_active_request_status($req['status'] ?? '')) continue;
-
-        $requestId = (int)($req['id'] ?? 0);
-        if ($requestId > 0 && isset($seenRequestIds[$requestId])) continue;
-
-        $key = dttd_display_track_key($req['track_name'] ?? '', $req['artist_name'] ?? '', $req['spotify_track_id'] ?? '');
-        if ($key !== '' && isset($seenTrackKeys[$key])) continue;
-
-        $out[] = [
-            'id' => (string)($req['spotify_track_id'] ?? ''),
-            'track_name' => (string)($req['track_name'] ?? ''),
-            'artist_name' => (string)($req['artist_name'] ?? ''),
-            'artwork_url' => dttd_display_url($req['artwork_url'] ?? ''),
-            'source' => 'request',
-            'source_label' => 'Request',
-            'request_id' => $requestId,
-            'requester_name' => (string)($req['requester_name'] ?? ''),
-            'is_request' => true,
-            'status' => (string)($req['status'] ?? 'pending'),
-        ];
-
-        if (count($out) >= $limit) break;
     }
 
     return $out;
