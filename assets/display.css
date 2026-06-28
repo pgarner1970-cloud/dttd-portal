@@ -2938,6 +2938,8 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
 
 .event-timer-head .display-kicker{
   color:var(--display-cyan);
+  font-size:clamp(36px,3vw,60px);
+  line-height:1;
   margin-top:.4em;
 }
 
@@ -2972,16 +2974,16 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
 
 .event-timer-panel span{
   color:var(--display-gold);
-  font-size:clamp(22px,1.8vw,38px);
+  font-size:clamp(28px,2.35vw,48px);
   font-weight:900;
   text-transform:uppercase;
-  letter-spacing:.14em;
+  letter-spacing:.12em;
 }
 
 .event-timer-panel strong{
   margin-top:clamp(16px,2vh,28px);
   color:#fff;
-  font-size:clamp(64px,6.6vw,132px);
+  font-size:clamp(78px,7.35vw,148px);
   line-height:.9;
   font-weight:1000;
   letter-spacing:-.04em;
@@ -2991,7 +2993,7 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
 .event-timer-panel em{
   margin-top:clamp(14px,1.6vh,24px);
   color:var(--display-muted);
-  font-size:clamp(22px,1.8vw,38px);
+  font-size:clamp(26px,2.05vw,42px);
   font-style:normal;
   font-weight:900;
 }
