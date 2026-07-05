@@ -983,6 +983,23 @@ function mx_loaded_matches_playback($loaded, $playback) {
 function mx_device_playing_loaded($device_id, $loaded, $playback = null) {
     return mx_device_playing($device_id, $playback) && mx_loaded_matches_playback($loaded, $playback);
 }
+function mx_loaded_recently_started($loaded, $grace_seconds = 12) {
+    if (!is_array($loaded) || empty($loaded['id'])) return false;
+    if (!empty($loaded['resume_locked'])) return false;
+    if (empty($loaded['played_on_deck'])) return false;
+    $started = isset($loaded['playback_started_at']) ? (int)$loaded['playback_started_at'] : 0;
+    $updated = isset($loaded['position_updated_at']) ? (int)$loaded['position_updated_at'] : 0;
+    $mark = max($started, $updated);
+    return $mark > 0 && (time() - $mark) >= 0 && (time() - $mark) <= max(2, (int)$grace_seconds);
+}
+function mx_deck_is_loaded_playing($device_id, $loaded, $playback = null) {
+    if (mx_device_playing_loaded($device_id, $loaded, $playback)) return true;
+    // Immediately after an explicit play command, Spotify Connect may still report
+    // the previous account/device context for a few seconds. Keep the mixer deck in
+    // a short starting/playing state based on our own armed deck state, then normal
+    // polling must prove the exact loaded track is really active.
+    return mx_loaded_recently_started($loaded);
+}
 function mx_spotify_put($url, $body = '', $deck = null) {
     $token = ($deck === 'a' || $deck === 'b') ? dttd_spotify_user_access_token_for_deck($deck) : dttd_spotify_user_access_token();
     return dttd_spotify_http_put($url, [
@@ -1770,17 +1787,12 @@ function mx_state() {
         'device_a' => $deviceA,
         'device_b' => $deviceB,
         'player_a' => [
-            // A Spotify deck is only playing when the assigned device is playing the
-            // track currently loaded on that deck. In single-account/dual-device use,
-            // Spotify can report the account's active device/track even after the DJ
-            // has paused or switched context. Do not let that stale/wrong track make
-            // the loaded deck look live.
-            'state' => (!empty($loadedA['local_is_playing']) || mx_device_playing_loaded($deviceA, $loadedA, $playbackA)) ? 'playing' : 'standby',
+            'state' => (!empty($loadedA['local_is_playing']) || mx_deck_is_loaded_playing($deviceA, $loadedA, $playbackA)) ? 'playing' : 'standby',
             'loaded' => mx_track_output($loadedA),
             'playback' => $playbackSummaryA,
         ],
         'player_b' => [
-            'state' => (!empty($loadedB['local_is_playing']) || mx_device_playing_loaded($deviceB, $loadedB, $playbackB)) ? 'playing' : 'standby',
+            'state' => (!empty($loadedB['local_is_playing']) || mx_deck_is_loaded_playing($deviceB, $loadedB, $playbackB)) ? 'playing' : 'standby',
             'loaded' => mx_track_output($loadedB),
             'playback' => $playbackSummaryB,
         ],
@@ -2123,7 +2135,7 @@ function mx_unload_loaded_as_played($deck) {
     $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
     if (mx_is_local_track($loaded)) {
         if (!empty($loaded['local_is_playing'])) throw new RuntimeException('Pause Player ' . strtoupper($deck) . ' before manually marking it played.');
-    } elseif (mx_device_playing($device, mx_playback($deck))) throw new RuntimeException('Pause Player ' . strtoupper($deck) . ' before manually marking it played.');
+    } elseif (mx_device_playing_loaded($device, $loaded, mx_playback($deck))) throw new RuntimeException('Pause Player ' . strtoupper($deck) . ' before manually marking it played.');
     $loaded['played_qualified'] = true;
     if (!empty($loaded['request_id'])) mx_mark_request_played((int)$loaded['request_id']);
     mx_add_history($deck, $loaded);
@@ -2336,14 +2348,11 @@ try {
         $loadedForClear = mx_json('spotify_mixer_loaded_' . $deck, []);
         if (mx_is_local_track($loadedForClear)) {
             if (!empty($loadedForClear['local_is_playing'])) {
-                try { mx_local_pause_track($deck, $loadedForClear); } catch (Throwable $ignoredPause) {}
+                try { mx_queue_deck_node_command($deck, 'local_pause', []); } catch (Throwable $ignoredLocalPause) {}
+                mx_local_pause_track($deck, $loadedForClear);
             }
         } else {
             $pbForClear = mx_playback($deck);
-            // Eject should clear the loaded card even when Spotify state is stale. If
-            // the assigned device is truly playing this exact loaded track, pause it
-            // first; if Spotify is reporting a different account/track, do not block
-            // the eject because that stale state is the thing the DJ is trying to clear.
             if (mx_device_playing_loaded($device, $loadedForClear, $pbForClear)) {
                 try { mx_pause($device, $deck); } catch (Throwable $ignoredPause) {}
                 mx_save_deck_position_from_playback($deck, $device, $loadedForClear, $pbForClear, true);
@@ -2352,6 +2361,7 @@ try {
         mx_return_loaded_if_unplayed($deck, $playlist, null);
         mx_save_playlist($playlist);
         mx_set('spotify_mixer_loaded_' . $deck, '');
+        mx_set('spotify_mixer_resume_' . $deck, '');
         mx_json_out(['ok' => true, 'message' => 'Player ' . strtoupper($deck) . ' ejected.', 'state' => mx_state()]);
     }
 
@@ -2362,7 +2372,7 @@ try {
         $loadedForReturn = mx_json('spotify_mixer_loaded_' . $deck, []);
         if (mx_is_local_track($loadedForReturn)) {
             if (!empty($loadedForReturn['local_is_playing'])) throw new RuntimeException('Pause Player ' . strtoupper($deck) . ' before returning it.');
-        } elseif (mx_device_playing($device, mx_playback($deck))) throw new RuntimeException('Pause Player ' . strtoupper($deck) . ' before returning it.');
+        } elseif (mx_device_playing_loaded($device, $loadedForReturn, mx_playback($deck))) throw new RuntimeException('Pause Player ' . strtoupper($deck) . ' before returning it.');
         mx_return_loaded_if_unplayed($deck, $playlist, null);
         mx_save_playlist($playlist);
         mx_set('spotify_mixer_loaded_' . $deck, '');
@@ -2397,7 +2407,7 @@ try {
             mx_json_out(['ok' => true, 'message' => 'Local MPD play command sent to Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
         }
         $pb = mx_playback($deck);
-        if (mx_device_playing($device, $pb)) {
+        if (mx_device_playing_loaded($device, $track, $pb)) {
             mx_save_resume_position($deck, $device, $track);
             mx_pause($device, $deck);
             mx_json_out(['ok' => true, 'message' => 'Paused Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);

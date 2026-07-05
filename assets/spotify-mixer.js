@@ -335,8 +335,12 @@ document.head.appendChild(overviewStyle);
     const playbackTrack = playback.track || {};
     const sameTrack = !!track?.id && !!playbackTrack.id && String(track.id) === String(playbackTrack.id);
     const active = !!deviceId && playback.device_id === deviceId && !!playback.is_playing && sameTrack;
+    const reportedPlaying = state?.['player_' + deck]?.state === 'playing';
     const spotifyDurationMs = sameTrack ? (Number(playback.duration_ms) || Number(track.duration_ms) || 0) : durationMs;
     let progressMs = sameTrack ? (Number(playback.progress_ms) || 0) : (Number(track?.position_base_ms || track?.paused_position_ms || 0) || 0);
+    if((active || reportedPlaying) && track?.position_updated_at && !sameTrack){
+      progressMs += Math.max(0, (Date.now() / 1000 - Number(track.position_updated_at)) * 1000);
+    }
     if(active && sameTrack){
       progressMs += Math.max(0, Date.now() - Number(state?._receivedAtMs || Date.now()));
     }
@@ -418,9 +422,12 @@ document.head.appendChild(overviewStyle);
     const player = state?.['player_' + deck] || {};
     const playback = player.playback || {};
     const playbackTrack = playback.track || {};
-    const sameTrack = !!loaded?.id && !!playbackTrack.id && String(loaded.id) === String(playbackTrack.id);
-    const active = !!deviceId && playback.device_id === deviceId && !!playback.is_playing && sameTrack;
-    return (player.state === 'playing') && active;
+    const sameTrack = !!playbackTrack.id && String(loaded.id) === String(playbackTrack.id);
+    const exactActive = !!deviceId && playback.device_id === deviceId && !!playback.is_playing && sameTrack;
+    // Trust the server's deck-scoped state. The server only reports playing for an
+    // exact loaded-track match or a short post-play grace period while Spotify
+    // Connect settles, so this no longer treats unrelated account playback as live.
+    return exactActive || player.state === 'playing';
   }
   function deckHasLoaded(deck){
     return !!state?.['player_' + deck]?.loaded?.id;
