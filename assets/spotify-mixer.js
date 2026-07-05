@@ -333,14 +333,10 @@ document.head.appendChild(overviewStyle);
     const player = state?.['player_' + deck] || {};
     const playback = player.playback || {};
     const playbackTrack = playback.track || {};
-    const sameTrack = !!track?.id && !!playbackTrack.id && String(track.id) === String(playbackTrack.id);
-    const active = !!deviceId && playback.device_id === deviceId && !!playback.is_playing && sameTrack;
-    const reportedPlaying = state?.['player_' + deck]?.state === 'playing';
+    const active = !!deviceId && playback.device_id === deviceId && !!playback.is_playing;
+    const sameTrack = !!track?.id && !!playbackTrack.id && normTrackId(track.id) === normTrackId(playbackTrack.id);
     const spotifyDurationMs = sameTrack ? (Number(playback.duration_ms) || Number(track.duration_ms) || 0) : durationMs;
     let progressMs = sameTrack ? (Number(playback.progress_ms) || 0) : (Number(track?.position_base_ms || track?.paused_position_ms || 0) || 0);
-    if((active || reportedPlaying) && track?.position_updated_at && !sameTrack){
-      progressMs += Math.max(0, (Date.now() / 1000 - Number(track.position_updated_at)) * 1000);
-    }
     if(active && sameTrack){
       progressMs += Math.max(0, Date.now() - Number(state?._receivedAtMs || Date.now()));
     }
@@ -414,20 +410,25 @@ document.head.appendChild(overviewStyle);
     const d = (state?.devices || []).find(x => x.id === id);
     return d ? d.name : (id ? 'Selected device' : 'Not assigned');
   }
-  function deckIsPlaying(deck){
+  function normTrackId(id){
+    return String(id || '').replace(/^spotify:track:/, '').trim();
+  }
+  function deckPlaybackMatchesLoaded(deck){
     const loaded = state?.['player_' + deck]?.loaded || null;
+    if(!loaded || !loaded.id) return false;
     if(isLocalTrack(loaded)) return !!loaded.local_is_playing;
-    if(!loaded?.id) return false;
-    const deviceId = state?.['device_' + deck] || '';
+    const deviceId = String(state?.['device_' + deck] || '');
     const player = state?.['player_' + deck] || {};
     const playback = player.playback || {};
     const playbackTrack = playback.track || {};
-    const sameTrack = !!playbackTrack.id && String(loaded.id) === String(playbackTrack.id);
-    const exactActive = !!deviceId && playback.device_id === deviceId && !!playback.is_playing && sameTrack;
-    // Trust the server's deck-scoped state. The server only reports playing for an
-    // exact loaded-track match or a short post-play grace period while Spotify
-    // Connect settles, so this no longer treats unrelated account playback as live.
-    return exactActive || player.state === 'playing';
+    return !!deviceId
+      && String(playback.device_id || '') === deviceId
+      && !!playback.is_playing
+      && normTrackId(playbackTrack.id) !== ''
+      && normTrackId(playbackTrack.id) === normTrackId(loaded.id);
+  }
+  function deckIsPlaying(deck){
+    return deckPlaybackMatchesLoaded(deck);
   }
   function deckHasLoaded(deck){
     return !!state?.['player_' + deck]?.loaded?.id;
@@ -479,7 +480,7 @@ document.head.appendChild(overviewStyle);
       player.playback.is_playing = !!playing;
       if(playing){
         player.playback.device_id = state['device_' + deck] || player.playback.device_id || '';
-        player.playback.track = player.playback.track || {id: loaded.id, title: loaded.title, artist: loaded.artist, image: loaded.image};
+        player.playback.track = {id: loaded.id, title: loaded.title, artist: loaded.artist, image: loaded.image};
       }
     }
     if(playing){
@@ -904,10 +905,7 @@ renderAccountStatus();
         b.disabled = !loaded || preparingLocal || (!loadedLocal && (!device || accountHasWarning(deck)));
         if(loadedLocal) b.title = 'Seek local MPD on Player ' + deck.toUpperCase();
       }));
-      document.querySelectorAll(`[data-deck-action="clear_loaded"][data-deck="${deck}"]`).forEach(b => {
-        b.disabled = !loaded;
-        b.title = loaded ? 'Eject Player ' + deck.toUpperCase() + ' track; pauses first if that exact track is still playing' : 'No track loaded';
-      });
+      document.querySelectorAll(`[data-deck-action="clear_loaded"][data-deck="${deck}"]`).forEach(b => b.disabled = playing || !loaded);
       document.querySelectorAll(`[data-deck-action="return_loaded"][data-deck="${deck}"]`).forEach(b => {
         b.disabled = playing || !loaded;
         b.title = 'Return unplayed Player ' + deck.toUpperCase() + ' track to the appropriate queue';
@@ -1103,7 +1101,7 @@ renderAccountStatus();
       player.playback.progress_ms = Number(loaded.position_base_ms || loaded.paused_position_ms || prog.progressMs || 0) || 0;
       if(playing){
         player.playback.device_id = state['device_' + deck] || player.playback.device_id || '';
-        player.playback.track = player.playback.track || {id: loaded.id, title: loaded.title, artist: loaded.artist, image: loaded.image};
+        player.playback.track = {id: loaded.id, title: loaded.title, artist: loaded.artist, image: loaded.image};
       }
     }
     if(playing){
