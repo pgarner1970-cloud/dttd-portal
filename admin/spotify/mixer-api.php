@@ -975,6 +975,14 @@ function mx_device_playing($device_id, $playback = null) {
     if ($playback === null) $playback = mx_playback();
     return !empty($playback['is_playing']) && (string)($playback['device']['id'] ?? '') === $device_id;
 }
+function mx_loaded_matches_playback($loaded, $playback) {
+    if (!is_array($loaded) || empty($loaded['id']) || !is_array($playback)) return false;
+    $currentId = (string)($playback['item']['id'] ?? '');
+    return $currentId !== '' && mx_track_ids_match($currentId, (string)$loaded['id']);
+}
+function mx_device_playing_loaded($device_id, $loaded, $playback = null) {
+    return mx_device_playing($device_id, $playback) && mx_loaded_matches_playback($loaded, $playback);
+}
 function mx_spotify_put($url, $body = '', $deck = null) {
     $token = ($deck === 'a' || $deck === 'b') ? dttd_spotify_user_access_token_for_deck($deck) : dttd_spotify_user_access_token();
     return dttd_spotify_http_put($url, [
@@ -1762,12 +1770,17 @@ function mx_state() {
         'device_a' => $deviceA,
         'device_b' => $deviceB,
         'player_a' => [
-            'state' => (!empty($loadedA['local_is_playing']) || ($activeDeviceIdA && $activeDeviceIdA === $deviceA && $isPlayingA)) ? 'playing' : 'standby',
+            // A Spotify deck is only playing when the assigned device is playing the
+            // track currently loaded on that deck. In single-account/dual-device use,
+            // Spotify can report the account's active device/track even after the DJ
+            // has paused or switched context. Do not let that stale/wrong track make
+            // the loaded deck look live.
+            'state' => (!empty($loadedA['local_is_playing']) || mx_device_playing_loaded($deviceA, $loadedA, $playbackA)) ? 'playing' : 'standby',
             'loaded' => mx_track_output($loadedA),
             'playback' => $playbackSummaryA,
         ],
         'player_b' => [
-            'state' => (!empty($loadedB['local_is_playing']) || ($activeDeviceIdB && $activeDeviceIdB === $deviceB && $isPlayingB)) ? 'playing' : 'standby',
+            'state' => (!empty($loadedB['local_is_playing']) || mx_device_playing_loaded($deviceB, $loadedB, $playbackB)) ? 'playing' : 'standby',
             'loaded' => mx_track_output($loadedB),
             'playback' => $playbackSummaryB,
         ],
@@ -2322,12 +2335,24 @@ try {
         $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
         $loadedForClear = mx_json('spotify_mixer_loaded_' . $deck, []);
         if (mx_is_local_track($loadedForClear)) {
-            if (!empty($loadedForClear['local_is_playing'])) throw new RuntimeException('Pause Player ' . strtoupper($deck) . ' before clearing.');
-        } elseif (mx_device_playing($device, mx_playback($deck))) throw new RuntimeException('Player ' . strtoupper($deck) . ' is currently playing. Pause it before clearing.');
+            if (!empty($loadedForClear['local_is_playing'])) {
+                try { mx_local_pause_track($deck, $loadedForClear); } catch (Throwable $ignoredPause) {}
+            }
+        } else {
+            $pbForClear = mx_playback($deck);
+            // Eject should clear the loaded card even when Spotify state is stale. If
+            // the assigned device is truly playing this exact loaded track, pause it
+            // first; if Spotify is reporting a different account/track, do not block
+            // the eject because that stale state is the thing the DJ is trying to clear.
+            if (mx_device_playing_loaded($device, $loadedForClear, $pbForClear)) {
+                try { mx_pause($device, $deck); } catch (Throwable $ignoredPause) {}
+                mx_save_deck_position_from_playback($deck, $device, $loadedForClear, $pbForClear, true);
+            }
+        }
         mx_return_loaded_if_unplayed($deck, $playlist, null);
         mx_save_playlist($playlist);
         mx_set('spotify_mixer_loaded_' . $deck, '');
-        mx_json_out(['ok' => true, 'state' => mx_state()]);
+        mx_json_out(['ok' => true, 'message' => 'Player ' . strtoupper($deck) . ' ejected.', 'state' => mx_state()]);
     }
 
 
