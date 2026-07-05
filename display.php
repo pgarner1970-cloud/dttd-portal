@@ -11,6 +11,32 @@ if (isset($_GET['event_id'])) {
 }
 $stateUrl = '/api/display-state.php' . ($eventParam !== '' ? '?' . $eventParam : '');
 $nowPlayingUrl = '/api/public-now-playing.php' . ($eventParam !== '' && str_starts_with($eventParam, 'event_id=') ? '?' . $eventParam : '');
+$displayMode = strtolower((string)($_GET['mode'] ?? 'full'));
+if ($displayMode === 'logo') {
+?><!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <?= dttd_cache_meta_tags() ?>
+  <title>Dance Through The Decades — Logo Screen</title>
+  <link rel="icon" href="<?= h(dttd_asset_url('assets/favicon-dj-192.png')) ?>">
+  <style>
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #000; }
+    body { display: grid; place-items: center; }
+    .dttd-logo-hold { width: min(62vw, 62vh, 760px); max-width: 82%; filter: drop-shadow(0 0 28px rgba(255,255,255,.16)); }
+    .dttd-logo-hold img { display: block; width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+  <main class="dttd-logo-hold" aria-label="Dance Through The Decades logo screen">
+    <img src="<?= h(dttd_asset_url('assets/dttd-logo-inner.png?v=152')) ?>" alt="Dance Through The Decades">
+  </main>
+</body>
+</html>
+<?php
+    exit;
+}
 ?><!doctype html>
 <html lang="en">
 <head>
