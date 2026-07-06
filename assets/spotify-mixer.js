@@ -146,14 +146,14 @@ document.head.appendChild(overviewStyle);
   function updateDebugUi(meta){
     if(meta && typeof meta.enabled !== 'undefined') debugEnabled = !!meta.enabled;
     if(els.debugToggle){
-      els.debugToggle.textContent = debugEnabled ? 'Debug On' : 'Debug Off';
+      els.debugToggle.textContent = debugEnabled ? 'Disable Debug' : 'Enable Debug';
       els.debugToggle.classList.toggle('green', debugEnabled);
       els.debugToggle.classList.toggle('dark', !debugEnabled);
       els.debugToggle.setAttribute('aria-pressed', debugEnabled ? 'true' : 'false');
     }
     if(els.debugStatus){
       const size = meta && meta.size_bytes ? Math.round(Number(meta.size_bytes) / 1024) + ' KB' : '0 KB';
-      els.debugStatus.textContent = debugEnabled ? `Debug enabled · ${size} · ${debugBuffer.length} browser events buffered` : 'Debug disabled';
+      els.debugStatus.textContent = debugEnabled ? `Debug enabled · ${size} · ${debugBuffer.length} browser events buffered` : 'Debug disabled — open Mixer diagnostics and click Enable Debug to start capture';
     }
     if(els.debugDownload){
       els.debugDownload.href = api + '?action=debug_download&_=' + Date.now();
@@ -607,33 +607,53 @@ document.head.appendChild(overviewStyle);
     return !!state?.['device_' + deck] && !deckIsPlaying(deck);
   }
   function clearSearchUi(){
-  
-  if(els.debugToggle) els.debugToggle.addEventListener('click', async ()=>{
-    const next = !debugEnabled;
-    try{
-      const data = await apiPost({action:'debug_set', enabled:next ? '1' : '0'});
-      if(data.state) acceptState(data.state);
-      else updateDebugUi(data.debug || {enabled:next});
-      toast(data.message || (next ? 'Debug enabled' : 'Debug disabled'), !!data.ok);
-      if(next) debugTrace('debug_enabled_from_browser', {});
-      else flushDebug('debug_disabled');
-    }catch(e){ toast('Could not change debug mode', false); }
-  });
-  if(els.debugFlush) els.debugFlush.addEventListener('click', ()=>{ debugTrace('manual_flush_clicked', {}); flushDebug('manual'); toast('Debug buffer flushed'); });
-  if(els.debugClear) els.debugClear.addEventListener('click', async ()=>{
-    if(!confirm('Clear the mixer debug log?')) return;
-    try{
-      const data = await apiPost({action:'debug_clear'});
-      debugBuffer = [];
-      updateDebugUi(data.debug || data.state?.debug || null);
-      toast(data.message || 'Debug log cleared', !!data.ok);
-    }catch(e){ toast('Could not clear debug log', false); }
-  });
-
-  if(els.search){ els.search.value=''; els.search.focus(); }
+    if(els.search){ els.search.value=''; els.search.focus(); }
     if(els.searchResults) els.searchResults.innerHTML='';
     if(els.searchStatus) els.searchStatus.textContent='';
   }
+  function bindDebugControls(){
+    if(els.debugToggle && !els.debugToggle.dataset.bound){
+      els.debugToggle.dataset.bound = '1';
+      els.debugToggle.addEventListener('click', async ()=>{
+        const next = !debugEnabled;
+        try{
+          const data = await apiPost({action:'debug_set', enabled:next ? '1' : '0'});
+          if(data.state) acceptState(data.state);
+          else updateDebugUi(data.debug || {enabled:next});
+          toast(data.message || (next ? 'Debug enabled' : 'Debug disabled'), !!data.ok);
+          if(next) debugTrace('debug_enabled_from_browser', {});
+          else flushDebug('debug_disabled');
+        }catch(e){
+          toast('Could not change debug mode', false);
+          debugTrace('debug_toggle_error', {error:String(e && e.message || e)});
+        }
+      });
+    }
+    if(els.debugFlush && !els.debugFlush.dataset.bound){
+      els.debugFlush.dataset.bound = '1';
+      els.debugFlush.addEventListener('click', ()=>{
+        debugTrace('manual_flush_clicked', {});
+        flushDebug('manual');
+        toast(debugEnabled ? 'Debug buffer flushed' : 'Debug is currently disabled');
+      });
+    }
+    if(els.debugClear && !els.debugClear.dataset.bound){
+      els.debugClear.dataset.bound = '1';
+      els.debugClear.addEventListener('click', async ()=>{
+        if(!confirm('Clear the mixer debug log?')) return;
+        try{
+          const data = await apiPost({action:'debug_clear'});
+          debugBuffer = [];
+          updateDebugUi(data.debug || data.state?.debug || null);
+          toast(data.message || 'Debug log cleared', !!data.ok);
+        }catch(e){
+          toast('Could not clear debug log', false);
+          debugTrace('debug_clear_error', {error:String(e && e.message || e)});
+        }
+      });
+    }
+  }
+
   function openMusicLibrary(){
     if(!els.musicLibraryModal) return;
     els.musicLibraryModal.classList.add('open');
@@ -1924,6 +1944,7 @@ renderAccountStatus();
   });
   window.addEventListener('focus', ()=>refresh(true));
   window.addEventListener('beforeunload', ()=>flushDebug('beforeunload'));
+  bindDebugControls();
   updateSearchModeButtons();
   updateLibraryView();
   refresh(false);

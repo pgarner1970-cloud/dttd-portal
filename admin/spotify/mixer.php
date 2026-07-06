@@ -1020,9 +1020,9 @@ admin_header('Spotify Mixer - DJ Portal');
     </section>
   </div>
   <details class="mixer-debug-panel" id="mixerDebugPanel" aria-label="Mixer debug controls">
-    <summary>Mixer diagnostics</summary>
+    <summary>Mixer diagnostics / debug log</summary>
     <div class="mixer-debug-controls">
-      <button class="mixer-btn dark" type="button" id="mixerDebugToggle" aria-pressed="false">Debug Off</button>
+      <button class="mixer-btn dark" type="button" id="mixerDebugToggle" aria-pressed="false">Enable Debug</button>
       <button class="mixer-btn blue" type="button" id="mixerDebugFlush">Flush Debug</button>
       <a class="mixer-btn orange" id="mixerDebugDownload" href="<?= h(admin_url('spotify/mixer-api.php?action=debug_download')) ?>" hidden>Download Log</a>
       <button class="mixer-btn red" type="button" id="mixerDebugClear">Clear Log</button>
