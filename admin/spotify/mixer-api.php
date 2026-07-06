@@ -1144,6 +1144,30 @@ function mx_loaded_track_progress_ms($track) {
     if (isset($track['paused_position_ms']) && $track['paused_position_ms'] !== null) $progress = max($progress, (int)$track['paused_position_ms']);
     return max(0, $progress);
 }
+
+function mx_reset_track_runtime_for_queue($track) {
+    if (!is_array($track)) return [];
+    $track['played_on_deck'] = false;
+    $track['played_qualified'] = false;
+    $track['position_base_ms'] = 0;
+    $track['position_updated_at'] = null;
+    $track['paused_position_ms'] = null;
+    $track['resume_locked'] = false;
+    $track['end_seen_ms'] = null;
+    $track['end_armed_at'] = null;
+    $track['playback_started_at'] = null;
+    $track['expected_finish_at'] = null;
+    $track['history_logged_at'] = null;
+    if (mx_is_local_track($track)) {
+        $track['local_is_playing'] = false;
+        $track['local_autoplay_after_prepare'] = false;
+        $track['local_autoplay_requested_at'] = null;
+        $track['local_autoplay_started_at'] = null;
+        $track['local_playback_mode'] = '';
+    }
+    return $track;
+}
+
 function mx_track_reached_played_threshold($track) {
     if (!is_array($track) || empty($track['id'])) return false;
     if (!empty($track['played_qualified'])) return true;
@@ -1799,6 +1823,7 @@ function mx_load_track_to_deck($track, $deck, $playback = null, &$playlist = nul
     if (!$device) throw new RuntimeException('Player ' . strtoupper($deck) . ' has no assigned Spotify device.');
     if (mx_device_playing($device, $playback)) throw new RuntimeException('Player ' . strtoupper($deck) . ' is currently playing. Loading is blocked.');
     $clean = mx_clean_track($track);
+    $clean = mx_reset_track_runtime_for_queue($clean);
     $clean['loaded_origin'] = $loadedOrigin !== '' ? (string)$loadedOrigin : ($removeFromPlaylist ? 'dj_playlist' : (string)($clean['source'] ?? 'search'));
     if (is_array($playlist)) {
         mx_return_loaded_if_unplayed($deck, $playlist, $clean);
@@ -2092,10 +2117,9 @@ function mx_return_loaded_if_unplayed($deck, &$playlist, $newTrack = null) {
     // Anything else chosen by the DJ but not played should not be forgotten.
     // Tracks from search, crates and history are preserved by adding them to the
     // DJ Playlist; tracks originally from the DJ Playlist are restored there.
+    $loaded = mx_reset_track_runtime_for_queue($loaded);
     $loaded['added_at'] = date('Y-m-d H:i:s');
     $loaded['loaded_origin'] = 'dj_playlist';
-    $loaded['played_on_deck'] = false;
-    $loaded['played_qualified'] = false;
     if (!mx_playlist_contains_track($playlist, $loaded)) {
         array_unshift($playlist, $loaded);
     }
@@ -2329,11 +2353,11 @@ try {
         $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
         $loadedForClear = mx_json('spotify_mixer_loaded_' . $deck, []);
         mx_pause_deck_output($deck, $loadedForClear, $device, mx_playback($deck));
-        $loadedForClear = mx_json('spotify_mixer_loaded_' . $deck, $loadedForClear);
-        mx_return_loaded_if_unplayed($deck, $playlist, null);
-        mx_save_playlist($playlist);
+        // Eject is a discard/unload action. It must not put the track back into the
+        // DJ Playlist; the separate Return if unplayed button is the explicit restore action.
         mx_set('spotify_mixer_loaded_' . $deck, '');
-        mx_json_out(['ok' => true, 'state' => mx_state()]);
+        mx_set('spotify_mixer_resume_' . $deck, '');
+        mx_json_out(['ok' => true, 'message' => 'Player ' . strtoupper($deck) . ' ejected.', 'state' => mx_state()]);
     }
 
 

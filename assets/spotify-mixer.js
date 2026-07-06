@@ -893,7 +893,10 @@ renderAccountStatus();
         b.disabled = !loaded || preparingLocal || (!loadedLocal && (!device || accountHasWarning(deck)));
         if(loadedLocal) b.title = 'Seek local MPD on Player ' + deck.toUpperCase();
       }));
-      document.querySelectorAll(`[data-deck-action="clear_loaded"][data-deck="${deck}"]`).forEach(b => b.disabled = playing || !loaded);
+      document.querySelectorAll(`[data-deck-action="clear_loaded"][data-deck="${deck}"]`).forEach(b => {
+        b.disabled = !loaded;
+        b.title = 'Eject Player ' + deck.toUpperCase() + ' without returning the track to the DJ playlist';
+      });
       document.querySelectorAll(`[data-deck-action="return_loaded"][data-deck="${deck}"]`).forEach(b => {
         b.disabled = playing || !loaded;
         b.title = 'Return unplayed Player ' + deck.toUpperCase() + ' track to the appropriate queue';
@@ -1140,6 +1143,23 @@ renderAccountStatus();
         setOptimisticDeckPlayback(deck, true);
         holdDeckPlayback(deck, true);
       }
+      renderDecks();
+      return true;
+    }
+    if(action === 'clear_loaded' || action === 'return_loaded' || action === 'mark_loaded_played'){
+      const player = state?.['player_' + deck];
+      if(!player || !player.loaded?.id) return false;
+      setOptimisticDeckPlayback(deck, false);
+      holdDeckPlayback(deck, false);
+      player.loaded = {};
+      player.state = 'standby';
+      if(player.playback){
+        player.playback.is_playing = false;
+        player.playback.track = {};
+        player.playback.progress_ms = 0;
+      }
+      state._receivedAtMs = Date.now();
+      lastStateSyncAt = Date.now();
       renderDecks();
       return true;
     }
