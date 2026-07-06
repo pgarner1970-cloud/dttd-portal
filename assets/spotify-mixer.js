@@ -1034,10 +1034,13 @@ renderAccountStatus();
         b.disabled = !loaded || preparingLocal || (!loadedLocal && (!device || accountHasWarning(deck)));
         if(loadedLocal) b.title = 'Seek local MPD on Player ' + deck.toUpperCase();
       }));
-      document.querySelectorAll(`[data-deck-action="clear_loaded"][data-deck="${deck}"]`).forEach(b => b.disabled = playing || !loaded);
+      document.querySelectorAll(`[data-deck-action="clear_loaded"][data-deck="${deck}"]`).forEach(b => {
+        b.disabled = !loaded;
+        b.title = 'Eject Player ' + deck.toUpperCase() + ' and discard the loaded track';
+      });
       document.querySelectorAll(`[data-deck-action="return_loaded"][data-deck="${deck}"]`).forEach(b => {
-        b.disabled = playing || !loaded;
-        b.title = 'Return unplayed Player ' + deck.toUpperCase() + ' track to the appropriate queue';
+        b.disabled = !loaded;
+        b.title = 'Return Player ' + deck.toUpperCase() + ' track to the DJ playlist if you changed your mind';
       });
       document.querySelectorAll(`[data-deck-action="mark_loaded_played"][data-deck="${deck}"]`).forEach(b => {
         b.disabled = playing || !loaded;
