@@ -394,9 +394,21 @@ function public_np_current_spotify_track() {
 
     if ($candidates) {
         usort($candidates, function($a, $b) {
+            $aStarted = (int)($a['_started_at'] ?? 0);
+            $bStarted = (int)($b['_started_at'] ?? 0);
+
+            // When both decks are genuinely live, treat the track that has been
+            // playing for the longest time as Now Playing. This keeps the HDMI
+            // display aligned with physical mixer fades in dual-account mode:
+            // the outgoing/established deck remains current, while the newly
+            // started deck can be shown as Up Next during the overlap.
+            if ($aStarted > 0 && $bStarted > 0 && $aStarted !== $bStarted) {
+                return $aStarted <=> $bStarted;
+            }
+
             $scoreCompare = ((int)($b['_score_ms'] ?? 0)) <=> ((int)($a['_score_ms'] ?? 0));
             if ($scoreCompare !== 0) return $scoreCompare;
-            return ((int)($a['_started_at'] ?? 0)) <=> ((int)($b['_started_at'] ?? 0));
+            return $aStarted <=> $bStarted;
         });
         $current = $candidates[0];
         unset($current['_score_ms'], $current['_started_at']);
@@ -457,8 +469,11 @@ function public_np_up_next_track($current) {
 
         if ($currentDeck !== '' && $deck === $currentDeck) continue;
         if ($currentId !== '' && $id !== '' && public_np_track_ids_match($currentId, $id)) continue;
-        if (!empty($track['_is_live'])) continue;
 
+        // If both decks are playing during a physical crossfade, the non-current
+        // live deck is the best Up Next candidate. Previously live loaded decks
+        // were skipped, which meant the up-next slide could disappear during the
+        // exact overlap where the display needs to show the incoming track.
         unset($track['_is_live']);
         return $track;
     }
