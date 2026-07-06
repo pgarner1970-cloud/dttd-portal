@@ -820,7 +820,10 @@ admin_header('Spotify Mixer - DJ Portal');
 }
 
 
-.mixer-debug-panel{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;border:1px solid rgba(96,145,205,.25);border-radius:14px;background:rgba(255,255,255,.025)}
+.mixer-debug-panel{margin:16px 0 0;padding:0;border:1px solid rgba(96,145,205,.25);border-radius:14px;background:rgba(255,255,255,.02);overflow:hidden}
+.mixer-debug-panel summary{display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;color:#b9d4f3;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.03em;list-style:none}
+.mixer-debug-panel summary::-webkit-details-marker{display:none}.mixer-debug-panel summary:after{content:"Open";margin-left:auto;color:#7faad7;font-size:11px}.mixer-debug-panel[open] summary:after{content:"Close"}
+.mixer-debug-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:0 12px 12px;border-top:1px solid rgba(96,145,205,.18)}
 .mixer-debug-panel .mixer-btn{min-height:36px;padding:8px 10px;font-size:12px}.mixer-debug-status{color:#aebfd4;font-size:12px;font-weight:900}.mixer-debug-note{color:#8aa4c2;font-size:12px;flex:1 1 300px}
 
 </style>
@@ -935,14 +938,7 @@ admin_header('Spotify Mixer - DJ Portal');
     <div><h1>Spotify Mixer</h1></div>
     <a class="mixer-btn blue" href="<?= h(admin_url('spotify/index.php')) ?>">Spotify Tools</a>
   </div>
-  <div class="mixer-debug-panel" id="mixerDebugPanel" aria-label="Mixer debug controls">
-    <button class="mixer-btn dark" type="button" id="mixerDebugToggle" aria-pressed="false">Debug Off</button>
-    <button class="mixer-btn blue" type="button" id="mixerDebugFlush">Flush Debug</button>
-    <a class="mixer-btn orange" id="mixerDebugDownload" href="<?= h(admin_url('spotify/mixer-api.php?action=debug_download')) ?>" hidden>Download Log</a>
-    <button class="mixer-btn red" type="button" id="mixerDebugClear">Clear Log</button>
-    <span class="mixer-debug-status" id="mixerDebugStatus">Debug status loading…</span>
-    <span class="mixer-debug-note">Debug is batched in memory and flushed in chunks so deck buttons stay responsive.</span>
-  </div>
+  
   <div class="mixer-grid">
     <section class="mixer-panel mixer-panel-a">
       <div class="panel-head">
@@ -1023,6 +1019,17 @@ admin_header('Spotify Mixer - DJ Portal');
       </div>
     </section>
   </div>
+  <details class="mixer-debug-panel" id="mixerDebugPanel" aria-label="Mixer debug controls">
+    <summary>Mixer diagnostics</summary>
+    <div class="mixer-debug-controls">
+      <button class="mixer-btn dark" type="button" id="mixerDebugToggle" aria-pressed="false">Debug Off</button>
+      <button class="mixer-btn blue" type="button" id="mixerDebugFlush">Flush Debug</button>
+      <a class="mixer-btn orange" id="mixerDebugDownload" href="<?= h(admin_url('spotify/mixer-api.php?action=debug_download')) ?>" hidden>Download Log</a>
+      <button class="mixer-btn red" type="button" id="mixerDebugClear">Clear Log</button>
+      <span class="mixer-debug-status" id="mixerDebugStatus">Debug status loading…</span>
+      <span class="mixer-debug-note">Debug is batched in memory and flushed in chunks so deck buttons stay responsive.</span>
+    </div>
+  </details>
   
 </main>
 <script src="<?= h(dttd_asset_url('assets/spotify-mixer.js', true)) ?>"></script>
