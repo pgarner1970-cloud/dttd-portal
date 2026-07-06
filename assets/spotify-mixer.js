@@ -52,6 +52,7 @@ document.head.appendChild(overviewStyle);
   let lastSearchTracks = [];
   let searchPage = 0;
   let selectedLibraryChoice = null;
+  let selectedLibraryChoices = [];
   let debugEnabled = false;
   let debugBuffer = [];
   let debugLastProgress = {};
@@ -401,14 +402,6 @@ document.head.appendChild(overviewStyle);
     debugTrace('progress_decision', {deck, track:trackSummary(track), decision});
   }
 
-  function deckRuntimeHasStarted(track){
-    if(!track || !track.id) return false;
-    if(!!track.played_on_deck) return true;
-    if(track.position_updated_at) return true;
-    if(Number(track.position_base_ms || 0) > 0) return true;
-    if(Number(track.paused_position_ms || 0) > 0) return true;
-    return false;
-  }
   function deckProgress(track, deck){
     const durationMs = Number(track?.duration_ms) || 0;
     if(isLocalTrack(track)){
@@ -420,34 +413,24 @@ document.head.appendChild(overviewStyle);
       if(durationMs) progressMs = Math.min(progressMs, durationMs);
       const pct = durationMs ? Math.min(100, Math.max(0, (progressMs / durationMs) * 100)) : 0;
       const remainingMs = durationMs ? Math.max(0, durationMs - progressMs) : 0;
-      const sameTrack = active || progressMs > 0 || deckRuntimeHasStarted(track);
-      debugProgressDecision(deck, track, {kind:'local', active, sameTrack, durationMs, progressMs, remainingMs, pct});
-      return {active, sameTrack, durationMs, progressMs, remainingMs, pct};
+      debugProgressDecision(deck, track, {kind:'local', active, sameTrack: active || progressMs > 0, durationMs, progressMs, remainingMs, pct});
+      return {active, sameTrack: active || progressMs > 0, durationMs, progressMs, remainingMs, pct};
     }
     const deviceId = state?.['device_' + deck] || '';
     const player = state?.['player_' + deck] || {};
     const playback = player.playback || {};
     const playbackTrack = playback.track || {};
     const active = !!deviceId && playback.device_id === deviceId && !!playback.is_playing;
-    const rawSameTrack = !!track?.id && !!playbackTrack.id && String(track.id) === String(playbackTrack.id);
-    const runtimeStarted = deckRuntimeHasStarted(track);
-
-    // Freshly loaded/reloaded tracks are a cue state. Spotify Connect may still be
-    // paused on the same track at an old position, but that stale account/device
-    // position must not be rendered into the newly loaded deck card. Only trust
-    // Spotify progress after the mixer has actually played this deck card, or when
-    // the exact loaded track is actively playing now.
-    const useSpotifyProgress = rawSameTrack && (active || runtimeStarted);
-    const progressIsMeaningful = useSpotifyProgress || runtimeStarted;
-    const spotifyDurationMs = useSpotifyProgress ? (Number(playback.duration_ms) || Number(track.duration_ms) || 0) : durationMs;
-    let progressMs = useSpotifyProgress ? (Number(playback.progress_ms) || 0) : (Number(track?.position_base_ms || track?.paused_position_ms || 0) || 0);
-    if(active && useSpotifyProgress){
+    const sameTrack = !!track?.id && !!playbackTrack.id && String(track.id) === String(playbackTrack.id);
+    const spotifyDurationMs = sameTrack ? (Number(playback.duration_ms) || Number(track.duration_ms) || 0) : durationMs;
+    let progressMs = sameTrack ? (Number(playback.progress_ms) || 0) : (Number(track?.position_base_ms || track?.paused_position_ms || 0) || 0);
+    if(active && sameTrack){
       progressMs += Math.max(0, Date.now() - Number(state?._receivedAtMs || Date.now()));
     }
     if(spotifyDurationMs) progressMs = Math.min(progressMs, spotifyDurationMs);
     const pct = spotifyDurationMs ? Math.min(100, Math.max(0, (progressMs / spotifyDurationMs) * 100)) : 0;
     const remainingMs = spotifyDurationMs ? Math.max(0, spotifyDurationMs - progressMs) : 0;
-    const decision = {kind:'spotify', active: active && rawSameTrack, sameTrack: progressIsMeaningful, rawSameTrack, runtimeStarted, useSpotifyProgress, durationMs: spotifyDurationMs, progressMs, remainingMs, pct, playback_track_id:playbackTrack.id||'', playback_device_id:playback.device_id||'', deck_device_id:deviceId};
+    const decision = {kind:'spotify', active, sameTrack: sameTrack || progressMs > 0, rawSameTrack:sameTrack, durationMs: spotifyDurationMs, progressMs, remainingMs, pct, playback_track_id:playbackTrack.id||'', playback_device_id:playback.device_id||'', deck_device_id:deviceId};
     debugProgressDecision(deck, track, decision);
     return decision;
   }
@@ -527,16 +510,12 @@ document.head.appendChild(overviewStyle);
     return d ? d.name : (id ? 'Selected device' : 'Not assigned');
   }
   function deckIsPlaying(deck){
-    const player = state?.['player_' + deck] || {};
-    const loaded = player.loaded || null;
+    const loaded = state?.['player_' + deck]?.loaded || null;
     if(isLocalTrack(loaded)) return !!loaded.local_is_playing;
-    if(!loaded || !loaded.id) return false;
     const deviceId = state?.['device_' + deck] || '';
-    const playback = player.playback || {};
-    const playbackTrack = playback.track || {};
-    const sameTrack = !!playbackTrack.id && String(playbackTrack.id) === String(loaded.id);
-    const active = !!deviceId && playback.device_id === deviceId && !!playback.is_playing && sameTrack;
-    return (player.state === 'playing' && active) || active;
+    const reported = state?.['player_' + deck]?.state === 'playing';
+    const active = !!deviceId && state?.active_device_id === deviceId && !!state?.is_playing;
+    return reported || active;
   }
   function deckHasLoaded(deck){
     return !!state?.['player_' + deck]?.loaded?.id;
@@ -580,25 +559,15 @@ document.head.appendChild(overviewStyle);
     const loaded = player.loaded || null;
     if(!loaded) return;
     player.state = playing ? 'playing' : 'standby';
-    if(playing){
-      loaded.played_on_deck = true;
-      loaded.played_qualified = false;
-      loaded.position_base_ms = Number(loaded.position_base_ms || loaded.paused_position_ms || 0) || 0;
-      loaded.paused_position_ms = null;
-      loaded.position_updated_at = Date.now() / 1000;
-    } else if(deckRuntimeHasStarted(loaded)){
-      loaded.paused_position_ms = Number(loaded.position_base_ms || loaded.paused_position_ms || 0) || 0;
-      loaded.position_updated_at = null;
-    }
     if(isLocalTrack(loaded)){
       loaded.local_is_playing = !!playing;
-      if(playing) loaded.position_updated_at = Date.now() / 1000;
+      loaded.position_updated_at = Date.now() / 1000;
     }
     if(player.playback){
       player.playback.is_playing = !!playing;
       if(playing){
         player.playback.device_id = state['device_' + deck] || player.playback.device_id || '';
-        player.playback.track = {id: loaded.id, title: loaded.title, artist: loaded.artist, image: loaded.image};
+        player.playback.track = player.playback.track || {id: loaded.id, title: loaded.title, artist: loaded.artist, image: loaded.image};
       }
     }
     if(playing){
@@ -727,63 +696,99 @@ document.head.appendChild(overviewStyle);
     const opts = crates.map(c => `<option value="${esc(c.id)}" ${String(c.id) === String(selected) ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
     return `<label class="library-crate-save"><select id="libraryCrateSelect" class="mixer-select" aria-label="Choose DJ crate">${opts}</select><button class="mixer-btn blue library-action-btn" data-library-action="crate">+ Save</button></label>`;
   }
+  function selectedLibraryList(){
+    return Array.isArray(selectedLibraryChoices) ? selectedLibraryChoices.filter(choice => choice && choice.item) : [];
+  }
   function clearLibrarySelection(){
     selectedLibraryChoice = null;
+    selectedLibraryChoices = [];
     document.querySelectorAll('.library-selected').forEach(el => el.classList.remove('library-selected'));
     renderLibraryActionBar();
   }
+  function updateLibrarySelectedElements(){
+    document.querySelectorAll('[data-select-track], [data-select-crate-track], [data-select-history-track]').forEach(node => {
+      let item = null;
+      let source = '';
+      try{
+        if(node.dataset.selectCrateTrack){ item = JSON.parse(node.dataset.selectCrateTrack); source = 'crate'; }
+        else if(node.dataset.selectHistoryTrack){ item = JSON.parse(node.dataset.selectHistoryTrack); source = 'history'; }
+        else if(node.dataset.selectTrack){ item = JSON.parse(node.dataset.selectTrack); source = 'track'; }
+      }catch(e){ item = null; }
+      if(item && isLibrarySelected(item, source)) node.classList.add('library-selected');
+      else node.classList.remove('library-selected');
+    });
+  }
   function renderLibraryActionBar(){
     if(!els.musicLibraryActionBar) return;
-    if(!selectedLibraryChoice || !selectedLibraryChoice.item){
-      els.musicLibraryActionBar.innerHTML = '<div class="music-library-action-empty">Select a track to choose an action.</div>';
+    const selected = selectedLibraryList();
+    if(!selected.length){
+      els.musicLibraryActionBar.innerHTML = '<div class="music-library-action-empty">Select one or more tracks to choose an action.</div>';
       return;
     }
-    const item = selectedLibraryChoice.item;
-    const src = selectedLibraryChoice.source;
+    const isMulti = selected.length > 1;
+    const item = selectedLibraryChoice?.item || selected[0].item;
+    const src = selectedLibraryChoice?.source || selected[0].source;
     const title = item.title || item.song_title || 'Selected track';
     const artist = item.artist || '';
     const local = isLocalTrack(item);
     const aBlocked = !deckCanLoad('a');
     const bBlocked = !deckCanLoad('b');
     const localDirectPlayBlocked = false;
+    const allCrate = selected.every(choice => choice.source === 'crate');
+    const removableCrate = allCrate && selected.every(choice => choice.item && (choice.item.crate_track_id || choice.item.id) && (choice.item.crate_id || activeCrateId));
     const sourceNote = src === 'crate' ? 'DJ crate' : (src === 'history' ? 'History' : (local ? 'Local music' : 'Search result'));
     let actions = '';
-    actions += '<button class="mixer-btn green library-action-btn" data-library-action="playlist">+ DJ Playlist</button>';
-    if(src === 'track' || src === 'history') actions += local ? '<button class="mixer-btn blue library-action-btn" data-library-action="crate" disabled>+ Save to crate</button>' : libraryCrateSaveControls();
-    actions += `<button class="mixer-btn orange library-action-btn" data-library-action="load_a" ${aBlocked ? 'disabled' : ''}>Load A</button>`;
-    actions += `<button class="mixer-btn green library-action-btn" data-library-action="play_a" ${aBlocked || localDirectPlayBlocked ? 'disabled' : ''}>▶ A</button>`;
-    actions += `<button class="mixer-btn blue library-action-btn" data-library-action="load_b" ${bBlocked ? 'disabled' : ''}>Load B</button>`;
-    actions += `<button class="mixer-btn green library-action-btn" data-library-action="play_b" ${bBlocked || localDirectPlayBlocked ? 'disabled' : ''}>▶ B</button>`;
-    if(src === 'crate') actions += `<button class="mixer-btn red library-action-btn" data-library-action="remove_crate" ${!(item.crate_id || activeCrateId) || !(item.crate_track_id || item.id) ? 'disabled' : ''}>Remove</button>`;
+    actions += `<button class="mixer-btn green library-action-btn" data-library-action="playlist">+ DJ Playlist${isMulti ? ` (${selected.length})` : ''}</button>`;
+    if(isMulti){
+      actions += `<button class="mixer-btn red library-action-btn" data-library-action="remove_crate" ${removableCrate ? '' : 'disabled'}>Remove${allCrate ? ` (${selected.length})` : ''}</button>`;
+      actions += '<button class="mixer-btn dark library-action-btn" data-library-action="clear_selection">Clear</button>';
+    } else {
+      if(src === 'track' || src === 'history') actions += local ? '<button class="mixer-btn blue library-action-btn" data-library-action="crate" disabled>+ Save to crate</button>' : libraryCrateSaveControls();
+      actions += `<button class="mixer-btn orange library-action-btn" data-library-action="load_a" ${aBlocked ? 'disabled' : ''}>Load A</button>`;
+      actions += `<button class="mixer-btn green library-action-btn" data-library-action="play_a" ${aBlocked || localDirectPlayBlocked ? 'disabled' : ''}>▶ A</button>`;
+      actions += `<button class="mixer-btn blue library-action-btn" data-library-action="load_b" ${bBlocked ? 'disabled' : ''}>Load B</button>`;
+      actions += `<button class="mixer-btn green library-action-btn" data-library-action="play_b" ${bBlocked || localDirectPlayBlocked ? 'disabled' : ''}>▶ B</button>`;
+      if(src === 'crate') actions += `<button class="mixer-btn red library-action-btn" data-library-action="remove_crate" ${!(item.crate_id || activeCrateId) || !(item.crate_track_id || item.id) ? 'disabled' : ''}>Remove</button>`;
+    }
     const notes = [];
-    if(local) notes.push('Local track');
-    if(aBlocked) notes.push('A unavailable/playing');
-    if(bBlocked) notes.push('B unavailable/playing');
+    if(isMulti){
+      notes.push('Bulk mode: load/play disabled');
+      if(!allCrate) notes.push('Remove only available for DJ crate tracks');
+    } else {
+      if(local) notes.push('Local track');
+      if(aBlocked) notes.push('A unavailable/playing');
+      if(bBlocked) notes.push('B unavailable/playing');
+    }
+    const selectedTitle = isMulti ? `${selected.length} tracks selected` : title;
+    const selectedSubline = isMulti
+      ? selected.map(choice => choice.item?.title || choice.item?.song_title || 'Track').slice(0, 3).join(' • ') + (selected.length > 3 ? ` • +${selected.length - 3} more` : '')
+      : [artist, sourceNote].filter(Boolean).join(' • ');
     els.musicLibraryActionBar.innerHTML = `
-      <div class="library-selected-track">
-        <img src="${esc(image(item.image || item.spotify_album_image || ''))}" alt="">
+      <div class="library-selected-track${isMulti ? ' library-selected-track-multi' : ''}">
+        ${isMulti ? `<div class="library-selected-count">${selected.length}</div>` : `<img src="${esc(image(item.image || item.spotify_album_image || ''))}" alt="">`}
         <div class="library-selected-copy">
-          <strong>${esc(title)}</strong>
-          <span>${esc([artist, sourceNote].filter(Boolean).join(' • '))}</span>
+          <strong>${esc(selectedTitle)}</strong>
+          <span>${esc(selectedSubline)}</span>
           ${notes.length ? `<em>${esc(notes.join(' • '))}</em>` : ''}
         </div>
       </div>
       <div class="library-action-buttons">${actions}</div>`;
   }
-  function markLibrarySelectedElement(el){
-    document.querySelectorAll('.library-selected').forEach(node => node.classList.remove('library-selected'));
-    if(el) el.classList.add('library-selected');
-  }
   function selectLibraryItem(item, source, el){
     if(!item) return;
-    selectedLibraryChoice = {item, source, saveCrateId: selectedLibraryChoice?.saveCrateId || activeCrateId || ''};
-    markLibrarySelectedElement(el);
+    const key = libraryChoiceKey(item, source);
+    const existingIndex = selectedLibraryChoices.findIndex(choice => libraryChoiceKey(choice.item, choice.source) === key);
+    const saveCrateId = selectedLibraryChoice?.saveCrateId || activeCrateId || '';
+    if(existingIndex >= 0){
+      selectedLibraryChoices.splice(existingIndex, 1);
+    } else {
+      selectedLibraryChoices.push({item, source, saveCrateId});
+    }
+    selectedLibraryChoice = selectedLibraryChoices.length ? selectedLibraryChoices[selectedLibraryChoices.length - 1] : null;
+    updateLibrarySelectedElements();
     renderLibraryActionBar();
   }
-  async function libraryAction(action){
-    if(action === 'clear_selection'){ clearLibrarySelection(); return; }
-    const choice = selectedLibraryChoice;
-    if(!choice || !choice.item) return;
+  function libraryActionParamsFor(choice, action){
     const src = choice.source;
     const item = choice.item;
     const params = {};
@@ -806,14 +811,41 @@ document.head.appendChild(overviewStyle);
       if(action === 'load_a' || action === 'load_b') Object.assign(params, {action:'load_track_direct', track_json:trackJson, deck:action.slice(-1)});
       if(action === 'play_a' || action === 'play_b') Object.assign(params, {action:'play_track_direct', track_json:trackJson, deck:action.slice(-1)});
     }
-    if(!params.action) return;
-    await doAction(params);
+    return params;
+  }
+  async function libraryAction(action){
+    if(action === 'clear_selection'){ clearLibrarySelection(); return; }
+    const selected = selectedLibraryList();
+    if(!selected.length) return;
+    const isMulti = selected.length > 1;
+    if(isMulti && !['playlist','remove_crate'].includes(action)) return;
+    if(isMulti && action === 'remove_crate' && !selected.every(choice => choice.source === 'crate')) return;
+    const choices = isMulti ? selected.slice() : [selectedLibraryChoice || selected[0]];
+    let successCount = 0;
+    let mutationAffectsCrates = false;
+    let removedCrate = false;
+    for(const choice of choices){
+      if(!choice || !choice.item) continue;
+      const params = libraryActionParamsFor(choice, action);
+      if(!params.action) continue;
+      try{
+        await doAction(params);
+        successCount += 1;
+        if(action === 'crate' || action === 'remove_crate') mutationAffectsCrates = true;
+        if(action === 'remove_crate' && choice.source === 'crate') removedCrate = true;
+      }catch(err){
+        console.warn('Library action failed', action, err);
+      }
+    }
+    if(isMulti && successCount){
+      toast(`${successCount} track${successCount === 1 ? '' : 's'} ${action === 'remove_crate' ? 'removed' : 'added to DJ playlist'}.`, true);
+    }
     clearLibrarySelection();
-    if(action === 'crate' || action === 'remove_crate') {
+    if(mutationAffectsCrates) {
       refreshCrateArtistIndexAfterMutation();
       refreshDjCratesAfterMutation();
     }
-    if(src === 'crate' && action === 'remove_crate' && !crateArtistMode) {
+    if(removedCrate && !crateArtistMode) {
       setTimeout(()=>{
         loadDjCrateTracks(activeCrateId, activeCrateName);
       }, 350);
@@ -1066,13 +1098,10 @@ renderAccountStatus();
         b.disabled = !loaded || preparingLocal || (!loadedLocal && (!device || accountHasWarning(deck)));
         if(loadedLocal) b.title = 'Seek local MPD on Player ' + deck.toUpperCase();
       }));
-      document.querySelectorAll(`[data-deck-action="clear_loaded"][data-deck="${deck}"]`).forEach(b => {
-        b.disabled = !loaded;
-        b.title = 'Eject Player ' + deck.toUpperCase() + ' and discard the loaded track';
-      });
+      document.querySelectorAll(`[data-deck-action="clear_loaded"][data-deck="${deck}"]`).forEach(b => b.disabled = playing || !loaded);
       document.querySelectorAll(`[data-deck-action="return_loaded"][data-deck="${deck}"]`).forEach(b => {
-        b.disabled = !loaded;
-        b.title = 'Return Player ' + deck.toUpperCase() + ' track to the DJ playlist if you changed your mind';
+        b.disabled = playing || !loaded;
+        b.title = 'Return unplayed Player ' + deck.toUpperCase() + ' track to the appropriate queue';
       });
       document.querySelectorAll(`[data-deck-action="mark_loaded_played"][data-deck="${deck}"]`).forEach(b => {
         b.disabled = playing || !loaded;
@@ -1157,7 +1186,7 @@ renderAccountStatus();
       </div>`;
     }).join('');
   }
-  function render(){ applyPendingTransportHolds(); if(state?.crates) availableCrates = sortCratesByName(state.crates); renderDevices(); renderPlaylist(); renderRequests(); renderDecks(); if(activeSource === 'crates') renderDjCrates(availableCrates.length ? availableCrates : sortCratesByName(state?.crates || [])); if(activeSource === 'history') renderHistory(); renderLibraryActionBar(); }
+  function render(){ applyPendingTransportHolds(); if(state?.crates) availableCrates = sortCratesByName(state.crates); renderDevices(); renderPlaylist(); renderRequests(); renderDecks(); if(activeSource === 'crates') renderDjCrates(availableCrates.length ? availableCrates : sortCratesByName(state?.crates || [])); if(activeSource === 'history') renderHistory(); updateLibrarySelectedElements(); renderLibraryActionBar(); }
   function acceptState(nextState){
     if(!nextState) return;
     state = nextState;
@@ -1262,26 +1291,16 @@ renderAccountStatus();
     const prog = deckProgress(loaded, deck);
     updateLoadedPositionForDeck(deck, prog.progressMs);
     player.state = playing ? 'playing' : 'standby';
-    if(playing){
-      loaded.played_on_deck = true;
-      loaded.played_qualified = false;
-      loaded.position_base_ms = Number(loaded.position_base_ms || loaded.paused_position_ms || 0) || 0;
-      loaded.paused_position_ms = null;
-      loaded.position_updated_at = Date.now() / 1000;
-    } else if(deckRuntimeHasStarted(loaded)){
-      loaded.paused_position_ms = Number(loaded.position_base_ms || loaded.paused_position_ms || prog.progressMs || 0) || 0;
-      loaded.position_updated_at = null;
-    }
     if(isLocalTrack(loaded)){
       loaded.local_is_playing = !!playing;
-      if(playing) loaded.position_updated_at = Date.now() / 1000;
+      loaded.position_updated_at = Date.now() / 1000;
     }
     if(player.playback){
       player.playback.is_playing = !!playing;
       player.playback.progress_ms = Number(loaded.position_base_ms || loaded.paused_position_ms || prog.progressMs || 0) || 0;
       if(playing){
         player.playback.device_id = state['device_' + deck] || player.playback.device_id || '';
-        player.playback.track = {id: loaded.id, title: loaded.title, artist: loaded.artist, image: loaded.image};
+        player.playback.track = player.playback.track || {id: loaded.id, title: loaded.title, artist: loaded.artist, image: loaded.image};
       }
     }
     if(playing){
@@ -1359,7 +1378,8 @@ renderAccountStatus();
     return String(source || '') + ':' + String(item?.crate_track_id || item?.id || item?.spotify_id || item?.title || '');
   }
   function isLibrarySelected(item, source){
-    return !!(selectedLibraryChoice && libraryChoiceKey(selectedLibraryChoice.item, selectedLibraryChoice.source) === libraryChoiceKey(item, source));
+    const key = libraryChoiceKey(item, source);
+    return selectedLibraryList().some(choice => libraryChoiceKey(choice.item, choice.source) === key);
   }
   function searchResultRows(tracks){
     return tracks.map(t=>`
@@ -1965,7 +1985,11 @@ renderAccountStatus();
     const selectTrack = e.target.closest('[data-select-track]');
     if(selectTrack && selectTrack.getAttribute('role') === 'button'){
       e.preventDefault();
-      try{ openChoice(JSON.parse(selectTrack.dataset.selectTrack), 'track'); }catch(err){ toast('Could not read track selection', false); }
+      try{
+        const item = JSON.parse(selectTrack.dataset.selectTrack);
+        if(els.musicLibraryModal && els.musicLibraryModal.classList.contains('open')) selectLibraryItem(item, 'track', selectTrack);
+        else openChoice(item, 'track');
+      }catch(err){ toast('Could not read track selection', false); }
     }
   });
   if(els.search){
