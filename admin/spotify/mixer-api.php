@@ -606,6 +606,9 @@ function mx_clean_track($track) {
         'position_updated_at' => isset($track['position_updated_at']) ? (int)$track['position_updated_at'] : null,
         'paused_position_ms' => isset($track['paused_position_ms']) ? max(0, (int)$track['paused_position_ms']) : null,
         'resume_locked' => !empty($track['resume_locked']),
+        'transport_intent' => (string)($track['transport_intent'] ?? ''),
+        'transport_intent_at' => isset($track['transport_intent_at']) ? (int)$track['transport_intent_at'] : null,
+        'play_request_position_ms' => isset($track['play_request_position_ms']) ? max(0, (int)$track['play_request_position_ms']) : null,
         'end_seen_ms' => isset($track['end_seen_ms']) ? max(0, (int)$track['end_seen_ms']) : null,
         'end_armed_at' => isset($track['end_armed_at']) ? (int)$track['end_armed_at'] : null,
         'playback_started_at' => isset($track['playback_started_at']) ? (int)$track['playback_started_at'] : null,
@@ -1059,7 +1062,17 @@ function mx_pause_deck_output($deck, $track = null, $device_id = null, $playback
     if ($device_id !== '') {
         try { mx_pause($device_id, $deck); } catch (Throwable $ignoredPause) {}
     }
-    return mx_json('spotify_mixer_loaded_' . $deck, is_array($track) ? $track : []);
+    $paused = mx_json('spotify_mixer_loaded_' . $deck, is_array($track) ? $track : []);
+    if (is_array($paused) && !empty($paused['id'])) {
+        mx_set_transport_intent($paused, 'paused');
+        $paused['position_updated_at'] = null;
+        if (!isset($paused['paused_position_ms']) || $paused['paused_position_ms'] === null) {
+            $fallback = mx_loaded_position_fallback($paused);
+            $paused['paused_position_ms'] = $fallback !== null ? $fallback : 0;
+        }
+        mx_store_loaded_track($deck, $paused);
+    }
+    return mx_json('spotify_mixer_loaded_' . $deck, is_array($paused) ? $paused : []);
 }
 
 function mx_confirm_track_playing_on_device($device_id, $track_id, $position_ms = null, $max_attempts = 4, $deck = null) {
@@ -1153,6 +1166,9 @@ function mx_reset_track_runtime_for_queue($track) {
     $track['position_updated_at'] = null;
     $track['paused_position_ms'] = null;
     $track['resume_locked'] = false;
+    $track['transport_intent'] = '';
+    $track['transport_intent_at'] = null;
+    $track['play_request_position_ms'] = null;
     $track['end_seen_ms'] = null;
     $track['end_armed_at'] = null;
     $track['playback_started_at'] = null;
@@ -1193,6 +1209,33 @@ function mx_mark_loaded_played_if_threshold($deck, &$track) {
     mx_store_loaded_track($deck, $track);
     return true;
 }
+
+function mx_set_transport_intent(&$track, $intent, $position_ms = null) {
+    if (!is_array($track) || empty($track['id'])) return;
+    $track['transport_intent'] = (string)$intent;
+    $track['transport_intent_at'] = time();
+    if ($position_ms !== null) $track['play_request_position_ms'] = max(0, (int)$position_ms);
+}
+
+function mx_recent_play_intent($track, $seconds = 8) {
+    if (!is_array($track) || empty($track['id'])) return false;
+    if (($track['transport_intent'] ?? '') !== 'playing') return false;
+    $at = isset($track['transport_intent_at']) ? (int)$track['transport_intent_at'] : 0;
+    return $at > 0 && (time() - $at) >= 0 && (time() - $at) <= max(1, (int)$seconds);
+}
+
+function mx_should_ignore_connect_progress_jump($loaded, $progress_ms) {
+    if (!is_array($loaded) || empty($loaded['id'])) return false;
+    if (!mx_recent_play_intent($loaded, 8)) return false;
+    $requested = isset($loaded['play_request_position_ms']) ? max(0, (int)$loaded['play_request_position_ms']) : 0;
+    $intentAt = isset($loaded['transport_intent_at']) ? (int)$loaded['transport_intent_at'] : 0;
+    $expected = $requested + max(0, time() - $intentAt) * 1000;
+    // During the first seconds after an explicit play-from-position command,
+    // Spotify Connect may briefly report the previous session position for the
+    // same track. Do not let that stale report overwrite the mixer's fresh start.
+    return (int)$progress_ms > ($expected + 10000);
+}
+
 function mx_arm_loaded_track_for_playback($deck, &$track, $start_position_ms = 0) {
     $deck = $deck === 'b' ? 'b' : 'a';
     if (!is_array($track) || empty($track['id'])) return false;
@@ -1204,6 +1247,7 @@ function mx_arm_loaded_track_for_playback($deck, &$track, $start_position_ms = 0
     $track['position_updated_at'] = $now;
     $track['paused_position_ms'] = null;
     $track['resume_locked'] = false;
+    mx_set_transport_intent($track, 'playing', $position);
     $track['end_seen_ms'] = max((int)($track['end_seen_ms'] ?? 0), $position);
     // Do not arm finish/unload from the command alone. Arm it only after state polling
     // has observed this exact track playing on this exact deck device.
@@ -1222,9 +1266,15 @@ function mx_sync_loaded_position_from_playback($deck, $loaded, $device_id, $play
     $sameDevice = trim((string)$device_id) !== '' && $activeDevice === (string)$device_id;
     $sameTrack = mx_track_ids_match($currentId, $loaded['id']);
     if ($sameDevice && $sameTrack && isset($playback['progress_ms'])) {
+        if (mx_should_ignore_connect_progress_jump($loaded, (int)$playback['progress_ms'])) {
+            mx_store_loaded_track($deck, $loaded);
+            return $loaded;
+        }
         $loaded['position_base_ms'] = max(0, (int)$playback['progress_ms']);
         $loaded['position_updated_at'] = time();
         if (!empty($playback['is_playing'])) {
+            $loaded['transport_intent'] = 'playing';
+            $loaded['transport_intent_at'] = time();
             $loaded['paused_position_ms'] = null;
             $loaded['resume_locked'] = false;
             if (isset($playback['item']['duration_ms']) && (int)$playback['item']['duration_ms'] > 0) {
@@ -1416,6 +1466,7 @@ function mx_arm_started_track_state($deck, &$track, $position_ms = null, $resume
     $track['position_updated_at'] = time();
     $track['paused_position_ms'] = null;
     $track['resume_locked'] = false;
+    mx_set_transport_intent($track, 'playing', $position);
     $track['end_seen_ms'] = max((int)($track['end_seen_ms'] ?? 0), $position);
     $track['end_armed_at'] = null;
     $track['resume_mode'] = $resumeMode;
@@ -1748,8 +1799,8 @@ function mx_state() {
 
     $activeDeviceIdA = (string)($playbackA['device']['id'] ?? '');
     $activeDeviceIdB = (string)($playbackB['device']['id'] ?? '');
-    $isPlayingA = mx_loaded_track_is_playing_on_device('a', $deviceA, $loadedA, $playbackA);
-    $isPlayingB = mx_loaded_track_is_playing_on_device('b', $deviceB, $loadedB, $playbackB);
+    $isPlayingA = mx_loaded_track_is_playing_on_device('a', $deviceA, $loadedA, $playbackA) || mx_recent_play_intent($loadedA, 6);
+    $isPlayingB = mx_loaded_track_is_playing_on_device('b', $deviceB, $loadedB, $playbackB) || mx_recent_play_intent($loadedB, 6);
     $playbackSummaryA = mx_playback_track_summary($playbackA);
     $playbackSummaryB = mx_playback_track_summary($playbackB);
     $statusPlayback = $isPlayingA ? $playbackA : ($isPlayingB ? $playbackB : null);
@@ -1836,6 +1887,9 @@ function mx_load_track_to_deck($track, $deck, $playback = null, &$playlist = nul
     $clean['position_updated_at'] = null;
     $clean['paused_position_ms'] = null;
     $clean['resume_locked'] = false;
+    $clean['transport_intent'] = '';
+    $clean['transport_intent_at'] = null;
+    $clean['play_request_position_ms'] = null;
     $clean['end_seen_ms'] = null;
     $clean['end_armed_at'] = null;
     if (mx_is_local_track($clean)) {

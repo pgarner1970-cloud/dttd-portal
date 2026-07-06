@@ -335,15 +335,17 @@ document.head.appendChild(overviewStyle);
     const playbackTrack = playback.track || {};
     const active = !!deviceId && playback.device_id === deviceId && !!playback.is_playing;
     const sameTrack = !!track?.id && !!playbackTrack.id && String(track.id) === String(playbackTrack.id);
+    const playerStatePlaying = player.state === 'playing';
     const spotifyDurationMs = sameTrack ? (Number(playback.duration_ms) || Number(track.duration_ms) || 0) : durationMs;
     let progressMs = sameTrack ? (Number(playback.progress_ms) || 0) : (Number(track?.position_base_ms || track?.paused_position_ms || 0) || 0);
-    if(active && sameTrack){
-      progressMs += Math.max(0, Date.now() - Number(state?._receivedAtMs || Date.now()));
+    if((active && sameTrack) || playerStatePlaying){
+      const updatedAtMs = Number(track?.position_updated_at || 0) ? Number(track.position_updated_at) * 1000 : Number(state?._receivedAtMs || Date.now());
+      progressMs += Math.max(0, Date.now() - updatedAtMs);
     }
     if(spotifyDurationMs) progressMs = Math.min(progressMs, spotifyDurationMs);
     const pct = spotifyDurationMs ? Math.min(100, Math.max(0, (progressMs / spotifyDurationMs) * 100)) : 0;
     const remainingMs = spotifyDurationMs ? Math.max(0, spotifyDurationMs - progressMs) : 0;
-    return {active, sameTrack: sameTrack || progressMs > 0, durationMs: spotifyDurationMs, progressMs, remainingMs, pct};
+    return {active: (active && sameTrack) || playerStatePlaying, sameTrack: sameTrack || playerStatePlaying || progressMs > 0, durationMs: spotifyDurationMs, progressMs, remainingMs, pct};
   }
   function toast(msg, ok=true){
     if(!els.toast) return;
@@ -1084,6 +1086,9 @@ renderAccountStatus();
     updateLoadedPositionForDeck(deck, prog.progressMs);
     loaded.paused_position_ms = playing ? null : (Number(loaded.position_base_ms || prog.progressMs || 0) || 0);
     loaded.position_updated_at = playing ? (Date.now() / 1000) : null;
+    loaded.transport_intent = playing ? 'playing' : 'paused';
+    loaded.transport_intent_at = Date.now() / 1000;
+    if(playing && loaded.play_request_position_ms == null) loaded.play_request_position_ms = Number(loaded.position_base_ms || 0) || 0;
     player.state = playing ? 'playing' : 'standby';
     if(isLocalTrack(loaded)){
       loaded.local_is_playing = !!playing;
@@ -1123,11 +1128,73 @@ renderAccountStatus();
     state._receivedAtMs = Date.now();
     lastStateSyncAt = Date.now();
   }
+  function normaliseOptimisticTrack(raw, source){
+    const t = Object.assign({}, raw || {});
+    t.id = String(t.id || t.spotify_track_id || '');
+    t.title = String(t.title || t.song_title || '');
+    t.artist = String(t.artist || '');
+    t.album = String(t.album || '');
+    t.image = image(t.image || t.spotify_album_image || '');
+    t.duration_ms = Number(t.duration_ms || 0) || null;
+    t.source = source || t.source || 'search';
+    t.loaded_origin = source || t.loaded_origin || t.source || 'search';
+    t.played_on_deck = false;
+    t.played_qualified = false;
+    t.position_base_ms = 0;
+    t.position_updated_at = null;
+    t.paused_position_ms = null;
+    t.resume_locked = false;
+    t.end_seen_ms = null;
+    t.end_armed_at = null;
+    t.playback_started_at = null;
+    t.expected_finish_at = null;
+    t.transport_intent = '';
+    t.transport_intent_at = null;
+    t.play_request_position_ms = null;
+    return prepareSearchTrack(t, t.source);
+  }
+
   function optimisticDeckAction(params){
     if(!state || !params || !params.deck) return false;
     const action = String(params.action || '');
     const deck = params.deck === 'b' ? 'b' : 'a';
     const other = deck === 'a' ? 'b' : 'a';
+    if(action === 'play_track_direct' || action === 'load_track_direct'){
+      let parsed = null;
+      try{ parsed = JSON.parse(params.track_json || '{}'); }catch(e){ parsed = null; }
+      if(!parsed || !parsed.id) return false;
+      const player = state['player_' + deck] || (state['player_' + deck] = {});
+      const source = String(parsed.source || 'search');
+      const loaded = normaliseOptimisticTrack(parsed, source === 'dj_crate' ? 'dj_playlist' : source);
+      player.loaded = loaded;
+      player.playback = player.playback || {};
+      player.playback.track = {id: loaded.id, title: loaded.title, artist: loaded.artist, image: loaded.image};
+      player.playback.duration_ms = loaded.duration_ms;
+      player.playback.progress_ms = 0;
+      player.playback.device_id = state['device_' + deck] || player.playback.device_id || '';
+      if(action === 'play_track_direct'){
+        if(!state.duo_mode && deckIsPlaying(other)){
+          setOptimisticDeckPlayback(other, false);
+          holdDeckPlayback(other, false);
+        }
+        loaded.played_on_deck = true;
+        loaded.position_base_ms = 0;
+        loaded.position_updated_at = Date.now() / 1000;
+        loaded.transport_intent = 'playing';
+        loaded.transport_intent_at = Date.now() / 1000;
+        loaded.play_request_position_ms = 0;
+        player.state = 'playing';
+        setOptimisticDeckPlayback(deck, true);
+        holdDeckPlayback(deck, true);
+      } else {
+        player.state = 'standby';
+        holdDeckPlayback(deck, false);
+      }
+      state._receivedAtMs = Date.now();
+      lastStateSyncAt = Date.now();
+      renderDecks();
+      return true;
+    }
     if(action === 'play_toggle'){
       const loaded = deckLoadedTrack(deck);
       if(!loaded || deckIsPreparingLocal(deck)) return false;
