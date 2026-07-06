@@ -334,7 +334,7 @@ document.head.appendChild(overviewStyle);
     const playback = player.playback || {};
     const playbackTrack = playback.track || {};
     const active = !!deviceId && playback.device_id === deviceId && !!playback.is_playing;
-    const sameTrack = !!track?.id && !!playbackTrack.id && normTrackId(track.id) === normTrackId(playbackTrack.id);
+    const sameTrack = !!track?.id && !!playbackTrack.id && String(track.id) === String(playbackTrack.id);
     const spotifyDurationMs = sameTrack ? (Number(playback.duration_ms) || Number(track.duration_ms) || 0) : durationMs;
     let progressMs = sameTrack ? (Number(playback.progress_ms) || 0) : (Number(track?.position_base_ms || track?.paused_position_ms || 0) || 0);
     if(active && sameTrack){
@@ -410,25 +410,12 @@ document.head.appendChild(overviewStyle);
     const d = (state?.devices || []).find(x => x.id === id);
     return d ? d.name : (id ? 'Selected device' : 'Not assigned');
   }
-  function normTrackId(id){
-    return String(id || '').replace(/^spotify:track:/, '').trim();
-  }
-  function deckPlaybackMatchesLoaded(deck){
-    const loaded = state?.['player_' + deck]?.loaded || null;
-    if(!loaded || !loaded.id) return false;
-    if(isLocalTrack(loaded)) return !!loaded.local_is_playing;
-    const deviceId = String(state?.['device_' + deck] || '');
-    const player = state?.['player_' + deck] || {};
-    const playback = player.playback || {};
-    const playbackTrack = playback.track || {};
-    return !!deviceId
-      && String(playback.device_id || '') === deviceId
-      && !!playback.is_playing
-      && normTrackId(playbackTrack.id) !== ''
-      && normTrackId(playbackTrack.id) === normTrackId(loaded.id);
-  }
   function deckIsPlaying(deck){
-    return deckPlaybackMatchesLoaded(deck);
+    const loaded = state?.['player_' + deck]?.loaded || null;
+    if(isLocalTrack(loaded)) return !!loaded.local_is_playing;
+    // Trust only the deck-scoped state returned by the server. The global Spotify
+    // active_device field can represent another/previous context in single-account mode.
+    return state?.['player_' + deck]?.state === 'playing';
   }
   function deckHasLoaded(deck){
     return !!state?.['player_' + deck]?.loaded?.id;
@@ -481,6 +468,7 @@ document.head.appendChild(overviewStyle);
       if(playing){
         player.playback.device_id = state['device_' + deck] || player.playback.device_id || '';
         player.playback.track = {id: loaded.id, title: loaded.title, artist: loaded.artist, image: loaded.image};
+        player.playback.duration_ms = Number(loaded.duration_ms || player.playback.duration_ms || 0) || player.playback.duration_ms || null;
       }
     }
     if(playing){
@@ -1091,6 +1079,8 @@ renderAccountStatus();
     if(!loaded) return;
     const prog = deckProgress(loaded, deck);
     updateLoadedPositionForDeck(deck, prog.progressMs);
+    loaded.paused_position_ms = playing ? null : (Number(loaded.position_base_ms || prog.progressMs || 0) || 0);
+    loaded.position_updated_at = playing ? (Date.now() / 1000) : null;
     player.state = playing ? 'playing' : 'standby';
     if(isLocalTrack(loaded)){
       loaded.local_is_playing = !!playing;
@@ -1102,6 +1092,7 @@ renderAccountStatus();
       if(playing){
         player.playback.device_id = state['device_' + deck] || player.playback.device_id || '';
         player.playback.track = {id: loaded.id, title: loaded.title, artist: loaded.artist, image: loaded.image};
+        player.playback.duration_ms = Number(loaded.duration_ms || player.playback.duration_ms || 0) || player.playback.duration_ms || null;
       }
     }
     if(playing){
