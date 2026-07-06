@@ -1519,6 +1519,24 @@ function mx_requests($playlist) {
     return array_slice($out, 0, 30);
 }
 
+
+function mx_extract_spotify_id($value) {
+    $value = trim((string)$value);
+    if ($value === '') return '';
+
+    if (stripos($value, 'spotify:track:') === 0) {
+        $value = substr($value, strlen('spotify:track:'));
+    } elseif (preg_match('~open\.spotify\.com/track/([A-Za-z0-9]+)~', $value, $m)) {
+        $value = $m[1];
+    } elseif (preg_match('~spotify\.link/([A-Za-z0-9]+)~', $value, $m)) {
+        $value = $m[1];
+    }
+
+    $value = preg_replace('/[?#].*$/', '', $value);
+    $value = trim((string)$value);
+    return preg_match('/^[A-Za-z0-9]+$/', $value) ? $value : '';
+}
+
 function mx_track_ids_match($a, $b) {
     $a = trim((string)$a);
     $b = trim((string)$b);
