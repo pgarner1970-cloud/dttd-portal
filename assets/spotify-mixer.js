@@ -52,6 +52,10 @@ document.head.appendChild(overviewStyle);
   let lastSearchTracks = [];
   let searchPage = 0;
   let selectedLibraryChoice = null;
+  let debugEnabled = false;
+  let debugBuffer = [];
+  let debugLastProgress = {};
+  const DEBUG_BUFFER_LIMIT = 600;
   let libraryViewMode = localStorage.getItem('dttd_music_library_view') || 'comfortable';
   function searchPageSize(){
     if(libraryViewMode === 'list') return 20;
@@ -103,11 +107,79 @@ document.head.appendChild(overviewStyle);
     sourceTabs: document.querySelectorAll('[data-source-tab]'), sourcePanels: document.querySelectorAll('[data-source-panel]'),
     djCrateTiles: $('#djCrateTiles'), crateTileDrawer: $('#crateTileDrawer'), crateDrawerToggle: $('#crateDrawerToggle'), crateSummaryName: $('#crateSummaryName'), crateSummaryCount: $('#crateSummaryCount'), annotateCrates: $('#annotateCrates'), djCrateTracks: $('#djCrateTracks'), cratePager: $('#cratePager'), djCrateStatus: $('#djCrateStatus'), refreshCrates: $('#refreshCrates'), showNewCrate: $('#showNewCrate'), newCratePanel: $('#newCratePanel'), cancelNewCrate: $('#cancelNewCrate'), newCrateName: $('#newCrateName'), createCrate: $('#createCrate'), historyList: $('#historyList'),
     choiceModal: $('#mixerChoiceModal'), choiceImage: $('#choiceImage'), choiceTitle: $('#choiceTitle'), choiceArtist: $('#choiceArtist'), choiceActions: $('#choiceActions'), choiceWarning: $('#choiceWarning'), choiceCancel: $('#choiceCancel'),
-    musicLibraryModal: $('#musicLibraryModal'), openMusicLibrary: $('#openMusicLibrary'), closeMusicLibrary: $('#closeMusicLibrary'), musicLibraryActionBar: $('#musicLibraryActionBar')
+    musicLibraryModal: $('#musicLibraryModal'), openMusicLibrary: $('#openMusicLibrary'), closeMusicLibrary: $('#closeMusicLibrary'), musicLibraryActionBar: $('#musicLibraryActionBar'),
+    debugPanel: $('#mixerDebugPanel'), debugToggle: $('#mixerDebugToggle'), debugFlush: $('#mixerDebugFlush'), debugClear: $('#mixerDebugClear'), debugDownload: $('#mixerDebugDownload'), debugStatus: $('#mixerDebugStatus')
   };
 
   function esc(s){ return String(s ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c])); }
   function duration(ms){ if(!ms && ms !== 0) return ''; const sec=Math.max(0, Math.round(Number(ms)/1000)); return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'); }
+
+  function debugNow(){ return new Date().toISOString(); }
+  function debugSanitize(value, depth=0){
+    if(depth > 4) return '[max-depth]';
+    if(value === null || value === undefined) return value;
+    if(Array.isArray(value)) return value.slice(0, 80).map(v => debugSanitize(v, depth + 1));
+    if(typeof value === 'object'){
+      const out = {};
+      Object.keys(value).slice(0, 80).forEach(k => {
+        if(/token|secret|password|cookie|authorization|client_secret|refresh/i.test(k)) out[k] = '[redacted]';
+        else out[k] = debugSanitize(value[k], depth + 1);
+      });
+      return out;
+    }
+    if(typeof value === 'string'){
+      value = value.replace(/Bearer\s+[A-Za-z0-9._~+/=:-]+/ig, 'Bearer [redacted]');
+      if(value.length > 900) return value.slice(0, 900) + '…[truncated]';
+    }
+    return value;
+  }
+  function debugTrace(event, data={}){
+    if(!debugEnabled) return;
+    debugBuffer.push({
+      t: debugNow(),
+      source: 'frontend',
+      event: String(event || 'event'),
+      data: debugSanitize(data)
+    });
+    if(debugBuffer.length > DEBUG_BUFFER_LIMIT) debugBuffer.splice(0, debugBuffer.length - DEBUG_BUFFER_LIMIT);
+  }
+  function updateDebugUi(meta){
+    if(meta && typeof meta.enabled !== 'undefined') debugEnabled = !!meta.enabled;
+    if(els.debugToggle){
+      els.debugToggle.textContent = debugEnabled ? 'Debug On' : 'Debug Off';
+      els.debugToggle.classList.toggle('green', debugEnabled);
+      els.debugToggle.classList.toggle('dark', !debugEnabled);
+      els.debugToggle.setAttribute('aria-pressed', debugEnabled ? 'true' : 'false');
+    }
+    if(els.debugStatus){
+      const size = meta && meta.size_bytes ? Math.round(Number(meta.size_bytes) / 1024) + ' KB' : '0 KB';
+      els.debugStatus.textContent = debugEnabled ? `Debug enabled · ${size} · ${debugBuffer.length} browser events buffered` : 'Debug disabled';
+    }
+    if(els.debugDownload){
+      els.debugDownload.href = api + '?action=debug_download&_=' + Date.now();
+      els.debugDownload.toggleAttribute('hidden', !debugEnabled && !(meta && meta.size_bytes));
+    }
+  }
+  function flushDebug(reason='manual'){
+    if(!debugEnabled || !debugBuffer.length) return;
+    const events = debugBuffer.splice(0, debugBuffer.length);
+    const body = new URLSearchParams();
+    body.append('action', 'debug_client');
+    body.append('reason', reason);
+    body.append('events_json', JSON.stringify(events));
+    try{
+      if(navigator.sendBeacon){
+        const blob = new Blob([body.toString()], {type:'application/x-www-form-urlencoded;charset=UTF-8'});
+        if(navigator.sendBeacon(api, blob)) return;
+      }
+    }catch(e){}
+    fetch(api, {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body, cache:'no-store', keepalive:true}).catch(()=>{});
+  }
+  function trackSummary(track){
+    if(!track) return null;
+    return {id:track.id||'', title:track.title||'', artist:track.artist||'', duration_ms:track.duration_ms||null, position_base_ms:track.position_base_ms||null, paused_position_ms:track.paused_position_ms||null, position_updated_at:track.position_updated_at||null, played_on_deck:!!track.played_on_deck};
+  }
+
   function resultMetaLine(track){
     const parts = [];
     const artist = String(track?.artist || '').trim();
@@ -316,6 +388,19 @@ document.head.appendChild(overviewStyle);
   function workflowBadge(label, cls='info', title=''){
     return `<span class="workflow-badge ${esc(cls)}"${title ? ` title="${esc(title)}"` : ''}>${esc(label)}</span>`;
   }
+
+  function debugProgressDecision(deck, track, decision){
+    if(!debugEnabled || !track || !track.id) return;
+    const now = Date.now();
+    const key = deck + ':' + String(track.id || '');
+    const last = debugLastProgress[key] || {};
+    const progressBucket = Math.floor(Number(decision.progressMs || 0) / 1000);
+    const shouldLog = !last.t || now - last.t > 1500 || last.active !== decision.active || last.sameTrack !== decision.sameTrack || Math.abs((last.progressBucket || 0) - progressBucket) >= 5;
+    if(!shouldLog) return;
+    debugLastProgress[key] = {t:now, active:decision.active, sameTrack:decision.sameTrack, progressBucket};
+    debugTrace('progress_decision', {deck, track:trackSummary(track), decision});
+  }
+
   function deckProgress(track, deck){
     const durationMs = Number(track?.duration_ms) || 0;
     if(isLocalTrack(track)){
@@ -327,6 +412,7 @@ document.head.appendChild(overviewStyle);
       if(durationMs) progressMs = Math.min(progressMs, durationMs);
       const pct = durationMs ? Math.min(100, Math.max(0, (progressMs / durationMs) * 100)) : 0;
       const remainingMs = durationMs ? Math.max(0, durationMs - progressMs) : 0;
+      debugProgressDecision(deck, track, {kind:'local', active, sameTrack: active || progressMs > 0, durationMs, progressMs, remainingMs, pct});
       return {active, sameTrack: active || progressMs > 0, durationMs, progressMs, remainingMs, pct};
     }
     const deviceId = state?.['device_' + deck] || '';
@@ -335,17 +421,17 @@ document.head.appendChild(overviewStyle);
     const playbackTrack = playback.track || {};
     const active = !!deviceId && playback.device_id === deviceId && !!playback.is_playing;
     const sameTrack = !!track?.id && !!playbackTrack.id && String(track.id) === String(playbackTrack.id);
-    const playerStatePlaying = player.state === 'playing';
     const spotifyDurationMs = sameTrack ? (Number(playback.duration_ms) || Number(track.duration_ms) || 0) : durationMs;
     let progressMs = sameTrack ? (Number(playback.progress_ms) || 0) : (Number(track?.position_base_ms || track?.paused_position_ms || 0) || 0);
-    if((active && sameTrack) || playerStatePlaying){
-      const updatedAtMs = Number(track?.position_updated_at || 0) ? Number(track.position_updated_at) * 1000 : Number(state?._receivedAtMs || Date.now());
-      progressMs += Math.max(0, Date.now() - updatedAtMs);
+    if(active && sameTrack){
+      progressMs += Math.max(0, Date.now() - Number(state?._receivedAtMs || Date.now()));
     }
     if(spotifyDurationMs) progressMs = Math.min(progressMs, spotifyDurationMs);
     const pct = spotifyDurationMs ? Math.min(100, Math.max(0, (progressMs / spotifyDurationMs) * 100)) : 0;
     const remainingMs = spotifyDurationMs ? Math.max(0, spotifyDurationMs - progressMs) : 0;
-    return {active: (active && sameTrack) || playerStatePlaying, sameTrack: sameTrack || playerStatePlaying || progressMs > 0, durationMs: spotifyDurationMs, progressMs, remainingMs, pct};
+    const decision = {kind:'spotify', active, sameTrack: sameTrack || progressMs > 0, rawSameTrack:sameTrack, durationMs: spotifyDurationMs, progressMs, remainingMs, pct, playback_track_id:playbackTrack.id||'', playback_device_id:playback.device_id||'', deck_device_id:deviceId};
+    debugProgressDecision(deck, track, decision);
+    return decision;
   }
   function toast(msg, ok=true){
     if(!els.toast) return;
@@ -356,14 +442,24 @@ document.head.appendChild(overviewStyle);
     els.toast._t = setTimeout(()=>{ els.toast.style.display='none'; }, 4200);
   }
   async function apiGet(params){
+    const started = performance.now();
+    debugTrace('api_get_start', {params});
     const res = await fetch(api + '?' + new URLSearchParams(params).toString() + '&_=' + Date.now(), {cache:'no-store'});
-    return await res.json();
+    const data = await res.json();
+    debugTrace('api_get_end', {params, status:res.status, elapsed_ms:Math.round(performance.now() - started), ok:data?.ok, message:data?.message||'', error:data?.error||''});
+    if(data?.debug) updateDebugUi(data.debug);
+    return data;
   }
   async function apiPost(params){
+    const started = performance.now();
     const body = new URLSearchParams();
     Object.keys(params).forEach(k => body.append(k, params[k]));
+    debugTrace('api_post_start', {params});
     const res = await fetch(api, {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body, cache:'no-store'});
-    return await res.json();
+    const data = await res.json();
+    debugTrace('api_post_end', {params, status:res.status, elapsed_ms:Math.round(performance.now() - started), ok:data?.ok, message:data?.message||'', error:data?.error||''});
+    if(data?.debug) updateDebugUi(data.debug);
+    return data;
   }
   function image(src){ return src || 'https://dancethruthedecades.co.uk/assets/glitter-ball-clean.png'; }
 
@@ -415,9 +511,10 @@ document.head.appendChild(overviewStyle);
   function deckIsPlaying(deck){
     const loaded = state?.['player_' + deck]?.loaded || null;
     if(isLocalTrack(loaded)) return !!loaded.local_is_playing;
-    // Trust only the deck-scoped state returned by the server. The global Spotify
-    // active_device field can represent another/previous context in single-account mode.
-    return state?.['player_' + deck]?.state === 'playing';
+    const deviceId = state?.['device_' + deck] || '';
+    const reported = state?.['player_' + deck]?.state === 'playing';
+    const active = !!deviceId && state?.active_device_id === deviceId && !!state?.is_playing;
+    return reported || active;
   }
   function deckHasLoaded(deck){
     return !!state?.['player_' + deck]?.loaded?.id;
@@ -469,8 +566,7 @@ document.head.appendChild(overviewStyle);
       player.playback.is_playing = !!playing;
       if(playing){
         player.playback.device_id = state['device_' + deck] || player.playback.device_id || '';
-        player.playback.track = {id: loaded.id, title: loaded.title, artist: loaded.artist, image: loaded.image};
-        player.playback.duration_ms = Number(loaded.duration_ms || player.playback.duration_ms || 0) || player.playback.duration_ms || null;
+        player.playback.track = player.playback.track || {id: loaded.id, title: loaded.title, artist: loaded.artist, image: loaded.image};
       }
     }
     if(playing){
@@ -511,7 +607,30 @@ document.head.appendChild(overviewStyle);
     return !!state?.['device_' + deck] && !deckIsPlaying(deck);
   }
   function clearSearchUi(){
-    if(els.search){ els.search.value=''; els.search.focus(); }
+  
+  if(els.debugToggle) els.debugToggle.addEventListener('click', async ()=>{
+    const next = !debugEnabled;
+    try{
+      const data = await apiPost({action:'debug_set', enabled:next ? '1' : '0'});
+      if(data.state) acceptState(data.state);
+      else updateDebugUi(data.debug || {enabled:next});
+      toast(data.message || (next ? 'Debug enabled' : 'Debug disabled'), !!data.ok);
+      if(next) debugTrace('debug_enabled_from_browser', {});
+      else flushDebug('debug_disabled');
+    }catch(e){ toast('Could not change debug mode', false); }
+  });
+  if(els.debugFlush) els.debugFlush.addEventListener('click', ()=>{ debugTrace('manual_flush_clicked', {}); flushDebug('manual'); toast('Debug buffer flushed'); });
+  if(els.debugClear) els.debugClear.addEventListener('click', async ()=>{
+    if(!confirm('Clear the mixer debug log?')) return;
+    try{
+      const data = await apiPost({action:'debug_clear'});
+      debugBuffer = [];
+      updateDebugUi(data.debug || data.state?.debug || null);
+      toast(data.message || 'Debug log cleared', !!data.ok);
+    }catch(e){ toast('Could not clear debug log', false); }
+  });
+
+  if(els.search){ els.search.value=''; els.search.focus(); }
     if(els.searchResults) els.searchResults.innerHTML='';
     if(els.searchStatus) els.searchStatus.textContent='';
   }
@@ -895,10 +1014,7 @@ renderAccountStatus();
         b.disabled = !loaded || preparingLocal || (!loadedLocal && (!device || accountHasWarning(deck)));
         if(loadedLocal) b.title = 'Seek local MPD on Player ' + deck.toUpperCase();
       }));
-      document.querySelectorAll(`[data-deck-action="clear_loaded"][data-deck="${deck}"]`).forEach(b => {
-        b.disabled = !loaded;
-        b.title = 'Eject Player ' + deck.toUpperCase() + ' without returning the track to the DJ playlist';
-      });
+      document.querySelectorAll(`[data-deck-action="clear_loaded"][data-deck="${deck}"]`).forEach(b => b.disabled = playing || !loaded);
       document.querySelectorAll(`[data-deck-action="return_loaded"][data-deck="${deck}"]`).forEach(b => {
         b.disabled = playing || !loaded;
         b.title = 'Return unplayed Player ' + deck.toUpperCase() + ' track to the appropriate queue';
@@ -990,6 +1106,8 @@ renderAccountStatus();
   function acceptState(nextState){
     if(!nextState) return;
     state = nextState;
+    updateDebugUi(state.debug || nextState.debug || null);
+    debugTrace('state_accepted', {server_time:state.server_time, duo_mode:!!state.duo_mode, deck_a:{state:state.player_a?.state, loaded:trackSummary(state.player_a?.loaded), playback:state.player_a?.playback}, deck_b:{state:state.player_b?.state, loaded:trackSummary(state.player_b?.loaded), playback:state.player_b?.playback}});
     if(state.music_library_view && ['comfortable','compact','list'].includes(state.music_library_view) && state.music_library_view !== libraryViewMode){
       libraryViewMode = state.music_library_view;
       try{ localStorage.setItem('dttd_music_library_view', libraryViewMode); }catch(e){}
@@ -1005,7 +1123,8 @@ renderAccountStatus();
     }
   }
   async function refresh(silent=true){
-    if(busy && silent) return;
+    if(busy && silent){ debugTrace('state_poll_skipped_busy', {silent}); return; }
+    debugTrace('state_poll_start', {silent, busy});
     const requestActionSeq = actionSequence;
     try{
       const data = await apiGet({action:'state'});
@@ -1016,7 +1135,8 @@ renderAccountStatus();
     catch(e){ if(!silent) toast('Mixer update failed', false); }
   }
   async function doAction(params){
-    if(busy) return;
+    if(busy){ debugTrace('action_ignored_busy', {params}); return; }
+    debugTrace('action_begin', {params, deck_state_a:state?.player_a?.state, deck_state_b:state?.player_b?.state});
     const thisActionSeq = ++actionSequence;
     const optimisticallyUpdated = optimisticDeckAction(params);
     busy = true;
@@ -1026,7 +1146,9 @@ renderAccountStatus();
       if(data.state){ acceptState(data.state); }
       else if(optimisticallyUpdated && !data.ok){ refresh(true); }
       toast(data.ok ? (data.message || 'Done') : (data.error || data.message || 'Action failed'), !!data.ok);
-    }catch(e){ if(thisActionSeq === actionSequence){ if(optimisticallyUpdated) refresh(true); toast('Action failed', false); } }
+      debugTrace('action_complete', {params, ok:data.ok, message:data.message||'', error:data.error||''});
+      setTimeout(()=>flushDebug('action_complete'), 0);
+    }catch(e){ if(thisActionSeq === actionSequence){ debugTrace('action_exception', {params, error:String(e && e.message || e)}); if(optimisticallyUpdated) refresh(true); toast('Action failed', false); setTimeout(()=>flushDebug('action_error'), 0); } }
     finally{ if(thisActionSeq === actionSequence) busy = false; }
   }
   function compactBadgeLabel(label, type){
@@ -1084,11 +1206,6 @@ renderAccountStatus();
     if(!loaded) return;
     const prog = deckProgress(loaded, deck);
     updateLoadedPositionForDeck(deck, prog.progressMs);
-    loaded.paused_position_ms = playing ? null : (Number(loaded.position_base_ms || prog.progressMs || 0) || 0);
-    loaded.position_updated_at = playing ? (Date.now() / 1000) : null;
-    loaded.transport_intent = playing ? 'playing' : 'paused';
-    loaded.transport_intent_at = Date.now() / 1000;
-    if(playing && loaded.play_request_position_ms == null) loaded.play_request_position_ms = Number(loaded.position_base_ms || 0) || 0;
     player.state = playing ? 'playing' : 'standby';
     if(isLocalTrack(loaded)){
       loaded.local_is_playing = !!playing;
@@ -1099,8 +1216,7 @@ renderAccountStatus();
       player.playback.progress_ms = Number(loaded.position_base_ms || loaded.paused_position_ms || prog.progressMs || 0) || 0;
       if(playing){
         player.playback.device_id = state['device_' + deck] || player.playback.device_id || '';
-        player.playback.track = {id: loaded.id, title: loaded.title, artist: loaded.artist, image: loaded.image};
-        player.playback.duration_ms = Number(loaded.duration_ms || player.playback.duration_ms || 0) || player.playback.duration_ms || null;
+        player.playback.track = player.playback.track || {id: loaded.id, title: loaded.title, artist: loaded.artist, image: loaded.image};
       }
     }
     if(playing){
@@ -1128,73 +1244,12 @@ renderAccountStatus();
     state._receivedAtMs = Date.now();
     lastStateSyncAt = Date.now();
   }
-  function normaliseOptimisticTrack(raw, source){
-    const t = Object.assign({}, raw || {});
-    t.id = String(t.id || t.spotify_track_id || '');
-    t.title = String(t.title || t.song_title || '');
-    t.artist = String(t.artist || '');
-    t.album = String(t.album || '');
-    t.image = image(t.image || t.spotify_album_image || '');
-    t.duration_ms = Number(t.duration_ms || 0) || null;
-    t.source = source || t.source || 'search';
-    t.loaded_origin = source || t.loaded_origin || t.source || 'search';
-    t.played_on_deck = false;
-    t.played_qualified = false;
-    t.position_base_ms = 0;
-    t.position_updated_at = null;
-    t.paused_position_ms = null;
-    t.resume_locked = false;
-    t.end_seen_ms = null;
-    t.end_armed_at = null;
-    t.playback_started_at = null;
-    t.expected_finish_at = null;
-    t.transport_intent = '';
-    t.transport_intent_at = null;
-    t.play_request_position_ms = null;
-    return prepareSearchTrack(t, t.source);
-  }
-
   function optimisticDeckAction(params){
     if(!state || !params || !params.deck) return false;
+    debugTrace('optimistic_action_check', {params});
     const action = String(params.action || '');
     const deck = params.deck === 'b' ? 'b' : 'a';
     const other = deck === 'a' ? 'b' : 'a';
-    if(action === 'play_track_direct' || action === 'load_track_direct'){
-      let parsed = null;
-      try{ parsed = JSON.parse(params.track_json || '{}'); }catch(e){ parsed = null; }
-      if(!parsed || !parsed.id) return false;
-      const player = state['player_' + deck] || (state['player_' + deck] = {});
-      const source = String(parsed.source || 'search');
-      const loaded = normaliseOptimisticTrack(parsed, source === 'dj_crate' ? 'dj_playlist' : source);
-      player.loaded = loaded;
-      player.playback = player.playback || {};
-      player.playback.track = {id: loaded.id, title: loaded.title, artist: loaded.artist, image: loaded.image};
-      player.playback.duration_ms = loaded.duration_ms;
-      player.playback.progress_ms = 0;
-      player.playback.device_id = state['device_' + deck] || player.playback.device_id || '';
-      if(action === 'play_track_direct'){
-        if(!state.duo_mode && deckIsPlaying(other)){
-          setOptimisticDeckPlayback(other, false);
-          holdDeckPlayback(other, false);
-        }
-        loaded.played_on_deck = true;
-        loaded.position_base_ms = 0;
-        loaded.position_updated_at = Date.now() / 1000;
-        loaded.transport_intent = 'playing';
-        loaded.transport_intent_at = Date.now() / 1000;
-        loaded.play_request_position_ms = 0;
-        player.state = 'playing';
-        setOptimisticDeckPlayback(deck, true);
-        holdDeckPlayback(deck, true);
-      } else {
-        player.state = 'standby';
-        holdDeckPlayback(deck, false);
-      }
-      state._receivedAtMs = Date.now();
-      lastStateSyncAt = Date.now();
-      renderDecks();
-      return true;
-    }
     if(action === 'play_toggle'){
       const loaded = deckLoadedTrack(deck);
       if(!loaded || deckIsPreparingLocal(deck)) return false;
@@ -1202,6 +1257,7 @@ renderAccountStatus();
       if(wasPlaying){
         setOptimisticDeckPlayback(deck, false);
         holdDeckPlayback(deck, false);
+        debugTrace('optimistic_pause', {deck, track:trackSummary(loaded)});
       } else {
         if(!state.duo_mode && deckIsPlaying(other)){
           setOptimisticDeckPlayback(other, false);
@@ -1209,24 +1265,8 @@ renderAccountStatus();
         }
         setOptimisticDeckPlayback(deck, true);
         holdDeckPlayback(deck, true);
+        debugTrace('optimistic_play', {deck, track:trackSummary(loaded)});
       }
-      renderDecks();
-      return true;
-    }
-    if(action === 'clear_loaded' || action === 'return_loaded' || action === 'mark_loaded_played'){
-      const player = state?.['player_' + deck];
-      if(!player || !player.loaded?.id) return false;
-      setOptimisticDeckPlayback(deck, false);
-      holdDeckPlayback(deck, false);
-      player.loaded = {};
-      player.state = 'standby';
-      if(player.playback){
-        player.playback.is_playing = false;
-        player.playback.track = {};
-        player.playback.progress_ms = 0;
-      }
-      state._receivedAtMs = Date.now();
-      lastStateSyncAt = Date.now();
       renderDecks();
       return true;
     }
@@ -1883,6 +1923,7 @@ renderAccountStatus();
     if(!document.hidden) refresh(true);
   });
   window.addEventListener('focus', ()=>refresh(true));
+  window.addEventListener('beforeunload', ()=>flushDebug('beforeunload'));
   updateSearchModeButtons();
   updateLibraryView();
   refresh(false);

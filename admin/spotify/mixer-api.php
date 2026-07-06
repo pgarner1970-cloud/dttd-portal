@@ -14,6 +14,7 @@ function mx_setting($key, $default = '') {
     } catch (Throwable $e) { return $default; }
 }
 function mx_set($key, $value) {
+    mx_debug_trace('db_setting_write', ['key' => (string)$key, 'value_summary' => is_string($value) && strlen($value) > 220 ? substr($value, 0, 220) . '…' : $value]);
     $stmt = db()->prepare("INSERT INTO app_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
     $stmt->execute([$key, (string)$value]);
 }
@@ -22,6 +23,161 @@ function mx_json($key, $default = []) {
     if ($raw === '') return $default;
     $decoded = json_decode($raw, true);
     return is_array($decoded) ? $decoded : $default;
+}
+
+
+
+function mx_debug_enabled() {
+    if (array_key_exists('mx_debug_enabled_override', $GLOBALS)) return (bool)$GLOBALS['mx_debug_enabled_override'];
+    static $enabled = null;
+    if ($enabled !== null) return $enabled;
+    $setting = strtolower(trim((string)mx_setting('spotify_mixer_debug_enabled', '0')));
+    $enabled = in_array($setting, ['1', 'true', 'yes', 'on'], true);
+    return $enabled;
+}
+
+function mx_debug_request_id() {
+    if (empty($GLOBALS['mx_debug_request_id'])) {
+        try { $GLOBALS['mx_debug_request_id'] = bin2hex(random_bytes(6)); }
+        catch (Throwable $e) { $GLOBALS['mx_debug_request_id'] = substr(md5(uniqid('', true)), 0, 12); }
+    }
+    return $GLOBALS['mx_debug_request_id'];
+}
+
+function mx_debug_started_at() {
+    if (empty($GLOBALS['mx_debug_started_at'])) $GLOBALS['mx_debug_started_at'] = microtime(true);
+    return (float)$GLOBALS['mx_debug_started_at'];
+}
+
+function mx_debug_sanitize($value, $depth = 0) {
+    if ($depth > 5) return '[max-depth]';
+    if (is_array($value)) {
+        $out = [];
+        foreach ($value as $k => $v) {
+            $key = is_string($k) ? strtolower($k) : (string)$k;
+            if (preg_match('/token|secret|password|cookie|authorization|client_secret|refresh/i', $key)) {
+                $out[$k] = '[redacted]';
+            } else {
+                $out[$k] = mx_debug_sanitize($v, $depth + 1);
+            }
+        }
+        return $out;
+    }
+    if (is_object($value)) return mx_debug_sanitize((array)$value, $depth + 1);
+    if (is_string($value)) {
+        $value = preg_replace('/Bearer\s+[A-Za-z0-9._~+\/=:-]+/i', 'Bearer [redacted]', $value);
+        $value = preg_replace('/access_token=[^&\s]+/i', 'access_token=[redacted]', $value);
+        $value = preg_replace('/refresh_token=[^&\s]+/i', 'refresh_token=[redacted]', $value);
+        if (strlen($value) > 1200) return substr($value, 0, 1200) . '…[truncated]';
+    }
+    return $value;
+}
+
+function mx_debug_track_summary($track) {
+    if (!is_array($track)) return null;
+    return [
+        'id' => (string)($track['id'] ?? ''),
+        'title' => (string)($track['title'] ?? ($track['name'] ?? '')),
+        'artist' => (string)($track['artist'] ?? ''),
+        'duration_ms' => isset($track['duration_ms']) ? (int)$track['duration_ms'] : null,
+        'source' => (string)($track['source'] ?? ''),
+        'loaded_origin' => (string)($track['loaded_origin'] ?? ''),
+        'position_base_ms' => isset($track['position_base_ms']) ? (int)$track['position_base_ms'] : null,
+        'paused_position_ms' => isset($track['paused_position_ms']) ? (int)$track['paused_position_ms'] : null,
+        'position_updated_at' => isset($track['position_updated_at']) ? (int)$track['position_updated_at'] : null,
+        'played_on_deck' => !empty($track['played_on_deck']),
+        'played_qualified' => !empty($track['played_qualified']),
+    ];
+}
+
+function mx_debug_playback_summary($pb) {
+    if (!is_array($pb)) return null;
+    $item = $pb['item'] ?? [];
+    $artists = [];
+    foreach (($item['artists'] ?? []) as $artist) if (!empty($artist['name'])) $artists[] = $artist['name'];
+    return [
+        'device_id' => (string)($pb['device']['id'] ?? ''),
+        'device_name' => (string)($pb['device']['name'] ?? ''),
+        'is_playing' => !empty($pb['is_playing']),
+        'progress_ms' => isset($pb['progress_ms']) ? (int)$pb['progress_ms'] : null,
+        'track_id' => (string)($item['id'] ?? ''),
+        'track_title' => (string)($item['name'] ?? ''),
+        'track_artist' => implode(', ', $artists),
+        'duration_ms' => isset($item['duration_ms']) ? (int)$item['duration_ms'] : null,
+    ];
+}
+
+function mx_debug_trace($event, array $data = []) {
+    if (!mx_debug_enabled()) return;
+    if (!isset($GLOBALS['mx_debug_trace']) || !is_array($GLOBALS['mx_debug_trace'])) $GLOBALS['mx_debug_trace'] = [];
+    $GLOBALS['mx_debug_trace'][] = [
+        't' => date('c'),
+        'elapsed_ms' => (int)round((microtime(true) - mx_debug_started_at()) * 1000),
+        'source' => 'backend',
+        'event' => (string)$event,
+        'data' => mx_debug_sanitize($data),
+    ];
+    if (count($GLOBALS['mx_debug_trace']) > 500) array_shift($GLOBALS['mx_debug_trace']);
+}
+
+function mx_debug_log_dir() {
+    $dir = __DIR__ . '/debug-logs';
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+    if (is_dir($dir) && is_writable($dir)) return $dir;
+    return sys_get_temp_dir();
+}
+
+function mx_debug_log_file() {
+    return rtrim(mx_debug_log_dir(), '/\\') . '/mixer-debug-' . date('Ymd') . '.jsonl';
+}
+
+function mx_debug_log_meta() {
+    $file = mx_debug_log_file();
+    return [
+        'enabled' => mx_debug_enabled(),
+        'file' => basename($file),
+        'size_bytes' => is_file($file) ? (int)filesize($file) : 0,
+        'updated_at' => is_file($file) ? date('Y-m-d H:i:s', (int)filemtime($file)) : '',
+    ];
+}
+
+function mx_debug_flush($ok = true, array $extra = []) {
+    if (!mx_debug_enabled()) return;
+    $events = $GLOBALS['mx_debug_trace'] ?? [];
+    if (!$events && empty($extra)) return;
+    $entry = [
+        'request_id' => mx_debug_request_id(),
+        't' => date('c'),
+        'elapsed_ms' => (int)round((microtime(true) - mx_debug_started_at()) * 1000),
+        'ok' => (bool)$ok,
+        'method' => $_SERVER['REQUEST_METHOD'] ?? '',
+        'action' => (string)($_POST['action'] ?? $_GET['action'] ?? 'state'),
+        'deck' => (string)($_POST['deck'] ?? $_GET['deck'] ?? ''),
+        'events' => $events,
+        'extra' => mx_debug_sanitize($extra),
+    ];
+    $line = json_encode($entry, JSON_UNESCAPED_SLASHES) . PHP_EOL;
+    @file_put_contents(mx_debug_log_file(), $line, FILE_APPEND | LOCK_EX);
+    $GLOBALS['mx_debug_trace'] = [];
+}
+
+function mx_debug_clear_log() {
+    foreach (glob(rtrim(mx_debug_log_dir(), '/\\') . '/mixer-debug-*.jsonl') ?: [] as $file) {
+        @unlink($file);
+    }
+}
+
+function mx_debug_download_log() {
+    $file = mx_debug_log_file();
+    if (!is_file($file)) {
+        header('Content-Type: text/plain; charset=utf-8');
+        echo "No mixer debug log found for today.\n";
+        exit;
+    }
+    header('Content-Type: application/x-ndjson; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . basename($file) . '"');
+    readfile($file);
+    exit;
 }
 
 function mx_music_library_view($value = null) {
@@ -33,10 +189,18 @@ function mx_music_library_view($value = null) {
 
 function mx_spotify_user_get($url) {
     $token = dttd_spotify_user_access_token();
-    return dttd_spotify_http_get($url, [
+    mx_debug_trace('spotify_http_get', ['url' => $url]);
+    try {
+        $result = dttd_spotify_http_get($url, [
         'Authorization: Bearer ' . $token,
         'Accept: application/json',
-    ]);
+        ]);
+        mx_debug_trace('spotify_http_get_ok', ['url' => $url, 'keys' => is_array($result) ? array_slice(array_keys($result), 0, 12) : []]);
+        return $result;
+    } catch (Throwable $e) {
+        mx_debug_trace('spotify_http_get_error', ['url' => $url, 'error' => $e->getMessage()]);
+        throw $e;
+    }
 }
 function mx_track_from_spotify_item($item, $source = 'spotify_playlist') {
     $artists = [];
@@ -606,9 +770,6 @@ function mx_clean_track($track) {
         'position_updated_at' => isset($track['position_updated_at']) ? (int)$track['position_updated_at'] : null,
         'paused_position_ms' => isset($track['paused_position_ms']) ? max(0, (int)$track['paused_position_ms']) : null,
         'resume_locked' => !empty($track['resume_locked']),
-        'transport_intent' => (string)($track['transport_intent'] ?? ''),
-        'transport_intent_at' => isset($track['transport_intent_at']) ? (int)$track['transport_intent_at'] : null,
-        'play_request_position_ms' => isset($track['play_request_position_ms']) ? max(0, (int)$track['play_request_position_ms']) : null,
         'end_seen_ms' => isset($track['end_seen_ms']) ? max(0, (int)$track['end_seen_ms']) : null,
         'end_armed_at' => isset($track['end_armed_at']) ? (int)$track['end_armed_at'] : null,
         'playback_started_at' => isset($track['playback_started_at']) ? (int)$track['playback_started_at'] : null,
@@ -958,9 +1119,13 @@ function mx_mark_request_played($request_id, $request_group_id = '') {
 
 function mx_playback($deck = null) {
     try {
-        if ($deck === 'a' || $deck === 'b') return dttd_spotify_current_playback_for_deck($deck);
-        return dttd_spotify_current_playback();
-    } catch (Throwable $e) { return null; }
+        $result = ($deck === 'a' || $deck === 'b') ? dttd_spotify_current_playback_for_deck($deck) : dttd_spotify_current_playback();
+        mx_debug_trace('spotify_current_playback', ['deck' => $deck, 'playback' => mx_debug_playback_summary($result)]);
+        return $result;
+    } catch (Throwable $e) {
+        mx_debug_trace('spotify_current_playback_error', ['deck' => $deck, 'error' => $e->getMessage()]);
+        return null;
+    }
 }
 function mx_decks_share_spotify_profile() {
     return function_exists('dttd_spotify_decks_share_profile') ? dttd_spotify_decks_share_profile() : true;
@@ -980,11 +1145,19 @@ function mx_device_playing($device_id, $playback = null) {
 }
 function mx_spotify_put($url, $body = '', $deck = null) {
     $token = ($deck === 'a' || $deck === 'b') ? dttd_spotify_user_access_token_for_deck($deck) : dttd_spotify_user_access_token();
-    return dttd_spotify_http_put($url, [
+    mx_debug_trace('spotify_http_put', ['deck' => $deck, 'url' => $url, 'body' => $body !== '' ? json_decode((string)$body, true) : '']);
+    try {
+        $result = dttd_spotify_http_put($url, [
         'Authorization: Bearer ' . $token,
         'Content-Type: application/json',
         'Accept: application/json',
-    ], $body);
+        ], $body);
+        mx_debug_trace('spotify_http_put_ok', ['deck' => $deck, 'url' => $url, 'result' => $result]);
+        return $result;
+    } catch (Throwable $e) {
+        mx_debug_trace('spotify_http_put_error', ['deck' => $deck, 'url' => $url, 'error' => $e->getMessage()]);
+        throw $e;
+    }
 }
 function mx_transfer_playback_to_device($device_id, $play = false, $deck = null) {
     $device_id = trim((string)$device_id);
@@ -1009,70 +1182,61 @@ function mx_wait_for_active_device($device_id, $timeout_ms = 1800, $deck = null)
     return false;
 }
 function mx_play_track($device_id, $track_id, $position_ms = null, $deck = null) {
+    mx_debug_trace('play_track_start', ['deck' => $deck, 'device_id' => $device_id, 'track_id' => $track_id, 'position_ms' => $position_ms]);
     $device_id = trim((string)$device_id);
     $track_id = trim((string)$track_id);
     if ($device_id === '') throw new RuntimeException('No Spotify device selected for this player.');
     if ($track_id === '') throw new RuntimeException('No track loaded on this player.');
+    $uri = strpos($track_id, 'spotify:track:') === 0 ? $track_id : 'spotify:track:' . $track_id;
+    $wantedId = str_replace('spotify:track:', '', $uri);
+    $playUrl = 'https://api.spotify.com/v1/me/player/play?device_id=' . rawurlencode($device_id);
+    $position = is_numeric($position_ms) ? max(0, (int)$position_ms) : null;
 
-    $wantedId = mx_extract_spotify_id($track_id);
-    if ($wantedId === '') throw new RuntimeException('No valid Spotify track loaded on this player.');
-
-    $position = is_numeric($position_ms) ? max(0, (int)$position_ms) : 0;
-    $payload = [
-        'uris' => ['spotify:track:' . $wantedId],
-        'position_ms' => $position,
-    ];
-
-    // Keep mixer transport deterministic: stop whatever this account/device currently
-    // has, then explicitly start the loaded track. Do not run delayed retries from an
-    // old Play command, because those can restart audio after the DJ has paused.
-    try { mx_pause($device_id, $deck); } catch (Throwable $ignoredPause) {}
-    try { mx_transfer_playback_to_device($device_id, false, $deck); } catch (Throwable $ignoredTransfer) {}
-    usleep(200000);
-    mx_spotify_put('https://api.spotify.com/v1/me/player/play?device_id=' . rawurlencode($device_id), json_encode($payload), $deck);
-}
-
-function mx_loaded_track_is_playing_on_device($deck, $device_id = null, $track = null, $playback = null) {
-    $deck = $deck === 'b' ? 'b' : 'a';
-    $device_id = $device_id === null ? mx_deck_device_id($deck) : trim((string)$device_id);
-    if ($track === null) $track = mx_json('spotify_mixer_loaded_' . $deck, []);
-    if (!is_array($track) || empty($track['id']) || $device_id === '') return false;
-    if (mx_is_local_track($track)) return !empty($track['local_is_playing']);
-    if ($playback === null) $playback = mx_playback($deck);
-    if (!is_array($playback) || empty($playback['is_playing'])) return false;
-    $activeDevice = (string)($playback['device']['id'] ?? '');
-    $currentId = (string)($playback['item']['id'] ?? '');
-    return $activeDevice === $device_id && mx_track_ids_match($currentId, (string)$track['id']);
-}
-
-function mx_pause_deck_output($deck, $track = null, $device_id = null, $playback = null) {
-    $deck = $deck === 'b' ? 'b' : 'a';
-    $device_id = $device_id === null ? mx_deck_device_id($deck) : trim((string)$device_id);
-    if ($track === null) $track = mx_json('spotify_mixer_loaded_' . $deck, []);
-
-    if (mx_is_local_track($track)) {
-        try { mx_queue_deck_node_command($deck, 'local_pause', []); } catch (Throwable $ignored) {}
-        if (is_array($track) && !empty($track['id'])) return mx_local_pause_track($deck, $track);
-        return $track;
-    }
-
-    if (is_array($track) && !empty($track['id'])) {
-        mx_save_deck_position_from_playback($deck, $device_id, $track, $playback, true);
-    }
-    if ($device_id !== '') {
+    // Spotify Connect can briefly restore the account-wide active track on slower tablet clients
+    // during handover. Stage the handover before sending the explicit track play command.
+    try {
+        mx_transfer_playback_to_device($device_id, false, $deck);
+        mx_wait_for_active_device($device_id, 1800, $deck);
+        // A quiet pause after transfer helps stop flaky clients from audibly resuming the old context.
         try { mx_pause($device_id, $deck); } catch (Throwable $ignoredPause) {}
+        usleep(250000);
+    } catch (Throwable $ignored) {
+        // If transfer fails because the device is already active, still try the direct play below.
+        usleep(250000);
     }
-    $paused = mx_json('spotify_mixer_loaded_' . $deck, is_array($track) ? $track : []);
-    if (is_array($paused) && !empty($paused['id'])) {
-        mx_set_transport_intent($paused, 'paused');
-        $paused['position_updated_at'] = null;
-        if (!isset($paused['paused_position_ms']) || $paused['paused_position_ms'] === null) {
-            $fallback = mx_loaded_position_fallback($paused);
-            $paused['paused_position_ms'] = $fallback !== null ? $fallback : 0;
+
+    $payload = ['uris' => [$uri]];
+    if ($position !== null) $payload['position_ms'] = $position;
+    mx_spotify_put($playUrl, json_encode($payload), $deck);
+
+    // Some Android/tablet clients ignore position_ms during Connect handover. Follow with an
+    // explicit seek to make pause/resume consistent across Lenovo-style devices.
+    if ($position !== null && $position > 0) {
+        usleep(250000);
+        try { mx_seek($device_id, $position, $deck); } catch (Throwable $ignoredSeek) {}
+    }
+
+    // Verify and enforce the intended track after Connect has had time to settle.
+    usleep(900000);
+    try {
+        $pb = mx_playback($deck);
+        $activeDevice = (string)($pb['device']['id'] ?? '');
+        $isPlaying = !empty($pb['is_playing']);
+        $currentId = (string)($pb['item']['id'] ?? '');
+        $progress = isset($pb['progress_ms']) ? (int)$pb['progress_ms'] : null;
+        $resumeDrifted = ($position !== null && $position > 0 && $progress !== null && $progress < max(0, $position - 2500));
+        if ($activeDevice !== $device_id || !$isPlaying || ($currentId !== '' && $wantedId !== '' && $currentId !== $wantedId) || $resumeDrifted) {
+            mx_transfer_playback_to_device($device_id, false, $deck);
+            mx_wait_for_active_device($device_id, 1200, $deck);
+            usleep(200000);
+            mx_spotify_put($playUrl, json_encode($payload), $deck);
+            if ($position !== null && $position > 0) {
+                usleep(250000);
+                try { mx_seek($device_id, $position, $deck); } catch (Throwable $ignoredSeek2) {}
+            }
         }
-        mx_store_loaded_track($deck, $paused);
-    }
-    return mx_json('spotify_mixer_loaded_' . $deck, is_array($paused) ? $paused : []);
+    } catch (Throwable $ignored) {}
+    mx_debug_trace('play_track_end', ['deck' => $deck, 'device_id' => $device_id, 'track_id' => $track_id, 'position_ms' => $position]);
 }
 
 function mx_confirm_track_playing_on_device($device_id, $track_id, $position_ms = null, $max_attempts = 4, $deck = null) {
@@ -1117,6 +1281,7 @@ function mx_seek($device_id, $position_ms, $deck = null) {
 }
 function mx_store_loaded_track($deck, $track) {
     $deck = $deck === 'b' ? 'b' : 'a';
+    mx_debug_trace('store_loaded_track', ['deck' => $deck, 'track' => mx_debug_track_summary(is_array($track) ? $track : [])]);
     if (!is_array($track) || empty($track['id'])) {
         mx_set('spotify_mixer_loaded_' . $deck, '');
         return;
@@ -1157,33 +1322,6 @@ function mx_loaded_track_progress_ms($track) {
     if (isset($track['paused_position_ms']) && $track['paused_position_ms'] !== null) $progress = max($progress, (int)$track['paused_position_ms']);
     return max(0, $progress);
 }
-
-function mx_reset_track_runtime_for_queue($track) {
-    if (!is_array($track)) return [];
-    $track['played_on_deck'] = false;
-    $track['played_qualified'] = false;
-    $track['position_base_ms'] = 0;
-    $track['position_updated_at'] = null;
-    $track['paused_position_ms'] = null;
-    $track['resume_locked'] = false;
-    $track['transport_intent'] = '';
-    $track['transport_intent_at'] = null;
-    $track['play_request_position_ms'] = null;
-    $track['end_seen_ms'] = null;
-    $track['end_armed_at'] = null;
-    $track['playback_started_at'] = null;
-    $track['expected_finish_at'] = null;
-    $track['history_logged_at'] = null;
-    if (mx_is_local_track($track)) {
-        $track['local_is_playing'] = false;
-        $track['local_autoplay_after_prepare'] = false;
-        $track['local_autoplay_requested_at'] = null;
-        $track['local_autoplay_started_at'] = null;
-        $track['local_playback_mode'] = '';
-    }
-    return $track;
-}
-
 function mx_track_reached_played_threshold($track) {
     if (!is_array($track) || empty($track['id'])) return false;
     if (!empty($track['played_qualified'])) return true;
@@ -1209,33 +1347,6 @@ function mx_mark_loaded_played_if_threshold($deck, &$track) {
     mx_store_loaded_track($deck, $track);
     return true;
 }
-
-function mx_set_transport_intent(&$track, $intent, $position_ms = null) {
-    if (!is_array($track) || empty($track['id'])) return;
-    $track['transport_intent'] = (string)$intent;
-    $track['transport_intent_at'] = time();
-    if ($position_ms !== null) $track['play_request_position_ms'] = max(0, (int)$position_ms);
-}
-
-function mx_recent_play_intent($track, $seconds = 8) {
-    if (!is_array($track) || empty($track['id'])) return false;
-    if (($track['transport_intent'] ?? '') !== 'playing') return false;
-    $at = isset($track['transport_intent_at']) ? (int)$track['transport_intent_at'] : 0;
-    return $at > 0 && (time() - $at) >= 0 && (time() - $at) <= max(1, (int)$seconds);
-}
-
-function mx_should_ignore_connect_progress_jump($loaded, $progress_ms) {
-    if (!is_array($loaded) || empty($loaded['id'])) return false;
-    if (!mx_recent_play_intent($loaded, 8)) return false;
-    $requested = isset($loaded['play_request_position_ms']) ? max(0, (int)$loaded['play_request_position_ms']) : 0;
-    $intentAt = isset($loaded['transport_intent_at']) ? (int)$loaded['transport_intent_at'] : 0;
-    $expected = $requested + max(0, time() - $intentAt) * 1000;
-    // During the first seconds after an explicit play-from-position command,
-    // Spotify Connect may briefly report the previous session position for the
-    // same track. Do not let that stale report overwrite the mixer's fresh start.
-    return (int)$progress_ms > ($expected + 10000);
-}
-
 function mx_arm_loaded_track_for_playback($deck, &$track, $start_position_ms = 0) {
     $deck = $deck === 'b' ? 'b' : 'a';
     if (!is_array($track) || empty($track['id'])) return false;
@@ -1247,13 +1358,12 @@ function mx_arm_loaded_track_for_playback($deck, &$track, $start_position_ms = 0
     $track['position_updated_at'] = $now;
     $track['paused_position_ms'] = null;
     $track['resume_locked'] = false;
-    mx_set_transport_intent($track, 'playing', $position);
     $track['end_seen_ms'] = max((int)($track['end_seen_ms'] ?? 0), $position);
-    // Do not arm finish/unload from the command alone. Arm it only after state polling
-    // has observed this exact track playing on this exact deck device.
-    $track['end_armed_at'] = null;
+    $track['end_armed_at'] = $now;
     $track['playback_started_at'] = $now;
-    $track['expected_finish_at'] = null;
+    if ($duration > 0) {
+        $track['expected_finish_at'] = $now + max(1, (int)ceil(max(0, $duration - $position) / 1000)) + 3;
+    }
     mx_store_loaded_track($deck, $track);
     return true;
 }
@@ -1266,15 +1376,9 @@ function mx_sync_loaded_position_from_playback($deck, $loaded, $device_id, $play
     $sameDevice = trim((string)$device_id) !== '' && $activeDevice === (string)$device_id;
     $sameTrack = mx_track_ids_match($currentId, $loaded['id']);
     if ($sameDevice && $sameTrack && isset($playback['progress_ms'])) {
-        if (mx_should_ignore_connect_progress_jump($loaded, (int)$playback['progress_ms'])) {
-            mx_store_loaded_track($deck, $loaded);
-            return $loaded;
-        }
         $loaded['position_base_ms'] = max(0, (int)$playback['progress_ms']);
         $loaded['position_updated_at'] = time();
         if (!empty($playback['is_playing'])) {
-            $loaded['transport_intent'] = 'playing';
-            $loaded['transport_intent_at'] = time();
             $loaded['paused_position_ms'] = null;
             $loaded['resume_locked'] = false;
             if (isset($playback['item']['duration_ms']) && (int)$playback['item']['duration_ms'] > 0) {
@@ -1346,9 +1450,11 @@ function mx_resume_position_for_track($deck, $track_id) {
     return isset($resume['position_ms']) ? max(0, (int)$resume['position_ms']) : null;
 }
 function mx_pause($device_id, $deck = null) {
+    mx_debug_trace('pause_start', ['deck' => $deck, 'device_id' => $device_id]);
     $device_id = trim((string)$device_id);
     if ($device_id === '') throw new RuntimeException('No Spotify device selected for this player.');
     mx_spotify_put('https://api.spotify.com/v1/me/player/pause?device_id=' . rawurlencode($device_id), '', $deck);
+    mx_debug_trace('pause_end', ['deck' => $deck, 'device_id' => $device_id]);
 }
 
 function mx_resume_current_device($device_id, $deck = null) {
@@ -1445,7 +1551,20 @@ function mx_pause_deck_for_controlled_handover($deck) {
     $device = mx_deck_device_id($deck);
     $track = mx_json('spotify_mixer_loaded_' . $deck, []);
     if (!is_array($track) || empty($track['id'])) return false;
-    mx_pause_deck_output($deck, $track, $device, mx_playback($deck));
+
+    if (mx_is_local_track($track)) {
+        if (!empty($track['local_is_playing'])) {
+            try { mx_queue_deck_node_command($deck, 'local_pause', []); } catch (Throwable $ignored) {}
+            mx_local_pause_track($deck, $track);
+        }
+        return true;
+    }
+
+    $playback = mx_playback($deck);
+    mx_save_deck_position_from_playback($deck, $device, $track, $playback, true);
+    if ($device !== '' && mx_device_playing($device, $playback)) {
+        try { mx_pause($device, $deck); } catch (Throwable $ignoredPause) {}
+    }
     return true;
 }
 
@@ -1466,11 +1585,12 @@ function mx_arm_started_track_state($deck, &$track, $position_ms = null, $resume
     $track['position_updated_at'] = time();
     $track['paused_position_ms'] = null;
     $track['resume_locked'] = false;
-    mx_set_transport_intent($track, 'playing', $position);
     $track['end_seen_ms'] = max((int)($track['end_seen_ms'] ?? 0), $position);
-    $track['end_armed_at'] = null;
+    $track['end_armed_at'] = time();
     $track['resume_mode'] = $resumeMode;
-    $track['expected_finish_at'] = null;
+    if (!empty($track['duration_ms'])) {
+        $track['expected_finish_at'] = time() + max(1, (int)ceil(max(0, (int)$track['duration_ms'] - $position) / 1000)) + 3;
+    }
     mx_store_loaded_track($deck, $track);
 }
 function mx_track_output($t) {
@@ -1594,24 +1714,6 @@ function mx_requests($playlist) {
     return array_slice($out, 0, 30);
 }
 
-
-function mx_extract_spotify_id($value) {
-    $value = trim((string)$value);
-    if ($value === '') return '';
-
-    if (stripos($value, 'spotify:track:') === 0) {
-        $value = substr($value, strlen('spotify:track:'));
-    } elseif (preg_match('~open\.spotify\.com/track/([A-Za-z0-9]+)~', $value, $m)) {
-        $value = $m[1];
-    } elseif (preg_match('~spotify\.link/([A-Za-z0-9]+)~', $value, $m)) {
-        $value = $m[1];
-    }
-
-    $value = preg_replace('/[?#].*$/', '', $value);
-    $value = trim((string)$value);
-    return preg_match('/^[A-Za-z0-9]+$/', $value) ? $value : '';
-}
-
 function mx_track_ids_match($a, $b) {
     $a = trim((string)$a);
     $b = trim((string)$b);
@@ -1690,7 +1792,6 @@ function mx_auto_unload_finished_deck($deck, $loaded, $device_id, $playback) {
         if (!empty($loaded['request_id'])) mx_mark_request_played((int)$loaded['request_id'], (string)($loaded['request_group_id'] ?? ''));
         mx_log_loaded_history_once($deck, $loaded);
         mx_set('spotify_mixer_loaded_' . $deck, '');
-        mx_set('spotify_mixer_resume_' . $deck, '');
         return [];
     }
     return $loaded;
@@ -1799,14 +1900,14 @@ function mx_state() {
 
     $activeDeviceIdA = (string)($playbackA['device']['id'] ?? '');
     $activeDeviceIdB = (string)($playbackB['device']['id'] ?? '');
-    $isPlayingA = mx_loaded_track_is_playing_on_device('a', $deviceA, $loadedA, $playbackA) || mx_recent_play_intent($loadedA, 6);
-    $isPlayingB = mx_loaded_track_is_playing_on_device('b', $deviceB, $loadedB, $playbackB) || mx_recent_play_intent($loadedB, 6);
+    $isPlayingA = !empty($playbackA['is_playing']);
+    $isPlayingB = !empty($playbackB['is_playing']);
     $playbackSummaryA = mx_playback_track_summary($playbackA);
     $playbackSummaryB = mx_playback_track_summary($playbackB);
-    $statusPlayback = $isPlayingA ? $playbackA : ($isPlayingB ? $playbackB : null);
+    $statusPlayback = $isPlayingA ? $playbackA : ($isPlayingB ? $playbackB : ($playbackA ?: $playbackB));
     $activeDeviceId = (string)($statusPlayback['device']['id'] ?? '');
-    $isPlaying = $isPlayingA || $isPlayingB;
-    $item = is_array($statusPlayback) ? ($statusPlayback['item'] ?? []) : [];
+    $isPlaying = !empty($statusPlayback['is_playing']);
+    $item = $statusPlayback['item'] ?? [];
     $artists = [];
     foreach (($item['artists'] ?? []) as $artist) if (!empty($artist['name'])) $artists[] = $artist['name'];
     $images = $item['album']['images'] ?? [];
@@ -1820,6 +1921,15 @@ function mx_state() {
         'deck_account' => (string)($d['deck_account'] ?? '')
     ]; }, $devices));
     $playerNodes = mx_player_nodes_for_mixer($cleanDevices);
+    $stateDebugSummary = [
+        'device_a' => $deviceA,
+        'device_b' => $deviceB,
+        'loaded_a' => mx_debug_track_summary($loadedA),
+        'loaded_b' => mx_debug_track_summary($loadedB),
+        'playback_a' => mx_debug_playback_summary($playbackA),
+        'playback_b' => mx_debug_playback_summary($playbackB),
+    ];
+    mx_debug_trace('state_build', $stateDebugSummary);
     return [
         'configured' => dttd_spotify_config_loaded(),
         'connected' => dttd_spotify_queue_connected_for_deck('a') || dttd_spotify_queue_connected_for_deck('b'),
@@ -1859,6 +1969,7 @@ function mx_state() {
         'requests' => mx_requests($playlist),
         'history' => mx_history(),
         'crates' => mx_crate_summaries(),
+        'debug' => mx_debug_log_meta(),
     ];
 }
 function mx_deck_has_loaded($deck) {
@@ -1874,7 +1985,6 @@ function mx_load_track_to_deck($track, $deck, $playback = null, &$playlist = nul
     if (!$device) throw new RuntimeException('Player ' . strtoupper($deck) . ' has no assigned Spotify device.');
     if (mx_device_playing($device, $playback)) throw new RuntimeException('Player ' . strtoupper($deck) . ' is currently playing. Loading is blocked.');
     $clean = mx_clean_track($track);
-    $clean = mx_reset_track_runtime_for_queue($clean);
     $clean['loaded_origin'] = $loadedOrigin !== '' ? (string)$loadedOrigin : ($removeFromPlaylist ? 'dj_playlist' : (string)($clean['source'] ?? 'search'));
     if (is_array($playlist)) {
         mx_return_loaded_if_unplayed($deck, $playlist, $clean);
@@ -1887,9 +1997,6 @@ function mx_load_track_to_deck($track, $deck, $playback = null, &$playlist = nul
     $clean['position_updated_at'] = null;
     $clean['paused_position_ms'] = null;
     $clean['resume_locked'] = false;
-    $clean['transport_intent'] = '';
-    $clean['transport_intent_at'] = null;
-    $clean['play_request_position_ms'] = null;
     $clean['end_seen_ms'] = null;
     $clean['end_armed_at'] = null;
     if (mx_is_local_track($clean)) {
@@ -1904,7 +2011,6 @@ function mx_load_track_to_deck($track, $deck, $playback = null, &$playlist = nul
         $clean['local_autoplay_after_prepare'] = false;
         $clean['local_autoplay_requested_at'] = null;
     }
-    mx_set('spotify_mixer_resume_' . $deck, '');
     mx_store_loaded_track($deck, $clean);
     if (mx_is_local_track($clean)) {
         try {
@@ -2171,9 +2277,10 @@ function mx_return_loaded_if_unplayed($deck, &$playlist, $newTrack = null) {
     // Anything else chosen by the DJ but not played should not be forgotten.
     // Tracks from search, crates and history are preserved by adding them to the
     // DJ Playlist; tracks originally from the DJ Playlist are restored there.
-    $loaded = mx_reset_track_runtime_for_queue($loaded);
     $loaded['added_at'] = date('Y-m-d H:i:s');
     $loaded['loaded_origin'] = 'dj_playlist';
+    $loaded['played_on_deck'] = false;
+    $loaded['played_qualified'] = false;
     if (!mx_playlist_contains_track($playlist, $loaded)) {
         array_unshift($playlist, $loaded);
     }
@@ -2192,20 +2299,62 @@ function mx_unload_loaded_as_played($deck) {
     $loaded = mx_json('spotify_mixer_loaded_' . $deck, []);
     if (!is_array($loaded) || empty($loaded['id'])) throw new RuntimeException('No track loaded on Player ' . strtoupper($deck) . '.');
     $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
-    if (mx_is_local_track($loaded) || mx_loaded_track_is_playing_on_device($deck, $device, $loaded, mx_playback($deck))) {
-        mx_pause_deck_output($deck, $loaded, $device, mx_playback($deck));
-        $loaded = mx_json('spotify_mixer_loaded_' . $deck, $loaded);
-    }
+    if (mx_is_local_track($loaded)) {
+        if (!empty($loaded['local_is_playing'])) throw new RuntimeException('Pause Player ' . strtoupper($deck) . ' before manually marking it played.');
+    } elseif (mx_device_playing($device, mx_playback($deck))) throw new RuntimeException('Pause Player ' . strtoupper($deck) . ' before manually marking it played.');
     $loaded['played_qualified'] = true;
     if (!empty($loaded['request_id'])) mx_mark_request_played((int)$loaded['request_id']);
     mx_add_history($deck, $loaded);
     mx_set('spotify_mixer_loaded_' . $deck, '');
 }
 
-function mx_json_out($data) { echo json_encode($data); exit; }
+function mx_json_out($data) {
+    if (is_array($data)) {
+        $data['debug'] = mx_debug_log_meta();
+        mx_debug_trace('response_ready', [
+            'ok' => $data['ok'] ?? null,
+            'message' => $data['message'] ?? '',
+            'error' => $data['error'] ?? '',
+            'has_state' => isset($data['state']),
+        ]);
+    }
+    mx_debug_flush((bool)($data['ok'] ?? true));
+    echo json_encode($data);
+    exit;
+}
 
 try {
+    mx_debug_started_at();
     $action = $_POST['action'] ?? $_GET['action'] ?? 'state';
+    mx_debug_trace('request_start', [
+        'action' => $action,
+        'method' => $_SERVER['REQUEST_METHOD'] ?? '',
+        'get' => $_GET,
+        'post' => $_POST,
+    ]);
+
+    if ($action === 'debug_download') {
+        mx_debug_download_log();
+    }
+    if ($action === 'debug_set') {
+        $enabled = !empty($_POST['enabled']) && in_array(strtolower((string)$_POST['enabled']), ['1', 'true', 'yes', 'on'], true);
+        mx_set('spotify_mixer_debug_enabled', $enabled ? '1' : '0');
+        $GLOBALS['mx_debug_enabled_override'] = $enabled;
+        mx_debug_trace('debug_toggle', ['enabled' => $enabled]);
+        mx_json_out(['ok' => true, 'message' => 'Mixer debug mode ' . ($enabled ? 'enabled.' : 'disabled.'), 'state' => mx_state()]);
+    }
+    if ($action === 'debug_clear') {
+        mx_debug_clear_log();
+        mx_debug_trace('debug_clear', []);
+        mx_json_out(['ok' => true, 'message' => 'Mixer debug log cleared.', 'state' => mx_state()]);
+    }
+    if ($action === 'debug_client') {
+        $events = json_decode((string)($_POST['events_json'] ?? '[]'), true);
+        if (!is_array($events)) $events = [];
+        mx_debug_trace('frontend_batch', ['event_count' => count($events), 'events' => array_slice($events, 0, 200)]);
+        mx_json_out(['ok' => true, 'message' => 'Frontend debug events captured.', 'debug' => mx_debug_log_meta()]);
+    }
+
     $playlist = mx_json('spotify_mixer_playlist', []);
 
     if ($action === 'set_music_library_view') {
@@ -2406,12 +2555,13 @@ try {
         $deck = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
         $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
         $loadedForClear = mx_json('spotify_mixer_loaded_' . $deck, []);
-        mx_pause_deck_output($deck, $loadedForClear, $device, mx_playback($deck));
-        // Eject is a discard/unload action. It must not put the track back into the
-        // DJ Playlist; the separate Return if unplayed button is the explicit restore action.
+        if (mx_is_local_track($loadedForClear)) {
+            if (!empty($loadedForClear['local_is_playing'])) throw new RuntimeException('Pause Player ' . strtoupper($deck) . ' before clearing.');
+        } elseif (mx_device_playing($device, mx_playback($deck))) throw new RuntimeException('Player ' . strtoupper($deck) . ' is currently playing. Pause it before clearing.');
+        mx_return_loaded_if_unplayed($deck, $playlist, null);
+        mx_save_playlist($playlist);
         mx_set('spotify_mixer_loaded_' . $deck, '');
-        mx_set('spotify_mixer_resume_' . $deck, '');
-        mx_json_out(['ok' => true, 'message' => 'Player ' . strtoupper($deck) . ' ejected.', 'state' => mx_state()]);
+        mx_json_out(['ok' => true, 'state' => mx_state()]);
     }
 
 
@@ -2419,8 +2569,9 @@ try {
         $deck = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
         $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
         $loadedForReturn = mx_json('spotify_mixer_loaded_' . $deck, []);
-        mx_pause_deck_output($deck, $loadedForReturn, $device, mx_playback($deck));
-        $loadedForReturn = mx_json('spotify_mixer_loaded_' . $deck, $loadedForReturn);
+        if (mx_is_local_track($loadedForReturn)) {
+            if (!empty($loadedForReturn['local_is_playing'])) throw new RuntimeException('Pause Player ' . strtoupper($deck) . ' before returning it.');
+        } elseif (mx_device_playing($device, mx_playback($deck))) throw new RuntimeException('Pause Player ' . strtoupper($deck) . ' before returning it.');
         mx_return_loaded_if_unplayed($deck, $playlist, null);
         mx_save_playlist($playlist);
         mx_set('spotify_mixer_loaded_' . $deck, '');
@@ -2437,8 +2588,6 @@ try {
         $deck = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
         $device = $deck === 'b' ? mx_setting('spotify_mixer_device_b', '') : mx_setting('spotify_mixer_device_a', '');
         $track = mx_json('spotify_mixer_loaded_' . $deck, []);
-        if (empty($track['id'])) throw new RuntimeException('No track loaded on Player ' . strtoupper($deck) . '.');
-
         if (mx_is_local_track($track)) {
             if (!empty($track['local_is_playing'])) {
                 mx_queue_deck_node_command($deck, 'local_pause', []);
@@ -2456,31 +2605,35 @@ try {
             mx_save_playlist($playlist);
             mx_json_out(['ok' => true, 'message' => 'Local MPD play command sent to Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
         }
-
         $pb = mx_playback($deck);
-        if (mx_loaded_track_is_playing_on_device($deck, $device, $track, $pb)) {
-            mx_pause_deck_output($deck, $track, $device, $pb);
+        if (mx_device_playing($device, $pb)) {
+            mx_save_resume_position($deck, $device, $track);
+            mx_pause($device, $deck);
             mx_json_out(['ok' => true, 'message' => 'Paused Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
         }
-
-        // Freshly loaded tracks always start at 0. Only resume if this same deck card has
-        // previously been played and paused during the current load cycle.
-        $resumePosition = !empty($track['played_on_deck']) ? mx_loaded_position_fallback($track) : 0;
-        if ($resumePosition === null) $resumePosition = 0;
+        $resumePosition = mx_resume_position_for_track($deck, $track['id'] ?? '');
+        if ($resumePosition === null) $resumePosition = mx_loaded_position_fallback($track);
 
         mx_prepare_single_account_handover($deck);
-        // Re-read after handover because pausing the opposite deck may update settings/state.
-        $track = mx_json('spotify_mixer_loaded_' . $deck, $track);
-        mx_play_track($device, $track['id'] ?? '', $resumePosition, $deck);
+        $pb = mx_playback($deck);
+        $usedLightweightResume = false;
+        if (mx_can_lightweight_resume($device, $track, $pb)) {
+            mx_resume_current_device($device, $deck);
+            $usedLightweightResume = true;
+        } else {
+            mx_play_track($device, $track['id'] ?? '', $resumePosition, $deck);
+        }
 
         mx_set('spotify_mixer_resume_' . $deck, '');
-        mx_arm_started_track_state($deck, $track, $resumePosition, 'explicit_play');
+        mx_arm_started_track_state($deck, $track, $resumePosition, $usedLightweightResume ? 'native_resume' : 'explicit_play');
         mx_mark_loaded_played_if_threshold($deck, $track);
-        $playlist = mx_remove_track_from_playlist($playlist, $track);
+        $playlist = array_values(array_filter($playlist, function($p) use ($track) {
+            if (!empty($track['request_id']) && !empty($p['request_id'])) return (int)$p['request_id'] !== (int)$track['request_id'];
+            return (string)($p['id'] ?? '') !== (string)($track['id'] ?? '');
+        }));
         mx_save_playlist($playlist);
         mx_json_out(['ok' => true, 'message' => 'Play command sent to Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
     }
-
 
     if ($action === 'seek_relative' || $action === 'seek_start' || $action === 'seek_end') {
         $deck = ($_POST['deck'] ?? '') === 'b' ? 'b' : 'a';
@@ -2584,10 +2737,9 @@ try {
             mx_save_playlist($playlist);
             mx_json_out(['ok' => true, 'message' => 'Local MPD play command sent to Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
         }
-        $resumePosition = !empty($track['played_on_deck']) ? mx_loaded_position_fallback($track) : 0;
-        if ($resumePosition === null) $resumePosition = 0;
+        $resumePosition = mx_resume_position_for_track($deck, $track['id'] ?? '');
+        if ($resumePosition === null) $resumePosition = mx_loaded_position_fallback($track);
         mx_prepare_single_account_handover($deck);
-        $track = mx_json('spotify_mixer_loaded_' . $deck, $track);
         mx_play_track($device, $track['id'] ?? '', $resumePosition, $deck);
         mx_set('spotify_mixer_resume_' . $deck, '');
         mx_arm_started_track_state($deck, $track, $resumePosition, 'explicit_play');
@@ -2612,12 +2764,18 @@ try {
             }
             mx_json_out(['ok' => true, 'message' => 'Local pause command sent to Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
         }
-        mx_pause_deck_output($deck, $track, $device, mx_playback($deck));
+        mx_save_resume_position($deck, $device, $track);
+        mx_pause($device, $deck);
         mx_json_out(['ok' => true, 'message' => 'Pause command sent to Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
     }
 
     mx_json_out(['ok' => true, 'state' => mx_state()]);
 } catch (Throwable $e) {
     http_response_code(200);
-    echo json_encode(['ok' => false, 'error' => $e->getMessage(), 'state' => mx_state()]);
+    mx_debug_trace('request_error', ['error' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()]);
+    $state = null;
+    try { $state = mx_state(); } catch (Throwable $stateError) { mx_debug_trace('state_after_error_failed', ['error' => $stateError->getMessage()]); }
+    $payload = ['ok' => false, 'error' => $e->getMessage(), 'state' => $state, 'debug' => mx_debug_log_meta()];
+    mx_debug_flush(false, ['error' => $e->getMessage()]);
+    echo json_encode($payload);
 }
