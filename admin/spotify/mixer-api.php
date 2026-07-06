@@ -1904,6 +1904,24 @@ function mx_requests($playlist) {
     return array_slice($out, 0, 30);
 }
 
+
+function mx_extract_spotify_id($value) {
+    $value = trim((string)$value);
+    if ($value === '') return '';
+
+    if (stripos($value, 'spotify:track:') === 0) {
+        $value = substr($value, strlen('spotify:track:'));
+    } elseif (preg_match('~open\.spotify\.com/track/([A-Za-z0-9]+)~', $value, $m)) {
+        $value = $m[1];
+    } elseif (preg_match('~spotify\.link/([A-Za-z0-9]+)~', $value, $m)) {
+        $value = $m[1];
+    }
+
+    $value = preg_replace('/[?#].*$/', '', $value);
+    $value = trim((string)$value);
+    return preg_match('/^[A-Za-z0-9]+$/', $value) ? $value : '';
+}
+
 function mx_track_ids_match($a, $b) {
     $a = trim((string)$a);
     $b = trim((string)$b);
@@ -2883,7 +2901,25 @@ try {
 
         if ($confirmed) {
             if (!mx_decks_share_spotify_profile() && $sourceDevice) {
-                try { mx_pause($sourceDevice, $source); } catch (Throwable $ignoredSourcePause) {}
+                mx_debug_trace('emergency_swap_source_pause_start', [
+                    'source' => $source,
+                    'target' => $target,
+                    'source_device' => $sourceDevice,
+                    'target_device' => $targetDevice,
+                ]);
+                try {
+                    mx_pause($sourceDevice, $source);
+                    mx_debug_trace('emergency_swap_source_pause_ok', [
+                        'source' => $source,
+                        'source_device' => $sourceDevice,
+                    ]);
+                } catch (Throwable $sourcePauseError) {
+                    mx_debug_trace('emergency_swap_source_pause_error', [
+                        'source' => $source,
+                        'source_device' => $sourceDevice,
+                        'error' => $sourcePauseError->getMessage(),
+                    ]);
+                }
             }
             // The track has been handed over. Clear the source deck state only; do not
             // return it to the DJ playlist or public request queue because the same
@@ -2899,9 +2935,33 @@ try {
         // the normal state poll continue to verify playback.
         $targetLoaded = mx_json('spotify_mixer_loaded_' . $target, []);
         if (is_array($targetLoaded) && !empty($targetLoaded['id']) && mx_track_ids_match((string)$targetLoaded['id'], (string)($track['id'] ?? ''))) {
+            if (!mx_decks_share_spotify_profile() && $sourceDevice) {
+                mx_debug_trace('emergency_swap_source_pause_start', [
+                    'source' => $source,
+                    'target' => $target,
+                    'source_device' => $sourceDevice,
+                    'target_device' => $targetDevice,
+                    'reason' => 'fallback_target_loaded',
+                ]);
+                try {
+                    mx_pause($sourceDevice, $source);
+                    mx_debug_trace('emergency_swap_source_pause_ok', [
+                        'source' => $source,
+                        'source_device' => $sourceDevice,
+                        'reason' => 'fallback_target_loaded',
+                    ]);
+                } catch (Throwable $sourcePauseError) {
+                    mx_debug_trace('emergency_swap_source_pause_error', [
+                        'source' => $source,
+                        'source_device' => $sourceDevice,
+                        'reason' => 'fallback_target_loaded',
+                        'error' => $sourcePauseError->getMessage(),
+                    ]);
+                }
+            }
             mx_set('spotify_mixer_loaded_' . $source, '');
             mx_set('spotify_mixer_resume_' . $source, '');
-            mx_json_out(['ok' => true, 'message' => 'Emergency transfer sent from Player ' . strtoupper($source) . ' to Player ' . strtoupper($target) . '. Source deck cleared after handover.', 'state' => mx_state()]);
+            mx_json_out(['ok' => true, 'message' => 'Emergency transfer sent from Player ' . strtoupper($source) . ' to Player ' . strtoupper($target) . '. Source deck paused and cleared after handover.', 'state' => mx_state()]);
         }
 
         mx_json_out(['ok' => false, 'message' => 'Emergency transfer was sent, but Player ' . strtoupper($target) . ' could not be confirmed. Player ' . strtoupper($source) . ' has been left loaded for safety.', 'state' => mx_state()]);
