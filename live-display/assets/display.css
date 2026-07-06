@@ -3470,3 +3470,44 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
   justify-self: end !important;
   margin: 0 !important;
 }
+
+/* Live display title safety: keep long Spotify titles readable after display-title cleanup. */
+.now-feature-copy.title-medium strong{
+  font-size:clamp(44px,4.85vw,92px);
+  line-height:.95;
+}
+
+.now-feature-copy.title-long strong{
+  font-size:clamp(38px,4.15vw,78px);
+  line-height:.97;
+}
+
+.now-feature-copy.title-xl strong{
+  font-size:clamp(32px,3.55vw,66px);
+  line-height:1;
+}
+
+.now-feature-copy.title-long,
+.now-feature-copy.title-xl{
+  gap:clamp(8px,1vh,16px);
+}
+
+.now-feature-copy.title-long strong,
+.now-feature-copy.title-xl strong{
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:4;
+  overflow:hidden;
+}
+
+.display-slide[data-slide="up_next"] .now-feature-copy.title-medium strong{
+  font-size:clamp(44px,4.85vw,92px);
+}
+
+.display-slide[data-slide="up_next"] .now-feature-copy.title-long strong{
+  font-size:clamp(38px,4.15vw,78px);
+}
+
+.display-slide[data-slide="up_next"] .now-feature-copy.title-xl strong{
+  font-size:clamp(32px,3.55vw,66px);
+}

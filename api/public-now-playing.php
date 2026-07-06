@@ -72,6 +72,37 @@ function public_np_normalise_track_text($value) {
     return trim(preg_replace('/\s+/', ' ', $value));
 }
 
+function public_np_clean_display_title($title) {
+    $original = trim((string)$title);
+    if ($original === '') return '';
+
+    $clean = preg_replace('/\s+/', ' ', $original);
+
+    // Spotify often appends source/version text that is useful in search results
+    // but too noisy for the HDMI live display. Keep the saved metadata intact;
+    // only clean the public-display title payload.
+    $patterns = [
+        '/\s+[\-–—]\s+from\s+["“”]?[^"“”]*(?:soundtrack|motion picture|film|movie|album|original soundtrack)[^"“”]*["“”]?\s*$/iu',
+        '/\s+[\-–—]\s+from\s+["“”][^"“”]+["“”]\s*$/iu',
+        '/\s+[\-–—]\s+(?:\d{4}\s+)?(?:remaster(?:ed)?|remastered\s+\d{4}|\d{4}\s+remaster)\s*$/iu',
+        '/\s+[\-–—]\s+(?:single|album|radio|video|edit|extended|club|dance|12\s*inch|7\s*inch|mono|stereo)\s+(?:version|edit|mix)\s*$/iu',
+        '/\s+[\-–—]\s+(?:single version|album version|radio edit|video edit|extended mix|club mix|dance mix|original mix|mono version|stereo version)\s*$/iu',
+        '/\s*\((?:from\s+)?[^)]*(?:soundtrack|motion picture|film|movie|original soundtrack)[^)]*\)\s*$/iu',
+        '/\s*\((?:\d{4}\s+)?(?:remaster(?:ed)?|remastered\s+\d{4}|\d{4}\s+remaster)\)\s*$/iu',
+        '/\s*\((?:single version|album version|radio edit|video edit|extended mix|club mix|dance mix|mono version|stereo version)\)\s*$/iu',
+    ];
+
+    do {
+        $before = $clean;
+        foreach ($patterns as $pattern) {
+            $clean = preg_replace($pattern, '', $clean);
+            $clean = trim(preg_replace('/\s+/', ' ', $clean));
+        }
+    } while ($clean !== $before && $clean !== '');
+
+    return $clean !== '' ? $clean : $original;
+}
+
 function public_np_track_keys($track) {
     $keys = [];
     $id = strtolower(trim((string)($track['id'] ?? $track['spotify_track_id'] ?? '')));
@@ -102,7 +133,8 @@ function public_np_mark_track_seen($track, &$seen) {
 }
 
 function public_np_public_track($track, $status, $playedAt = '') {
-    $title = trim((string)($track['title'] ?? $track['song_title'] ?? ''));
+    $rawTitle = trim((string)($track['title'] ?? $track['song_title'] ?? ''));
+    $title = public_np_clean_display_title($rawTitle);
     $artist = trim((string)($track['artist'] ?? ''));
     $id = trim((string)($track['id'] ?? $track['spotify_track_id'] ?? ''));
     $image = trim((string)($track['image'] ?? $track['spotify_album_image'] ?? ''));
@@ -113,6 +145,8 @@ function public_np_public_track($track, $status, $playedAt = '') {
     return [
         'id' => $id,
         'title' => $title !== '' ? $title : 'Unknown track',
+        'original_title' => ($rawTitle !== '' && $rawTitle !== $title) ? $rawTitle : '',
+        'title_cleaned' => ($rawTitle !== '' && $rawTitle !== $title),
         'artist' => $artist,
         'image' => $image,
         'url' => $url,
@@ -393,21 +427,9 @@ function public_np_current_spotify_track() {
 
     if ($candidates) {
         usort($candidates, function($a, $b) {
-            $aStarted = (int)($a['_started_at'] ?? 0);
-            $bStarted = (int)($b['_started_at'] ?? 0);
-
-            // When both decks are genuinely live, treat the track that has been
-            // playing for the longest time as Now Playing. This keeps the HDMI
-            // display aligned with physical mixer fades in dual-account mode:
-            // the outgoing/established deck remains current, while the newly
-            // started deck can be shown as Up Next during the overlap.
-            if ($aStarted > 0 && $bStarted > 0 && $aStarted !== $bStarted) {
-                return $aStarted <=> $bStarted;
-            }
-
             $scoreCompare = ((int)($b['_score_ms'] ?? 0)) <=> ((int)($a['_score_ms'] ?? 0));
             if ($scoreCompare !== 0) return $scoreCompare;
-            return $aStarted <=> $bStarted;
+            return ((int)($a['_started_at'] ?? 0)) <=> ((int)($b['_started_at'] ?? 0));
         });
         $current = $candidates[0];
         unset($current['_score_ms'], $current['_started_at']);
@@ -468,11 +490,8 @@ function public_np_up_next_track($current) {
 
         if ($currentDeck !== '' && $deck === $currentDeck) continue;
         if ($currentId !== '' && $id !== '' && public_np_track_ids_match($currentId, $id)) continue;
+        if (!empty($track['_is_live'])) continue;
 
-        // If both decks are playing during a physical crossfade, the non-current
-        // live deck is the best Up Next candidate. Previously live loaded decks
-        // were skipped, which meant the up-next slide could disappear during the
-        // exact overlap where the display needs to show the incoming track.
         unset($track['_is_live']);
         return $track;
     }

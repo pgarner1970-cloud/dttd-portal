@@ -27,6 +27,37 @@
       .replace(/'/g, '&#039;');
   }
 
+  function cleanDisplayTitle(value) {
+    let title = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+    if (!title) return '';
+    const original = title;
+    const patterns = [
+      /\s+[-–—]\s+from\s+["“”]?[^"“”]*(?:soundtrack|motion picture|film|movie|album|original soundtrack)[^"“”]*["“”]?\s*$/i,
+      /\s+[-–—]\s+from\s+["“”][^"“”]+["“”]\s*$/i,
+      /\s+[-–—]\s+(?:\d{4}\s+)?(?:remaster(?:ed)?|remastered\s+\d{4}|\d{4}\s+remaster)\s*$/i,
+      /\s+[-–—]\s+(?:single|album|radio|video|edit|extended|club|dance|12\s*inch|7\s*inch|mono|stereo)\s+(?:version|edit|mix)\s*$/i,
+      /\s+[-–—]\s+(?:single version|album version|radio edit|video edit|extended mix|club mix|dance mix|original mix|mono version|stereo version)\s*$/i,
+      /\s*\((?:from\s+)?[^)]*(?:soundtrack|motion picture|film|movie|original soundtrack)[^)]*\)\s*$/i,
+      /\s*\((?:\d{4}\s+)?(?:remaster(?:ed)?|remastered\s+\d{4}|\d{4}\s+remaster)\)\s*$/i,
+      /\s*\((?:single version|album version|radio edit|video edit|extended mix|club mix|dance mix|mono version|stereo version)\)\s*$/i,
+    ];
+    let changed = true;
+    while (changed && title) {
+      const before = title;
+      patterns.forEach(pattern => { title = title.replace(pattern, '').replace(/\s+/g, ' ').trim(); });
+      changed = title !== before;
+    }
+    return title || original;
+  }
+
+  function displayTitleClass(value) {
+    const len = cleanDisplayTitle(value).length;
+    if (len >= 48) return ' title-xl';
+    if (len >= 34) return ' title-long';
+    if (len >= 24) return ' title-medium';
+    return '';
+  }
+
   function text(value, fallback) {
     const out = String(value == null ? '' : value).trim();
     return out || (fallback || '');
@@ -177,8 +208,8 @@
       + '<div class="now-feature-art">'
       + (current.image ? '<img src="' + esc(current.image) + '" alt="Album artwork">' : '<div class="artwork-placeholder">♪</div>')
       + '</div>'
-      + '<div class="now-feature-copy">'
-      + '<strong>' + esc(text(current.title, 'Unknown track')) + '</strong>'
+      + '<div class="now-feature-copy' + displayTitleClass(current.title) + '">'
+      + '<strong>' + esc(text(cleanDisplayTitle(current.title), 'Unknown track')) + '</strong>'
       + (current.artist ? '<span>' + esc(current.artist) + '</span>' : '')
       + '<em>Keep the requests coming</em>'
       + '</div>'
@@ -202,8 +233,8 @@
       + '<div class="now-feature-art">'
       + (next.image ? '<img src="' + esc(next.image) + '" alt="Album artwork">' : '<div class="artwork-placeholder">♪</div>')
       + '</div>'
-      + '<div class="now-feature-copy">'
-      + '<strong>' + esc(text(next.title, 'Unknown track')) + '</strong>'
+      + '<div class="now-feature-copy' + displayTitleClass(next.title) + '">'
+      + '<strong>' + esc(text(cleanDisplayTitle(next.title), 'Unknown track')) + '</strong>'
       + (next.artist ? '<span>' + esc(next.artist) + '</span>' : '')
       + '<em>Loaded ready to play</em>'
       + '</div>'
