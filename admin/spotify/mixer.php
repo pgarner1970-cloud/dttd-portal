@@ -826,6 +826,9 @@ admin_header('Spotify Mixer - DJ Portal');
 .mixer-debug-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:0 12px 12px;border-top:1px solid rgba(96,145,205,.18)}
 .mixer-debug-panel .mixer-btn{min-height:36px;padding:8px 10px;font-size:12px}.mixer-debug-status{color:#aebfd4;font-size:12px;font-weight:900}.mixer-debug-note{color:#8aa4c2;font-size:12px;flex:1 1 300px}
 
+.deck-device{display:inline-flex;align-items:center;gap:6px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.deck-device::before{content:'●';font-size:9px;color:#7faad7}.mixer-panel.deck-playing .deck-device::before{color:#42ff9a}.mixer-panel.device-missing .deck-device::before{color:#ff7780}
+
 </style>
 <main class="spotify-mixer-app" data-api="<?= h(admin_url('spotify/mixer-api.php')) ?>" data-search-api="/api/spotify-search.php" data-local-search-api="<?= h(admin_url('api/local-music-search.php')) ?>">
   <div class="mixer-toast" id="mixerToast"></div>
@@ -946,8 +949,7 @@ admin_header('Spotify Mixer - DJ Portal');
         <div class="deck-status-wrap"><div class="deck-vu" id="deckAVu" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div><span class="deck-state" id="deckAState">Standby</span></div>
       </div>
       <div class="panel-body">
-        <div class="tiny-label">Spotify device for A</div>
-        <div class="device-row"><select class="device-select" id="deviceA"></select><button class="mixer-btn orange" data-save-devices data-save-deck="a">Save</button></div><div class="deck-warning-note" id="deckAWarning"></div>
+        <div class="deck-warning-note" id="deckAWarning"></div>
         <div class="loaded-card" id="loadedA"></div>
         <div class="deck-actions transport-area" data-transport-deck="a">
           <div class="transport-controls">
@@ -995,8 +997,7 @@ admin_header('Spotify Mixer - DJ Portal');
         <div class="deck-status-wrap"><div class="deck-vu" id="deckBVu" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div><span class="deck-state" id="deckBState">Standby</span></div>
       </div>
       <div class="panel-body">
-        <div class="tiny-label">Spotify device for B</div>
-        <div class="device-row"><select class="device-select" id="deviceB"></select><button class="mixer-btn blue" data-save-devices data-save-deck="b">Save</button></div><div class="deck-warning-note" id="deckBWarning"></div>
+        <div class="deck-warning-note" id="deckBWarning"></div>
         <div class="loaded-card" id="loadedB"></div>
         <div class="deck-actions transport-area" data-transport-deck="b">
           <div class="transport-controls">
