@@ -184,10 +184,19 @@ function mx_debug_fetch_devices_for_deck($deck, $context = '') {
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => 10,
         ]);
+        $started = microtime(true);
         $response = curl_exec($ch);
         $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         $error = curl_error($ch);
         curl_close($ch);
+        if (function_exists('dttd_spotify_api_usage_log')) {
+            dttd_spotify_api_usage_log('GET', $url, $status, (int)round((microtime(true) - $started) * 1000), [
+                'source' => 'mixer_debug',
+                'action' => 'devices_diagnostic',
+                'deck' => $deck,
+                'account_role' => 'deck',
+            ]);
+        }
         $decoded = is_string($response) && $response !== '' ? (json_decode($response, true) ?: []) : [];
         mx_debug_trace('spotify_devices_diagnostic', [
             'context' => $context,
@@ -1261,6 +1270,7 @@ function mx_spotify_put($url, $body = '', $deck = null) {
         throw new RuntimeException('PHP cURL is not available.');
     }
 
+    $started = microtime(true);
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_CUSTOMREQUEST => 'PUT',
@@ -1272,11 +1282,25 @@ function mx_spotify_put($url, $body = '', $deck = null) {
         ],
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 10,
+        CURLOPT_HEADER => true,
     ]);
-    $response = curl_exec($ch);
+    $raw = curl_exec($ch);
     $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $headerSize = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
     $error = curl_error($ch);
     curl_close($ch);
+
+    $headersText = $raw !== false ? substr($raw, 0, $headerSize) : '';
+    $response = $raw !== false ? substr($raw, $headerSize) : false;
+    if (function_exists('dttd_spotify_api_usage_log')) {
+        dttd_spotify_api_usage_log('PUT', $url, $status, (int)round((microtime(true) - $started) * 1000), [
+            'source' => 'mixer_transport',
+            'action' => (string)($_POST['action'] ?? $_GET['action'] ?? ''),
+            'deck' => ($deckNorm === 'a' || $deckNorm === 'b') ? $deckNorm : '',
+            'account_role' => ($deckNorm === 'a' || $deckNorm === 'b') ? 'deck' : 'legacy',
+            'retry_after' => function_exists('dttd_spotify_api_retry_after') ? dttd_spotify_api_retry_after($headersText) : null,
+        ]);
+    }
 
     $decoded = is_string($response) && $response !== '' ? (json_decode($response, true) ?: []) : [];
     $ok = ($response !== false && $status >= 200 && $status < 300);
@@ -2181,6 +2205,7 @@ function mx_state() {
         'history' => mx_history(),
         'crates' => mx_crate_summaries(),
         'debug' => mx_debug_log_meta(),
+        'spotify_api_usage' => function_exists('dttd_spotify_api_usage_summary') ? dttd_spotify_api_usage_summary(30) : null,
     ];
 }
 function mx_deck_has_loaded($deck) {
@@ -2558,6 +2583,10 @@ try {
         if (!is_array($events)) $events = [];
         mx_debug_trace('frontend_batch', ['event_count' => count($events), 'events' => array_slice($events, 0, 200)]);
         mx_json_out(['ok' => true, 'message' => 'Frontend debug events captured.', 'debug' => mx_debug_log_meta()]);
+    }
+
+    if ($action === 'spotify_api_usage') {
+        mx_json_out(['ok' => true, 'usage' => function_exists('dttd_spotify_api_usage_summary') ? dttd_spotify_api_usage_summary(30) : null]);
     }
 
     $playlist = mx_json('spotify_mixer_playlist', []);

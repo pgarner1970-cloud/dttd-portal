@@ -8,6 +8,10 @@
  * - spotify_client_secret
  */
 
+if (is_file(__DIR__ . '/spotify-api-usage.php')) {
+    require_once __DIR__ . '/spotify-api-usage.php';
+}
+
 function dttd_spotify_setting($key, $default = '') {
     static $cache = [];
 
@@ -47,10 +51,16 @@ function dttd_spotify_config_loaded() {
         && $credentials['client_secret'] !== '';
 }
 
-function dttd_spotify_http_post($url, array $headers, $body) {
+function dttd_spotify_http_post($url, array $headers, $body, array $context = []) {
     if (!function_exists('curl_init')) {
         throw new RuntimeException('PHP cURL is not available.');
     }
+
+    $started = microtime(true);
+    $status = 0;
+    $error = '';
+    $response = false;
+    $headerText = '';
 
     $ch = curl_init($url);
     curl_setopt_array($ch, [
@@ -59,44 +69,72 @@ function dttd_spotify_http_post($url, array $headers, $body) {
         CURLOPT_HTTPHEADER => $headers,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 10,
+        CURLOPT_HEADER => true,
     ]);
 
-    $response = curl_exec($ch);
+    $raw = curl_exec($ch);
     $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $headerSize = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
     $error = curl_error($ch);
     curl_close($ch);
 
-    if ($response === false || $status < 200 || $status >= 300) {
+    if ($raw !== false) {
+        $headerText = substr($raw, 0, $headerSize);
+        $response = substr($raw, $headerSize);
+    }
+
+    if (function_exists('dttd_spotify_api_usage_log')) {
+        $context['retry_after'] = $context['retry_after'] ?? dttd_spotify_api_retry_after($headerText);
+        dttd_spotify_api_usage_log('POST', $url, $status, (int)round((microtime(true) - $started) * 1000), $context);
+    }
+
+    if ($raw === false || $status < 200 || $status >= 300) {
         throw new RuntimeException('Spotify token request failed' . ($error ? ': ' . $error : '.'));
     }
 
     return json_decode($response, true) ?: [];
 }
 
-function dttd_spotify_http_get($url, array $headers) {
+function dttd_spotify_http_get($url, array $headers, array $context = []) {
     if (!function_exists('curl_init')) {
         throw new RuntimeException('PHP cURL is not available.');
     }
 
+    $started = microtime(true);
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_HTTPGET => true,
         CURLOPT_HTTPHEADER => $headers,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 10,
+        CURLOPT_HEADER => true,
     ]);
 
-    $response = curl_exec($ch);
+    $raw = curl_exec($ch);
     $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $headerSize = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
     $error = curl_error($ch);
     curl_close($ch);
 
-    if ($response === false || $status < 200 || $status >= 300) {
+    $headersText = '';
+    $response = false;
+    if ($raw !== false) {
+        $headersText = substr($raw, 0, $headerSize);
+        $response = substr($raw, $headerSize);
+    }
+
+    if (function_exists('dttd_spotify_api_usage_log')) {
+        $context['retry_after'] = $context['retry_after'] ?? dttd_spotify_api_retry_after($headersText);
+        dttd_spotify_api_usage_log('GET', $url, $status, (int)round((microtime(true) - $started) * 1000), $context);
+    }
+
+    if ($raw === false || $status < 200 || $status >= 300) {
         throw new RuntimeException('Spotify search failed' . ($error ? ': ' . $error : '.'));
     }
 
     return json_decode($response, true) ?: [];
 }
+
 
 function dttd_spotify_access_token() {
     if (!dttd_spotify_config_loaded()) {
@@ -120,7 +158,8 @@ function dttd_spotify_access_token() {
             'Authorization: Basic ' . $auth,
             'Content-Type: application/x-www-form-urlencoded',
         ],
-        'grant_type=client_credentials'
+        'grant_type=client_credentials',
+        ['source' => 'token', 'action' => 'client_credentials']
     );
 
     if (empty($data['access_token'])) {
@@ -149,7 +188,7 @@ function dttd_spotify_search_tracks($query, $limit = 8) {
     $data = dttd_spotify_http_get($url, [
         'Authorization: Bearer ' . $token,
         'Accept: application/json',
-    ]);
+    ], ['source' => 'legacy_search', 'action' => 'search']);
 
     $items = $data['tracks']['items'] ?? [];
     $tracks = [];
@@ -248,7 +287,8 @@ function dttd_spotify_refresh_user_token() {
         http_build_query([
             'grant_type' => 'refresh_token',
             'refresh_token' => $refresh,
-        ])
+        ]),
+        ['source' => 'token', 'action' => 'refresh_legacy_user', 'account_role' => 'legacy']
     );
     dttd_spotify_save_user_token($data);
     return $data['access_token'] ?? '';
@@ -279,10 +319,11 @@ function dttd_spotify_queue_available() {
     return dttd_spotify_queue_controls_enabled() && dttd_spotify_queue_connected();
 }
 
-function dttd_spotify_http_put($url, array $headers, $body = '') {
+function dttd_spotify_http_put($url, array $headers, $body = '', array $context = []) {
     if (!function_exists('curl_init')) {
         throw new RuntimeException('PHP cURL is not available.');
     }
+    $started = microtime(true);
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_CUSTOMREQUEST => 'PUT',
@@ -290,16 +331,32 @@ function dttd_spotify_http_put($url, array $headers, $body = '') {
         CURLOPT_HTTPHEADER => $headers,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 10,
+        CURLOPT_HEADER => true,
     ]);
-    $response = curl_exec($ch);
+    $raw = curl_exec($ch);
     $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $headerSize = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
     $error = curl_error($ch);
     curl_close($ch);
-    if ($response === false || $status < 200 || $status >= 300) {
+
+    $headersText = '';
+    $response = false;
+    if ($raw !== false) {
+        $headersText = substr($raw, 0, $headerSize);
+        $response = substr($raw, $headerSize);
+    }
+
+    if (function_exists('dttd_spotify_api_usage_log')) {
+        $context['retry_after'] = $context['retry_after'] ?? dttd_spotify_api_retry_after($headersText);
+        dttd_spotify_api_usage_log('PUT', $url, $status, (int)round((microtime(true) - $started) * 1000), $context);
+    }
+
+    if ($raw === false || $status < 200 || $status >= 300) {
         throw new RuntimeException('Spotify playback request failed' . ($error ? ': ' . $error : '.'));
     }
     return $response !== '' ? (json_decode($response, true) ?: []) : [];
 }
+
 
 function dttd_spotify_add_to_queue($track_id, $device_id = '') {
     $track_id = trim((string)$track_id);
@@ -315,7 +372,7 @@ function dttd_spotify_add_to_queue($track_id, $device_id = '') {
     return dttd_spotify_http_post($url, [
         'Authorization: Bearer ' . $token,
         'Content-Type: application/x-www-form-urlencoded',
-    ], '');
+    ], '', ['source' => 'queue', 'action' => 'add_to_queue']);
 }
 
 function dttd_spotify_get_devices() {
@@ -323,7 +380,7 @@ function dttd_spotify_get_devices() {
     $data = dttd_spotify_http_get('https://api.spotify.com/v1/me/player/devices', [
         'Authorization: Bearer ' . $token,
         'Accept: application/json',
-    ]);
+    ], ['source' => 'legacy_player', 'action' => 'devices']);
     return $data['devices'] ?? [];
 }
 
@@ -332,7 +389,7 @@ function dttd_spotify_current_playback() {
     return dttd_spotify_http_get('https://api.spotify.com/v1/me/player', [
         'Authorization: Bearer ' . $token,
         'Accept: application/json',
-    ]);
+    ], ['source' => 'legacy_player', 'action' => 'current_playback']);
 }
 
 
@@ -395,7 +452,8 @@ function dttd_spotify_refresh_profile_token(array $profile) {
         http_build_query([
             'grant_type' => 'refresh_token',
             'refresh_token' => $refresh,
-        ])
+        ]),
+        ['source' => 'token', 'action' => 'refresh_profile', 'account_label' => (string)($profile['label'] ?? ''), 'account_role' => 'deck']
     );
     if (empty($data['access_token'])) {
         throw new RuntimeException('Spotify did not return a refreshed access token.');
@@ -440,7 +498,7 @@ function dttd_spotify_get_devices_for_deck($deck) {
     $data = dttd_spotify_http_get('https://api.spotify.com/v1/me/player/devices', [
         'Authorization: Bearer ' . $token,
         'Accept: application/json',
-    ]);
+    ], ['source' => 'mixer', 'action' => 'devices', 'deck' => strtolower((string)$deck), 'account_role' => 'deck']);
     return $data['devices'] ?? [];
 }
 
@@ -449,7 +507,7 @@ function dttd_spotify_current_playback_for_deck($deck) {
     return dttd_spotify_http_get('https://api.spotify.com/v1/me/player', [
         'Authorization: Bearer ' . $token,
         'Accept: application/json',
-    ]);
+    ], ['source' => 'mixer', 'action' => 'current_playback', 'deck' => strtolower((string)$deck), 'account_role' => 'deck']);
 }
 
 /**
@@ -550,7 +608,8 @@ function dttd_spotify_client_credentials_token_for(array $credentials) {
             'Authorization: Basic ' . $auth,
             'Content-Type: application/x-www-form-urlencoded',
         ],
-        'grant_type=client_credentials'
+        'grant_type=client_credentials',
+        ['source' => 'token', 'action' => 'client_credentials']
     );
 
     if (empty($data['access_token'])) {
@@ -894,6 +953,7 @@ function dttd_spotify_search_tracks_external_with_profile($query, $limit = 8, &$
     if (!function_exists('curl_init')) {
         throw new RuntimeException('PHP cURL is not available.');
     }
+    $started = microtime(true);
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_HTTPGET => true,
@@ -911,11 +971,21 @@ function dttd_spotify_search_tracks_external_with_profile($query, $limit = 8, &$
     $error = curl_error($ch);
     curl_close($ch);
 
+    $headers = $raw !== false ? substr($raw, 0, $headerSize) : '';
+    if (function_exists('dttd_spotify_api_usage_log')) {
+        dttd_spotify_api_usage_log('GET', $url, $status, (int)round((microtime(true) - $started) * 1000), [
+            'source' => 'public_search',
+            'action' => 'search',
+            'account_role' => 'public_search',
+            'account_label' => (string)($credentials['label'] ?? ''),
+            'retry_after' => dttd_spotify_api_retry_after($headers),
+        ]);
+    }
+
     if ($raw === false) {
         throw new RuntimeException('Spotify public search failed' . ($error ? ': ' . $error : '.'));
     }
 
-    $headers = substr($raw, 0, $headerSize);
     $body = substr($raw, $headerSize);
     $meta['http_status'] = $status;
 

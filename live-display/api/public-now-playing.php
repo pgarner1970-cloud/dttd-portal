@@ -268,7 +268,7 @@ function public_np_cached_artwork_for_track_id($trackId) {
             $data = dttd_spotify_http_get('https://api.spotify.com/v1/tracks/' . rawurlencode($trackId), [
                 'Authorization: Bearer ' . $token,
                 'Accept: application/json',
-            ]);
+            ], ['source' => 'live_display', 'action' => 'track_artwork_lookup']);
             $image = public_np_best_spotify_image($data['album']['images'] ?? []);
             if ($image !== '') {
                 public_np_set($settingKey, $image);
