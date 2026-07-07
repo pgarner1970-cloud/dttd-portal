@@ -27,6 +27,36 @@
     if (!titleInput || !artistInput || !results) return;
 
     let controller = null;
+    let lastIssuedQuery = '';
+    const browserQueryCache = new Map();
+    const browserCacheTtlMs = 10 * 60 * 1000;
+
+    function normaliseQuery(text) {
+      return String(text || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function getBrowserCachedResult(queryKey) {
+      const entry = browserQueryCache.get(queryKey);
+      if (!entry) return null;
+      if ((Date.now() - entry.time) > browserCacheTtlMs) {
+        browserQueryCache.delete(queryKey);
+        return null;
+      }
+      return entry.data;
+    }
+
+    function storeBrowserCachedResult(queryKey, data) {
+      if (!queryKey || !data || !data.ok) return;
+      browserQueryCache.set(queryKey, { time: Date.now(), data: data });
+      if (browserQueryCache.size > 30) {
+        const firstKey = browserQueryCache.keys().next().value;
+        browserQueryCache.delete(firstKey);
+      }
+    }
 
     function setStatus(text) {
       if (status) status.textContent = text || '';
@@ -83,40 +113,71 @@
 
     function search() {
       const query = (titleInput.value + ' ' + artistInput.value).trim();
+      const queryKey = normaliseQuery(query);
       clearHidden(form);
       if (selected) selected.hidden = true;
 
-      if (query.length < 3) {
+      if (queryKey.length < 4) {
         results.hidden = true;
         setStatus('');
+        lastIssuedQuery = '';
         return;
       }
 
+      const browserCached = getBrowserCachedResult(queryKey);
+      if (browserCached) {
+        lastIssuedQuery = queryKey;
+        handleSearchResponse(browserCached, true);
+        return;
+      }
+
+      if (queryKey === lastIssuedQuery) {
+        return;
+      }
+      lastIssuedQuery = queryKey;
+
       if (controller) controller.abort();
       controller = new AbortController();
-      setStatus('Searching Spotify…');
+      setStatus('Searching music…');
 
       fetch('https://dancethruthedecades.co.uk/api/spotify-search.php?q=' + encodeURIComponent(query), { signal: controller.signal })
         .then(function (res) { return res.json(); })
         .then(function (data) {
-          if (!data.configured) {
-            setStatus('Spotify API is not configured yet. Manual entry still works.');
-            results.hidden = true;
-            return;
-          }
-          if (!data.ok) {
-            setStatus(data.message || 'Spotify search unavailable. Manual entry still works.');
-            results.hidden = true;
-            return;
-          }
-          setStatus(data.tracks && data.tracks.length ? (data.source === 'cache' ? 'Select a cached match, or keep typing for manual entry.' : 'Select a Spotify match, or keep typing for manual entry.') : (data.message || 'No Spotify matches found. Manual entry still works.'));
-          renderTracks(data.tracks || []);
+          storeBrowserCachedResult(queryKey, data);
+          handleSearchResponse(data, false);
         })
         .catch(function (err) {
           if (err.name === 'AbortError') return;
           setStatus('Spotify search unavailable. Manual entry still works.');
           results.hidden = true;
         });
+    }
+
+    function handleSearchResponse(data, browserCacheHit) {
+      if (!data.configured) {
+        setStatus('Spotify API is not configured yet. Manual entry still works.');
+        results.hidden = true;
+        return;
+      }
+      if (!data.ok) {
+        setStatus(data.message || 'Spotify search unavailable. Manual entry still works.');
+        results.hidden = true;
+        return;
+      }
+
+      const tracks = data.tracks || [];
+      if (tracks.length) {
+        if (browserCacheHit || data.query_cache_hit || data.source === 'query_cache') {
+          setStatus('Select a saved Spotify match, or keep typing for manual entry.');
+        } else if (data.source === 'cache' || data.source === 'track_cache') {
+          setStatus('Select a cached match, or keep typing for manual entry.');
+        } else {
+          setStatus('Select a Spotify match, or keep typing for manual entry.');
+        }
+      } else {
+        setStatus(data.message || 'No Spotify matches found. Manual entry still works.');
+      }
+      renderTracks(tracks);
     }
 
     function badgeHtml(track) {
@@ -135,7 +196,7 @@
       });
     }
 
-    const delayedSearch = debounce(search, 700);
+    const delayedSearch = debounce(search, 1200);
     titleInput.addEventListener('input', delayedSearch);
     artistInput.addEventListener('input', delayedSearch);
   }
