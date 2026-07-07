@@ -20,6 +20,137 @@ if (!function_exists('dttd_track_cache_has_table')) {
     }
 }
 
+
+if (!function_exists('dttd_spotify_search_cache_has_table')) {
+    function dttd_spotify_search_cache_has_table() {
+        static $has = null;
+        if ($has !== null) return $has;
+        try {
+            db()->query('SELECT 1 FROM spotify_search_cache LIMIT 1');
+            $has = true;
+        } catch (Throwable $e) {
+            $has = false;
+        }
+        return $has;
+    }
+}
+
+if (!function_exists('dttd_spotify_search_cache_normalise_query')) {
+    function dttd_spotify_search_cache_normalise_query($query) {
+        $q = mb_strtolower(trim((string)$query));
+        $q = preg_replace('/[^\p{L}\p{N}\s]+/u', ' ', $q);
+        $q = preg_replace('/\s+/u', ' ', $q);
+        return trim($q);
+    }
+}
+
+if (!function_exists('dttd_spotify_search_cache_hash')) {
+    function dttd_spotify_search_cache_hash($query) {
+        return hash('sha256', dttd_spotify_search_cache_normalise_query($query));
+    }
+}
+
+if (!function_exists('dttd_spotify_search_cache_tracks_by_uris')) {
+    function dttd_spotify_search_cache_tracks_by_uris(array $uris, $limit = 8) {
+        if (!dttd_track_cache_has_table() || !$uris) return [];
+        $limit = max(1, min(20, (int)$limit));
+        $uris = array_values(array_unique(array_filter(array_map('strval', $uris))));
+        $uris = array_slice($uris, 0, min(50, max($limit, count($uris))));
+        if (!$uris) return [];
+
+        try {
+            $placeholders = implode(',', array_fill(0, count($uris), '?'));
+            $stmt = db()->prepare("SELECT * FROM spotify_track_cache WHERE spotify_uri IN ($placeholders)");
+            foreach ($uris as $i => $uri) {
+                $stmt->bindValue($i + 1, $uri, PDO::PARAM_STR);
+            }
+            $stmt->execute();
+            $rows = $stmt->fetchAll() ?: [];
+            $byUri = [];
+            foreach ($rows as $row) {
+                $byUri[(string)$row['spotify_uri']] = dttd_track_cache_row_to_track($row);
+            }
+
+            $tracks = [];
+            foreach ($uris as $uri) {
+                if (isset($byUri[$uri])) {
+                    $tracks[] = $byUri[$uri];
+                    if (count($tracks) >= $limit) break;
+                }
+            }
+            return $tracks;
+        } catch (Throwable $e) {
+            return [];
+        }
+    }
+}
+
+if (!function_exists('dttd_spotify_search_cache_get')) {
+    function dttd_spotify_search_cache_get($query, $limit = 8) {
+        if (!dttd_spotify_search_cache_has_table()) return null;
+        $normalised = dttd_spotify_search_cache_normalise_query($query);
+        if ($normalised === '' || mb_strlen($normalised) < 3) return null;
+        $limit = max(1, min(20, (int)$limit));
+        $hash = hash('sha256', $normalised);
+
+        try {
+            $stmt = db()->prepare("\n                SELECT *\n                FROM spotify_search_cache\n                WHERE query_hash = ?\n                  AND expires_at > NOW()\n                LIMIT 1\n            ");
+            $stmt->execute([$hash]);
+            $row = $stmt->fetch();
+            if (!$row) return null;
+
+            $uris = json_decode((string)($row['result_uris_json'] ?? '[]'), true);
+            if (!is_array($uris)) $uris = [];
+            $tracks = dttd_spotify_search_cache_tracks_by_uris($uris, $limit);
+
+            $update = db()->prepare("\n                UPDATE spotify_search_cache\n                SET hit_count = hit_count + 1, last_hit_at = NOW()\n                WHERE query_hash = ?\n            ");
+            $update->execute([$hash]);
+
+            return [
+                'tracks' => $tracks,
+                'row' => $row,
+                'uris' => $uris,
+                'usable' => count($tracks) > 0 || (int)($row['result_count'] ?? 0) === 0,
+            ];
+        } catch (Throwable $e) {
+            return null;
+        }
+    }
+}
+
+if (!function_exists('dttd_spotify_search_cache_store')) {
+    function dttd_spotify_search_cache_store($query, array $tracks, $ttlMinutes = 10080) {
+        if (!dttd_spotify_search_cache_has_table()) return false;
+        $raw = trim((string)$query);
+        $normalised = dttd_spotify_search_cache_normalise_query($raw);
+        if ($normalised === '' || mb_strlen($normalised) < 3) return false;
+        $ttlMinutes = max(10, min(43200, (int)$ttlMinutes));
+        $hash = hash('sha256', $normalised);
+
+        $uris = [];
+        foreach ($tracks as $track) {
+            $t = dttd_track_cache_normalise((array)$track);
+            if (!empty($t['uri'])) $uris[] = $t['uri'];
+        }
+        $uris = array_values(array_unique($uris));
+        $json = json_encode($uris, JSON_UNESCAPED_SLASHES);
+
+        try {
+            $stmt = db()->prepare("\n                INSERT INTO spotify_search_cache\n                    (query_hash, normalised_query, raw_query_sample, result_uris_json, result_count, expires_at, created_at, updated_at)\n                VALUES\n                    (?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL ? MINUTE), NOW(), NOW())\n                ON DUPLICATE KEY UPDATE\n                    normalised_query = VALUES(normalised_query),\n                    raw_query_sample = VALUES(raw_query_sample),\n                    result_uris_json = VALUES(result_uris_json),\n                    result_count = VALUES(result_count),\n                    expires_at = VALUES(expires_at),\n                    updated_at = NOW()\n            ");
+            return $stmt->execute([
+                $hash,
+                mb_substr($normalised, 0, 255),
+                mb_substr($raw, 0, 255),
+                $json,
+                count($uris),
+                $ttlMinutes,
+            ]);
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+}
+
 if (!function_exists('dttd_track_cache_normalise')) {
     function dttd_track_cache_normalise(array $track) {
         $id = trim((string)($track['id'] ?? ''));
@@ -152,11 +283,23 @@ if (!function_exists('dttd_spotify_cached_search_tracks')) {
             return ['tracks' => [], 'meta' => $meta];
         }
 
+        $queryCached = dttd_spotify_search_cache_get($query, $limit);
+        if ($queryCached && !empty($queryCached['usable'])) {
+            $tracks = $queryCached['tracks'] ?? [];
+            $meta['source'] = 'query_cache';
+            $meta['cache_count'] = count($tracks);
+            $meta['query_cache_hit'] = true;
+            $meta['spotify_used'] = false;
+            $meta['message'] = $tracks ? 'Showing saved Spotify search results.' : 'No Spotify matches found.';
+            return ['tracks' => array_slice($tracks, 0, $limit), 'meta' => $meta];
+        }
+
         $cached = dttd_track_cache_search($query, $limit);
         $meta['cache_count'] = count($cached);
 
         if (count($cached) >= $cacheEnough) {
-            $meta['source'] = 'cache';
+            $meta['source'] = 'track_cache';
+            $meta['query_cache_hit'] = false;
             $meta['message'] = 'Showing cached matches.';
             return ['tracks' => array_slice($cached, 0, $limit), 'meta' => $meta];
         }
@@ -175,8 +318,10 @@ if (!function_exists('dttd_spotify_cached_search_tracks')) {
             foreach ($fresh as $track) {
                 dttd_track_cache_store($track, $query);
             }
+            dttd_spotify_search_cache_store($query, $fresh, (int)($options['query_cache_ttl_minutes'] ?? 10080));
 
             if ($fresh) {
+                $meta['query_cache_hit'] = false;
                 return ['tracks' => $fresh, 'meta' => $meta];
             }
         } catch (Throwable $e) {

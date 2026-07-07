@@ -44,6 +44,7 @@ try {
         'tracks' => $tracks,
         'source' => $meta['source'] ?? 'unknown',
         'cache_count' => $meta['cache_count'] ?? 0,
+        'query_cache_hit' => !empty($meta['query_cache_hit']),
         'spotify_used' => !empty($meta['spotify_used']),
         'rate_limited' => !empty($meta['rate_limited']),
         'message' => $meta['message'] ?? '',
