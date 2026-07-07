@@ -112,6 +112,13 @@ function mx_clear_playback_cache($deck = null) {
     mx_set('spotify_mixer_playback_cache_b', '');
 }
 
+
+function mx_end_grace_seconds() {
+    // Keep a small server-side safety buffer for Spotify Connect drift, but do not
+    // wait for a full polling cycle once the browser has detected the visible end.
+    return 1;
+}
+
 function mx_debug_enabled() {
     if (array_key_exists('mx_debug_enabled_override', $GLOBALS)) return (bool)$GLOBALS['mx_debug_enabled_override'];
     static $enabled = null;
@@ -1669,7 +1676,7 @@ function mx_arm_loaded_track_for_playback($deck, &$track, $start_position_ms = 0
     $track['end_armed_at'] = $now;
     $track['playback_started_at'] = $now;
     if ($duration > 0) {
-        $track['expected_finish_at'] = $now + max(1, (int)ceil(max(0, $duration - $position) / 1000)) + 3;
+        $track['expected_finish_at'] = $now + max(1, (int)ceil(max(0, $duration - $position) / 1000)) + mx_end_grace_seconds();
     }
     mx_store_loaded_track($deck, $track);
     return true;
@@ -1711,7 +1718,7 @@ function mx_sync_loaded_position_from_playback($deck, $loaded, $device_id, $play
             $loaded['end_armed_at'] = time();
             if (empty($loaded['playback_started_at'])) $loaded['playback_started_at'] = time();
             if (!empty($loaded['duration_ms'])) {
-                $loaded['expected_finish_at'] = time() + max(1, (int)ceil(max(0, (int)$loaded['duration_ms'] - (int)$playback['progress_ms']) / 1000)) + 3;
+                $loaded['expected_finish_at'] = time() + max(1, (int)ceil(max(0, (int)$loaded['duration_ms'] - (int)$playback['progress_ms']) / 1000)) + mx_end_grace_seconds();
             }
             mx_mark_loaded_played_if_threshold($deck, $loaded);
         }
@@ -1914,7 +1921,7 @@ function mx_arm_started_track_state($deck, &$track, $position_ms = null, $resume
     $track['end_armed_at'] = time();
     $track['resume_mode'] = $resumeMode;
     if (!empty($track['duration_ms'])) {
-        $track['expected_finish_at'] = time() + max(1, (int)ceil(max(0, (int)$track['duration_ms'] - $position) / 1000)) + 3;
+        $track['expected_finish_at'] = time() + max(1, (int)ceil(max(0, (int)$track['duration_ms'] - $position) / 1000)) + mx_end_grace_seconds();
     }
     mx_store_loaded_track($deck, $track);
 }
@@ -2195,6 +2202,8 @@ function mx_state($options = []) {
     $playbackA = null;
     $playbackB = null;
     $forceDevices = !empty($options['force_devices']);
+    $forcePlayback = !empty($options['force_playback']);
+    if ($forcePlayback) mx_debug_trace('state_force_playback_refresh', ['reason' => (string)($options['force_reason'] ?? '')]);
     if (dttd_spotify_config_loaded()) {
         try {
             $devicesA = mx_cached_devices_for_deck('a', $forceDevices);
@@ -2212,8 +2221,8 @@ function mx_state($options = []) {
                 if (!$exists) { $d['deck_account'] = 'B'; $devices[] = $d; }
             }
         } catch (Throwable $e) { mx_debug_trace('spotify_devices_state_error', ['deck' => 'b', 'account' => mx_debug_account_summary('b'), 'error' => $e->getMessage()]); }
-        $playbackA = mx_playback('a');
-        $playbackB = mx_decks_share_spotify_profile() ? $playbackA : mx_playback('b');
+        $playbackA = mx_playback('a', $forcePlayback);
+        $playbackB = mx_decks_share_spotify_profile() ? $playbackA : mx_playback('b', $forcePlayback);
     }
 
     // Keep our own progress memory while a deck is active. Some Spotify Connect
@@ -3186,7 +3195,9 @@ try {
     }
 
     $forceDevices = !empty($_GET['force_devices']) || !empty($_POST['force_devices']);
-    mx_json_out(['ok' => true, 'state' => mx_state(['force_devices' => $forceDevices])]);
+    $forcePlayback = !empty($_GET['force_playback']) || !empty($_POST['force_playback']);
+    $forceReason = (string)($_GET['force_reason'] ?? ($_POST['force_reason'] ?? ''));
+    mx_json_out(['ok' => true, 'state' => mx_state(['force_devices' => $forceDevices, 'force_playback' => $forcePlayback, 'force_reason' => $forceReason])]);
 } catch (Throwable $e) {
     http_response_code(200);
     mx_debug_trace('request_error', ['error' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()]);

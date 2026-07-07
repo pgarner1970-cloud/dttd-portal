@@ -32,6 +32,9 @@ document.head.appendChild(overviewStyle);
   let busy = false;
   let actionSequence = 0;
   const pendingTransportHolds = {};
+  const endCheckSent = {};
+  const END_CHECK_REMAINING_MS = 1600;
+  const END_CHECK_REPEAT_MS = 12000;
   let activeSource = 'search';
   let cratesLoaded = false;
   let activeCrateId = '';
@@ -449,6 +452,27 @@ document.head.appendChild(overviewStyle);
     debugProgressDecision(deck, track, decision);
     return decision;
   }
+
+  function maybeRequestFastEndCheck(deck, track, prog){
+    if(!deck || !track || !track.id || !prog || !prog.active || !prog.sameTrack || !prog.durationMs) return;
+    if(Number(prog.remainingMs || 0) > END_CHECK_REMAINING_MS) return;
+    const key = deck + ':' + String(track.id || '');
+    const now = Date.now();
+    const last = Number(endCheckSent[key] || 0);
+    if(last && (now - last) < END_CHECK_REPEAT_MS) return;
+    endCheckSent[key] = now;
+    debugTrace('fast_end_check_requested', {
+      deck,
+      track: trackSummary(track),
+      remaining_ms: Math.round(Number(prog.remainingMs || 0)),
+      progress_ms: Math.round(Number(prog.progressMs || 0)),
+      duration_ms: Math.round(Number(prog.durationMs || 0))
+    });
+    setTimeout(() => {
+      refresh(true, {forcePlayback:true, forceReason:'fast_end_check'});
+    }, 250);
+  }
+
   function toast(msg, ok=true){
     if(!els.toast) return;
     els.toast.textContent = msg;
@@ -1021,6 +1045,7 @@ renderAccountStatus();
       return `<div class="muted">No track loaded. Load from the DJ playlist when ${deck.toUpperCase()} is safe.</div>`;
     }
     const prog = deckProgress(track, deck);
+    maybeRequestFastEndCheck(deck, track, prog);
     const remainingLabel = prog.durationMs ? (prog.sameTrack ? `-${duration(prog.remainingMs)}` : duration(prog.durationMs)) : '';
     const elapsedLabel = prog.sameTrack ? duration(prog.progressMs) : '0:00';
     const st = progressStatus(track, deck);
@@ -1236,6 +1261,8 @@ renderAccountStatus();
     try{
       const params = {action:'state'};
       if(options.forceDevices) params.force_devices = 1;
+      if(options.forcePlayback) params.force_playback = 1;
+      if(options.forceReason) params.force_reason = options.forceReason;
       const data = await apiGet(params);
       if(requestActionSeq !== actionSequence) return;
       if(data.ok){ acceptState(data.state); }
