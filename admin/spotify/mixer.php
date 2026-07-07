@@ -528,6 +528,89 @@ admin_header('Spotify Mixer - DJ Portal');
 }
 
 
+
+
+/* Music Library selected-track action bar: make primary actions easier to hit */
+.music-library-body .crate-pager,
+.music-library-body .search-pager{
+  padding-top:4px;
+  margin-top:4px;
+}
+.music-library-body .search-page-btn{
+  min-height:34px;
+  padding-top:5px;
+  padding-bottom:5px;
+}
+.music-library-body .search-page-count{
+  min-height:30px;
+  padding:6px 12px;
+}
+.music-library-action-bar{
+  margin-top:6px;
+  padding:9px 10px;
+  min-height:66px;
+  gap:12px;
+}
+.library-selected-track{
+  grid-template-columns:48px minmax(0,1fr);
+  gap:10px;
+  min-width:245px;
+  flex:1 1 300px;
+}
+.library-selected-track img,
+.library-selected-count{
+  width:48px;
+  height:48px;
+  border-radius:12px;
+}
+.library-selected-copy strong{
+  font-size:14px;
+}
+.library-selected-copy span{
+  font-size:12px;
+}
+.library-selected-copy em{
+  font-size:11px;
+}
+.library-action-buttons{
+  gap:8px;
+  align-items:center;
+}
+.library-action-btn{
+  min-height:42px;
+  padding:9px 13px;
+  border-radius:14px;
+  font-size:12px;
+  line-height:1.05;
+  box-shadow:0 6px 18px rgba(0,0,0,.18);
+}
+.library-action-btn.primary,
+.library-action-btn.success,
+.library-action-btn.warning,
+.library-action-btn.danger{
+  box-shadow:0 8px 22px rgba(0,0,0,.22),0 0 18px rgba(52,152,255,.08);
+}
+.library-action-btn[data-library-action="play-a"],
+.library-action-btn[data-library-action="play-b"]{
+  min-width:58px;
+}
+.library-action-btn[data-library-action="add-playlist"]{
+  min-width:116px;
+}
+@media(max-width:1020px){
+  .music-library-action-bar{
+    min-height:0;
+  }
+  .library-selected-track{
+    min-width:0;
+    width:100%;
+  }
+  .library-action-btn{
+    flex:1 1 auto;
+  }
+}
+
+
 /* Stage 5 DJ Crates compact browser */
 .crate-browser-toolbar{display:flex;align-items:end;gap:8px;margin-bottom:8px}.crate-current-wrap{display:grid;gap:4px;flex:1 1 auto}.crate-current-wrap label{color:#9fb5cd;font-size:11px;font-weight:1000;text-transform:uppercase;letter-spacing:.05em}.crate-current-wrap select{min-height:38px;border-radius:12px}.crate-create-panel{display:grid;grid-template-columns:minmax(240px,1fr) auto auto;gap:8px;margin:8px 0}.crate-create-panel[hidden]{display:none!important}.crate-browser-tracks{flex:1 1 auto;min-height:0;overflow:hidden}.crate-track-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;align-content:start;min-height:0}.music-library-body .crate-track-row{position:relative;display:grid;grid-template-columns:38px minmax(0,1fr);align-items:center;min-height:46px;padding:5px 150px 5px 8px}.music-library-body .crate-track-row img{width:30px;height:30px;border-radius:8px}.music-library-body .crate-track-row .result-title{font-size:12px;line-height:1.12}.music-library-body .crate-track-row .result-subline{min-height:18px;margin-top:1px;font-size:11px;line-height:1.1}.music-library-body .crate-track-row .result-corner-badges{top:5px;right:7px;width:136px;max-width:136px}.spotify-mixer-app.library-view-comfortable .music-library-body .crate-track-grid{gap:6px}.spotify-mixer-app.library-view-comfortable .music-library-body .crate-track-row{min-height:52px;padding:6px 142px 6px 9px}.spotify-mixer-app.library-view-comfortable .music-library-body .crate-track-row img{width:34px;height:34px}.spotify-mixer-app.library-view-comfortable .music-library-body .crate-track-row .result-title{font-size:13px}.spotify-mixer-app.library-view-comfortable .music-library-body .crate-track-row .result-subline{font-size:12px}.spotify-mixer-app.library-view-list .music-library-body .crate-track-grid{gap:3px}.spotify-mixer-app.library-view-list .music-library-body .crate-track-row{min-height:38px;padding:4px 138px 4px 7px;grid-template-columns:28px minmax(0,1fr)}.spotify-mixer-app.library-view-list .music-library-body .crate-track-row img{width:24px;height:24px;border-radius:6px}.spotify-mixer-app.library-view-list .music-library-body .crate-track-row .result-title{font-size:11px;line-height:1.08}.spotify-mixer-app.library-view-list .music-library-body .crate-track-row .result-subline{min-height:16px;font-size:10px;margin-top:0}.crate-pager{flex:0 0 auto;padding-top:5px}@media(max-width:1020px){.crate-browser-toolbar{align-items:stretch;flex-direction:column}.crate-create-panel{grid-template-columns:1fr}.crate-track-grid{grid-template-columns:1fr}}
 
