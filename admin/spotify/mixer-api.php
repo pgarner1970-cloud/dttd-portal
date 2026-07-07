@@ -56,6 +56,62 @@ function mx_clear_device_cache() {
 
 
 
+
+function mx_cached_playback_for_deck($deck, $force = false) {
+    $deck = strtolower((string)$deck);
+    if ($deck !== 'a' && $deck !== 'b') {
+        try { return dttd_spotify_current_playback(); }
+        catch (Throwable $e) { mx_debug_trace('spotify_current_playback_error', ['deck' => $deck, 'error' => $e->getMessage()]); return null; }
+    }
+
+    $cacheKey = 'spotify_mixer_playback_cache_' . $deck;
+    if (!$force) {
+        $cached = mx_json($cacheKey, []);
+        $fetchedAt = (float)($cached['fetched_at'] ?? 0);
+        $playback = array_key_exists('playback', $cached) ? $cached['playback'] : null;
+        $isPlaying = is_array($playback) && !empty($playback['is_playing']);
+        $ttl = $isPlaying ? 4 : 10;
+        if ($fetchedAt > 0 && (microtime(true) - $fetchedAt) < $ttl) {
+            mx_debug_trace('spotify_playback_cache_hit', [
+                'deck' => $deck,
+                'age_seconds' => round(microtime(true) - $fetchedAt, 2),
+                'ttl_seconds' => $ttl,
+                'is_playing' => $isPlaying,
+                'has_playback' => is_array($playback),
+            ]);
+            return is_array($playback) ? $playback : null;
+        }
+    }
+
+    try {
+        $result = dttd_spotify_current_playback_for_deck($deck);
+        mx_set($cacheKey, json_encode([
+            'fetched_at' => microtime(true),
+            'playback' => is_array($result) ? $result : null,
+        ]));
+        return is_array($result) ? $result : null;
+    } catch (Throwable $e) {
+        mx_debug_trace('spotify_current_playback_error', ['deck' => $deck, 'error' => $e->getMessage()]);
+        return null;
+    }
+}
+
+function mx_clear_playback_cache($deck = null) {
+    $deck = strtolower((string)$deck);
+    if ($deck === 'a') {
+        mx_set('spotify_mixer_playback_cache_a', '');
+        if (mx_decks_share_spotify_profile()) mx_set('spotify_mixer_playback_cache_b', '');
+        return;
+    }
+    if ($deck === 'b') {
+        mx_set('spotify_mixer_playback_cache_b', '');
+        if (mx_decks_share_spotify_profile()) mx_set('spotify_mixer_playback_cache_a', '');
+        return;
+    }
+    mx_set('spotify_mixer_playback_cache_a', '');
+    mx_set('spotify_mixer_playback_cache_b', '');
+}
+
 function mx_debug_enabled() {
     if (array_key_exists('mx_debug_enabled_override', $GLOBALS)) return (bool)$GLOBALS['mx_debug_enabled_override'];
     static $enabled = null;
@@ -1257,13 +1313,14 @@ function mx_mark_request_played($request_id, $request_group_id = '') {
     } catch (Throwable $ignored) {}
 }
 
-function mx_playback($deck = null) {
+function mx_playback($deck = null, $force = false) {
     try {
-        $result = ($deck === 'a' || $deck === 'b') ? dttd_spotify_current_playback_for_deck($deck) : dttd_spotify_current_playback();
-        mx_debug_trace('spotify_current_playback', ['deck' => $deck, 'playback' => mx_debug_playback_summary($result)]);
+        $deckNorm = strtolower((string)$deck);
+        $result = ($deckNorm === 'a' || $deckNorm === 'b') ? mx_cached_playback_for_deck($deckNorm, $force) : dttd_spotify_current_playback();
+        mx_debug_trace('spotify_current_playback', ['deck' => $deck, 'force' => (bool)$force, 'playback' => mx_debug_playback_summary($result)]);
         return $result;
     } catch (Throwable $e) {
-        mx_debug_trace('spotify_current_playback_error', ['deck' => $deck, 'error' => $e->getMessage()]);
+        mx_debug_trace('spotify_current_playback_error', ['deck' => $deck, 'force' => (bool)$force, 'error' => $e->getMessage()]);
         return null;
     }
 }
@@ -1354,6 +1411,12 @@ function mx_spotify_put($url, $body = '', $deck = null) {
         throw new RuntimeException($message);
     }
 
+    if ($deckNorm === 'a' || $deckNorm === 'b') {
+        mx_clear_playback_cache($deckNorm);
+    } else {
+        mx_clear_playback_cache();
+    }
+
     return $decoded;
 }
 function mx_transfer_playback_to_device($device_id, $play = false, $deck = null) {
@@ -1371,7 +1434,7 @@ function mx_wait_for_active_device($device_id, $timeout_ms = 1800, $deck = null)
     $deadline = microtime(true) + (max(250, (int)$timeout_ms) / 1000);
     do {
         try {
-            $pb = mx_playback($deck);
+            $pb = mx_playback($deck, true);
             if ((string)($pb['device']['id'] ?? '') === $device_id) return true;
         } catch (Throwable $ignored) {}
         usleep(180000);
@@ -1423,7 +1486,7 @@ function mx_play_track($device_id, $track_id, $position_ms = null, $deck = null)
     // Verify and enforce the intended track after Connect has had time to settle.
     usleep(900000);
     try {
-        $pb = mx_playback($deck);
+        $pb = mx_playback($deck, true);
         $activeDevice = (string)($pb['device']['id'] ?? '');
         $isPlaying = !empty($pb['is_playing']);
         $currentId = (string)($pb['item']['id'] ?? '');
@@ -1452,7 +1515,7 @@ function mx_confirm_track_playing_on_device($device_id, $track_id, $position_ms 
 
     for ($attempt = 0; $attempt < max(1, (int)$max_attempts); $attempt++) {
         usleep($attempt === 0 ? 250000 : 550000);
-        $pb = mx_playback($deck);
+        $pb = mx_playback($deck, true);
         $activeDevice = (string)($pb['device']['id'] ?? '');
         $currentId = (string)($pb['item']['id'] ?? '');
         $isPlaying = !empty($pb['is_playing']);
