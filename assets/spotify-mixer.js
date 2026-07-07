@@ -59,6 +59,19 @@ document.head.appendChild(overviewStyle);
   let debugBuffer = [];
   let debugLastProgress = {};
   const DEBUG_BUFFER_LIMIT = 600;
+  const MIXER_TAB_ID = (() => {
+    try {
+      const key = 'dttd_mixer_tab_id';
+      let id = sessionStorage.getItem(key);
+      if(!id){
+        id = 'tab-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+        sessionStorage.setItem(key, id);
+      }
+      return id;
+    } catch(e) {
+      return 'tab-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+    }
+  })();
   let libraryViewMode = localStorage.getItem('dttd_music_library_view') || 'comfortable';
   function searchPageSize(){
     if(libraryViewMode === 'list') return 20;
@@ -1232,6 +1245,7 @@ renderAccountStatus();
     finally{ stateRefreshInFlight = false; }
   }
   async function doAction(params){
+    params = Object.assign({_client_tab_id: MIXER_TAB_ID}, params || {});
     if(busy){ debugTrace('action_ignored_busy', {params}); return; }
     debugTrace('action_begin', {params, deck_state_a:state?.player_a?.state, deck_state_b:state?.player_b?.state});
     const thisActionSeq = ++actionSequence;
@@ -1932,10 +1946,23 @@ renderAccountStatus();
     const deckAction = e.target.closest('[data-deck-action]');
     if(deckAction){
       if(deckAction.disabled || deckAction.getAttribute('aria-disabled') === 'true') return;
+      const rawDeckAction = deckAction.dataset.deckAction || '';
+      const deck = deckAction.dataset.deck === 'b' ? 'b' : 'a';
+      if(typeof deckAction.blur === 'function') deckAction.blur();
+      if(rawDeckAction === 'play_toggle' && e.detail === 0){
+        debugTrace('deck_action_ignored_keyboard_click', {deck, rawDeckAction, detail:e.detail, tab_id:MIXER_TAB_ID});
+        return;
+      }
       const actionMap = {seek_back:'seek_relative', seek_forward:'seek_relative'};
-      const params = {action: actionMap[deckAction.dataset.deckAction] || deckAction.dataset.deckAction, deck: deckAction.dataset.deck};
-      if(deckAction.dataset.deckAction === 'seek_back') params.delta_ms = -30000;
-      if(deckAction.dataset.deckAction === 'seek_forward') params.delta_ms = 30000;
+      const params = {action: actionMap[rawDeckAction] || rawDeckAction, deck, ui_event_detail:e.detail || 0};
+      if(rawDeckAction === 'play_toggle'){
+        const loaded = deckLoadedTrack(deck);
+        params.transport_intent = deckIsPlaying(deck) ? 'pause' : 'play';
+        params.track_id = loaded?.id || '';
+      }
+      if(rawDeckAction === 'seek_back') params.delta_ms = -30000;
+      if(rawDeckAction === 'seek_forward') params.delta_ms = 30000;
+      debugTrace('deck_action_click', {deck, rawDeckAction, params, detail:e.detail || 0, tab_id:MIXER_TAB_ID});
       doAction(params); return; }
     const libraryBtn = e.target.closest('[data-library-action]');
     if(libraryBtn){ if(!libraryBtn.disabled) libraryAction(libraryBtn.dataset.libraryAction); return; }
