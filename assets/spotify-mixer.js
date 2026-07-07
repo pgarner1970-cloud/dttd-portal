@@ -25,7 +25,9 @@ document.head.appendChild(overviewStyle);
   let prepareTimer = null;
   let uiTimer = null;
   let lastStateSyncAt = 0;
-  const STATE_POLL_MS = 12000;
+  let stateRefreshInFlight = false;
+  let lastStateRefreshStartedAt = 0;
+  const STATE_POLL_MS = 15000;
   const TRANSPORT_SETTLE_MS = 3500;
   let busy = false;
   let actionSequence = 0;
@@ -1206,17 +1208,28 @@ renderAccountStatus();
       prepareTimer = setTimeout(()=>refresh(true), 2500);
     }
   }
-  async function refresh(silent=true){
+  async function refresh(silent=true, options={}){
     if(busy && silent){ debugTrace('state_poll_skipped_busy', {silent}); return; }
-    debugTrace('state_poll_start', {silent, busy});
+    if(stateRefreshInFlight){ debugTrace('state_poll_skipped_inflight', {silent}); return; }
+    const now = Date.now();
+    if(silent && (now - lastStateRefreshStartedAt) < 1500){
+      debugTrace('state_poll_skipped_recent', {silent, age_ms: now - lastStateRefreshStartedAt});
+      return;
+    }
+    stateRefreshInFlight = true;
+    lastStateRefreshStartedAt = now;
+    debugTrace('state_poll_start', {silent, busy, force_devices:!!options.forceDevices});
     const requestActionSeq = actionSequence;
     try{
-      const data = await apiGet({action:'state'});
+      const params = {action:'state'};
+      if(options.forceDevices) params.force_devices = 1;
+      const data = await apiGet(params);
       if(requestActionSeq !== actionSequence) return;
       if(data.ok){ acceptState(data.state); }
       else { if(data.state){acceptState(data.state);} if(!silent) toast(data.error || 'Update failed', false); }
     }
     catch(e){ if(!silent) toast('Mixer update failed', false); }
+    finally{ stateRefreshInFlight = false; }
   }
   async function doAction(params){
     if(busy){ debugTrace('action_ignored_busy', {params}); return; }
@@ -1997,7 +2010,7 @@ renderAccountStatus();
   }
   const clearSearch = $('#clearSearch'); if(clearSearch) clearSearch.addEventListener('click', ()=>{ els.search.value=''; els.search.focus(); els.searchResults.innerHTML=''; els.searchStatus.textContent=''; lastSearchTracks=[]; searchPage=0; renderSearchPager(0); });
   if(els.libraryViewSelect) els.libraryViewSelect.addEventListener('change', ()=>setLibraryView(els.libraryViewSelect.value || 'comfortable'));
-  const refreshNow = $('#refreshNow'); if(refreshNow) refreshNow.addEventListener('click', ()=>refresh(false));
+  const refreshNow = $('#refreshNow'); if(refreshNow) refreshNow.addEventListener('click', ()=>refresh(false, {forceDevices:true}));
   if(els.refreshCrates) els.refreshCrates.addEventListener('click', ()=>{ cratesLoaded = false; invalidateCrateArtistIndex(); if(crateArtistMode) loadCrateArtistIndex(true); else loadDjCrates(true); });
   if(els.createCrate) els.createCrate.addEventListener('click', async ()=>{ const name = els.newCrateName ? els.newCrateName.value : ''; if(!String(name || '').trim()) return; await doAction({action:'create_crate', name}); if(els.newCrateName) els.newCrateName.value=''; if(els.newCratePanel) els.newCratePanel.hidden = true; crateDrawerOpen = true; cratesLoaded=false; invalidateCrateArtistIndex(); loadDjCrates(true); });
   function tickDeckTimers(){

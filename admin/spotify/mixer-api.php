@@ -25,6 +25,35 @@ function mx_json($key, $default = []) {
     return is_array($decoded) ? $decoded : $default;
 }
 
+function mx_cached_devices_for_deck($deck, $force = false) {
+    $deck = strtolower((string)$deck) === 'b' ? 'b' : 'a';
+    $cacheKey = 'spotify_mixer_devices_cache_' . $deck;
+    $ttl = 90;
+    if (!$force) {
+        $cached = mx_json($cacheKey, []);
+        $fetchedAt = (int)($cached['fetched_at'] ?? 0);
+        $devices = $cached['devices'] ?? null;
+        if ($fetchedAt > 0 && is_array($devices) && (time() - $fetchedAt) < $ttl) {
+            mx_debug_trace('spotify_devices_cache_hit', ['deck' => $deck, 'age_seconds' => time() - $fetchedAt, 'device_count' => count($devices)]);
+            return $devices;
+        }
+    }
+
+    $devices = dttd_spotify_get_devices_for_deck($deck);
+    if (is_array($devices)) {
+        mx_set($cacheKey, json_encode([
+            'fetched_at' => time(),
+            'devices' => array_values($devices),
+        ]));
+    }
+    return is_array($devices) ? $devices : [];
+}
+
+function mx_clear_device_cache() {
+    mx_set('spotify_mixer_devices_cache_a', '');
+    mx_set('spotify_mixer_devices_cache_b', '');
+}
+
 
 
 function mx_debug_enabled() {
@@ -2074,7 +2103,7 @@ function mx_clear_transferred_duplicate_loaded_deck($loadedA, $loadedB, $deviceA
     return [$loadedA, $loadedB];
 }
 
-function mx_state() {
+function mx_state($options = []) {
     $playlist = mx_json('spotify_mixer_playlist', []);
     $loadedA = mx_json('spotify_mixer_loaded_a', []);
     $loadedB = mx_json('spotify_mixer_loaded_b', []);
@@ -2083,15 +2112,16 @@ function mx_state() {
     $devices = [];
     $playbackA = null;
     $playbackB = null;
+    $forceDevices = !empty($options['force_devices']);
     if (dttd_spotify_config_loaded()) {
         try {
-            $devicesA = dttd_spotify_get_devices_for_deck('a');
-            mx_debug_trace('spotify_devices_state', ['deck' => 'a', 'account' => mx_debug_account_summary('a'), 'devices' => mx_debug_device_summary_list($devicesA)]);
+            $devicesA = mx_cached_devices_for_deck('a', $forceDevices);
+            mx_debug_trace('spotify_devices_state', ['deck' => 'a', 'force' => $forceDevices, 'account' => mx_debug_account_summary('a'), 'devices' => mx_debug_device_summary_list($devicesA)]);
             foreach ($devicesA as $d) { $d['deck_account'] = 'A'; $devices[] = $d; }
         } catch (Throwable $e) { mx_debug_trace('spotify_devices_state_error', ['deck' => 'a', 'account' => mx_debug_account_summary('a'), 'error' => $e->getMessage()]); }
         try {
-            $devicesB = dttd_spotify_get_devices_for_deck('b');
-            mx_debug_trace('spotify_devices_state', ['deck' => 'b', 'account' => mx_debug_account_summary('b'), 'devices' => mx_debug_device_summary_list($devicesB)]);
+            $devicesB = mx_cached_devices_for_deck('b', $forceDevices);
+            mx_debug_trace('spotify_devices_state', ['deck' => 'b', 'force' => $forceDevices, 'account' => mx_debug_account_summary('b'), 'devices' => mx_debug_device_summary_list($devicesB)]);
             foreach ($devicesB as $d) {
                 $exists = false;
                 foreach ($devices as $existing) {
@@ -2718,7 +2748,8 @@ try {
     if ($action === 'assign_devices') {
         mx_set('spotify_mixer_device_a', $_POST['device_a'] ?? '');
         mx_set('spotify_mixer_device_b', $_POST['device_b'] ?? '');
-        mx_json_out(['ok' => true, 'message' => 'Player devices updated.', 'state' => mx_state()]);
+        mx_clear_device_cache();
+        mx_json_out(['ok' => true, 'message' => 'Player devices updated.', 'state' => mx_state(['force_devices' => true])]);
     }
 
     if ($action === 'load' || $action === 'auto_load') {
@@ -3049,7 +3080,8 @@ try {
         mx_json_out(['ok' => true, 'message' => 'Pause command sent to Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
     }
 
-    mx_json_out(['ok' => true, 'state' => mx_state()]);
+    $forceDevices = !empty($_GET['force_devices']) || !empty($_POST['force_devices']);
+    mx_json_out(['ok' => true, 'state' => mx_state(['force_devices' => $forceDevices])]);
 } catch (Throwable $e) {
     http_response_code(200);
     mx_debug_trace('request_error', ['error' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()]);
