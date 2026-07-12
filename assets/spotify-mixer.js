@@ -1194,7 +1194,9 @@ renderAccountStatus();
           <span class="mini muted">${esc(t.artist)}${duration(t.duration_ms) ? ' • ' + duration(t.duration_ms) : ''}${isLocalTrack(t) ? ' • local' : ''}${t.source === 'request' ? ' • public request' : ''}</span>
           ${requestNotes}
         </div>
-        <div class="row-actions">
+        <div class="row-actions playlist-row-actions">
+          <button class="mixer-btn dark mixer-mini-action playlist-order-btn" data-action="move_playlist" data-direction="up" data-idx="${i}" title="Move earlier in DJ playlist" aria-label="Move earlier in DJ playlist" ${i === 0 ? 'disabled aria-disabled="true"' : ''}>↑</button>
+          <button class="mixer-btn dark mixer-mini-action playlist-order-btn" data-action="move_playlist" data-direction="down" data-idx="${i}" title="Move later in DJ playlist" aria-label="Move later in DJ playlist" ${i === list.length - 1 ? 'disabled aria-disabled="true"' : ''}>↓</button>
           <button class="mixer-btn green auto-btn mixer-mini-action" data-action="auto_load" data-idx="${i}" title="Auto-load to the first empty standby player" aria-label="Auto-load to the first empty standby player">⇄</button>
           <button class="mixer-btn orange mixer-mini-action" data-action="load" data-deck="a" data-load-a data-idx="${i}" title="Load to Player A" aria-label="Load to Player A">A</button>
           <button class="mixer-btn blue mixer-mini-action" data-action="load" data-deck="b" data-load-b data-idx="${i}" title="Load to Player B" aria-label="Load to Player B">B</button>
@@ -2026,6 +2028,7 @@ renderAccountStatus();
       const params = {action:actionBtn.dataset.action};
       if(actionBtn.dataset.idx !== undefined) params.idx = actionBtn.dataset.idx;
       if(actionBtn.dataset.deck) params.deck = actionBtn.dataset.deck;
+      if(actionBtn.dataset.direction) params.direction = actionBtn.dataset.direction;
       if(actionBtn.dataset.requestId) params.request_id = actionBtn.dataset.requestId;
       doAction(params); return;
     }

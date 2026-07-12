@@ -2828,6 +2828,21 @@ try {
         mx_json_out(['ok' => true, 'state' => mx_state()]);
     }
 
+    if ($action === 'move_playlist') {
+        $idx = (int)($_POST['idx'] ?? -1);
+        $direction = strtolower(trim((string)($_POST['direction'] ?? '')));
+        if (!isset($playlist[$idx])) throw new RuntimeException('Playlist item not found.');
+        $target = $direction === 'down' ? $idx + 1 : $idx - 1;
+        if ($target < 0 || $target >= count($playlist)) {
+            mx_json_out(['ok' => true, 'message' => 'DJ playlist order unchanged.', 'state' => mx_state()]);
+        }
+        $tmp = $playlist[$idx];
+        $playlist[$idx] = $playlist[$target];
+        $playlist[$target] = $tmp;
+        mx_save_playlist(array_values($playlist));
+        mx_json_out(['ok' => true, 'message' => 'DJ playlist order updated.', 'state' => mx_state()]);
+    }
+
     if ($action === 'clear_playlist') {
         foreach ($playlist as $p) {
             if (!empty($p['request_id'])) mx_flag_request_in_playlist((int)$p['request_id'], 'mixer_request');
