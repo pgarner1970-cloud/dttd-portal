@@ -242,46 +242,78 @@ $requestCloseClock = $event ? dttd_event_request_close_clock_label($event) : '';
             <div class="public-alert error"><?= public_h($error) ?></div>
           <?php endif; ?>
 
-          <form class="public-request-form public-request-form-clean" method="post" action="/request.php" data-spotify-request-form>
+          <form class="public-request-form public-request-form-clean public-request-search-first" method="post" action="/request.php" data-spotify-request-form>
             <input type="hidden" name="event_id" value="<?= (int)$event['id'] ?>">
 
-            <div class="request-field request-name-field">
-              <label for="guest_name">Your name *</label>
-              <input id="guest_name" name="guest_name" required maxlength="120" placeholder="Your name">
-            </div>
-
-            <div class="request-field request-dedication-field">
-              <label for="dedication">Dedication / message</label>
-              <textarea id="dedication" name="dedication" rows="3" placeholder="Optional message or dedication"></textarea>
-            </div>
-
-            <div class="request-song-artist-row">
-              <div class="request-field">
-                <label for="song_title">Song title *</label>
-                <input id="song_title" name="song_title" required maxlength="190" placeholder="Example: September">
+            <section class="request-song-stage" data-request-song-stage>
+              <div class="request-stage-heading">
+                <span class="request-stage-number">1</span>
+                <div>
+                  <h3>Find your song</h3>
+                  <p>Search by song title, artist, or both.</p>
+                </div>
               </div>
 
-              <div class="request-field">
-                <label for="artist">Artist *</label>
-                <input id="artist" name="artist" required maxlength="190" placeholder="Example: Earth, Wind & Fire">
+              <div class="request-field request-search-field">
+                <label for="spotify_request_query">Search songs or artists</label>
+                <div class="request-search-control">
+                  <span class="request-search-icon" aria-hidden="true">⌕</span>
+                  <input id="spotify_request_query" type="search" autocomplete="off" enterkeyhint="search" placeholder="Example: Michael Jackson Billie Jean" data-spotify-query>
+                </div>
               </div>
-            </div>
 
-            <input type="hidden" name="spotify_track_id">
-            <input type="hidden" name="spotify_track_url">
-            <input type="hidden" name="spotify_artist_name">
-            <input type="hidden" name="spotify_album_image">
-            <input type="hidden" name="request_source" value="manual">
+              <div class="spotify-search-box public-spotify-search-box">
+                <small class="spotify-search-status" data-spotify-status></small>
+                <div class="spotify-results" data-spotify-results hidden></div>
+              </div>
 
-            <div class="spotify-search-box public-spotify-search-box">
-              <small class="spotify-search-status" data-spotify-status></small>
-              <div class="spotify-results" data-spotify-results hidden></div>
+              <button class="request-manual-toggle" type="button" data-request-manual-toggle>Can't find it? Enter the song manually</button>
+            </section>
+
+            <section class="request-completion-stage" data-request-completion-stage>
+              <div class="request-stage-heading">
+                <span class="request-stage-number">2</span>
+                <div>
+                  <h3>Complete your request</h3>
+                  <p>Add your name and an optional dedication.</p>
+                </div>
+              </div>
+
               <div class="spotify-selected" data-spotify-selected hidden></div>
-            </div>
 
-            <div class="request-submit-row">
-              <button class="public-neon-btn public-submit-btn" type="submit">Send Request</button>
-            </div>
+              <div class="request-song-artist-row request-manual-fields" data-request-manual-fields>
+                <div class="request-field">
+                  <label for="song_title">Song title *</label>
+                  <input id="song_title" name="song_title" required maxlength="190" placeholder="Example: September" value="<?= public_h($_POST['song_title'] ?? '') ?>">
+                </div>
+
+                <div class="request-field">
+                  <label for="artist">Artist *</label>
+                  <input id="artist" name="artist" required maxlength="190" placeholder="Example: Earth, Wind & Fire" value="<?= public_h($_POST['artist'] ?? '') ?>">
+                </div>
+              </div>
+
+              <input type="hidden" name="spotify_track_id" value="<?= public_h($_POST['spotify_track_id'] ?? '') ?>">
+              <input type="hidden" name="spotify_track_url" value="<?= public_h($_POST['spotify_track_url'] ?? '') ?>">
+              <input type="hidden" name="spotify_artist_name" value="<?= public_h($_POST['spotify_artist_name'] ?? '') ?>">
+              <input type="hidden" name="spotify_album_image" value="<?= public_h($_POST['spotify_album_image'] ?? '') ?>">
+              <input type="hidden" name="request_source" value="<?= (($_POST['request_source'] ?? '') === 'spotify') ? 'spotify' : 'manual' ?>">
+
+              <div class="request-field request-name-field">
+                <label for="guest_name">Your name *</label>
+                <input id="guest_name" name="guest_name" required maxlength="120" autocomplete="name" placeholder="Your name" value="<?= public_h($_POST['guest_name'] ?? '') ?>">
+              </div>
+
+              <div class="request-field request-dedication-field">
+                <label for="dedication">Dedication / message <span>optional</span></label>
+                <textarea id="dedication" name="dedication" rows="2" placeholder="Add a message or dedication if you like"><?= public_h($_POST['dedication'] ?? '') ?></textarea>
+              </div>
+
+              <div class="request-submit-row">
+                <button class="request-change-song" type="button" data-request-change-song>Change song</button>
+                <button class="public-neon-btn public-submit-btn" type="submit">Send Request</button>
+              </div>
+            </section>
           </form>
         </article>
       <?php endif; ?>
