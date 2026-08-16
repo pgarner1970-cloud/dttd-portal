@@ -595,7 +595,7 @@ function renderRecent() {
 
     return '<article class="display-slide" data-slide="music_board">'
       + '<div class="display-card music-board-card music-board-card-stable">'
-      + '<div class="music-board-head"><p class="display-kicker">Tonight’s Music</p><h1>Requests & played</h1></div>'
+      + '<div class="music-board-head"><p class="display-kicker">Tonight’s Music</p><h1>Requests by you</h1></div>'
       + '<div class="music-board-body">'
       + '<section class="music-board-panel music-board-requests">'
       + '<h2>Request queue</h2>'
