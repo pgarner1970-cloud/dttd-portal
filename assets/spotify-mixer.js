@@ -56,6 +56,8 @@ document.head.appendChild(overviewStyle);
   let lastSearchQuery = '';
   let lastSearchTracks = [];
   let searchPage = 0;
+  let playlistPage = 0;
+  const PLAYLIST_PAGE_SIZE = 8;
   let selectedLibraryChoice = null;
   let selectedLibraryChoices = [];
   let debugEnabled = false;
@@ -121,7 +123,7 @@ document.head.appendChild(overviewStyle);
     spotifyStatus: $('#spotifyStatus'),
     search: $('#spotifySearch'), searchResults: $('#searchResults'), searchStatus: $('#searchStatus'),
     searchModeButtons: document.querySelectorAll('[data-search-mode]'), searchPager: $('#searchPager'), libraryViewSelect: $('#musicLibraryViewSelect'),
-    publicRequests: $('#publicRequests'), djPlaylist: $('#djPlaylist'),
+    publicRequests: $('#publicRequests'), djPlaylist: $('#djPlaylist'), playlistPager: $('#playlistPager'),
     requestCount: $('#requestCount'), playlistCount: $('#playlistCount'),
     sourceTabs: document.querySelectorAll('[data-source-tab]'), sourcePanels: document.querySelectorAll('[data-source-panel]'),
     djCrateTiles: $('#djCrateTiles'), crateTileDrawer: $('#crateTileDrawer'), crateDrawerToggle: $('#crateDrawerToggle'), crateSummaryName: $('#crateSummaryName'), crateSummaryCount: $('#crateSummaryCount'), annotateCrates: $('#annotateCrates'), djCrateTracks: $('#djCrateTracks'), cratePager: $('#cratePager'), djCrateStatus: $('#djCrateStatus'), refreshCrates: $('#refreshCrates'), showNewCrate: $('#showNewCrate'), newCratePanel: $('#newCratePanel'), cancelNewCrate: $('#cancelNewCrate'), newCrateName: $('#newCrateName'), createCrate: $('#createCrate'), historyList: $('#historyList'),
@@ -1180,8 +1182,18 @@ renderAccountStatus();
     const list = state?.playlist || [];
     if(els.playlistCount) els.playlistCount.textContent = list.length;
     if(!els.djPlaylist) return;
-    if(!list.length){ els.djPlaylist.innerHTML = '<div class="empty">DJ playlist is empty.</div>'; return; }
-    els.djPlaylist.innerHTML = list.map((t,i)=>{
+    if(!list.length){
+      playlistPage = 0;
+      els.djPlaylist.innerHTML = '<div class="empty">DJ playlist is empty.</div>';
+      if(els.playlistPager){ els.playlistPager.hidden = true; els.playlistPager.innerHTML = ''; }
+      return;
+    }
+    const pageCount = Math.max(1, Math.ceil(list.length / PLAYLIST_PAGE_SIZE));
+    playlistPage = Math.max(0, Math.min(playlistPage, pageCount - 1));
+    const startIdx = playlistPage * PLAYLIST_PAGE_SIZE;
+    const visible = list.slice(startIdx, startIdx + PLAYLIST_PAGE_SIZE);
+    els.djPlaylist.innerHTML = visible.map((t,localIdx)=>{
+      const i = startIdx + localIdx;
       // Layout lock: DJ Playlist rows stay compact. Do not add workflow/source badges
       // or duplicate request summary lines here; requester/time already live in the
       // dedication/request notes card below the track details.
@@ -1204,6 +1216,18 @@ renderAccountStatus();
         </div>
       </div>`;
     }).join('');
+    if(els.playlistPager){
+      if(pageCount <= 1){
+        els.playlistPager.hidden = true;
+        els.playlistPager.innerHTML = '';
+      }else{
+        els.playlistPager.hidden = false;
+        els.playlistPager.innerHTML = `
+          <button class="mixer-btn dark" type="button" data-playlist-page="prev" ${playlistPage === 0 ? 'disabled' : ''}>← Previous</button>
+          <span class="playlist-page-label">Page ${playlistPage + 1} of ${pageCount}</span>
+          <button class="mixer-btn dark" type="button" data-playlist-page="next" ${playlistPage >= pageCount - 1 ? 'disabled' : ''}>Next →</button>`;
+      }
+    }
   }
   function renderRequests(){
     const reqs = state?.requests || [];
@@ -2020,6 +2044,16 @@ renderAccountStatus();
     const selectRequest = e.target.closest('[data-select-request]');
     if(selectRequest){
       try{ openChoice(JSON.parse(selectRequest.dataset.selectRequest), 'request'); }catch(err){ toast('Could not read request selection', false); }
+      return;
+    }
+    const playlistPageBtn = e.target.closest('[data-playlist-page]');
+    if(playlistPageBtn){
+      if(playlistPageBtn.disabled) return;
+      const pageCount = Math.max(1, Math.ceil((state?.playlist || []).length / PLAYLIST_PAGE_SIZE));
+      if(playlistPageBtn.dataset.playlistPage === 'prev') playlistPage = Math.max(0, playlistPage - 1);
+      if(playlistPageBtn.dataset.playlistPage === 'next') playlistPage = Math.min(pageCount - 1, playlistPage + 1);
+      renderPlaylist();
+      renderDecks();
       return;
     }
     const actionBtn = e.target.closest('[data-action]');
