@@ -10,7 +10,7 @@
   --display-border:rgba(255,255,255,.18);
 }
 *{box-sizing:border-box}
-html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#09030f;color:var(--display-text);font-family:Inter,Arial,Helvetica,sans-serif}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#09030f;color:var(--display-text);font-family:Inter,Arial,Helvetica,sans-serif;cursor:none!important}
 .display-body{background:radial-gradient(circle at 15% 15%,rgba(255,47,179,.25),transparent 34%),radial-gradient(circle at 85% 20%,rgba(68,230,255,.20),transparent 32%),linear-gradient(135deg,#08030d 0%,#190925 50%,#050208 100%)}
 .display-shell{position:relative;width:100vw;height:100vh;padding:3.4vh 4vw 3.2vh;display:flex;flex-direction:column;isolation:isolate}
 .display-shell:before{content:"";position:absolute;inset:0;background:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:46px 46px;mask-image:radial-gradient(circle at 50% 45%,#000 0%,transparent 74%);z-index:-3}

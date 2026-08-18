@@ -121,10 +121,12 @@ function dttd_spotify_command_label($command) {
         'healthcheck' => 'Health Check',
         'update_agent' => 'Update Agent',
         'set_volume' => 'Set Volume',
-        'display_start' => 'Start / Apply Display',
-        'display_logo' => 'Show Logo Screen',
+        'display_start' => 'Start Display',
+        'display_live' => 'Show Live',
+        'display_logo' => 'Show Logo',
+        'display_blank' => 'Blank',
         'display_restart' => 'Restart Display',
-        'display_wake' => 'Wake Display',
+        'display_stop' => 'Stop Display',
     ];
     return $labels[$command] ?? $command;
 }
@@ -284,9 +286,11 @@ $allowedNodeCommands = [
     'update_agent',
     'set_volume',
     'display_start',
+    'display_live',
     'display_logo',
+    'display_blank',
     'display_restart',
-    'display_wake',
+    'display_stop',
 ];
 
 $prepareTestTrack = dttd_spotify_prepare_track_id(dttd_spotify_tool_setting('spotify_prepare_test_track_id', ''));
@@ -330,13 +334,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['node_action'] ?? '') === '
                 throw new RuntimeException('The Spotify account for Deck ' . strtoupper($deck) . ' is not connected.');
             }
 
-            // Readiness checks must be non-destructive. Do not restart Raspotify or
-            // queue any node command here; explicit recovery controls remain separate.
+            // Readiness checks are deliberately non-destructive. Do not restart
+            // Raspotify or queue any node command here.
             $device = dttd_spotify_find_device_for_node($node, $deck);
             $lastDevices = [];
             if (!$device) {
-                // Give Spotify Connect a few seconds to refresh its device list without
-                // changing the Pi/service state.
                 [$device, $lastDevices] = dttd_spotify_wait_for_node_device($node, $deck, 6);
             }
 
@@ -372,7 +374,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['node_action'] ?? '') === '
         $nodeError = 'Invalid player node command.';
     } else {
         try {
-            $check = db()->prepare("SELECT node_key, display_name, hostname FROM player_nodes WHERE node_key = ? LIMIT 1");
+            $check = db()->prepare("SELECT * FROM player_nodes WHERE node_key = ? LIMIT 1");
             $check->execute([$nodeKey]);
             $node = $check->fetch();
 
@@ -393,24 +395,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['node_action'] ?? '') === '
 
                 $queuedCommand = $command;
 
-                if (in_array($command, ['display_start', 'display_restart'], true)) {
-                    $mode = strtolower(trim((string)($_POST['display_mode'] ?? 'lite')));
-                    $mode = $mode === 'full' ? 'full' : 'lite';
-                    $payload = json_encode(['mode' => $mode]);
+                if (in_array($command, ['display_live', 'display_logo', 'display_blank'], true)) {
+                    $screenMode = $command === 'display_logo' ? 'logo' : ($command === 'display_blank' ? 'blank' : 'live');
+                    $modeKey = 'display_operating_mode_' . preg_replace('/[^a-z0-9_-]+/i', '_', $nodeKey);
+                    dttd_spotify_tool_set($modeKey, $screenMode);
+
+                    // The screen-mode buttons should always do the obvious thing.
+                    // Queue Start as a harmless safety net: an already-running Chromium
+                    // instance is left untouched by the agent, while a stopped/headless
+                    // backup display is brought up automatically.
+                    $renderMode = strtolower((string)($node['display_mode'] ?? 'lite'));
+                    $renderMode = $renderMode === 'full' ? 'full' : 'lite';
+                    $stmt = db()->prepare("
+                        INSERT INTO node_commands (node_key, command, payload, status)
+                        VALUES (?, 'display_start', ?, 'pending')
+                    ");
+                    $stmt->execute([$nodeKey, json_encode(['mode' => $renderMode])]);
+
+                    $nodeFlash = dttd_spotify_command_label($command) . ' selected for ' . dttd_spotify_node_label($node) . '. The existing display will switch in place; if it was stopped it will be started automatically.';
+                } else {
+                    if (in_array($command, ['display_start', 'display_restart'], true)) {
+                        $mode = strtolower(trim((string)($_POST['display_mode'] ?? ($node['display_mode'] ?? 'lite'))));
+                        $mode = $mode === 'full' ? 'full' : 'lite';
+                        $payload = json_encode(['mode' => $mode]);
+                    }
+
+                    $stmt = db()->prepare("
+                        INSERT INTO node_commands (node_key, command, payload, status)
+                        VALUES (?, ?, ?, 'pending')
+                    ");
+                    $stmt->execute([$nodeKey, $queuedCommand, $payload]);
+
+                    $nodeFlash = dttd_spotify_command_label($command) . ' command queued for ' . dttd_spotify_node_label($node) . ($command === 'set_volume' ? ' at ' . $volume . '%.' : '.');
                 }
-
-                if ($command === 'display_logo') {
-                    $queuedCommand = 'display_start';
-                    $payload = json_encode(['mode' => 'logo']);
-                }
-
-                $stmt = db()->prepare("
-                    INSERT INTO node_commands (node_key, command, payload, status)
-                    VALUES (?, ?, ?, 'pending')
-                ");
-                $stmt->execute([$nodeKey, $queuedCommand, $payload]);
-
-                $nodeFlash = dttd_spotify_command_label($command) . ' command queued for ' . dttd_spotify_node_label($node) . ($command === 'set_volume' ? ' at ' . $volume . '%.' : '.');
             }
         } catch (Throwable $e) {
             $nodeError = 'Could not queue command: ' . $e->getMessage();
@@ -622,9 +639,15 @@ admin_header('Spotify Tools - DJ Portal');
                     <button class="danger" type="submit" name="command" value="shutdown" onclick="return confirm('Shutdown Deck <?= h($deckSlot) ?> node <?= h($nodeLabel) ?>? You will need to physically power it back on.')">Shutdown Deck <?= h($deckSlot) ?></button>
                   </form>
 
+                  <?php
+                    $displayModeKey = 'display_operating_mode_' . preg_replace('/[^a-z0-9_-]+/i', '_', (string)($node['node_key'] ?? ''));
+                    $operatingMode = strtolower(dttd_spotify_tool_setting($displayModeKey, 'live'));
+                    if (!in_array($operatingMode, ['live', 'logo', 'blank'], true)) $operatingMode = 'live';
+                  ?>
                   <div class="pi-display-status">
+                    <div><span>Screen mode</span><strong><?= h(ucfirst($operatingMode)) ?></strong></div>
                     <?php if (dttd_spotify_has_column('player_nodes', 'display_mode')): ?>
-                      <div><span>Display mode</span><strong><?= h((string)($node['display_mode'] ?? '—')) ?></strong></div>
+                      <div><span>Render profile</span><strong><?= h((string)($node['display_mode'] ?? '—')) ?></strong></div>
                     <?php endif; ?>
                     <?php if (dttd_spotify_has_column('player_nodes', 'display_url')): ?>
                       <div><span>Display URL</span><strong><?= h((string)($node['display_url'] ?? '—')) ?></strong></div>
@@ -634,16 +657,15 @@ admin_header('Spotify Tools - DJ Portal');
                   <form class="pi-display-actions" method="post">
                     <input type="hidden" name="node_action" value="send_command">
                     <input type="hidden" name="node_key" value="<?= h($node['node_key'] ?? '') ?>">
-                    <select name="display_mode" aria-label="Deck <?= h($deckSlot) ?> display mode">
-                      <option value="lite" <?= strtolower((string)($node['display_mode'] ?? '')) === 'lite' ? 'selected' : '' ?>>Lite display</option>
-                      <option value="full" <?= strtolower((string)($node['display_mode'] ?? '')) === 'full' ? 'selected' : '' ?>>Full display</option>
-                    </select>
-                    <button type="submit" name="command" value="display_start">Start / Apply</button>
+                    <button class="wake" type="submit" name="command" value="display_live">Show Live</button>
+                    <button type="submit" name="command" value="display_logo">Show Logo</button>
+                    <button class="danger" type="submit" name="command" value="display_blank">Blank Screen</button>
+                    <input type="hidden" name="display_mode" value="<?= h(strtolower((string)($node['display_mode'] ?? 'lite')) === 'full' ? 'full' : 'lite') ?>">
+                    <button type="submit" name="command" value="display_start">Start Display</button>
                     <button type="submit" name="command" value="display_restart">Restart Display</button>
-                    <button type="submit" name="command" value="display_logo">Show Logo Screen</button>
-                    <button class="wake" type="submit" name="command" value="display_wake">Wake Screen</button>
+                    <button class="danger" type="submit" name="command" value="display_stop" onclick="return confirm('Stop the display browser on Deck <?= h($deckSlot) ?>?')">Stop Display</button>
                   </form>
-                  <p class="pi-display-hint">Start / Apply launches the HDMI player in the selected Lite or Full mode. Show Logo Screen keeps the HDMI output on a clean black branded holding screen. Wake Screen restores the HDMI output if the screen has been powered down.</p>
+                  <p class="pi-display-hint">Show Live, Show Logo and Blank Screen are the normal venue controls and switch instantly inside the live-display page. If the browser is stopped, any of those three buttons will start it automatically. Start, Restart and Stop are retained as recovery/process controls.</p>
 
                   <form class="pi-volume-actions" method="post">
                     <input type="hidden" name="node_action" value="send_command">
