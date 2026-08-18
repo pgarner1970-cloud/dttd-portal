@@ -1247,7 +1247,7 @@ $GLOBALS['public_current_mixer_tracks'] = $hasEventAccess ? public_loaded_mixer_
     <?php if ($showGate): ?>
       <section class="public-event-detail-hero public-feature-hero">
         <div class="option-one-logo-shell public-list-logo">
-          <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=152" alt="Dance Thru The Decades Events logo">
+          <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=200" alt="Dance Thru The Decades Events logo">
         </div>
         <p class="option-one-eyebrow">Event Portal</p>
         <h1 class="event-detail-title">Join This Event</h1>
@@ -1281,7 +1281,7 @@ $GLOBALS['public_current_mixer_tracks'] = $hasEventAccess ? public_loaded_mixer_
     <?php elseif ($notFound): ?>
       <section class="public-event-detail-hero">
         <div class="option-one-logo-shell public-list-logo">
-          <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=152" alt="Dance Thru The Decades Events logo">
+          <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=200" alt="Dance Thru The Decades Events logo">
         </div>
         <p class="option-one-eyebrow">Event Portal</p>
         <h1 class="event-detail-title">Event Not Found</h1>
@@ -1297,7 +1297,7 @@ $GLOBALS['public_current_mixer_tracks'] = $hasEventAccess ? public_loaded_mixer_
     <?php else: ?>
       <section class="public-event-detail-hero">
         <div class="option-one-logo-shell public-list-logo">
-          <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=152" alt="Dance Thru The Decades Events logo">
+          <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=200" alt="Dance Thru The Decades Events logo">
         </div>
         <p class="option-one-eyebrow"><?= $hasEventAccess ? 'Event Portal' : ($isCancelled ? 'Cancelled Event' : 'Event Details') ?></p>
         <h1 class="event-detail-title"><?= public_h($title) ?></h1>

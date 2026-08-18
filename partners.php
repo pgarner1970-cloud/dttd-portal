@@ -50,7 +50,7 @@ function partner_public_image($value) {
     <?php require __DIR__ . '/includes/public-nav.php'; ?>
 
     <section class="public-partners-hero">
-      <div class="option-one-logo-shell"><img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=152" alt="Dance Thru The Decades Events logo"></div>
+      <div class="option-one-logo-shell"><img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=200" alt="Dance Thru The Decades Events logo"></div>
       <p class="option-one-eyebrow">Local suppliers · event friends · trusted contacts</p>
       <h1>Our Partners</h1>
       <p class="option-one-subtitle">A simple directory of the businesses and people we work with around events, supplies, print, party extras and production support.</p>

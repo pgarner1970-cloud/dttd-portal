@@ -20,7 +20,7 @@ $whatsappUrl = $whatsappUrl ?? '';
 <footer class="public-site-footer">
   <div class="public-footer-inner">
     <div class="public-footer-brand">
-      <img src="/assets/dttd-logo-inner.png?v=152" alt="" aria-hidden="true">
+      <img src="/assets/dttd-logo-inner.png?v=200" alt="" aria-hidden="true">
       <div>
         <strong>Dance Thru The Decades Events</strong>
         <span>Feel-good party nights, classic floor-fillers and moments worth sharing.</span>

@@ -128,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <section class="public-gallery-hero">
       <div class="option-one-logo-shell public-list-logo">
-        <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=152" alt="Dance Thru The Decades Events logo">
+        <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=200" alt="Dance Thru The Decades Events logo">
       </div>
       <p class="option-one-eyebrow"><?= $selfieMode ? 'Event Selfie' : 'Event Photos' ?></p>
       <h1 class="public-gallery-title"><?= $selfieMode ? 'Take a Selfie' : 'Upload Photos' ?></h1>

@@ -211,7 +211,7 @@ try {
 
     <section class="public-list-hero">
       <div class="option-one-logo-shell public-list-logo">
-        <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=152" alt="Dance Thru The Decades Events logo">
+        <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=200" alt="Dance Thru The Decades Events logo">
       </div>
 
       <p class="option-one-eyebrow">Public Nights</p>

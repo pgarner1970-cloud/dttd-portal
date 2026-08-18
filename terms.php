@@ -17,7 +17,7 @@ $public_current = 'terms';
 
 <section class="public-legal-shell">
     <div class="public-legal-hero">
-        <img class="public-legal-logo" src="/assets/dttd-logo-inner.png" alt="Dance Thru The Decades">
+        <img class="public-legal-logo" src="/assets/dttd-logo-inner.png?v=200" alt="Dance Thru The Decades">
         <div class="public-legal-eyebrow">Dance Thru The Decades</div>
         <h1 class="public-legal-title">Terms &amp; Conditions</h1>
         <p class="public-legal-subtitle">

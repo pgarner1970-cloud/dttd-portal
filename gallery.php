@@ -126,7 +126,7 @@ function gallery_photo_share_text($photo) {
 
 $metaTitle = 'Gallery | Dance Thru The Decades';
 $metaDescription = 'Browse approved photos from Dance Thru The Decades events.';
-$metaImage = gallery_absolute_url('/assets/dttd-logo-inner.png?v=152');
+$metaImage = gallery_absolute_url('/assets/dttd-logo-inner.png?v=200');
 $metaUrl = gallery_absolute_url('/gallery');
 
 if ($sharePhoto) {

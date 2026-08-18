@@ -30,7 +30,7 @@ if ($displayMode === 'logo') {
 </head>
 <body>
   <main class="dttd-logo-hold" aria-label="Dance Through The Decades logo screen">
-    <img src="<?= h(dttd_asset_url('assets/dttd-logo-inner.png?v=152')) ?>" alt="Dance Through The Decades">
+    <img src="<?= h(dttd_asset_url('assets/dttd-logo-inner.png?v=200')) ?>" alt="Dance Through The Decades">
   </main>
 </body>
 </html>
@@ -55,7 +55,7 @@ if ($displayMode === 'logo') {
     <header class="display-header">
       <div class="display-brand" aria-label="Dance Through The Decades Events">
         <span class="display-brand-logo">
-          <img src="<?= h(dttd_asset_url('assets/dttd-logo-inner.png?v=152')) ?>" alt="Dance Through The Decades Events">
+          <img src="<?= h(dttd_asset_url('assets/dttd-logo-inner.png?v=200')) ?>" alt="Dance Through The Decades Events">
         </span>
         <span class="display-brand-wordmark">
           <strong>Dance Thru The Decades</strong>

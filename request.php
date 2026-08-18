@@ -171,7 +171,7 @@ $requestCloseClock = $event ? dttd_event_request_close_clock_label($event) : '';
 
     <section class="public-event-detail-hero public-feature-hero">
       <div class="option-one-logo-shell public-list-logo">
-        <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=152" alt="Dance Thru The Decades Events logo">
+        <img class="option-one-logo" src="/assets/dttd-logo-inner.png?v=200" alt="Dance Thru The Decades Events logo">
       </div>
       <p class="option-one-eyebrow">Song Requests</p>
       <h1 class="event-detail-title">Request a Song</h1>
