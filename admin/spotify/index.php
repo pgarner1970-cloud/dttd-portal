@@ -121,12 +121,10 @@ function dttd_spotify_command_label($command) {
         'healthcheck' => 'Health Check',
         'update_agent' => 'Update Agent',
         'set_volume' => 'Set Volume',
-        'display_start' => 'Start Display',
-        'display_live' => 'Show Live',
-        'display_logo' => 'Show Logo',
-        'display_blank' => 'Blank',
+        'display_start' => 'Start / Apply Display',
+        'display_logo' => 'Show Logo Screen',
         'display_restart' => 'Restart Display',
-        'display_stop' => 'Stop Display',
+        'display_wake' => 'Wake Display',
     ];
     return $labels[$command] ?? $command;
 }
@@ -286,11 +284,9 @@ $allowedNodeCommands = [
     'update_agent',
     'set_volume',
     'display_start',
-    'display_live',
     'display_logo',
-    'display_blank',
     'display_restart',
-    'display_stop',
+    'display_wake',
 ];
 
 $prepareTestTrack = dttd_spotify_prepare_track_id(dttd_spotify_tool_setting('spotify_prepare_test_track_id', ''));
@@ -326,40 +322,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['node_action'] ?? '') === '
 
             db()->prepare("UPDATE player_nodes SET assigned_deck = ? WHERE node_key = ?")->execute([strtoupper($deck), $nodeKey]);
 
-            // Wake/re-advertise librespot first. The agent already understands this command.
-            db()->prepare("
-                INSERT INTO node_commands (node_key, command, payload, status)
-                VALUES (?, 'restart_raspotify', ?, 'pending')
-            ")->execute([$nodeKey, json_encode([
-                'reason' => 'prepare_player',
-                'deck' => strtoupper($deck),
-                'created_by' => 'spotify_tools',
-            ])]);
+            if ($prepareTestTrack === '') {
+                throw new RuntimeException('No Prepare Player test track is configured. Save a Spotify test track first, then run the readiness check again.');
+            }
 
-            $device = null;
+            if (!dttd_spotify_queue_connected_for_deck($deck)) {
+                throw new RuntimeException('The Spotify account for Deck ' . strtoupper($deck) . ' is not connected.');
+            }
+
+            // Readiness checks must be non-destructive. Do not restart Raspotify or
+            // queue any node command here; explicit recovery controls remain separate.
+            $device = dttd_spotify_find_device_for_node($node, $deck);
             $lastDevices = [];
-
-            if (dttd_spotify_queue_connected_for_deck($deck)) {
-                $device = dttd_spotify_find_device_for_node($node, $deck);
-                if (!$device) {
-                    [$device, $lastDevices] = dttd_spotify_wait_for_node_device($node, $deck, 18);
-                }
+            if (!$device) {
+                // Give Spotify Connect a few seconds to refresh its device list without
+                // changing the Pi/service state.
+                [$device, $lastDevices] = dttd_spotify_wait_for_node_device($node, $deck, 6);
             }
 
-            if ($device && !empty($device['id'])) {
-                dttd_spotify_tool_set('spotify_mixer_device_' . $deck, (string)$device['id']);
-                dttd_spotify_prepare_player_device((string)$device['id'], $deck, $prepareTestTrack);
-
-                $nodeFlash = 'Prepared ' . dttd_spotify_node_label($node) . ' for Deck ' . strtoupper($deck) . ' using Spotify device "' . (string)($device['name'] ?? 'device') . '".';
-                if ($prepareTestTrack !== '') {
-                    $nodeFlash .= ' The configured test track has been started and left playing.';
-                } else {
-                    $nodeFlash .= ' No test track is configured, so playback was not started.';
-                }
-            } else {
-                $seen = dttd_spotify_device_names_for_message($lastDevices ?: (dttd_spotify_queue_connected_for_deck($deck) ? dttd_spotify_get_devices_for_deck($deck) : []));
-                $nodeFlash = 'Wake command queued for ' . dttd_spotify_node_label($node) . ' and assigned to Deck ' . strtoupper($deck) . ', but Spotify API still does not list a matching device. Spotify API currently sees: ' . $seen . '.';
+            if (!$device || empty($device['id'])) {
+                $seen = dttd_spotify_device_names_for_message($lastDevices ?: dttd_spotify_get_devices_for_deck($deck));
+                throw new RuntimeException(
+                    'Spotify does not currently list the assigned player for Deck ' . strtoupper($deck) .
+                    '. No restart was attempted. Spotify API currently sees: ' . $seen .
+                    '. Use Restart Spotify separately only if recovery is required.'
+                );
             }
+
+            dttd_spotify_tool_set('spotify_mixer_device_' . $deck, (string)$device['id']);
+            dttd_spotify_prepare_player_device((string)$device['id'], $deck, $prepareTestTrack);
+
+            $nodeFlash = 'Deck ' . strtoupper($deck) . ' readiness check passed on ' . dttd_spotify_node_label($node) .
+                ' using Spotify device "' . (string)($device['name'] ?? 'device') .
+                '". The configured test track has been started and left playing. No Spotify restart was performed.';
         } catch (Throwable $e) {
             $nodeError = 'Prepare Player failed: ' . $e->getMessage();
         }
@@ -398,26 +393,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['node_action'] ?? '') === '
 
                 $queuedCommand = $command;
 
-                if (in_array($command, ['display_live', 'display_logo', 'display_blank'], true)) {
-                    $screenMode = $command === 'display_logo' ? 'logo' : ($command === 'display_blank' ? 'blank' : 'live');
-                    $modeKey = 'display_operating_mode_' . preg_replace('/[^a-z0-9_-]+/i', '_', $nodeKey);
-                    dttd_spotify_tool_set($modeKey, $screenMode);
-                    $nodeFlash = dttd_spotify_command_label($command) . ' selected for ' . dttd_spotify_node_label($node) . '. Chromium remains running.';
-                } else {
-                    if (in_array($command, ['display_start', 'display_restart'], true)) {
-                        $mode = strtolower(trim((string)($_POST['display_mode'] ?? 'lite')));
-                        $mode = $mode === 'full' ? 'full' : 'lite';
-                        $payload = json_encode(['mode' => $mode]);
-                    }
-
-                    $stmt = db()->prepare("
-                        INSERT INTO node_commands (node_key, command, payload, status)
-                        VALUES (?, ?, ?, 'pending')
-                    ");
-                    $stmt->execute([$nodeKey, $queuedCommand, $payload]);
-
-                    $nodeFlash = dttd_spotify_command_label($command) . ' command queued for ' . dttd_spotify_node_label($node) . ($command === 'set_volume' ? ' at ' . $volume . '%.' : '.');
+                if (in_array($command, ['display_start', 'display_restart'], true)) {
+                    $mode = strtolower(trim((string)($_POST['display_mode'] ?? 'lite')));
+                    $mode = $mode === 'full' ? 'full' : 'lite';
+                    $payload = json_encode(['mode' => $mode]);
                 }
+
+                if ($command === 'display_logo') {
+                    $queuedCommand = 'display_start';
+                    $payload = json_encode(['mode' => 'logo']);
+                }
+
+                $stmt = db()->prepare("
+                    INSERT INTO node_commands (node_key, command, payload, status)
+                    VALUES (?, ?, ?, 'pending')
+                ");
+                $stmt->execute([$nodeKey, $queuedCommand, $payload]);
+
+                $nodeFlash = dttd_spotify_command_label($command) . ' command queued for ' . dttd_spotify_node_label($node) . ($command === 'set_volume' ? ' at ' . $volume . '%.' : '.');
             }
         } catch (Throwable $e) {
             $nodeError = 'Could not queue command: ' . $e->getMessage();
@@ -629,15 +622,9 @@ admin_header('Spotify Tools - DJ Portal');
                     <button class="danger" type="submit" name="command" value="shutdown" onclick="return confirm('Shutdown Deck <?= h($deckSlot) ?> node <?= h($nodeLabel) ?>? You will need to physically power it back on.')">Shutdown Deck <?= h($deckSlot) ?></button>
                   </form>
 
-                  <?php
-                    $displayModeKey = 'display_operating_mode_' . preg_replace('/[^a-z0-9_-]+/i', '_', (string)($node['node_key'] ?? ''));
-                    $operatingMode = strtolower(dttd_spotify_tool_setting($displayModeKey, 'live'));
-                    if (!in_array($operatingMode, ['live', 'logo', 'blank'], true)) $operatingMode = 'live';
-                  ?>
                   <div class="pi-display-status">
-                    <div><span>Screen mode</span><strong><?= h(ucfirst($operatingMode)) ?></strong></div>
                     <?php if (dttd_spotify_has_column('player_nodes', 'display_mode')): ?>
-                      <div><span>Render profile</span><strong><?= h((string)($node['display_mode'] ?? '—')) ?></strong></div>
+                      <div><span>Display mode</span><strong><?= h((string)($node['display_mode'] ?? '—')) ?></strong></div>
                     <?php endif; ?>
                     <?php if (dttd_spotify_has_column('player_nodes', 'display_url')): ?>
                       <div><span>Display URL</span><strong><?= h((string)($node['display_url'] ?? '—')) ?></strong></div>
@@ -647,18 +634,16 @@ admin_header('Spotify Tools - DJ Portal');
                   <form class="pi-display-actions" method="post">
                     <input type="hidden" name="node_action" value="send_command">
                     <input type="hidden" name="node_key" value="<?= h($node['node_key'] ?? '') ?>">
-                    <button class="wake" type="submit" name="command" value="display_live">Show Live</button>
-                    <button type="submit" name="command" value="display_logo">Show Logo</button>
-                    <button class="danger" type="submit" name="command" value="display_blank">Blank</button>
-                    <select name="display_mode" aria-label="Deck <?= h($deckSlot) ?> render profile">
+                    <select name="display_mode" aria-label="Deck <?= h($deckSlot) ?> display mode">
                       <option value="lite" <?= strtolower((string)($node['display_mode'] ?? '')) === 'lite' ? 'selected' : '' ?>>Lite display</option>
                       <option value="full" <?= strtolower((string)($node['display_mode'] ?? '')) === 'full' ? 'selected' : '' ?>>Full display</option>
                     </select>
-                    <button type="submit" name="command" value="display_start">Start Display</button>
+                    <button type="submit" name="command" value="display_start">Start / Apply</button>
                     <button type="submit" name="command" value="display_restart">Restart Display</button>
-                    <button class="danger" type="submit" name="command" value="display_stop" onclick="return confirm('Stop the display browser on Deck <?= h($deckSlot) ?>?')">Stop Display</button>
+                    <button type="submit" name="command" value="display_logo">Show Logo Screen</button>
+                    <button class="wake" type="submit" name="command" value="display_wake">Wake Screen</button>
                   </form>
-                  <p class="pi-display-hint">Show Live, Show Logo and Blank switch the existing live-display page without restarting Chromium. Start launches Chromium only when it is not running; Restart and Stop are recovery/process controls.</p>
+                  <p class="pi-display-hint">Start / Apply launches the HDMI player in the selected Lite or Full mode. Show Logo Screen keeps the HDMI output on a clean black branded holding screen. Wake Screen restores the HDMI output if the screen has been powered down.</p>
 
                   <form class="pi-volume-actions" method="post">
                     <input type="hidden" name="node_action" value="send_command">
