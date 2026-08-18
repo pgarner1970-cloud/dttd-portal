@@ -3511,3 +3511,71 @@ h1{margin:0;color:#fff;font-weight:1000;line-height:.93;letter-spacing:-.055em;f
 .display-slide[data-slide="up_next"] .now-feature-copy.title-xl strong{
   font-size:clamp(32px,3.55vw,66px);
 }
+
+/* Persistent display operating modes: Live / Logo / Blank switch inside one Chromium page. */
+.display-mode-overlay{
+  position:fixed;
+  inset:0;
+  z-index:10000;
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transition:opacity .16s ease, visibility 0s linear .16s;
+}
+.display-logo-overlay,
+.display-blank-overlay{
+  background:#000;
+}
+.display-operating-logo .display-logo-overlay,
+.display-operating-blank .display-blank-overlay{
+  opacity:1;
+  visibility:visible;
+  transition:opacity .16s ease;
+}
+.display-logo-hold-grid{
+  width:100%;
+  height:100%;
+  box-sizing:border-box;
+  padding:clamp(32px,4vw,80px);
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1.35fr) minmax(0,1fr);
+  align-items:center;
+  justify-items:center;
+  gap:clamp(28px,4vw,90px);
+}
+.display-logo-hold-qr{
+  width:min(25vw,42vh,470px);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:clamp(12px,1.5vh,24px);
+}
+.display-logo-hold-qr img{
+  display:block;
+  width:100%;
+  height:auto;
+  aspect-ratio:1;
+  object-fit:contain;
+  background:#fff;
+  border-radius:clamp(12px,1.2vw,24px);
+}
+.display-logo-hold-qr span{
+  color:rgba(255,255,255,.78);
+  font-size:clamp(18px,1.35vw,30px);
+  font-weight:800;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+.display-logo-hold-brand{
+  width:min(36vw,61vh,700px);
+  display:grid;
+  place-items:center;
+}
+.display-logo-hold-brand img{
+  display:block;
+  width:100%;
+  height:auto;
+  max-height:76vh;
+  object-fit:contain;
+  filter:drop-shadow(0 0 30px rgba(255,255,255,.12));
+}

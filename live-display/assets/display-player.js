@@ -5,7 +5,10 @@
 
   const stateUrl = shell.dataset.stateUrl || '/api/display-state.php';
   const nowPlayingUrl = shell.dataset.nowPlayingUrl || '/api/public-now-playing.php';
+  const controlUrl = shell.dataset.controlUrl || '';
+  const nodeKey = String(shell.dataset.nodeKey || '').trim();
   const isLite = shell.dataset.displayMode === 'lite' || (new URLSearchParams(window.location.search).get('mode') || '').toLowerCase() === 'lite';
+  let operatingMode = String(shell.dataset.operatingMode || 'live').toLowerCase();
   const footerEvent = document.querySelector('[data-display-footer-event]');
   const footerSlideId = document.querySelector('[data-slide-id]');
   const clock = document.querySelector('[data-display-clock]');
@@ -1083,6 +1086,31 @@ function renderRecent() {
     return fetch(url + sep + '_=' + Date.now(), { cache: 'no-store', credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).catch(() => null);
   }
 
+
+  function applyOperatingMode(mode) {
+    mode = String(mode || 'live').toLowerCase();
+    if (!['live', 'logo', 'blank'].includes(mode)) mode = 'live';
+    if (mode === operatingMode && document.body.classList.contains('display-operating-' + mode)) return;
+    operatingMode = mode;
+    document.body.classList.remove('display-operating-live', 'display-operating-logo', 'display-operating-blank');
+    document.body.classList.add('display-operating-' + mode);
+    shell.dataset.operatingMode = mode;
+    const logoOverlay = document.querySelector('[data-display-logo-overlay]');
+    const blankOverlay = document.querySelector('[data-display-blank-overlay]');
+    if (logoOverlay) logoOverlay.setAttribute('aria-hidden', mode === 'logo' ? 'false' : 'true');
+    if (blankOverlay) blankOverlay.setAttribute('aria-hidden', mode === 'blank' ? 'false' : 'true');
+  }
+
+  function refreshOperatingMode() {
+    if (!nodeKey || !controlUrl) {
+      applyOperatingMode(operatingMode);
+      return Promise.resolve();
+    }
+    return fetchJson(controlUrl).then(data => {
+      if (data && data.ok) applyOperatingMode(data.mode);
+    });
+  }
+
   function endpointWithEventId(url, eventId) {
     if (!eventId) return url;
     try {
@@ -1141,9 +1169,17 @@ function renderRecent() {
   }
 
   setClock();
+  applyOperatingMode(operatingMode);
   setInterval(setClock, 15000);
   refresh();
+  refreshOperatingMode();
   refreshTimer = setInterval(refresh, 15000);
   setInterval(refreshNowPlaying, 5000);
-  document.addEventListener('visibilitychange', function(){ if (!document.hidden) refresh(); });
+  setInterval(refreshOperatingMode, 1000);
+  document.addEventListener('visibilitychange', function(){
+    if (!document.hidden) {
+      refresh();
+      refreshOperatingMode();
+    }
+  });
 })();
