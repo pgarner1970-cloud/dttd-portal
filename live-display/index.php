@@ -21,34 +21,17 @@ if (isset($_GET['event_id'])) {
 $stateUrl = $scriptBase . '/api/display-state.php' . ($eventParam !== '' ? '?' . $eventParam : '');
 $nowPlayingUrl = $scriptBase . '/api/public-now-playing.php' . ($eventParam !== '' && str_starts_with($eventParam, 'event_id=') ? '?' . $eventParam : '');
 $requestedMode = strtolower((string)($_GET['mode'] ?? 'full'));
-$displayMode = in_array($requestedMode, ['lite', 'logo'], true) ? $requestedMode : 'full';
-$bodyClass = 'display-body' . ($displayMode === 'lite' ? ' display-lite' : '') . ($displayMode === 'logo' ? ' display-logo-mode' : '');
-if ($displayMode === 'logo') {
-?><!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <?= dttd_cache_meta_tags() ?>
-  <title>Dance Through The Decades — Logo Screen</title>
-  <meta name="robots" content="noindex,nofollow,noarchive">
-  <link rel="icon" href="<?= h($liveAssetUrl('assets/favicon-dj-192.png')) ?>">
-  <style>
-    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #000; }
-    body { display: grid; place-items: center; }
-    .dttd-logo-hold { width: min(62vw, 62vh, 760px); max-width: 82%; filter: drop-shadow(0 0 28px rgba(255,255,255,.16)); }
-    .dttd-logo-hold img { display: block; width: 100%; height: auto; }
-  </style>
-</head>
-<body>
-  <main class="dttd-logo-hold" aria-label="Dance Through The Decades logo screen">
-    <img src="<?= h($liveAssetUrl('assets/dttd-logo-inner.png?v=200')) ?>" alt="Dance Through The Decades">
-  </main>
-</body>
-</html>
-<?php
-    exit;
-}
+$displayMode = $requestedMode === 'lite' ? 'lite' : 'full';
+$initialOperatingMode = in_array($requestedMode, ['logo', 'blank'], true) ? $requestedMode : 'live';
+$nodeKey = trim((string)($_GET['node'] ?? $_GET['node_key'] ?? ''));
+$controlUrl = $scriptBase . '/api/display-control-state.php' . ($nodeKey !== '' ? '?node=' . rawurlencode($nodeKey) : '');
+$bodyClass = 'display-body' . ($displayMode === 'lite' ? ' display-lite' : '') . ' display-operating-' . $initialOperatingMode;
+$websiteUrl = rtrim(dttd_public_request_base_url('https://dancethruthedecades.co.uk'), '/') . '/';
+$facebookUrl = defined('FACEBOOK_URL') && trim((string)FACEBOOK_URL) !== ''
+    ? trim((string)FACEBOOK_URL)
+    : 'https://www.facebook.com/profile.php?id=61579454050951';
+$websiteQrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=900x900&margin=24&data=' . rawurlencode($websiteUrl);
+$facebookQrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=900x900&margin=24&data=' . rawurlencode($facebookUrl);
 ?><!doctype html>
 <html lang="en">
 <head>
@@ -61,14 +44,30 @@ if ($displayMode === 'logo') {
   <link rel="stylesheet" href="<?= h($liveAssetUrl('assets/display.css')) ?>">
 </head>
 <body class="<?= h($bodyClass) ?>">
-  <main class="display-shell" data-state-url="<?= h($stateUrl) ?>" data-now-playing-url="<?= h($nowPlayingUrl) ?>" data-display-mode="<?= h($displayMode) ?>">
+  <main class="display-shell" data-state-url="<?= h($stateUrl) ?>" data-now-playing-url="<?= h($nowPlayingUrl) ?>" data-display-mode="<?= h($displayMode) ?>" data-operating-mode="<?= h($initialOperatingMode) ?>" data-control-url="<?= h($controlUrl) ?>" data-node-key="<?= h($nodeKey) ?>">
+    <section class="display-mode-overlay display-logo-overlay" data-display-logo-overlay aria-hidden="true">
+      <div class="display-logo-hold-grid">
+        <div class="display-logo-hold-qr">
+          <img src="<?= h($websiteQrUrl) ?>" alt="Dance Thru The Decades website QR code">
+          <span>Website</span>
+        </div>
+        <div class="display-logo-hold-brand">
+          <img src="<?= h($liveAssetUrl('assets/dttd-logo-inner.png')) ?>" alt="Dance Thru The Decades">
+        </div>
+        <div class="display-logo-hold-qr">
+          <img src="<?= h($facebookQrUrl) ?>" alt="Dance Thru The Decades Facebook QR code">
+          <span>Facebook</span>
+        </div>
+      </div>
+    </section>
+    <section class="display-mode-overlay display-blank-overlay" data-display-blank-overlay aria-hidden="true"></section>
     <div class="display-bg-orb one"></div>
     <div class="display-bg-orb two"></div>
 
     <header class="display-header">
       <div class="display-brand" aria-label="Dance Through The Decades Events">
         <span class="display-brand-logo">
-          <img src="<?= h($liveAssetUrl('assets/dttd-logo-inner.png?v=200')) ?>" alt="Dance Through The Decades Events">
+          <img src="<?= h($liveAssetUrl('assets/dttd-logo-inner.png')) ?>" alt="Dance Through The Decades Events">
         </span>
         <span class="display-brand-wordmark">
           <strong>Dance Thru The Decades</strong>
