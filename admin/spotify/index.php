@@ -532,18 +532,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['node_action'] ?? '') === '
 
 $configured = dttd_spotify_config_loaded();
 $connected = dttd_spotify_queue_connected();
-$devices = [];
-$playback = null;
 $error = '';
-
-if ($connected) {
-    try {
-        $devices = dttd_spotify_get_devices();
-        try { $playback = dttd_spotify_current_playback(); } catch (Throwable $ignored) { $playback = null; }
-    } catch (Throwable $e) {
-        $error = $e->getMessage();
-    }
-}
+$deckAccountSummary = [
+    'a' => dttd_spotify_profile_summary_for_deck('a'),
+    'b' => dttd_spotify_profile_summary_for_deck('b'),
+];
+$publicAccountSummary = dttd_spotify_profile_summary_for_public_search();
 
 $playerNodes = dttd_spotify_player_nodes();
 $recentNodeCommands = dttd_spotify_recent_node_commands(8);
@@ -567,40 +561,6 @@ admin_header('Spotify Tools - DJ Portal');
     <?php if ($error): ?><p class="notice error"><?= h($error) ?></p><?php endif; ?>
     <?php if ($nodeError): ?><p class="notice error"><?= h($nodeError) ?></p><?php endif; ?>
 
-    <div class="settings-grid">
-      <div class="setting-card">
-        <h2>Connection</h2>
-        <p>API config: <strong><?= $configured ? 'configured' : 'missing' ?></strong></p>
-        <p>DJ account: <strong><?= $connected ? 'connected' : 'not connected' ?></strong></p>
-        <p><a class="touch-button primary" href="connect.php">Connect / Reconnect Spotify</a></p>
-        <p class="touch-subtitle">Requires Spotify Premium for playback queue control.</p>
-      </div>
-
-      <div class="setting-card">
-        <h2>Available devices</h2>
-        <?php if (!$devices): ?>
-          <p>No Spotify Connect devices currently visible.</p>
-        <?php else: ?>
-          <ul class="touch-list">
-            <?php foreach ($devices as $device): ?>
-              <li><strong><?= h($device['name'] ?? 'Unnamed device') ?></strong><?= !empty($device['is_active']) ? ' — active' : '' ?> <small><?= h($device['type'] ?? '') ?></small></li>
-            <?php endforeach; ?>
-          </ul>
-        <?php endif; ?>
-      </div>
-
-      <div class="setting-card">
-        <h2>Public search profile</h2>
-        <?php $publicProfile = dttd_spotify_profile_by_role('public_search'); ?>
-        <?php if ($publicProfile && !empty($publicProfile['client_id'])): ?>
-          <p>Profile: <strong><?= h($publicProfile['label'] ?? 'Public Search') ?></strong></p>
-          <p>Status: <strong><?= !empty($publicProfile['enabled']) ? 'enabled' : 'disabled' ?></strong></p>
-        <?php else: ?>
-          <p>No secondary public-search profile configured.</p>
-        <?php endif; ?>
-      </div>
-    </div>
-
     <section class="pi-node-panel">
       <div class="pi-node-toolbar">
         <div>
@@ -611,6 +571,15 @@ admin_header('Spotify Tools - DJ Portal');
 
       <details class="pi-diagnostics-toggle">
         <summary>Advanced diagnostics / prepare settings</summary>
+        <div class="pi-node-meta">
+          <div><span>Spotify API</span><strong><?= $configured ? 'Configured' : 'Missing configuration' ?></strong></div>
+          <div><span>Legacy connection</span><strong><?= $connected ? 'Connected' : 'Not connected' ?></strong></div>
+          <div><span>Deck A account</span><strong><?= h($deckAccountSummary['a']['display'] ?? 'Not assigned') ?><?= !empty($deckAccountSummary['a']['connected']) ? ' — connected' : ' — not connected' ?></strong></div>
+          <div><span>Deck B account</span><strong><?= h($deckAccountSummary['b']['display'] ?? 'Not assigned') ?><?= !empty($deckAccountSummary['b']['connected']) ? ' — connected' : ' — not connected' ?></strong></div>
+          <div><span>Public search</span><strong><?= h($publicAccountSummary['display'] ?? 'Not assigned') ?><?= !empty($publicAccountSummary['connected']) ? ' — connected' : '' ?></strong></div>
+          <div><span>Account management</span><strong>Settings → Spotify Accounts</strong></div>
+        </div>
+        <p class="pi-section-note">Spotify account login, reconnection and Deck A / Deck B / Public Search assignments are managed on Settings. This page is for player hardware, readiness and recovery.</p>
         <form class="pi-prepare-settings" method="post">
           <input type="hidden" name="node_action" value="save_prepare_settings">
           <label>Test track URI / ID<input type="text" name="prepare_test_track" value="<?= h($prepareTestTrack) ?>" placeholder="Optional: Spotify track URI or ID"></label>
@@ -647,7 +616,7 @@ admin_header('Spotify Tools - DJ Portal');
               <article class="pi-node-card <?= $node ? '' : 'standby' ?>">
                 <div class="pi-node-head"><div><h4>Deck <?= h($deckUpper) ?></h4><div class="pi-node-subtitle"><?= $node ? h(dttd_spotify_node_label($node)) : 'Select an audio platform' ?></div><?php if ($node): ?><span class="pi-node-key"><?= h($node['node_key'] ?? '') ?></span><?php endif; ?></div><span class="pi-node-status <?= h((string)($node['live_status'] ?? 'offline')) ?>"><?= $node ? h((string)($node['live_status'] ?? 'offline')) : 'unassigned' ?></span></div>
                 <?php if ($node): ?>
-                  <div class="pi-node-meta"><div><span>IP</span><strong><?= h($node['ip_address'] ?? '—') ?></strong></div><div><span>Spotify</span><strong><?= !empty($node['raspotify_running']) ? 'Running' : 'Not running' ?></strong></div><div><span>Spotify name</span><strong><?= h($node['spotify_name'] ?? '—') ?></strong></div><div><span>Last seen</span><strong><?= h(dttd_spotify_last_seen_label($node)) ?></strong></div></div>
+                  <div class="pi-node-meta"><div><span>IP</span><strong><?= h($node['ip_address'] ?? '—') ?></strong></div><div><span>Spotify</span><strong><?= !empty($node['raspotify_running']) ? 'Running' : 'Not running' ?></strong></div><div><span>Spotify player</span><strong><?= h($node['spotify_name'] ?? '—') ?></strong></div><div><span>Spotify account</span><strong><?= h($deckAccountSummary[$deckLower]['display'] ?? 'Not assigned') ?></strong></div><div><span>Account status</span><strong><?= !empty($deckAccountSummary[$deckLower]['connected']) ? 'Connected' : 'Not connected' ?></strong></div><div><span>Last seen</span><strong><?= h(dttd_spotify_last_seen_label($node)) ?></strong></div></div>
                   <span class="pi-control-label">Audio controls</span>
                   <form class="pi-prepare-actions" method="post"><input type="hidden" name="node_action" value="prepare_player"><input type="hidden" name="node_key" value="<?= h($node['node_key'] ?? '') ?>"><button type="submit" name="deck" value="<?= h($deckLower) ?>">Check Deck <?= h($deckUpper) ?> Ready</button></form>
                   <form class="pi-node-actions" method="post"><input type="hidden" name="node_action" value="send_command"><input type="hidden" name="node_key" value="<?= h($node['node_key'] ?? '') ?>"><button type="submit" name="command" value="restart_raspotify">Restart Spotify</button><?php if (str_starts_with((string)($node['node_key'] ?? ''), 'dmx-lenovo-')): ?><button type="submit" name="command" value="restart_agent">Restart Agent</button><?php endif; ?></form>
