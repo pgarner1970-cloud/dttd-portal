@@ -29,9 +29,12 @@ document.head.appendChild(overviewStyle);
   let lastStateRefreshStartedAt = 0;
   const STATE_POLL_MS = 15000;
   const TRANSPORT_SETTLE_MS = 6000;
+  const SEEK_SETTLE_MS = 6000;
+  const SEEK_SYNC_TOLERANCE_MS = 2500;
   let busy = false;
   let actionSequence = 0;
   const pendingTransportHolds = {};
+  const pendingSeekHolds = {};
   const endCheckSent = {};
   const END_CHECK_REMAINING_MS = 1600;
   const END_CHECK_REPEAT_MS = 12000;
@@ -645,6 +648,61 @@ document.head.appendChild(overviewStyle);
     cleanupTransportHolds();
     Object.keys(pendingTransportHolds).forEach(deck => forceDeckPlaybackFlag(deck, pendingTransportHolds[deck].playing));
   }
+  function cleanupSeekHolds(){
+    const now = Date.now();
+    Object.keys(pendingSeekHolds).forEach(deck => {
+      if(!pendingSeekHolds[deck] || Number(pendingSeekHolds[deck].expiresAt || 0) <= now){
+        delete pendingSeekHolds[deck];
+      }
+    });
+  }
+  function holdDeckSeek(deck, targetMs, playing){
+    const now = Date.now();
+    pendingSeekHolds[deck] = {
+      targetMs: Math.max(0, Number(targetMs || 0) || 0),
+      heldAt: now,
+      playing: !!playing,
+      expiresAt: now + SEEK_SETTLE_MS
+    };
+    applyDeckSeekHold(deck, pendingSeekHolds[deck], false);
+  }
+  function applyDeckSeekHold(deck, hold, allowServerSettle=true){
+    if(!state || !hold) return;
+    const key = 'player_' + deck;
+    const player = state[key] || (state[key] = {});
+    const loaded = player.loaded || null;
+    if(!loaded) return;
+    const durationMs = Number(loaded.duration_ms || player.playback?.duration_ms || 0) || 0;
+    const elapsedMs = hold.playing ? Math.max(0, Date.now() - Number(hold.heldAt || Date.now())) : 0;
+    let expectedMs = Math.max(0, Number(hold.targetMs || 0) + elapsedMs);
+    if(durationMs) expectedMs = Math.min(expectedMs, durationMs);
+    const serverMs = Number(player.playback?.progress_ms);
+    const serverHasTrack = !!player.playback?.track?.id && String(player.playback.track.id) === String(loaded.id || '');
+    if(allowServerSettle && serverHasTrack && Number.isFinite(serverMs) && Math.abs(serverMs - expectedMs) <= SEEK_SYNC_TOLERANCE_MS){
+      debugTrace('seek_hold_synced', {deck, expected_ms:Math.round(expectedMs), server_ms:Math.round(serverMs)});
+      delete pendingSeekHolds[deck];
+      return;
+    }
+    updateLoadedPositionForDeck(deck, expectedMs);
+    if(loaded){
+      loaded.position_base_ms = expectedMs;
+      loaded.paused_position_ms = hold.playing ? null : expectedMs;
+      loaded.position_updated_at = Date.now() / 1000;
+    }
+    if(player.playback){
+      player.playback.progress_ms = expectedMs;
+      if(durationMs) player.playback.duration_ms = durationMs;
+    }
+    if(state.track && String(state.track.id || '') === String(loaded.id || '')){
+      state.track.progress_ms = expectedMs;
+      if(durationMs) state.track.duration_ms = durationMs;
+    }
+    state._receivedAtMs = Date.now();
+  }
+  function applyPendingSeekHolds(){
+    cleanupSeekHolds();
+    Object.keys(pendingSeekHolds).forEach(deck => applyDeckSeekHold(deck, pendingSeekHolds[deck], true));
+  }
   function deckCanLoad(deck){
     return !!state?.['device_' + deck] && !deckIsPlaying(deck);
   }
@@ -1252,7 +1310,7 @@ renderAccountStatus();
       </div>`;
     }).join('');
   }
-  function render(){ applyPendingTransportHolds(); if(state?.crates) availableCrates = sortCratesByName(state.crates); renderDevices(); renderPlaylist(); renderRequests(); renderDecks(); if(activeSource === 'crates') renderDjCrates(availableCrates.length ? availableCrates : sortCratesByName(state?.crates || [])); if(activeSource === 'history') renderHistory(); updateLibrarySelectedElements(); renderLibraryActionBar(); }
+  function render(){ applyPendingTransportHolds(); applyPendingSeekHolds(); if(state?.crates) availableCrates = sortCratesByName(state.crates); renderDevices(); renderPlaylist(); renderRequests(); renderDecks(); if(activeSource === 'crates') renderDjCrates(availableCrates.length ? availableCrates : sortCratesByName(state?.crates || [])); if(activeSource === 'history') renderHistory(); updateLibrarySelectedElements(); renderLibraryActionBar(); }
   function acceptState(nextState){
     if(!nextState) return;
     state = nextState;
@@ -1440,10 +1498,10 @@ renderAccountStatus();
       const prog = deckProgress(loaded, deck);
       let nextMs = prog.progressMs;
       if(action === 'seek_start') nextMs = 0;
-      else if(action === 'seek_end') nextMs = Math.max(0, Number(prog.durationMs || loaded.duration_ms || 0) - 3000);
+      else if(action === 'seek_end') nextMs = Math.max(0, Number(prog.durationMs || loaded.duration_ms || 0) - 2500);
       else nextMs = Math.max(0, nextMs + (Number(params.delta_ms || 0) || 0));
-      updateLoadedPositionForDeck(deck, nextMs);
-      if(state['player_' + deck]?.playback) state['player_' + deck].playback.progress_ms = nextMs;
+      holdDeckSeek(deck, nextMs, deckIsPlaying(deck));
+      debugTrace('optimistic_seek', {deck, action, target_ms:Math.round(nextMs), playing:deckIsPlaying(deck)});
       state._receivedAtMs = Date.now();
       lastStateSyncAt = Date.now();
       renderDecks();
@@ -2107,6 +2165,8 @@ renderAccountStatus();
   function tickDeckTimers(){
     if(!state) return;
     cleanupTransportHolds();
+    cleanupSeekHolds();
+    applyPendingSeekHolds();
     renderDecks();
     if(Date.now() - lastStateSyncAt > STATE_POLL_MS + 1500 && !busy){
       refresh(true);
