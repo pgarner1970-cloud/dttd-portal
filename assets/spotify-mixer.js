@@ -28,7 +28,7 @@ document.head.appendChild(overviewStyle);
   let stateRefreshInFlight = false;
   let lastStateRefreshStartedAt = 0;
   const STATE_POLL_MS = 15000;
-  const TRANSPORT_SETTLE_MS = 3500;
+  const TRANSPORT_SETTLE_MS = 6000;
   let busy = false;
   let actionSequence = 0;
   const pendingTransportHolds = {};

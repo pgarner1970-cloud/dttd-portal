@@ -2986,18 +2986,36 @@ try {
         }
         $pb = mx_playback($deck);
         $isCurrentlyPlaying = mx_device_playing($device, $pb);
-        if ($transportIntent === 'play' && $isCurrentlyPlaying) {
-            mx_debug_trace('play_toggle_intent_noop', ['deck' => $deck, 'intent' => $transportIntent, 'reason' => 'already_playing']);
-            mx_json_out(['ok' => true, 'message' => 'Player ' . strtoupper($deck) . ' is already playing.', 'state' => mx_state()]);
-        }
-        if ($transportIntent === 'pause' && !$isCurrentlyPlaying) {
-            mx_debug_trace('play_toggle_intent_noop', ['deck' => $deck, 'intent' => $transportIntent, 'reason' => 'already_paused']);
-            mx_json_out(['ok' => true, 'message' => 'Player ' . strtoupper($deck) . ' is already paused.', 'state' => mx_state()]);
-        }
-        if ($isCurrentlyPlaying) {
+
+        // The browser sends an explicit play/pause intent. Spotify Connect playback
+        // state can lag a successful transport command for several seconds, so do
+        // not reject the DJ's next click merely because the API still reports the
+        // previous state. Explicit intent is authoritative; the operations are
+        // intentionally idempotent. Keep state-based toggle behaviour only as a
+        // compatibility fallback for older clients that do not send an intent.
+        if ($transportIntent === 'pause') {
+            mx_debug_trace('play_toggle_intent_execute', [
+                'deck' => $deck,
+                'intent' => 'pause',
+                'spotify_observed_playing' => $isCurrentlyPlaying,
+            ]);
             mx_save_resume_position($deck, $device, $track);
             mx_pause($device, $deck);
             mx_json_out(['ok' => true, 'message' => 'Paused Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
+        }
+
+        if ($transportIntent === '') {
+            if ($isCurrentlyPlaying) {
+                mx_save_resume_position($deck, $device, $track);
+                mx_pause($device, $deck);
+                mx_json_out(['ok' => true, 'message' => 'Paused Player ' . strtoupper($deck) . '.', 'state' => mx_state()]);
+            }
+        } else {
+            mx_debug_trace('play_toggle_intent_execute', [
+                'deck' => $deck,
+                'intent' => 'play',
+                'spotify_observed_playing' => $isCurrentlyPlaying,
+            ]);
         }
         if (!empty($track['played_on_deck'])) {
             $resumePosition = mx_resume_position_for_track($deck, $track['id'] ?? '');
