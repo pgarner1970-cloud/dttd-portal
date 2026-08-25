@@ -2399,7 +2399,7 @@ function mx_queue_deck_node_command($deck, $command, $payload = []) {
     }
     $node = mx_deck_node($deck);
     if (!$node || empty($node['node_key'])) {
-        throw new RuntimeException('No Raspberry Pi node is assigned to Player ' . strtoupper($deck) . '.');
+        throw new RuntimeException('No player node is assigned to Player ' . strtoupper($deck) . '.');
     }
     $payload = is_array($payload) ? $payload : [];
     $payload['deck'] = strtoupper($deck);

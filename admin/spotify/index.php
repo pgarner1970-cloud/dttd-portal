@@ -324,7 +324,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['node_action'] ?? '') === '
                 throw new RuntimeException('Player node was not found.');
             }
 
-            db()->prepare("UPDATE player_nodes SET assigned_deck = ? WHERE node_key = ?")->execute([strtoupper($deck), $nodeKey]);
+            $deckUpper = strtoupper($deck);
+            // A logical deck must have exactly one active player node. Clear any
+            // previous assignment before selecting the requested node so mixer
+            // commands cannot race between a Pi backup and the Lenovo primary.
+            db()->prepare("UPDATE player_nodes SET assigned_deck = NULL WHERE UPPER(COALESCE(assigned_deck, '')) = ? AND node_key <> ?")
+                ->execute([$deckUpper, $nodeKey]);
+            db()->prepare("UPDATE player_nodes SET assigned_deck = ? WHERE node_key = ?")
+                ->execute([$deckUpper, $nodeKey]);
 
             if ($prepareTestTrack === '') {
                 throw new RuntimeException('No Prepare Player test track is configured. Save a Spotify test track first, then run the readiness check again.');
@@ -552,7 +559,7 @@ admin_header('Spotify Tools - DJ Portal');
 
       <?php if (!dttd_spotify_table_exists('player_nodes') || !dttd_spotify_table_exists('node_commands')): ?>
         <div class="pi-node-empty">
-          Player node tables were not found. Run the player_nodes and node_commands SQL before using Raspberry Pi control.
+          Player node tables were not found. Run the player_nodes and node_commands SQL before using player-node control.
         </div>
       <?php elseif (!$playerNodes): ?>
         <div class="pi-node-empty">
