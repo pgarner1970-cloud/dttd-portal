@@ -463,6 +463,7 @@ admin_header('Settings - DJ Portal');
             <div id="spotify-accounts" class="settings-section-header" style="margin-top:1rem;">
               <h2>Spotify Accounts</h2>
               <p>Choose exactly one account for Deck A, one for Deck B and one for Public Search. The same account can be used for more than one role.</p>
+              <p class="spotify-account-help"><strong>Player hardware is independent:</strong> these account roles stay with logical Deck A and Deck B whether audio playback is using the Lenovo or the Raspberry Pi backup players.</p>
             </div>
 
             <div class="spotify-account-grid">
